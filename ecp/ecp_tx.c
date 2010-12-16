@@ -317,12 +317,14 @@ int ecp_tx_stop_ackTimer(struct vdp_data *vd)
  */
 static void ecp_tx_start_ackTimer(struct vdp_data *vd)
 {
-	unsigned int secs, usecs;
+	unsigned int secs, usecs, rte;
 
 	vd->ecp.ackTimerExpired = false;
 
-	secs = ECP_TRANSMISSION_TIMER / ECP_TRANSMISSION_DIVIDER;
-	usecs = ECP_TRANSMISSION_TIMER % ECP_TRANSMISSION_DIVIDER;
+	rte = evb_get_rte(vd->ifname);
+
+	secs = ECP_TRANSMISSION_TIMER(rte) / ECP_TRANSMISSION_DIVIDER;
+	usecs = ECP_TRANSMISSION_TIMER(rte) % ECP_TRANSMISSION_DIVIDER;
 
 	LLDPAD_DBG("%s(%i)-%s: starting timer\n", __func__, __LINE__,
 	       vd->ifname);

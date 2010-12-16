@@ -143,6 +143,82 @@ void vdp_somethingChangedLocal(struct vsi_profile *profile, bool mode)
 	profile->localChange = mode;
 }
 
+/* vdp_keepaliveTimer_expired - checks for expired ack timer
+ * @profile: profile to be checked
+ *
+ * returns true or false
+ *
+ * returns value of profile->ackTimerExpired, true if ack timer has expired,
+ * false otherwise.
+ */
+static bool vdp_keepaliveTimer_expired(struct vsi_profile *profile)
+{
+	return profile->keepaliveTimerExpired;
+}
+
+/* vdp_acktimeout_handler - handles the ack timer expiry
+ * @eloop_data: data structure of event loop
+ * @user_ctx: user context, profile here
+ *
+ * no return value
+ *
+ * called when the VDP ack timer has expired. sets a flag and calls the VDP
+ * state machine.
+ */
+void vdp_keepalivetimeout_handler(void *eloop_data, void *user_ctx)
+{
+	struct vsi_profile *profile;
+
+	profile = (struct vsi_profile *) user_ctx;
+
+	profile->keepaliveTimerExpired = true;
+
+	LLDPAD_DBG("%s(%i)-%s: keepalive timer expired\n", __func__, __LINE__,
+	       profile->port->ifname);
+
+	vdp_vsi_sm_station(profile);
+}
+
+/* vdp_stop_keepaliveTimer - stop the VDP keepalive timer
+ * @profile: profile to process
+ *
+ * returns the number of removed handlers
+ *
+ * stops the VDP keepalive timer. Used when the profile changes state e.g. a deassoc
+ * has been requested.
+ */
+static int vdp_stop_keepaliveTimer(struct vsi_profile *profile)
+{
+	LLDPAD_DBG("%s(%i)-%s: stopping keepalive timer\n", __func__, __LINE__,
+	       profile->port->ifname);
+
+	return eloop_cancel_timeout(vdp_keepalivetimeout_handler, NULL, (void *) profile);
+}
+
+/* vdp_start_keepaliveTimer - starts the VDP keepalive timer
+ * @profile: profile to process
+ *
+ * returns 0 on success, -1 on error
+ *
+ * starts the keepalive timer after a ack frame has received.
+ */
+static int vdp_start_keepaliveTimer(struct vsi_profile *profile)
+{
+	unsigned int secs, usecs, rte;
+
+	profile->keepaliveTimerExpired = false;
+
+	rte = evb_get_rte(profile->port->ifname);
+
+	secs = VDP_TRANSMISSION_TIMER(rte) / VDP_TRANSMISSION_DIVIDER;
+	usecs = VDP_TRANSMISSION_TIMER(rte) % VDP_TRANSMISSION_DIVIDER;
+
+	LLDPAD_DBG("%s(%i)-%s: starting keepalive timer (%i secs, %i usecs) \n", __func__, __LINE__,
+	       profile->port->ifname, secs, usecs);
+
+	return eloop_register_timeout(secs, usecs, vdp_keepalivetimeout_handler, NULL, (void *) profile);
+}
+
 /* vdp_ackTimer_expired - checks for expired ack timer
  * @profile: profile to be checked
  *
@@ -156,7 +232,7 @@ static bool vdp_ackTimer_expired(struct vsi_profile *profile)
 	return profile->ackTimerExpired;
 }
 
-/* vdp_timeout_handler - handles the ack timer expiry
+/* vdp_acktimeout_handler - handles the ack timer expiry
  * @eloop_data: data structure of event loop
  * @user_ctx: user context, profile here
  *
@@ -165,7 +241,7 @@ static bool vdp_ackTimer_expired(struct vsi_profile *profile)
  * called when the VDP ack timer has expired. sets a flag and calls the VDP
  * state machine.
  */
-void vdp_timeout_handler(void *eloop_data, void *user_ctx)
+void vdp_acktimeout_handler(void *eloop_data, void *user_ctx)
 {
 	struct vsi_profile *profile;
 
@@ -173,7 +249,7 @@ void vdp_timeout_handler(void *eloop_data, void *user_ctx)
 
 	profile->ackTimerExpired = true;
 
-	LLDPAD_DBG("%s(%i)-%s: timer expired\n", __func__, __LINE__,
+	LLDPAD_DBG("%s(%i)-%s: ack timer expired\n", __func__, __LINE__,
 	       profile->port->ifname);
 
 	vdp_vsi_sm_station(profile);
@@ -189,10 +265,10 @@ void vdp_timeout_handler(void *eloop_data, void *user_ctx)
  */
 static int vdp_stop_ackTimer(struct vsi_profile *profile)
 {
-	LLDPAD_DBG("%s(%i)-%s: stopping timer\n", __func__, __LINE__,
+	LLDPAD_DBG("%s(%i)-%s: stopping ack timer\n", __func__, __LINE__,
 	       profile->port->ifname);
 
-	return eloop_cancel_timeout(vdp_timeout_handler, NULL, (void *) profile);
+	return eloop_cancel_timeout(vdp_acktimeout_handler, NULL, (void *) profile);
 }
 
 /* vdp_start_ackTimer - starts the VDP ack timer
@@ -204,17 +280,19 @@ static int vdp_stop_ackTimer(struct vsi_profile *profile)
  */
 static int vdp_start_ackTimer(struct vsi_profile *profile)
 {
-	unsigned int secs, usecs;
+	unsigned int secs, usecs, rte;
 
 	profile->ackTimerExpired = false;
 
-	secs = VDP_TRANSMISSION_TIMER / VDP_TRANSMISSION_DIVIDER;
-	usecs = VDP_TRANSMISSION_TIMER % VDP_TRANSMISSION_DIVIDER;
+	rte = evb_get_rte(profile->port->ifname);
 
-	LLDPAD_DBG("%s(%i)-%s: starting timer\n", __func__, __LINE__,
-	       profile->port->ifname);
+	secs = VDP_TRANSMISSION_TIMER(rte) / VDP_TRANSMISSION_DIVIDER;
+	usecs = VDP_TRANSMISSION_TIMER(rte) % VDP_TRANSMISSION_DIVIDER;
 
-	return eloop_register_timeout(secs, usecs, vdp_timeout_handler, NULL, (void *) profile);
+	LLDPAD_DBG("%s(%i)-%s: starting ack timer (%i secs, %i usecs)\n", __func__, __LINE__,
+	       profile->port->ifname, secs, usecs);
+
+	return eloop_register_timeout(secs, usecs, vdp_acktimeout_handler, NULL, (void *) profile);
 }
 
 /* vdp_vsi_change_station_state - changes the VDP station sm state
@@ -235,13 +313,15 @@ void vdp_vsi_change_station_state(struct vsi_profile *profile, u8 newstate)
 		       (profile->state == VSI_UNASSOCIATED));
 		break;
 	case VSI_ASSOCIATED:
-		assert(profile->state == VSI_ASSOC_PROCESSING);
+		assert((profile->state == VSI_ASSOC_PROCESSING) ||
+			(profile->state == VSI_ASSOCIATED));
 		break;
 	case VSI_PREASSOC_PROCESSING:
 		assert(profile->state == VSI_UNASSOCIATED);
 		break;
 	case VSI_PREASSOCIATED:
-		assert(profile->state == VSI_PREASSOC_PROCESSING);
+		assert((profile->state == VSI_PREASSOC_PROCESSING) ||
+		       (profile->state == VSI_PREASSOCIATED));
 		break;
 	case VSI_DEASSOC_PROCESSING:
 		assert((profile->state == VSI_PREASSOCIATED) ||
@@ -369,6 +449,12 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			profile->ackReceived = false;
 			vdp_somethingChangedLocal(profile, false);
 			vdp_stop_ackTimer(profile);
+			if (profile->keepaliveTimerExpired) {
+				vdp_somethingChangedLocal(profile, true);
+				ecp_somethingChangedLocal(vd);
+				ecp_tx_run_sm(vd);
+			}
+			vdp_start_keepaliveTimer(profile);
 			 /* TODO:
 			  * vsiError = ProcRxandSetCfg(remoteTLV, localtlv, vsistate);
 			 *       if (!vsiError) vsistate=ASSOCIATED */
@@ -385,11 +471,18 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			profile->ackReceived = false;
 			vdp_somethingChangedLocal(profile, false);
 			vdp_stop_ackTimer(profile);
+			if (profile->keepaliveTimerExpired) {
+				vdp_somethingChangedLocal(profile, true);
+				ecp_somethingChangedLocal(vd);
+				ecp_tx_run_sm(vd);
+			}
+			vdp_start_keepaliveTimer(profile);
 			/* TODO	 vsiError = ProcRxandSetCfg(remoteTLV, localtlv, vsistate);
 			 *       if (!vsiError) vsistate=PREASSOCIATED */
 			break;
 		case VSI_DEASSOC_PROCESSING:
 			profile->response = VDP_RESPONSE_NO_RESPONSE;
+			vdp_stop_keepaliveTimer(profile);
 			vdp_somethingChangedLocal(profile, true);
 			ecp_somethingChangedLocal(vd);
 			ecp_tx_run_sm(vd);
@@ -729,6 +822,7 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode)
 				       __func__, __LINE__, p->localChange, p->ackReceived);
 
 				p->ackReceived = true;
+				p->keepaliveTimerExpired = false;
 				p->mode = vdp->mode;
 				p->response = vdp->response;
 
@@ -971,6 +1065,7 @@ struct vsi_profile *vdp_add_profile(struct vsi_profile *profile)
 		return NULL;
 	}
 
+	profile->keepaliveTimerExpired = true;
 	profile->response = VDP_RESPONSE_NO_RESPONSE;
 
 	vdp_print_profile(profile);
@@ -1067,6 +1162,7 @@ void vdp_ifdown(char *ifname)
 
 	LIST_FOREACH(p, &vd->profile_head, profile) {
 		vdp_stop_ackTimer(p);
+		vdp_stop_keepaliveTimer(p);
 		LIST_REMOVE(p, profile);
 		free(p);
 	}

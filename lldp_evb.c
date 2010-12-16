@@ -93,6 +93,13 @@ static void evb_dump_tlv(struct unpacked_tlv *tlv)
 	free(t);
 }
 
+unsigned int evb_get_rte(char *ifname)
+{
+	struct evb_data *ed = evb_data(ifname);
+
+	return (unsigned int) ed->tie->rte;
+}
+
 /*
  * evb_bld_cfg_tlv - build the EVB TLV
  * @ed: the evb data struct

@@ -37,11 +37,11 @@ typedef enum {
 	EVB_CONFIRMATION
 } evb_state;
 
-#define	RTE		13
+#define	EVB_RTE		13
 /* retransmission granularity (RTG) in microseconds */
 #define EVB_RTG		10
 /* retransmission multiplier (RTM) */
-#define EVB_RTM(rte)	(2<<(RTE-1))
+#define EVB_RTM(rte)	(2<<(rte-1))
 
 struct tlv_info_evb {
 	u8 oui[3];
