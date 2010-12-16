@@ -41,6 +41,7 @@
 #include "messages.h"
 #include "config.h"
 #include "lldp_tlv.h"
+#include "lldp_vdp_cmds.h"
 
 /* vdp_data - searches vdp_data in the list of modules for this port
  * @ifname: interface name to search for
@@ -119,6 +120,9 @@ static inline void vdp_print_profile(struct vsi_profile *profile)
 	LLDPAD_DBG("version: %i\n", profile->version);
 
 	char macbuf[MAC_ADDR_STRLEN+1];
+	char instance[INSTANCE_STRLEN+2];
+	instance2str(profile->instance, instance, sizeof(instance));
+	LLDPAD_DBG("instance: %s\n", &instance[0]);
 	mac2str(profile->mac, macbuf, MAC_ADDR_STRLEN);
 	LLDPAD_DBG("mac: %s\n", macbuf);
 
@@ -1116,7 +1120,7 @@ void vdp_ifup(char *ifname)
 
 	if (!get_cfg(ifname, "vdp.role", (void *)&p,
 		    CONFIG_TYPE_STRING)) {
-		if (!strcasecmp(p, "bridge")) {
+		if (!strcasecmp(p, VAL_BRIDGE)) {
 			vd->role = VDP_ROLE_BRIDGE;
 		}
 	}
@@ -1144,6 +1148,7 @@ static const struct lldp_mod_ops vdp_ops =  {
 	.lldp_mod_unregister	= vdp_unregister,
 	.lldp_mod_ifup		= vdp_ifup,
 	.lldp_mod_ifdown	= vdp_ifdown,
+	.get_arg_handler	= vdp_get_arg_handlers,
 };
 
 /* vdp_register - register vdp module to lldpad

@@ -128,6 +128,7 @@ struct vsi_profile {
 	struct port *port;
 	int ackTimerExpired;
 	int ackReceived;
+	int keepaliveTimerExpired;
 	int state;
 	bool localChange;
 	LIST_ENTRY(vsi_profile) profile;

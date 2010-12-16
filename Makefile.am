@@ -19,7 +19,8 @@ lldpad_include_HEADERS = include/dcb_types.h \
 include/clif.h include/lldp_dcbx_cmds.h \
 include/lldpad.h include/lldp_mand_cmds.h \
 include/clif_msgs.h include/lldp_basman_cmds.h include/lldp_8023_cmds.h \
-include/lldp_med_cmds.h include/lldp_evb_cmds.h include/lldp_util.h
+include/lldp_med_cmds.h include/lldp_util.h \
+include/lldp_evb_cmds.h include/lldp_vdp_cmds.h
 
 noinst_HEADERS = include/config.h include/ctrl_iface.h \
 include/dcb_driver_interface.h \
@@ -28,7 +29,8 @@ include/dcb_rule_chk.h include/lldp_dcbx_nl.h include/eloop.h \
 include/lldpad_shm.h include/event_iface.h include/messages.h \
 include/parse_cli.h include/version.h include/lldptool_cli.h include/list.h \
 include/lldp_mand_clif.h include/lldp_basman_clif.h include/lldp_med_clif.h \
-include/lldp_8023_clif.h include/lldp_dcbx_clif.h include/lldp_evb_clif.h \
+include/lldp_8023_clif.h include/lldp_dcbx_clif.h \
+include/lldp_evb_clif.h include/lldp_vdp_clif.h \
 include/lldptool.h include/lldp_rtnl.h include/dcbtool.h include/lldp_dcbx_cfg.h
 
 lldpad_SOURCES = lldpad.c config.c lldp_dcbx_nl.c ctrl_iface.c \
@@ -42,7 +44,7 @@ lldp_dcbx.c include/lldp_dcbx.h tlv_dcbx.c include/tlv_dcbx.h \
 lldp_dcbx_cfg.c include/lldp_dcbx_cfg.h lldp_util.c \
 lldp_mand.c include/lldp_mand.h \
 lldp_mand_cmds.c lldp_basman_cmds.c lldp_8023_cmds.c lldp_med_cmds.c \
-lldp_evb_cmds.c lldp_evb.c include/lldp_evb.h \
+lldp_evb_cmds.c lldp_evb.c include/lldp_evb.h lldp_vdp_cmds.c lldp_vdp_cmds.h \
 ecp/ecp.c ecp/ecp_tx.c ecp/ecp_rx.c lldp_vdp.c include/lldp_vdp.h \
 lldp_tlv.c include/lldp_tlv.h \
 lldp_basman.c include/lldp_basman.h \
@@ -55,7 +57,7 @@ $(lldpad_include_HEADERS) $(noinst_HEADERS)
 lldptool_SOURCES = lldptool.c clif.c lldptool_cmds.c lldp_rtnl.c \
 		   lldp_mand_clif.c lldp_basman_clif.c lldp_med_clif.c \
 		   lldp_8023_clif.c lldp_dcbx_clif.c lldp_util.c \
-		   lldp_evb_clif.c \
+		   lldp_evb_clif.c lldp_vdp_clif.c \
 		   $(lldpad_include_HEADERS) $(noinst_HEADERS)
 
 nltest_SOURCES = nltest.c nltest.h

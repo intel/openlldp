@@ -43,6 +43,7 @@
 #include "lldp_8023_clif.h"
 #include "lldp_dcbx_clif.h"
 #include "lldp_evb_clif.h"
+#include "lldp_vdp_clif.h"
 #include "lldptool.h"
 #include "lldptool_cli.h"
 #include "lldp_mod.h"
@@ -162,6 +163,7 @@ struct lldp_module *(*register_tlv_table[])(void) = {
 	med_cli_register,
 	dcbx_cli_register,
 	evb_cli_register,
+	vdp_cli_register,
 	NULL,
 };
 
