@@ -210,6 +210,7 @@ enum {
 
 /* IEEE 802.1Qbg subtype */
 #define LLDP_EVB_SUBTYPE		0
+#define LLDP_VDP_SUBTYPE		0x2
 
 /* forwarding mode */
 #define LLDP_EVB_CAPABILITY_FORWARD_STANDARD		(1 << 7)

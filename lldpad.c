@@ -50,6 +50,7 @@
 #include "lldp_med.h"
 #include "lldp_8023.h"
 #include "lldp_evb.h"
+#include "lldp_vdp.h"
 #include "config.h"
 #include "lldpad_shm.h"
 #include "clif.h"
@@ -66,6 +67,7 @@ struct lldp_module *(*register_tlv_table[])(void) = {
 	med_register,
 	ieee8023_register,
 	evb_register,
+	vdp_register,
 	NULL,
 };
 

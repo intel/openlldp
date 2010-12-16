@@ -143,15 +143,20 @@ struct port {
 	u8 portEnabled;
 	u8 prevPortEnabled;
 	u8 adminStatus;
-	u8 rxChanges;
-	u16   lldpdu;
+
+	/* protocol specific */
 	struct l2_packet_data *l2;
 	struct portrx rx;
 	struct porttx tx;
-	struct porttlvs tlvs;
 	struct portstats stats;
 	struct porttimers timers;
+	u8 rxChanges;
+	u16   lldpdu;
 	struct msap msap;
+
+	/* not sure */
+	struct porttlvs tlvs;
+
 	struct port *next;
 };
 

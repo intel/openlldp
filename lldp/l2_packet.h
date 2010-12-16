@@ -39,6 +39,8 @@
 
 #define ETH_P_LLDP 0x88cc
 
+/* TODO: use extended ethertype until final ethertype is available */
+#define ETH_P_ECP 0x88b7
 
 #define ETH_FRAME_LEN   1514
 
