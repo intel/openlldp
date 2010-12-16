@@ -108,7 +108,7 @@ static void vdp_free_data(struct vdp_user_data *ud)
  * prints the contents of a profile first to a string using the PRINT_PROFILE
  * macro, and then to the screen. Used for debug purposes.
  */
-static inline void vdp_print_profile(struct vsi_profile *profile)
+void vdp_print_profile(struct vsi_profile *profile)
 {
 	LLDPAD_DBG("profile:\n");
 

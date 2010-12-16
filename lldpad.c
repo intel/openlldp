@@ -372,6 +372,16 @@ int main(int argc, char *argv[])
 	if (check_cfg_file())
 		exit(1);
 
+	/* setup event netlink interface for user space processes.
+	 * This needs to be setup first to ensure it gets lldpads
+	 * pid as netlink address.
+	 */
+	if (event_iface_init_user_space() < 0) {
+		log_message(MSG_ERR_SERVICE_START_FAILURE,
+			"%s", "failed to register user space event interface");
+		exit(1);
+	}
+
 	init_modules("");
 
 

@@ -29,6 +29,7 @@
 #define  _EVENT_IFACE_H_
 
 int event_iface_init(void);
+int event_iface_init_user_space(void);
 int event_iface_deinit(void);
 int oper_add_device(char *device_name);
 
