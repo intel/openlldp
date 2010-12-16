@@ -116,7 +116,7 @@ static int evb_bld_cfg_tlv(struct evb_data *ed)
 	FREE_UNPKD_TLV(ed, evb);
 
 	if (!is_tlv_txenabled(ed->ifname, TLVID_8021Qbg(LLDP_EVB_SUBTYPE))) {
-		LLDPAD_ERR("%s:%s:EVB tx is currently disabled !\n",
+		LLDPAD_DBG("%s:%s:EVB tx is currently disabled !\n",
 			__func__, ed->ifname);
 		rc = EINVAL;
 		goto out_err;
@@ -295,16 +295,11 @@ static int evb_bld_tlv(struct evb_data *ed)
 	}
 
 	if (evb_bld_cfg_tlv(ed)) {
-		LLDPAD_ERR("%s:%s:evb_bld_cfg_tlv() failed\n",
+		LLDPAD_DBG("%s:%s:evb_bld_cfg_tlv() failed\n",
 				__func__, ed->ifname);
 		rc = EINVAL;
-		goto out_err_destroy;
 	}
 
-	return rc;
-
-out_err_destroy:
-	destroy_cfg();
 out_err:
 	return rc;
 }
@@ -335,9 +330,9 @@ struct packed_tlv *evb_gettlv(struct port *port)
 	evb_free_tlv(ed);
 
 	if (evb_bld_tlv(ed)) {
-		LLDPAD_ERR("%s:%s evb_bld_tlv failed\n",
+		LLDPAD_DBG("%s:%s evb_bld_tlv failed\n",
 			__func__, port->ifname);
-		goto out_err;
+		goto disabled;
 	}
 
 	size = TLVSIZE(ed->evb);
@@ -355,8 +350,8 @@ struct packed_tlv *evb_gettlv(struct port *port)
 
 	ptlv->size = 0;
 	PACK_TLV_AFTER(ed->evb, ptlv, size, out_free);
+disabled:
 	return ptlv;
-
 out_free:
 	/* FIXME: free function returns pointer ? */
 	ptlv = free_pkd_tlv(ptlv);
@@ -608,11 +603,7 @@ void evb_ifup(char *ifname)
 	}
 
 	ed->state = EVB_OFFER_CAPABILITIES;
-
-	if (evb_bld_tlv(ed)) {
-		LLDPAD_ERR("%s:%s evb_bld_tlv failed\n", __func__, ifname);
-		goto out_free;
-	}
+	evb_bld_tlv(ed);
 
 	ud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_EVB);
 	LIST_INSERT_HEAD(&ud->head, ed, entry);
