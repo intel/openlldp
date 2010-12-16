@@ -367,6 +367,8 @@ void init_ports(void)
 					p->if_name);
 		} else if (is_vlan(p->if_name)) {
 			;
+		} else if (is_macvtap(p->if_name)) {
+			;
 		} else if (is_bridge(p->if_name)) {
 			; /* ignore bridge device */
 		} else if (check_link_status(p->if_name)) {

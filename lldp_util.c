@@ -36,6 +36,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <net/if_arp.h>
+#include <netlink/msg.h>
 #include <arpa/inet.h>
 #include <linux/if.h>
 #include <linux/if_bonding.h>
@@ -44,6 +45,7 @@
 #include <linux/wireless.h>
 #include <linux/sockios.h>
 #include <linux/ethtool.h>
+#include <linux/rtnetlink.h>
 #include <dirent.h>
 #include "lldp.h"
 #include "lldp_util.h"
@@ -139,6 +141,8 @@ int is_valid_lldp_device(const char *device_name)
 	if (is_vlan(device_name))
 		return 0;
 	if (is_bridge(device_name))
+		return 0;
+	if (is_macvtap(device_name))
 		return 0;
 	return 1;
 }
@@ -615,6 +619,92 @@ int is_wlan(const char *ifname)
 		perror("is_wlan() open socket error");
 	}
 	return rc;
+}
+
+#define NLMSG_SIZE 1024
+
+static struct nla_policy ifla_info_policy[IFLA_INFO_MAX + 1] =
+{
+  [IFLA_INFO_KIND]       = { .type = NLA_STRING},
+  [IFLA_INFO_DATA]       = { .type = NLA_NESTED },
+};
+
+int is_macvtap(const char *ifname)
+{
+	int ret, s;
+	struct nlmsghdr *nlh;
+	struct ifinfomsg *ifinfo;
+	struct nlattr *tb[IFLA_MAX+1],
+		      *tb2[IFLA_INFO_MAX+1];
+
+	s = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
+
+	if (s < 0) {
+		goto out;
+	}
+
+	nlh = malloc(NLMSG_SIZE);
+	memset(nlh, 0, NLMSG_SIZE);
+
+	if (!nlh) {
+		goto out;
+	}
+
+	nlh->nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
+        nlh->nlmsg_type = RTM_GETLINK;
+        nlh->nlmsg_flags = NLM_F_REQUEST;
+
+	ifinfo = NLMSG_DATA(nlh);
+	ifinfo->ifi_family = AF_UNSPEC;
+	ifinfo->ifi_index = get_ifidx(ifname);
+
+	ret = send(s, nlh, nlh->nlmsg_len, 0);
+
+	if (ret < 0) {
+		goto out_free;
+	}
+
+	memset(nlh, 0, NLMSG_SIZE);
+
+	do {
+		ret = recv(s, (void *) nlh, NLMSG_SIZE, MSG_DONTWAIT);
+	} while ((ret < 0) && errno == EINTR);
+
+	if (nlmsg_parse(nlh, sizeof(struct ifinfomsg),
+			(struct nlattr **)&tb, IFLA_MAX, NULL)) {
+		goto out_free;
+	}
+
+	if (tb[IFLA_IFNAME]) {
+		ifname = (char *)RTA_DATA(tb[IFLA_IFNAME]);
+	} else {
+		ifinfo = (struct ifinfomsg *)NLMSG_DATA(nlh);
+	}
+
+	if (tb[IFLA_LINKINFO]) {
+		if (nla_parse_nested(tb2, IFLA_INFO_MAX, tb[IFLA_LINKINFO],
+				     ifla_info_policy)) {
+			goto out_free;
+		}
+
+		if (tb2[IFLA_INFO_KIND]) {
+			char *kind = (char*)(RTA_DATA(tb2[IFLA_INFO_KIND]));
+			if (!(strcmp("macvtap", kind) && strcmp("macvlan", kind))) {
+				free(nlh);
+				close(s);
+				return true;
+			}
+		}
+
+	} else {
+		goto out_free;
+	}
+
+out_free:
+	free(nlh);
+out:
+	close(s);
+	return false;
 }
 
 int is_router(const char *ifname)

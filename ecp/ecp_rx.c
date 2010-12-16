@@ -36,6 +36,8 @@
 #include "lldp_mand.h"
 #include "lldp_vdp.h"
 
+void ecp_rx_run_sm(struct vdp_data *);
+
 /* ecp_rx_Initialize - initializes the ecp rx state machine
  * @vd: vd for the state machine
  *
