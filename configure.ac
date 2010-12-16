@@ -7,6 +7,12 @@ AC_PROG_LEX
 AC_PROG_LIBTOOL
 
 PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.3.2])
+PKG_CHECK_MODULES([LIBNL], [libnl-1 >= 1.1])
+
+AC_SUBST(LIBNL_CFLAGS)
+AC_SUBST(LIBNL_LIBS)
+
+AC_CHECK_LIB(nl, rtnl_link_get_by_name)
 
 AC_CHECK_FUNCS([alarm])
 AC_CHECK_FUNCS([gettimeofday])
