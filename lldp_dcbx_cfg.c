@@ -917,7 +917,7 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 	return 0;
 
 set_default:
-	fprintf(stderr, "Error read config file.\n");
+	LLDPAD_WARN("Error read config file.\n");
 	result = get_default_persistent(attribs);
 	return result;
 }
@@ -939,11 +939,11 @@ int get_dcb_enable_state(char *ifname, int *result)
 	snprintf(path, sizeof(path), "%s.%s.dcb_enable", DCBX_SETTING, ifname);
 	settings = config_lookup(&lldpad_cfg, path);
 	if (!settings) {
-		printf("### %s:%s:failed on %s\n", __func__, ifname, path);
+		LLDPAD_INFO("### %s:%s:failed on %s\n", __func__, ifname, path);
 		snprintf(path, sizeof(path), "%s.dcb_enable", ifname);
 		settings = config_lookup(&lldpad_cfg, path);
 		if (!settings) {
-			printf("### %s:%s:failed again %s\n", __func__, ifname, path);
+			LLDPAD_INFO("### %s:%s:failed again %s\n", __func__, ifname, path);
 			rc = EIO;
 			goto out_err;
 		}
