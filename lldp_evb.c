@@ -186,7 +186,7 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
 
 	if (get_cfg(ed->ifname, arg_path, (void *) &param, CONFIG_TYPE_STRING)) {
-		LLDPAD_WARN("%s:%s: loading EVB policy for forwarding mode failed, using default.\n",
+		LLDPAD_INFO("%s:%s: loading EVB policy for forwarding mode failed, using default.\n",
 			__func__, ed->ifname);
 	} else {
 		if (strcasestr(param, VAL_EVB_FMODE_BRIDGE)) {
@@ -206,7 +206,7 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
 
 	if (get_cfg(ed->ifname, arg_path, (void *) &param, CONFIG_TYPE_STRING)) {
-		LLDPAD_WARN("%s:%s: loading EVB policy for capabilities failed, using default.\n",
+		LLDPAD_INFO("%s:%s: loading EVB policy for capabilities failed, using default.\n",
 			__func__, ed->ifname);
 	} else {
 		if (strcasestr(param, VAL_EVB_CAPA_RTE)) {
@@ -230,7 +230,7 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
 
 	if (get_cfg(ed->ifname, arg_path, (void *) &param, CONFIG_TYPE_STRING)) {
-		LLDPAD_WARN("%s:%s: loading EVB policy for rte failed, using default.\n",
+		LLDPAD_INFO("%s:%s: loading EVB policy for rte failed, using default.\n",
 			__func__, ed->ifname);
 	} else {
 		ed->policy->rte = atoi(param);
@@ -244,7 +244,7 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
 
 	if (get_cfg(ed->ifname, arg_path, (void *) &param, CONFIG_TYPE_STRING)) {
-		LLDPAD_WARN("%s:%s: loading EVB policy for vsis failed, using default.\n",
+		LLDPAD_INFO("%s:%s: loading EVB policy for vsis failed, using default.\n",
 			__func__, ed->ifname);
 	} else {
 		ed->policy->svsi = atoi(param);
