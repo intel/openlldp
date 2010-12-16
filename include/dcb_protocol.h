@@ -60,10 +60,6 @@ typedef enum {
 #define DUP_DCBX_TLV_LLINK         0x0020
 #define TOO_MANY_NGHBRS            0x0040
 
-//#ifndef min /*todo: change to min()
-	#define MIN(x, y) ((x) < (y) ? x : y)
-//#endif
-
 #define INIT_DCB_OUI                    {0x00,0x1b,0x21}
 
 int dcbx_add_adapter(char *device_name);

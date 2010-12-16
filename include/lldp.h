@@ -36,6 +36,20 @@ typedef __u16 u16;
 typedef __u32 u32;
 typedef __u64 u64;
 
+#define MIN(x,y) \
+	({	\
+		typeof (x) __x = (x);	\
+		typeof (y) __y = (y);	\
+		__x < __y ? __x : __y;	\
+	 })
+
+#define MAX(x,y) \
+	({	\
+		typeof (x) __x = (x);	\
+		typeof (y) __y = (y);	\
+		__x > __y ? __x : __y;	\
+	 })
+
 /*
  * Organizationally Unique Identifier (OUI)
  * http://standards.ieee.org/regauth/oui/oui.txt
