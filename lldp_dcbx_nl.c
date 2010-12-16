@@ -77,9 +77,9 @@ static int init_socket(void)
 
 	memset((void *)&snl, 0, sizeof(struct sockaddr_nl));
 	snl.nl_family = AF_NETLINK;
-	snl.nl_pid = getpid() + rand();
+	snl.nl_pid = 0;
 
-	if (bind(sd, (struct sockaddr *)&snl, sizeof(struct sockaddr_nl)) < 0) {
+	if (connect(sd, (struct sockaddr *)&snl, sizeof(struct sockaddr_nl)) < 0) {
 		close(sd);
 		return -EIO;
 	}
