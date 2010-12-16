@@ -145,6 +145,7 @@ int tlv_ok(struct unpacked_tlv *tlv);
 #define TLVID_8021(sub)		TLVID(OUI_IEEE_8021, (sub))
 #define TLVID_8023(sub)		TLVID(OUI_IEEE_8023, (sub))
 #define TLVID_MED(sub)		TLVID(OUI_TIA_TR41, (sub))
+#define TLVID_8021Qbg(sub)	TLVID(OUI_IEEE_8021Qbg, (sub))
 
 /* the size in bytes needed for a packed tlv from unpacked tlv */
 #define TLVSIZE(t) ((t) ? (2 + (t)->length) : 0)

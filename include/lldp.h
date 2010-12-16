@@ -65,6 +65,8 @@ typedef __u64 u64;
 /* Telecommunications Industry Association TR-41 Committee */
 #define OUI_TIA_TR41	0x0012bb
 
+#define OUI_IEEE_8021Qbg	0x001b3f
+
 /* IEEE 802.3AB Clause 9: TLV Types */
 #define CHASSIS_ID_TLV    1
 #define PORT_ID_TLV       2
@@ -205,6 +207,23 @@ enum {
 /* 802.3AB-2005 G.4.1 Table G-4 */
 #define LLDP_8023_LINKAGG_CAPABLE	(1 << 0)
 #define LLDP_8023_LINKAGG_ENABLED	(1 << 1)
+
+/* IEEE 802.1Qbg subtype */
+#define LLDP_EVB_SUBTYPE		0
+
+/* forwarding mode */
+#define LLDP_EVB_CAPABILITY_FORWARD_STANDARD		(1 << 7)
+#define LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY	(1 << 6)
+
+/* EVB supported protocols */
+#define LLDP_EVB_CAPABILITY_PROTOCOL_RTE		(1 << 2)
+#define LLDP_EVB_CAPABILITY_PROTOCOL_ECP		(1 << 1)
+#define LLDP_EVB_CAPABILITY_PROTOCOL_VDP		(1 << 0)
+
+/* EVB specific values */
+#define LLDP_EVB_DEFAULT_MAX_VSI			65535
+#define LLDP_EVB_DEFAULT_SVSI				3295
+#define LLDP_EVB_DEFAULT_RTE				15
 
 void somethingChangedLocal(const char *ifname);
 #endif /* _LLDP_H */
