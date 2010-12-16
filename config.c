@@ -372,8 +372,10 @@ void init_ports(void)
 		} else if (check_link_status(p->if_name)) {
 			add_port(p->if_name);
 
-			LIST_FOREACH(np, &lldp_head, lldp)
-				np->ops->lldp_mod_ifup(p->if_name);
+			LIST_FOREACH(np, &lldp_head, lldp) {
+				if (np->ops->lldp_mod_ifup)
+					np->ops->lldp_mod_ifup(p->if_name);
+			}
 			set_lldp_port_enable_state(p->if_name, 1);
 		}
 		p++;
