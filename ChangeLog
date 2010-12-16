@@ -1,0 +1,55 @@
+Changes from 0.9.39 through 0.940
+- Add iSCSI TLV support
+Changes from 0.9.26 through 0.9.39
+- Numerous bug fixes and code cleanup
+- Reworked netlink event handling to be more robust and handle dropped nlmsgs.
+- DCBx puts netdevice into linkmode until dcbx negotiation complete
+Changes from 0.9.21 through 0.9.26
+- Fork dcbd into lldpad and make the daemon a generic LLDP agent deamon.
+Changes from 0.9.19 through 0.9.21
+- Update libconfig to version 1.3.2.  Fix code to match API changes.
+- Add dcbd -k -s options in README and manpage.
+- Fix dcbd seg fault when dcbd.conf version string is not 1.0.
+- Move the dcbd.conf out of the /etc/sysconfig/ directory into /var/lib/dcbd.
+Changes from 0.9.15 through 0.9.19
+- Send App priority information to driver via netlink (if kernel supports)
+- dcbtool returns non-zero status on error
+- Allow user priority percentages (uppct) to be changed while using DCBX v2.
+- Improved dcbtool parameter parsing to detect invalid arguments.
+- Fixed segfault which occurred in some cases of the config file was removed.
+- Fixed dcbtool get app oper error.
+Changes from 0.9.7 through 0.9.15
+- Set FeatureSeqNo to 1 in the case of peer expiration.
+- Use the MSG_DONTWAIT flag in the recv socket call to avoid potential of making
+  a blocking call - which would hang dcbd.
+- Move initialization of control interface before call to init ports to
+  avoid use of uninitialized variable.
+- Add support of SAN MAC address, get SAN MAC address through driver interface. 
+- Add -s, -k command line options.
+- Dcbd, dcbtool man pages and README are updated.
+- Set the SO_PRIORITY of the LLDP socket to TC_PRIO_CONTROL (7).  This will
+  help the driver to know not to priority tag the LLDP packets.
+- Add shared memory segment to save some DCBX state information when
+  dcbd stops.  Used to restore DCBX state on restart of dcbd.
+- Change default dcbx version to 2.
+- Only send the version 2 DCBX TLV when in dcbx version 2 mode (instead of
+  both version TLVs).
+- Fix dcbd init script so that it loads the dcbnl module for kernels which
+  have the option of a dcbnl module.
+- A dcbtool error message was changed from "Device not found" to 
+  "Device not found, link down or DCB not enabled"
+- Each DCB feature (PFC, PG, ...) was modified in driver to indicate whether
+  or not a hw reset is required when the feature configuration changes.
+  If a HW reset will occur, then dcbd will not react to the next link bounce.
+- Ensure that HW flow control settings are synced with the DCBX operational
+  state.
+- Runlevel 4 removed from the dcbd init script.
+- Fix error flag for willing==willing case.
+- Don't print out error message anymore in remove_adapter for the default
+  config object for objects which aren't created for the default config.
+- Fixed potential memory leak in rare shutdown scenarios
+- Deleted line of unreachable dead code.
+- Remove BCN support from dcbd and dcbtool
+- Limit values for DcbxSubtype  - Write Operational DcbxSubtype  for query
+- For dcbx version 2, rebalance bandwidth % assignements on set of Priority
+  Group feature

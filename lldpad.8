@@ -1,0 +1,148 @@
+.\" LICENSE
+.\"
+.\" This software program is released under the terms of a license agreement between you ('Licensee') and Intel.  Do not use or load this software or any associated materials (collectively, the 'Software') until you have carefully read the full terms and conditions of the LICENSE located in this software package.  By loading or using the Software, you agree to the terms of this Agreement.  If you do not agree with the terms of this Agreement, do not install or use the Software.
+.\"
+.\" * Other names and brands may be claimed as the property of others.
+.\"
+.TH lldpad 8 "February 23, 2010"
+.SH NAME
+lldpad \- Link Layer Discovery Protocol (LLDP) agent daemon
+.SH SYNOPSIS
+.B lldpad [-h]
+.B [-v]
+.B [-V]
+.B [-d]
+.B [-k]
+.B [-s]
+.BI "[-f" " filename" "]"
+.SH DESCRIPTION
+Executes the LLDP protocol for supported network interfaces.  The list of TLVs currently supported are:
+.TP
+-
+IEEE 802.1AB Mandatory TLVs
+.TP
+-
+IEEE 802.1AB Basic Management TLVs
+.TP
+-
+IEEE 802.3 Organizationally Specific TLVs
+.TP
+-
+LLDP-MED Organizationally Specific TLVs
+.TP
+-
+Data Center Bridging capabilities exchange protocol (DCBX) TLVs
+.br
+.PP
+Capabilities of
+.B lldpad
+include:
+.TP
+-
+Transmission of LLDP PDUs containing enabled TLVs from enabled ports.
+.TP
+-
+Reception of LLDP PDUs from enabled ports.
+.TP
+-
+Operation of the DCBX protocol for interfaces which support the DCB rtnetlink
+interface.  This includes operation of the DCBX state machines above LLDP and
+corresponding configuration of the DCB parameters of the network interface.
+Supported DCB
+features are: Extended Transmission Selection, Priority Flow Control and the
+FCoE application.
+.TP
+-
+Configuring the DCB settings of the network driver based on the
+operation of DCBX.
+.TP
+-
+Provides a multi-channel interface for client applications to query and
+configure features.  Events are also generated on the client interface 
+to inform clients of changes.  The lldpad package
+includes two clients:  lldptool for general LLDP agent management and 
+dcbtool for DCB management.
+.PP
+
+.B lldpad
+supports the versions of the DCB capabilities exchange (DCBX) protocol described here:
+.TP
+version 1
+<http://download.intel.com/technology/eedc/dcb_cep_spec.pdf>
+.PP
+and here:
+.TP
+version 2 - also known as CEE DCBX
+<http://www.ieee802.org/1/files/public/docs2008/az-wadekar-dcbx-capability-exchange-discovery-protocol-1108-v1.01.pdf>
+.PP
+See
+.B dcbtool
+for information on how to configure which version of DCBX
+.B lldpad
+executes.
+
+.SH OPTIONS
+.B lldpad
+has the following command line options:
+.TP
+.B \-h
+show usage information
+.TP
+.BI "-f" " filename"
+use the specified file as the configuration file instead of the default file:
+/var/lib/lldpad/lldpad.conf
+.B lldpad
+expects the directory of the configuration file to exist, but if the
+configuration file does not exist, then a default configuration file will
+be created.  lldpad creates and maintains the contents of the configuration
+file.  Configuration should be performed by using lldptool or dcbtool.
+.TP
+.B \-d
+run lldpad as a daemon
+.TP
+.B \-v
+show lldpad version
+.TP
+.B \-V
+set lldpad debugging level. Uses syslog debug levels see syslog.2 for details.
+.TP
+.B \-k
+used to terminate the first instance of lldpad that was started
+(e.g. from initrd).
+Once lldpad -k has been invoked and lldpad has been restarted, subsequent
+invocations of lldpad -k will not terminate lldpad.
+
+.TP
+.B \-s
+remove lldpad state records from shared memory
+.PP
+.SH COPYRIGHT
+lldpad - LLDP agent daemon with DCBX support
+.br
+Copyright(c) 2007-2010 Intel Corporation.
+.BR
+Portions of lldpad  are based on:
+.IP hostapd-0.5.7
+.IP Copyright 
+(c) 2004-2008, Jouni Malinen <j@w1.fi>
+.LP
+.SH LICENSE
+This program is free software; you can redistribute it and/or modify it
+under the terms and conditions of the GNU General Public License,
+version 2, as published by the Free Software Foundation.
+.LP  
+This program is distributed in the hope it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+more details.
+.LP
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+.LP
+The full GNU General Public License is included in this distribution in
+the file called "COPYING".
+.SH SUPPORT
+Contact Information:
+e1000-eedc Mailing List <e1000-eedc@lists.sourceforge.net>
+Intel Corporation, 5200 N.E. Elam Young Parkway, Hillsboro, OR 97124-6497

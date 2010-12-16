@@ -1,0 +1,560 @@
+Link Layer Discovery Protocol (LLDP) Agent with
+Data Center Bridging (DCB) for Intel(R) Network Connections
+===========================================================
+
+April 7, 2010
+
+Contents
+========
+
+- Background
+- Requirements
+- Functionality
+- How To Build a DCB capable system
+- Setup
+- Operation
+- Testing
+- dcbtool Overview
+- FAQ
+- Known Issues
+- License
+- Support
+
+Background on DCB support
+=========================
+
+In the 2.4.x kernel, qdiscs were introduced. The rationale behind this effort 
+was to provide QoS in software, as hardware did not provide the necessary 
+interfaces to support it. In 2.6.23, Intel introduced the idea of multiqueue
+support into the qdisc layer. This provides a mechanism to map the software
+queues in the qdisc structure into multiple hardware queues in underlying
+devices. In the case of Intel adapters, this mechanism is used to map
+qdisc queues onto the queues within the hardware controllers.
+
+Within the Data Center, the perception is that traditional Ethernet is
+subject to high latency and is prone to losing frames, rendering it
+unacceptable for storage applications
+
+In an effort to address these issues, Intel and a host of industry leaders have
+been working on addressing these problems. Specifically, within the IEEE 802.1 
+standards body there are a number of task forces working on enhancements to 
+address these concerns. Listed below are the applicable standards:
+
+  Enhanced Transmission Selection: IEEE 802.1Qaz
+  Lossless Traffic Class
+    Priority Flow Control: IEEE 802.1Qbb
+    Congestion Notification: IEEE 802.1Qau
+  DCB Capability exchange protocol (DCBX): IEEE 802.1Qaz
+
+The software solution that is being released represents Intel's implementation
+of these efforts. It is worth noting that many of these standards have not been
+ratified - this is a pre-standards release, so users are advised to check 
+Sourceforge often. While we have worked with some of the major ecosystem 
+vendors in validating this release, there are many vendors which still have 
+solutions in development. As these solutions become available and standards get 
+ratified, we will work with ecosystem partners and the standards body to ensure
+that the Intel solution works as expected.
+
+
+Requirements
+============
+
+- Linux kernel version 2.6.29 or later.
+- 2.6.29 or newer version of the "iproute2" package should be downloaded and
+  installed in order to obtain a multi-queue aware version of the 'tc' utility.
+  Check for new versions at:
+  http://www.linuxfoundation.org/en/Net:Iproute2
+- Version 2.5.33 of Flex should be installed (to support iproute2).
+  Flex source can be obtained from http://flex.sourceforge.net/
+- An up to date netlink library needs to be installed in order to compile
+  lldpad.
+- Version 1.3.2 or greater of libconfig must be installed.
+  libconfig source can be obtained from http://www.hyperrealm.com/libconfig/
+- For DCB features - a driver which supports the dcbnl rtnetlink interface
+  in the kernel (e.g. the ixgbe driver for 82598-based or 82599-based Intel
+  adapters).
+
+Functionality
+=============
+
+lldpad 
+    - Executes the Link Layer Discovery Protocol (LLDP) over all supported
+      interfaces.
+    - Executes the DCB capabilities exchange protocol (DCBX) to exchange DCB
+      configuration with the peer device using LLDP on support interfaces.
+    - Supports the versions of the DCB capabilities exchange protocol
+      described here:
+      - version 1
+        <http://download.intel.com/technology/eedc/dcb_cep_spec.pdf>
+      and here:
+      - version 2
+        <http://www.ieee802.org/1/files/public/docs2008/az-wadekar-dcbx-
+        capability-exchange-discovery-protocol-1108-v1.01.pdf>
+    - Retrieves and stores LLDP and DCB configuration to a configuration file.
+    - Controls the DCB settings of the network driver based on the
+      operation of the DCB capabilities exchange protocol.  Interaction with
+      a supporting network driver is achieved via DCB operations added to the
+      rtnetlink interface in kernel 2.6.29.
+    - Supports the following DCB features: Priority Group,
+      Priority Flow Control, FCoE, and FCoE Logical Link Status.
+    - Provides an interface for client applications to query and configure
+      DCB features.  Generates client interface events when the operational
+      configuration or state of a feature changes.
+
+lldptool
+    - 
+
+dcbtool
+    - Interacts with lldpad via the client interface.
+    - Queries the state of the local, operational and peer configuration for
+      the supported DCB features.
+    - Supports configuring the supported DCB features.
+    - Interactive mode allows multiple commands to be entered interactively,
+      as well as displaying event messages.
+    - Enables or disables DCB for an interface.
+
+How To Build a DCB-Capable System
+=================================
+
+Linux kernel install:
+---------------------
+
+1. Requires 2.6.29 kernel.
+2. Untar and make the kernel. Listed below are the required kernel options:
+
+Required configuration options:
+
+From make menuconfig
+a. In Networking support -> Networking options, enable Data Center Bridging
+b. In Networking support -> Networking options -> QoS and/or fair queuing,
+   enable:
+     Hardware Multiqueue-aware Multi Band Queuing (MULTIQ)
+     Multi Band Priority Queueing (PRIO)
+     Elementary classification ( BASIC ) 
+     Universal 32bit comparisons w/ hashing (U32)
+     Extended Matches and make sure U32 key is selected
+     Actions -> SKB Editing
+c. To enable ixgbe driver support for DCB,
+     In Device Drivers -> Network device support -> Ethernet (10000 Mbit)
+     enable Intel(R) 10GbE PCI Express adapters support and the
+     Data Center Bridging (DCB) Support option 
+    
+3. Build the kernel. 
+
+4. lldpad requires updated kernel header files to compile.
+   Create a link from /usr/include/linux to the location of the kernel source
+   include files.  For example:
+   ln -s /usr/src/kernels/linux-2.x.xx.x/include/linux /usr/include/linux
+
+
+lldpad Application Install
+--------------------------
+
+1. Download iproute2 from the web.
+   See:  http://www.linuxfoundation.org/en/Net:Iproute2
+   Please ensure that you use the version that corresponds to the kernel 
+   version that you are using. Follow the build/installation instructions
+   in the README. Typically, the commands:
+     ./configure; make; make install
+   will work.
+	
+2. Download the latest version of the lldpad-x.y.z tarball from the e1000
+   project in Sourceforge and untar it. Go into the lldpad-x.y.z directory
+   and run the following commands 
+   
+     ./bootstrap.sh; ./configure --prefix=/usr; make; make install
+
+   This will build and install 'lldpad', 'lldptool' and 'dcbtool' to /usr/sbin,
+   make the '/var/lib/lldpad' directory (default location of
+   the lldpad.conf file) and setup lldpad to run as a system service using the
+   chkconfig program.  Verify that the lldpad service is working as expected
+   with the 'service lldpad status' command. If the service is not on, issue
+   the command 'service lldpad start'
+
+   Note (known issue):  if the --prefix option is not supplied to the
+   configure script, then the default install location of 'lldpad', 'lldptool'
+   and 'dcbtool' is /usr/local/sbin.  This does not match the 'lldpad' script
+   installed in /etc/init.d, which is coded to start lldpad from
+   /usr/sbin/lldpad.  
+
+   lldpad will create the lldpad.conf file if it does not exist.
+
+   For development purposes, 'lldpad' can be run directly from the build 
+   directory.
+
+Options
+-------
+
+lldpad has the following command line options:
+    -h show usage information
+    -f configfile    use the specified file as the config file instead of
+                     the default file - /var/lib/lldpad/lldpad.conf
+    -d run lldpad as a daemon
+    -v show lldpad version
+    -k terminate current running lldpad
+    -s remove lldpad state records
+
+SETUP:
+======
+
+1. Load the ixgbe module. 
+
+2. Verify lldpad service is functional.
+   If lldpad was installed, do "service lldpad status" to check, "service
+   lldpad start" to start.
+   Or, run "lldpad -d" from the command line to start.
+
+3. Enable DCB on the selected ixgbe port:
+     dcbtool sc ethX dcb on
+  
+4. The dcbtool command can be used to query and change the DCB configuration
+   (ie., various percentages to different queues).  Use dcbtool -h to see a 
+   list of options. 
+
+DCBX Operation
+==============
+
+lldpad and dcbtool can be used to configure a DCB capable driver, such as
+the ixgbe driver, which supports the rtnetlink DCB interface.  Once the
+DCB features are configured, the next step is to classify traffic to be
+identified with an 802.1p priority and the associated DCB features.  
+This can be done using a couple different methods.
+
+1. qdisc and filter method
+The skbedit action mechanism can be used in a tc filter to classify traffic
+patterns to a specific queue_mapping value from 0-7.  The ixgbe driver will
+place traffic with a given queue_mapping value onto the corresponding hardware
+queue and tag the outgoing frames with the corresponding 802.1p priority value.
+
+Set up the multi-queue qdisc for the selected interface:
+
+# tc qdisc add dev ethX root handle 1: multiq
+
+Setting the queue_mapping in a TC filter allows the ixgbe driver to classify a
+packet into a queue. Here is an example of a filter to cause iSCSI traffic
+(running on the well known port number 3260) to be tagged with priority 4.
+
+# tc filter add dev ethX protocol ip parent 1: u32 match ip dport 3260 \
+0xffff action skbedit queue_mapping 4
+
+# tc filter add dev ethX protocol ip parent 1: u32 match ip sport 3260 \
+0xffff action skbedit queue_mapping 4
+
+Here is an example that sets up a filter based on EtherType.  In this example,
+the EtherType is 0x8906.
+
+# tc filter add dev ethX protocol 802_3 parent 1: handle 0xfc0e basic match \
+'cmp(u16 at 12 layer 1 mask 0xffff eq 35078)' action skbedit queue_mapping 3
+
+2. VLAN egress map method
+Alternatively, traffic can be classified by configuring the egress map of a
+VLAN interface.  For example, if iSCSI traffic is desired to be on priority 4
+and VLAN 101 is dedicated for iSCSI, then the following configuration could
+be performed to map the skb_priorities on VLAN 101 to the 802.1p priority 4.
+# vconfig set_egress_map ethX.101 0 4
+# vconfig set_egress_map ethX.101 1 4
+# vconfig set_egress_map ethX.101 2 4
+...
+# vconfig set_egress_map ethX.101 7 4
+
+Note:  since DCB features use the 802.1p priority in the VLAN tag to distinguish
+traffic, it is expected that traffic in a DCB network will need to be on a
+tagged VLAN.
+
+Testing
+=======
+
+To test in a back-to-back setup, use the following tc commands to setup the 
+qdisc and filters for TCP ports 5000 through 5007.  Then use a tool, such as
+iperf, to generate UDP or TCP traffic on ports 5000-5007.
+
+Statistics for each queue of the ixgbe driver can be checked using the
+ethtool utility:  ethtool -S ethX
+
+# tc qdisc add dev ethX root handle 1: multiq
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip dport 5000 0xffff action skbedit queue_mapping 0
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip sport 5000 0xffff action skbedit queue_mapping 0
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip dport 5001 0xffff action skbedit queue_mapping 1
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip sport 5001 0xffff action skbedit queue_mapping 1
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip dport 5002 0xffff action skbedit queue_mapping 2
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip sport 5002 0xffff action skbedit queue_mapping 2
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip dport 5003 0xffff action skbedit queue_mapping 3
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip sport 5003 0xffff action skbedit queue_mapping 3
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip dport 5004 0xffff action skbedit queue_mapping 4
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip sport 5004 0xffff action skbedit queue_mapping 4
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip dport 5005 0xffff action skbedit queue_mapping 5
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip sport 5005 0xffff action skbedit queue_mapping 5
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip dport 5006 0xffff action skbedit queue_mapping 6
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip sport 5006 0xffff action skbedit queue_mapping 6
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip dport 5007 0xffff action skbedit queue_mapping 7
+
+# tc filter add dev ethX protocol ip parent 1: \
+u32 match ip sport 5007 0xffff action skbedit queue_mapping 7  
+
+
+dcbtool Overview
+=================
+  dcbtool is used to query and set the DCB settings of a DCB capable Ethernet
+  interface.  It connects to the client interface of lldpad to perform these
+  operations.  dcbtool will operate in interactive mode if  it is executed
+  without a command.  In interactive mode, dcbtool also functions as an event
+  listener and will print out events received from lldpad as they arrive.
+
+  SYNOPSIS
+       dcbtool -h
+       dcbtool -v
+       dcbtool [-rR]
+       dcbtool [-rR] [command] [command arguments]
+
+  OPTIONS
+       -h     shows the dcbtool usage message
+
+       -v     shows dcbtool version information
+
+       -r     displays the raw lldpad client interface messages as well as the
+              readable output.
+
+       -R     displays only the raw lldpad client interface messages
+
+  COMMANDS
+       help   shows the dcbtool usage message
+
+       ping   test command.  The lldpad  daemon  responds  with  "PONG"  if  the
+              client interface is operational.
+
+       license
+              displays dcbtool license information
+
+       quit   exits from interactive mode
+
+       The following commands interact with the lldpad daemon to manage the dae-
+       mon and DCB features on DCB capable interfaces.
+
+       lldpad general configuration commands:
+       ------------------------------------
+       <gc|go> dcbx
+              gets the configured or operational version of the  DCB  capabili-
+              ties  exchange  protocol.   If different, the configured version
+              will take effect (and become the operational version) after lldpad
+              is restarted.
+
+       sc dcbx v:[1|2]
+              sets the version of the DCB capabilities exchange protocol which
+              will be used the next time lldpad is started.  The default version
+              is 2.  Changes take effect on next lldpad restart.
+              Information  about version 1 can be found at:
+              <http://download.intel.com/technology/eedc/dcb_cep_spec.pdf>
+              Information about version 2 can be found at:
+              <http://www.ieee802.org/1/files/public/docs2008/az-wadekar-dcbx-
+              capability-exchange-discovery-protocol-1108-v1.01.pdf>
+
+       DCB per-interface commands:
+       ---------------------------
+       gc <ifname> <feature>
+              gets configuration of feature on interface ifname.
+
+       go <ifname> <feature>
+              gets operational status of feature on interface ifname.
+
+       gp <ifname> <feature>
+              gets peer configuration of feature on interface ifname.
+
+       sc <ifname> <feature> <args>
+              sets the configuration of feature on interface ifname.
+
+       feature may be one of the following:
+       ------------------------------------
+       dcb    DCB state of the port
+
+       pg     priority groups
+
+       pfc    priority flow control
+
+       app:<subtype>
+              application specific data
+
+       ll:<subtype>
+              logical link status
+
+       subtype can be:
+       ---------------
+       0|fcoe Fiber Channel over Ethernet (FCoE)
+
+       args can include:
+       -----------------
+       e:<0|1>
+              controls feature enable
+
+       a:<0|1>
+              controls whether the feature is advertised via DCBX to the peer
+
+       w:<0|1>
+              controls  whether  the  feature  is willing to change its opera-
+              tional configuration based on what is received from the peer
+
+       [feature specific args]
+              arguments specific to a DCB feature
+
+       Feature specific arguments for dcb:
+       -----------------------------------
+       on|off enable or disable DCB for the interface.  The go and gp commands
+              are not needed for the dcb feature.  Also, the enable, advertise
+              and willing parameters are not required.
+
+       Feature specific arguments for pg:
+       ----------------------------------
+       pgid:xxxxxxxx
+              Priority group ID for the 8  priorities.   From  left  to  right
+              (priorities  0-7),  x  is  the  corresponding  priority group ID
+              value, which can be 0-7 for priority groups with bandwidth allo-
+              cations  or f (priority group ID 15) for the unrestricted prior-
+              ity group.
+
+       pgpct:x,x,x,x,x,x,x,x
+              Priority group percentage of link bandwidth.  From left to right
+              (priority  groups  0-7),  x  is the percentage of link bandwidth
+              allocated to the corresponding priority group.  The total  band-
+              width must equal 100%.
+
+       uppct:x,x,x,x,x,x,x,x
+              Priority  percentage  of priority group bandwidth.  From left to
+              right (priorities 0-7), x is the percentage  of  priority  group
+              bandwidth  allocated  to the corresponding priority.  The sum of
+              percentages for priorities which belong  to  the  same  priority
+              group must total 100% (except for priority group 15).
+
+       strict:xxxxxxxx
+              Strict priority setting.  From left to right (priorities 0-7), x
+              is 0 or 1.  1 indicates that the priority may utilize all of the
+              bandwidth allocated to its priority group.
+
+       up2tc:xxxxxxxx
+              Priority  to traffic class mapping.  From left to right (priori-
+              ties 0-7), x is the traffic class (0-7) to which the priority is
+              mapped.  (This setting is ignored for Intel 82598-based
+              adapters.)
+
+       Feature specific arguments for pfc:
+       -----------------------------------
+       pfcup:xxxxxxxx
+              Enable/disable  priority flow control.  From left to right (pri-
+              orities 0-7), x is 0 or 1.  1 indicates that  the  corresponding
+              priority is configured to transmit priority pause.
+
+       Feature specific arguments for app:< subtype>:
+       ----------------------------------------------
+       appcfg:xx
+              xx is a hexadecimal value representing an 8 bit bitmap where bits
+              set to 1 indicate the priority which frames for the  applications
+              specified  by  subtype should use.  The lowest order bit maps to
+              priority 0.
+
+       Feature specific arguments for ll:<subtype>:
+       --------------------------------------------
+       status:[0|1]
+              For testing purposes, the logical link status may be set to 0 or
+              1.  This setting is not persisted in the configuration file.
+
+
+  EXAMPLES
+       Enable DCB on interface eth2
+
+       dcbtool sc eth2 dcb on
+
+       Assign priorities 0-3 to priority group 0, priorities 4-6 to priority
+       group 1 and priority 7 to the unrestricted  priority. Also, allocate
+       25% of link bandwidth to priority group 0 and 75% to group 1.
+
+       dcbtool sc eth2 pg pgid:0000111f pgpct:25,75,0,0,0,0,0,0
+
+       Enable transmit of Priority Flow Control for priority 3 and assign FCoE
+       to priority 3.
+
+       dcbtool sc eth2 pfc pfcup:00010000
+       dcbtool sc eth2 app:0 appcfg:08
+
+
+FAQ
+===
+
+- How did Intel verify their DCB solution?
+
+  Answer - The Intel solution is continually evolving as the relevant 
+  standards become solidified and more vendors introduce DCB capable systems.
+  That said, we initially used test automation to verify the DCB state 
+  machine. As the state machine became more robust and we had DCB capable 
+  hardware, we began to test back to back with our adapters. Finally, we 
+  introduced DCB capable switches in our test bed.
+
+Known Issues
+============
+
+- Prior to kernel 2.6.26, TSO will be disabled when the driver is put into DCB 
+  mode.
+
+- A TX unit hang may be observed when link strict priority is set when a large 
+  amount of traffic is transmitted on the link strict priority.
+
+License
+=======
+
+  lldpad, lldptool and dcbtool - LLDP daemon with DCB support and command line
+  utilities for LLDP and DCB configuration
+  Copyright(c) 2007-2010 Intel Corporation.
+
+  Portions of lldpad, lldptool and dcbtool are based on:
+    hostapd-0.5.7
+    Copyright (c) 2004-2007, Jouni Malinen <j@w1.fi>
+ 
+  This program is free software; you can redistribute it and/or modify it
+  under the terms and conditions of the GNU General Public License,
+  version 2, as published by the Free Software Foundation.
+
+  This program is distributed in the hope it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+  more details.
+
+  You should have received a copy of the GNU General Public License along with
+  this program; if not, write to the Free Software Foundation, Inc.,
+  51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+
+  The full GNU General Public License is included in this distribution in
+  the file called "COPYING".
+
+Support
+=======
+
+  Contact Information:
+  e1000-eedc Mailing List <e1000-eedc@lists.sourceforge.net>
+  Intel Corporation, 5200 N.E. Elam Young Parkway, Hillsboro, OR 97124-6497

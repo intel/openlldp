@@ -1,0 +1,196 @@
+/*******************************************************************************
+
+  LLDP Agent Daemon (LLDPAD) Software
+  Copyright(c) 2007-2010 Intel Corporation.
+
+  This program is free software; you can redistribute it and/or modify it
+  under the terms and conditions of the GNU General Public License,
+  version 2, as published by the Free Software Foundation.
+
+  This program is distributed in the hope it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+  more details.
+
+  You should have received a copy of the GNU General Public License along with
+  this program; if not, write to the Free Software Foundation, Inc.,
+  51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+
+  The full GNU General Public License is included in this distribution in
+  the file called "COPYING".
+
+  Contact Information:
+  e1000-eedc Mailing List <e1000-eedc@lists.sourceforge.net>
+  Intel Corporation, 5200 N.E. Elam Young Parkway, Hillsboro, OR 97124-6497
+
+*******************************************************************************/
+
+#ifndef _LLDP_H
+#define _LLDP_H
+
+#include <asm/types.h>
+#include <stdbool.h>
+
+typedef __u8 u8;
+typedef __u16 u16;
+typedef __u32 u32;
+typedef __u64 u64;
+
+/*
+ * Organizationally Unique Identifier (OUI)
+ * http://standards.ieee.org/regauth/oui/oui.txt
+ */
+#define OUI_SIZE	3
+#define SUB_SIZE	1
+#define OUI_SUB_SIZE	(OUI_SIZE + SUB_SIZE)
+#define OUI_INTEL_CORP	0x001b21
+#define OUI_CEE_DCBX	OUI_INTEL_CORP
+#define OUI_IEEE_8021	0x0080c2
+#define OUI_IEEE_8023	0x00120f
+#define OUI_IEEE_80211	0x000fac
+/* Telecommunications Industry Association TR-41 Committee */
+#define OUI_TIA_TR41	0x0012bb
+
+/* IEEE 802.3AB Clause 9: TLV Types */
+#define CHASSIS_ID_TLV    1
+#define PORT_ID_TLV       2
+#define TIME_TO_LIVE_TLV  3
+#define PORT_DESCRIPTION_TLV	4
+#define SYSTEM_NAME_TLV		5
+#define SYSTEM_DESCRIPTION_TLV	6
+#define SYSTEM_CAPABILITIES_TLV	7
+#define MANAGEMENT_ADDRESS_TLV	8
+#define ORG_SPECIFIC_TLV  127
+#define END_OF_LLDPDU_TLV 0
+
+/* IEEE 802.3AB Clause 9.5.2: Chassis subtypes */
+#define CHASSIS_ID_RESERVED	     0
+#define CHASSIS_ID_CHASSIS_COMPONENT 1
+#define CHASSIS_ID_INTERFACE_ALIAS   2
+#define CHASSIS_ID_PORT_COMPONENT    3
+#define CHASSIS_ID_MAC_ADDRESS       4
+#define CHASSIS_ID_NETWORK_ADDRESS   5
+#define CHASSIS_ID_INTERFACE_NAME    6
+#define CHASSIS_ID_LOCALLY_ASSIGNED  7
+#define CHASSIS_ID_INVALID(t)	(((t) == 0) || ((t) > 7))
+
+/* IEEE 802.3AB Clause 9.5.3: Port subtype */
+#define PORT_ID_RESERVED	 0
+#define PORT_ID_INTERFACE_ALIAS  1
+#define PORT_ID_PORT_COMPONENT   2
+#define PORT_ID_MAC_ADDRESS      3
+#define PORT_ID_NETWORK_ADDRESS  4
+#define PORT_ID_INTERFACE_NAME   5
+#define PORT_ID_AGENT_CIRCUIT_ID 6
+#define PORT_ID_LOCALLY_ASSIGNED 7
+#define PORT_ID_INVALID(t)	(((t) == 0) || ((t) > 7))
+
+/* IEEE 802.1AB: 8.5.8, Table 8-4: System Capabilities */
+#define SYSCAP_OTHER	(1 << 0)
+#define SYSCAP_REPEATER (1 << 1)
+#define SYSCAP_BRIDGE	(1 << 2)
+#define SYSCAP_WLAN	(1 << 3)
+#define SYSCAP_ROUTER	(1 << 4)
+#define SYSCAP_PHONE	(1 << 5)
+#define SYSCAP_DOCSIS	(1 << 6)
+#define SYSCAP_STATION	(1 << 7)
+#define SYSCAP_CVLAN	(1 << 8)	/* TPID: 0x8100 */
+#define SYSCAP_SVLAN	(1 << 9)	/* TPID: 0x88a8 */
+#define SYSCAP_TPMR	(1 << 10)
+#define SYSCAP_BITMASK	0x0fff
+
+/*
+ * IETF RFC 3232:
+ * http://www.iana.org/assignments/ianaaddressfamilynumbers-mib
+ */
+enum {
+	MANADDR_OTHER = 0,
+	MANADDR_IPV4 = 1,
+	MANADDR_IPV6 = 2,
+	MANADDR_NSAP = 3,
+	MANADDR_HDLC = 4,
+	MANADDR_BBN1822 = 5,
+	MANADDR_ALL802 = 6,
+	MANADDR_E163 = 7,
+	MANADDR_E164 = 8,
+	MANADDR_F69 = 9,
+	MANADDR_X121 = 10,
+	MANADDR_IPX = 11,
+	MANADDR_APPLETALK = 12,
+	MANADDR_DECNETIV = 13,
+	MANADDR_BANYANVINES = 14,
+	MANADDR_E164WITHNSAP = 15,
+	MANADDR_DNS = 16,
+	MANADDR_DISTINGUISHEDNAME = 17,
+	MANADDR_ASNUMBER = 18,
+	MANADDR_XTPOVERIPV4 = 19,
+	MANADDR_XTPOVERIPV6 = 20,
+	MANADDR_XTPNATIVEMODEXTP = 21,
+	MANADDR_FIBRECHANNELWWPN = 22,
+	MANADDR_FIBRECHANNELWWNN = 23,
+	MANADDR_GWID = 24,
+	MANADDR_AFI = 25,
+	MANADDR_RESERVED = 65535
+}; 
+#define MANADDR_MAX	(MANADDR_AFI - MANADDR_OTHER + 2)
+
+#define IFNUM_UNKNOWN      1
+#define IFNUM_IFINDEX      2
+#define IFNUM_SYS_PORT_NUM 3
+
+/* LLDP-MED subtypes */
+#define LLDP_MED_RESERVED	0
+#define LLDP_MED_CAPABILITIES	1
+#define LLDP_MED_NETWORK_POLICY	2
+#define LLDP_MED_LOCATION_ID	3
+#define LLDP_MED_EXTENDED_PVMDI	4
+#define LLDP_MED_INV_HWREV	5
+#define LLDP_MED_INV_FWREV	6
+#define LLDP_MED_INV_SWREV	7
+#define LLDP_MED_INV_SERIAL	8
+#define LLDP_MED_INV_MANUFACTURER	9
+#define LLDP_MED_INV_MODELNAME	10
+#define LLDP_MED_INV_ASSETID	11
+
+/* LLDP-MED Capability Values: ANSI/TIA-1057-2006, 10.2.2.1, Table 10 */
+#define LLDP_MED_CAPABILITY_CAPAPILITIES	(1 << 0)
+#define LLDP_MED_CAPABILITY_NETWORK_POLICY	(1 << 1)
+#define LLDP_MED_CAPABILITY_LOCATION_ID		(1 << 2)
+#define LLDP_MED_CAPABILITY_EXTENDED_PSE	(1 << 3)
+#define LLDP_MED_CAPABILITY_EXTENDED_PD		(1 << 4)
+#define LLDP_MED_CAPABILITY_INVENTORY		(1 << 5)
+
+/* LLDP-MED Device Type Values: ANSI/TIA-1057-2006, 10.2.2.2, Table 11 */
+#define LLDP_MED_DEVTYPE_NOT_DEFINED		0
+#define LLDP_MED_DEVTYPE_ENDPOINT_CLASS_I	1
+#define LLDP_MED_DEVTYPE_ENDPOINT_CLASS_II	2
+#define LLDP_MED_DEVTYPE_ENDPOINT_CLASS_III	3
+#define LLDP_MED_DEVTYPE_NETWORK_CONNECTIVITY	4
+#define LLDP_MED_DEVTYPE_INVALID(t)	((t) > 4)
+#define LLDP_MED_DEVTYPE_DEFINED(t)	\
+	(((t) == LLDP_MED_DEVTYPE_ENDPOINT_CLASS_I) || 	\
+	 ((t) == LLDP_MED_DEVTYPE_ENDPOINT_CLASS_II) ||	\
+	 ((t) == LLDP_MED_DEVTYPE_ENDPOINT_CLASS_III) ||\
+	 ((t) == LLDP_MED_DEVTYPE_NETWORK_CONNECTIVITY))
+
+#define LLDP_MED_LOCID_INVALID		0
+#define LLDP_MED_LOCID_COORDINATE	1 
+#define LLDP_MED_LOCID_CIVIC_ADDRESS	2
+#define LLDP_MED_LOCID_ECS_ELIN		3
+#define LLDP_MED_LOCID_FORMAT_INVALID(t) (((t) == 0) || ((t) > 3))
+
+/* IEEE 802.3 Organizationally Specific TLV Subtypes: 802.1AB-2005 Annex G */
+#define LLDP_8023_RESERVED		0
+#define LLDP_8023_MACPHY_CONFIG_STATUS	1
+#define LLDP_8023_POWER_VIA_MDI		2	
+#define LLDP_8023_LINK_AGGREGATION	3
+#define LLDP_8023_MAXIMUM_FRAME_SIZE	4
+/* 802.3AB-2005 G.2.1 Table G-2 */
+#define LLDP_8023_MACPHY_AUTONEG_SUPPORT	(1 << 0)
+#define LLDP_8023_MACPHY_AUTONEG_ENABLED	(1 << 1)
+/* 802.3AB-2005 G.4.1 Table G-4 */
+#define LLDP_8023_LINKAGG_CAPABLE	(1 << 0)
+#define LLDP_8023_LINKAGG_ENABLED	(1 << 1)
+
+void somethingChangedLocal(const char *ifname);
+#endif /* _LLDP_H */

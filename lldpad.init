@@ -1,0 +1,246 @@
+#!/bin/bash
+################################################################################
+#
+# Intel Data Center Bridging (DCB) Software
+# Copyright(c) 2007-2008 Intel Corporation.
+#
+# Based on:
+#     Template LSB system startup script for example service/daemon FOO
+#     Copyright (C) 1995--2005  Kurt Garloff, SUSE / Novell Inc.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms and conditions of the GNU General Public License,
+# version 2, as published by the Free Software Foundation.
+#
+# This program is distributed in the hope it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# The full GNU General Public License is included in this distribution in
+# the file called "COPYING".
+#
+# Contact Information:
+# e1000-eedc Mailing List <e1000-eedc@lists.sourceforge.net>
+# Intel Corporation, 5200 N.E. Elam Young Parkway, Hillsboro, OR 97124-6497
+#
+################################################################################
+#
+# lldpad	This shell script takes care of starting and stopping
+#		lldpad (including DCB capabilities exchange protocol)
+#
+# chkconfig: - 20 80
+# description: Link Layer Discovery Protocol Agent Daemon
+#
+### BEGIN INIT INFO
+# Provides: lldpad
+# Required-Start: network
+# Required-Stop:
+# Default-Start:
+# Default-Stop:
+# Short Description: Link Layer Discovery Protocol Agent Daemon
+# Description: Link Layer Discovery Protocol Agent Daemon
+### END INIT INFO
+
+LLDPAD=lldpad
+LLDPAD_BIN=/usr/sbin/$LLDPAD
+
+test -x $LLDPAD_BIN || { echo "$LLDPAD_BIN not installed";
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 5; fi; }
+
+# Default: Assume sysvinit binaries exist
+start_daemon() { /sbin/start_daemon ${1+"$@"}; }
+killproc()     { /sbin/killproc     ${1+"$@"}; }
+pidofproc()    { /sbin/pidofproc    ${1+"$@"}; }
+checkproc()    { /sbin/checkproc    ${1+"$@"}; }
+
+if test -e /etc/rc.status; then
+	# SUSE rc script library
+	. /etc/rc.status
+else
+	export LC_ALL=POSIX
+	_cmd=$1
+	declare -a _SMSG
+	if test "${_cmd}" = "status"; then
+		_SMSG=(running dead dead unused unknown reserved)
+		_RC_UNUSED=3
+	else
+		_SMSG=(done failed failed missed failed skipped unused failed \
+			failed reserved)
+		_RC_UNUSED=6
+	fi
+	if test -e /lib/lsb/init-functions; then
+		# LSB    
+		. /lib/lsb/init-functions
+		echo_rc()
+		{
+			if test ${_RC_RV} = 0; then
+				log_success_msg "  [${_SMSG[${_RC_RV}]}] "
+			else
+				log_failure_msg "  [${_SMSG[${_RC_RV}]}] "
+			fi
+		}
+		# TODO: Add checking for lockfiles
+		checkproc() { pidofproc ${1+"$@"} >/dev/null 2>&1; }
+	elif test -e /etc/init.d/functions; then
+		# RHAT
+		. /etc/init.d/functions
+		echo_rc()
+		{
+			#echo -n "  [${_SMSG[${_RC_RV}]}] "
+			if test ${_RC_RV} = 0; then
+				success "  [${_SMSG[${_RC_RV}]}] "
+			else
+				failure "  [${_SMSG[${_RC_RV}]}] "
+			fi
+		}
+		checkproc() { status ${1+"$@"}; return $?; }
+		start_daemon() { daemon ${1+"$@"}; return $?; }
+	else
+		# emulate it
+		echo_rc() { echo "  [${_SMSG[${_RC_RV}]}] "; }
+	fi
+
+	rc_reset() { _RC_RV=0; }
+	rc_failed()
+	{
+		if test -z "$1"; then 
+			_RC_RV=1;
+		elif test "$1" != "0"; then 
+			_RC_RV=$1; 
+		fi
+		return ${_RC_RV}
+	}
+	rc_check()
+	{
+		return rc_failed $?
+	}	
+	rc_status()
+	{
+		rc_failed $?
+		if test "$1" = "-r"; then _RC_RV=0; shift; fi
+		if test "$1" = "-s"; then
+			rc_failed 5; echo_rc; rc_failed 3; shift;
+		fi
+		if test "$1" = "-u"; then
+			rc_failed ${_RC_UNUSED}; echo_rc; rc_failed 3; shift;
+		fi
+		if test "$1" = "-v"; then echo_rc; shift; fi
+		if test "$1" = "-r"; then _RC_RV=0; shift; fi
+		return ${_RC_RV}
+	}
+	rc_exit() { exit ${_RC_RV}; }
+	rc_active() 
+	{
+		if test -z "$RUNLEVEL"; then
+			read RUNLEVEL REST < <(/sbin/runlevel);
+		fi
+		if test -e /etc/init.d/S[0-9][0-9]${1}; then return 0; fi
+		return 1
+	}
+fi
+
+# Reset status of this service
+rc_reset
+
+# See how we were called.
+case "$1" in
+	start)
+		[ "$EUID" = "0" ] || exit 4
+		echo -n $"Starting $LLDPAD: "
+		$LLDPAD_BIN -k
+		start_daemon $LLDPAD_BIN -d $OPTIONS
+		rc_status -v
+		[ $? -eq 0 ] && touch /var/lock/subsys/lldpad
+		;;
+	stop)
+		[ "$EUID" = "0" ] || exit 4
+		echo -n $"Shutting down $LLDPAD: "
+		killproc $LLDPAD
+		rc_status -v
+		[ $? -eq 0 ] && rm -f /var/lock/subsys/lldpad
+		;;
+	status)
+		echo -n "Checking for service $LLDPAD: "
+  		p=`pidof $LLDPAD`
+		RC=$?
+		if [ "$RC" = "1" ]; then
+			echo "stopped"
+			if [ -f /var/lock/subsys/lldpad ]; then
+				rc_failed 2
+			elif [ -f /var/run/lldpad.pid ]; then
+				rc_failed 1
+			else
+				rc_failed 3
+			fi
+		else
+			echo "running"
+		fi
+		;;
+	try-restart|condrestart)
+		## Do a restart only if the service was active before.
+		## Note: try-restart is now part of LSB (as of 1.9).
+		## RH has a similar command named condrestart.
+		if test "$1" = "condrestart"; then
+			echo "${attn} Use try-restart ${done}(LSB)${attn}"\
+				"rather than condrestart ${warn}(RH)${norm}"
+		fi
+		$0 restart
+		;;
+	restart)
+		$0 status
+		if test $? = 0; then
+			$0 stop
+			$0 start
+		else
+			rc_reset	# Not running is not a failure.
+		fi
+		# Remember status and be quiet
+		rc_status
+		;;
+	force-reload)
+		## Signal the daemon to reload its config. Most daemons
+		## do this on signal 1 (SIGHUP).
+		## If it does not support it, restart the service if it
+		## is running.
+
+		#echo -n "Reload service $LLDPAD "
+		## if it supports it:
+		#killproc -HUP $LLDPAD
+		#touch /var/run/$LLDPAD.pid
+		#rc_status -v
+
+		## Otherwise:
+		$0 try-restart
+		rc_status
+		;;
+	reload)
+		## Like force-reload, but if daemon does not support
+		## signaling, do nothing (!)
+
+		# If it supports signaling:
+		#echo -n "Reload service $LLDPAD "
+		#killproc -HUP $LLDPAD_BIN
+		#touch /var/run/$LLDPAD.pid
+		#rc_status -v
+		
+		## Otherwise if it does not support reload:
+		echo -n $"Reloading $LLDPAD is not supported: "
+		rc_failed 3
+		rc_status -v
+		;;
+	usage)
+		echo $"Usage: $0 {start|stop|status|try-restart|restart|force-reload|reload}"
+		exit 0
+	;;
+	*)
+       		echo $"Usage: $0 {start|stop|status|try-restart|restart|force-reload|reload}"
+		exit 2
+esac
+
+rc_exit

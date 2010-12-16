@@ -1,0 +1,238 @@
+.\" LICENSE
+.\"
+.\" This software program is released under the terms of a license agreement between you ('Licensee') and Intel.  Do not use or load this software or any associated materials (collectively, the 'Software') until you have carefully read the full terms and conditions of the LICENSE located in this software package.  By loading or using the Software, you agree to the terms of this Agreement.  If you do not agree with the terms of this Agreement, do not install or use the Software.
+.\"
+.\" * Other names and brands may be claimed as the property of others.
+.\"
+.TH lldptool 8 "February 23, 2010"
+.SH NAME
+lldptool \- manage the LLDP settings and status of lldpad
+.SH SYNOPSIS
+.B lldptool <command> [options] [argument]
+.br
+
+
+.SH DESCRIPTION
+.B lldptool
+is used to query and configure
+.B lldpad.
+It connects to the client interface
+of
+.B lldpad
+to perform these operations.
+.B lldptool
+will operate in interactive mode if it is executed without a 
+.I command.
+In interactive mode,
+.B lldptool
+also functions as an event listener and will print out events
+as they are received asynchronously from
+.B lldpad.
+
+.SH OPTIONS
+.TP
+.B \-i [ifname]
+specifies the network interface to which the command applies
+.TP
+.B -V [tlvid]
+specifies the TLV identifier
+.br
+The tlvid is an integer value used to identify specific
+LLDP TLVs.  The tlvid value is the Type value for types not equal
+to 127 (the organizationally specific type). For organizationally specific
+TLVs, the tlvid is the value represented by the 3 byte OUI and 1 byte
+subtype - where the subtype is the lowest order byte of the tlvid.
+.br
+The tlvid can be entered as a numerical value (e.g. 10 or 0xa), or for
+supported TLVs, as a keyword.
+Review the
+.B lldptool
+help output to see the list of supported TLV keywords.
+.TP
+.B \-n
+"neighbor" option for commands which can use it (e.g. get-tlv)
+.TP
+.B \-a
+"add" option for commands which can use it
+.br
+(not implemented yet)
+.TP
+.B \-d
+"remove" option for commands which can use it
+.br
+(not implemented yet)
+.TP
+.B \-r
+show raw client interface messages
+.TP
+.B \-R
+show only raw Client interface messages
+.PP
+
+.SH COMMANDS
+.TP
+.B license
+show license information
+.TP
+.B \-h, help
+show usage information
+.TP
+.B \-v, version
+show version information
+.TP
+.B \-S, stats
+get LLDP statistics
+.TP
+.B \-t, get-tlv
+get TLV information
+.TP
+.B \-T, set-tlv
+set TLV information
+.TP
+.B \-l, get-lldp
+get LLDP parameters
+.TP
+.B \-L, set-lldp
+set LLDP parameters
+.TP
+.B \-q, quit
+exit from interactive mode
+.PP
+
+.SH ARGUMENTS
+.TP
+.B adminStatus
+Argument for the
+.B get-lldp/set-lldp
+commands.  May be applied per port or globbally.  Valid values are: \fIdisabled\fR, \fIrx\fR, \fItx\fR, \fIrxtx\fR
+
+.TP
+.B enableTx
+Argument for the
+.B get-tlv/set-tlv
+commands.  May be applied per port for a specified TLV.  Valid values are: \fIyes\fR, \fIno\fR.  If the DCBX TLV enableTx is set to \fIno\fR, then all of the DCB feature TLVs DCBX advertise settings will be turned off as well.  Setting enableTx to \fIyes\fR for a DCBX TLV will not affect the DCBX advertise settings.
+
+.TP
+.B ipv4
+Argument for the
+.B get-tlv/set-tlv
+commands with respect to the Management Address TLV.  May be applied per port
+or globally.  The get command will retrieve the configured value.  Set values
+take the form of an IPv4 address: \fIA.B.C.D\fR
+
+.TP
+.B ipv6
+Argument for the
+.B get-tlv/set-tlv
+commands with respect to the Management Address TLV.  May be applied per port
+or globally.  The get command will retrieve the configured value.  Set values
+take the form of an IPv6 address: \fI1111:2222:3333:4444:5555:6666:7777:8888\fR
+and various shorthand variations.
+
+.PP
+.SH EXAMPLES
+.TP
+Configure LLDP adminStatus to Receive and Transmit for interface \fIeth2\fR
+.B lldptool -L -i eth2 adminStatus=rxtx
+.br
+.B lldptool set-lldp -i eth2 adminStatus=rxtx
+
+.TP
+Disable the LLDP adminStatus for all interfaces
+.B lldptool set-lldp adminStatus=disabled
+
+.TP
+Query the LLDP adminStatus for interface \fIeth3\fR
+.B lldptool -l -i eth3 adminStatus=disabled
+.br
+.B lldptool get-lldp -i eth3 adminStatus=disabled
+
+.TP
+Query the LLDP statistics for interface \fIeth3\fR
+.B lldptool -S -i eth3 adminStatus
+.br
+.B lldptool stats -i eth3 adminStatus
+
+.TP
+Query the local TLVs which are being transmitted for a given interface:
+.B lldptool -t -i eth3
+.br
+.B lldptool get-tlv -i eth3
+
+.TP
+Query the received neighbor TLVs received on a given interface:
+.B lldptool -t -n -i eth3
+.br
+.B lldptool get-tlv -n -i eth3
+
+.TP
+Query the value of the System Description TLV as received from the neighbor on a given interface:
+.B lldptool -t -n -i eth3 -V sysDesc
+.br
+.B lldptool get-tlv -n -i eth3 -V 6
+
+.TP
+Disable transmit of the IEEE 802.3 MAC/PHY Configuration Status TLV for a given interface:
+.B lldptool -T -i eth3 -V macPhyCfg enableTx=no
+.br
+.B lldptool set-tlv -i eth3 -V 0x120f01 enableTx=no
+
+.TP
+Enable transmit of the Port Description TLV for all interfaces:
+.B lldptool -T -V portDesc enableTx=yes
+.br
+.B lldptool set-tlv -V 4 enableTx=yes
+
+.TP
+Query value of the transmit setting for the Port Description TLV for a given interface:
+.B lldptool -t -V portDesc enableTx
+.br
+.B lldptool get-tlv -V 4 enableTx
+
+.TP
+Set a Management Address TLV on eth3 to carry IPv4 address 192.168.10.10
+.B lldptool -T -eth3 -V mngAddr ipv4=192.168.10.10
+
+.TP
+Set a Management Address TLV on eth3 to carry IPv6 address ::192.168.10.10
+.B lldptool -T -eth3 -V mngAddr ipv6=::192.168.10.10
+
+.TP
+Get the configured IPv4 address for the Management Address TLV on eth3
+.B lldptool -t -eth3 -V mngAddr ipv4
+
+
+.PP
+Configurations per port have higher precedence than global configurations.
+
+.SH COPYRIGHT
+lldptool - LLDP agent configuration utility
+.br
+Copyright(c) 2007-2010 Intel Corporation.
+.BR
+Portions of lldptool are based on:
+.IP hostapd-0.5.7
+.IP Copyright 
+(c) 2004-2008, Jouni Malinen <j@w1.fi>
+
+.SH LICENSE
+This program is free software; you can redistribute it and/or modify it
+under the terms and conditions of the GNU General Public License,
+version 2, as published by the Free Software Foundation.
+.LP
+This program is distributed in the hope it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+more details.
+.LP
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+.LP
+The full GNU General Public License is included in this distribution in
+the file called "COPYING".
+.SH SUPPORT
+Contact Information:
+e1000-eedc Mailing List <e1000-eedc@lists.sourceforge.net>
+Intel Corporation, 5200 N.E. Elam Young Parkway, Hillsboro, OR 97124-6497
+

@@ -1,0 +1,86 @@
+Name:           lldpad 
+Version:        @VERSION@
+Release:        1%{?dist}
+Summary:        Intel LLDP Agent
+
+Group:          System Environment/Daemons
+License:        GPLv2
+URL:            http://e1000.sourceforge.net
+Source0:        http://downloads.sourceforge.net/e1000/%{name}-%{version}.tar.gz
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+# BuildRequires:  
+Requires(post):   chkconfig
+Requires(preun):  chkconfig initscripts
+Requires(postun): initscripts
+
+%description
+This package contains the Linux user space daemon and configuration tool for
+Intel LLDP Agent with Enhanced Ethernet support for the Data Center.
+
+%package        devel
+Summary:        Development files for %{name}
+Group:          Development/Libraries
+Requires:       %{name} = %{version}-%{release}
+
+%description    devel
+The %{name}-devel package contains header files for developing applications
+that use %{name}.
+
+%prep
+%setup -q
+
+
+%build
+%configure
+make %{?_smp_mflags}
+
+
+%install
+rm -rf $RPM_BUILD_ROOT
+make install DESTDIR=$RPM_BUILD_ROOT
+
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+
+%post
+/sbin/chkconfig --add lldpad 
+
+%preun
+if [ $1 = 0 ]; then
+        /sbin/service lldpad stop
+        /sbin/chkconfig --del lldpad 
+fi
+
+%postun
+if [ $1 = 1 ]; then
+        /sbin/service lldpad condrestart
+fi
+
+
+%files
+%defattr(-,root,root,-)
+%doc COPYING
+%doc README
+%doc ChangeLog
+%{_sbindir}/*
+%dir /var/lib/lldpad
+/etc/init.d/lldpad
+%{_mandir}/man8/*
+
+%files devel
+%defattr(-,root,root,-)
+%doc COPYING
+%doc README
+%{_includedir}/*
+%{_libdir}/pkgconfig/*.pc
+
+
+%changelog
+* Mon Feb 22 2010 John Fastabend <john.r.fastabend@intel.com> - 0.9.22
+- initial generic lldp support
+* Thu Feb 26 2009 Chris Leech <christopher.leech@intel.com> - 0.9.5-1
+- initial RPM packaging
+

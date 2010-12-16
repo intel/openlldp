@@ -1,0 +1,297 @@
+.\" LICENSE
+.\"
+.\" This software program is released under the terms of a license agreement between you ('Licensee') and Intel.  Do not use or load this software or any associated materials (collectively, the 'Software') until you have carefully read the full terms and conditions of the LICENSE located in this software package.  By loading or using the Software, you agree to the terms of this Agreement.  If you do not agree with the terms of this Agreement, do not install or use the Software.
+.\"
+.\" * Other names and brands may be claimed as the property of others.
+.\"
+.TH dcbtool 8 "June 29, 2009"
+.SH NAME
+dcbtool \- manage the Data Center Bridging (DCB) settings of a DCB interface
+.SH SYNOPSIS
+.B dcbtool -h
+.br
+.B dcbtool -v
+.br
+.B dcbtool [-rR]
+.br
+.BI "dcbtool [-rR] [" "command" "] [" "command arguments" "]"
+
+.SH DESCRIPTION
+.B dcbtool
+is used to query and set the DCB settings of a
+DCB capable Ethernet interface.  It connects to the client interface
+of
+.B lldpad
+to perform these operations.
+.B dcbtool
+will operate in interactive mode if it is executed without a 
+.I command.
+In interactive mode,
+.B dcbtool
+also functions as an event listener and will print out events
+received from
+.B lldpad
+as they arrive.
+.SH OPTIONS
+.TP
+.B \-h
+show the
+.B dcbtool
+usage message
+.TP
+.B \-v
+shows
+.B dcbtool
+version information
+.TP
+.B \-r
+display the raw
+.B lldpad
+client interface messages as well as the readable output.
+.TP
+.B \-R
+display only the raw
+.B lldpad
+client interface messages
+.SH COMMANDS
+.TP
+.B help 
+shows the dcbtool usage message
+.TP
+.B ping 
+test command.
+.B lldpad
+responds with "PPONG" if the client interface is operational.
+.TP
+.B license
+displays
+.B dcbtool
+license information
+.TP
+.B quit
+exit from interactive mode
+
+.PP
+The following commands interact with
+.B lldpad
+to manage the daemon and DCB features on DCB capable interfaces.
+
+.B dcbtool
+general configuration commands:
+.TP
+.RB "<" "gc" "|" "go" ">" " dcbx"
+get the configured or operational version of the DCB capabilities exchange
+protocol.  If different, the configured version will take effect (and become
+the operational version) after
+.B lldpad
+is restarted.
+.TP
+.BR "sc dcbx v:" "[" "1" "|" "2" "]"
+set the version of the DCB capabilities exchange protocol which will be used
+the next time
+.B lldpad
+is started.  Information about version 1 can be found at:
+.br
+<http://download.intel.com/technology/eedc/dcb_cep_spec.pdf>
+Information about version 2 can be found at:
+.br
+<http://www.ieee802.org/1/files/public/docs2008/az-wadekar-dcbx-capability-exchange-discovery-protocol-1108-v1.01.pdf>
+.PP
+DCB per-interface commands:
+.TP
+\fBgc \fR<\fIifname\fR> <\fIfeature\fR>
+get configuration of \fIfeature\fR on interface \fIifname\fR.
+.TP
+\fBgo \fR<\fIifname\fR> <\fIfeature\fR>
+get operational status of \fIfeature\fR on interface \fIifname\fR.
+.TP
+\fBgp \fR<\fIifname\fR> <\fIfeature\fR>
+get peer configuration of \fIfeature\fR on interface \fIifname\fR.
+.TP
+\fBsc \fR<\fIifname\fR> <\fIfeature\fR> <\fIargs\fR>
+set the configuration of \fIfeature\fR on interface \fIifname\fR.
+.PP
+.I feature
+may be one of the following:
+.TP
+.B dcb
+DCB state of the port
+.TP
+.B pg
+priority groups
+.TP
+.B pfc
+priority flow control
+.TP
+\fBapp:\fR<\fIsubtype\fR>
+application specific data
+.TP
+\fBll:\fR<\fIsubtype\fR>
+logical link status
+.PP
+.I subtype
+can be:
+.TP
+.BR "0" "|" "fcoe"
+Fiber Channel over Ethernet (FCoE)
+.PP
+.I args
+can include:
+.TP
+.BR "e:" "<" "0" "|" "1" ">"
+controls feature enable
+.TP
+.BR "a:" "<" "0" "|" "1" ">"
+controls whether the feature is advertised via DCBX to the peer
+.TP
+.BR "w:" "<" "0" "|" "1" ">"
+controls whether the feature is willing to change its operational
+configuration based on what is received from the peer
+.TP
+.RI "[" "feature specific args" "]"
+arguments specific to a DCB feature
+
+.PP
+Feature specific arguments for
+.BR "dcb" ":"
+.TP
+.BR "on" "|" "off"
+enable or disable DCB for the interface.  The
+.B go
+and
+.B gp
+commands are not needed for the
+.B dcb
+feature.  Also, the
+.RI "enable(" "e" "), advertise(" "a" ") and willing(" "w" ")"
+arguments are not required.
+
+.PP
+Feature specific arguments for
+.BR "pg" ":"
+.TP
+.BI "pgid:" "xxxxxxxx"
+Priority group ID for the 8 priorities.  From left to right
+(priorities 0-7),
+.I x
+is the corresponding priority group ID value, which
+can be
+.I 0-7
+for priority groups with bandwidth allocations or
+.I f
+(priority group ID 15) for the unrestricted priority group.
+
+.TP
+.BI "pgpct:" "x" "," "x" "," "x" "," "x" "," "x" "," "x" "," "x" "," "x"
+Priority group percentage of link bandwidth.  From left to right
+(priority groups 0-7),
+.I x
+is the percentage of link bandwidth allocated
+to the corresponding priority group.  The total bandwidth must equal 100%.
+
+.TP
+.BI "uppct:" "x" "," "x" "," "x" "," "x" "," "x" "," "x" "," "x" "," "x"
+Priority percentage of priority group bandwidth.  From left to right
+(priorities 0-7),
+.I x
+is the percentage of priority group bandwidth
+allocated to the corresponding priority.  The sum of percentages for
+priorities which belong to the same priority group must total 100% (except
+for priority group 15).
+
+.TP
+.BI "strict:" "xxxxxxxx"
+Strict priority setting.  From left to right (priorities 0-7),
+.I x
+.RB "is " "0" " or " "1" ".  " "1"
+indicates that the priority may utilize all of the bandwidth allocated to
+its priority group.
+
+.TP
+.BI "up2tc:" "xxxxxxxx"
+Priority to traffic class mapping.  From left to right (priorities 0-7),
+.I x
+is the traffic class (0-7) to which the priority is mapped.
+
+.PP
+Feature specific arguments for
+.BR "pfc" ":"
+.TP
+.BI "pfcup:" "xxxxxxxx"
+Enable/disable priority flow control.  From left to right
+(priorities 0-7),
+.I x
+.RB "is " "0" " or " "1" ".  " "1"
+indicates that the corresponding priority is configured to transmit
+priority pause.
+
+.PP
+Feature specific arguments for \fBapp:\fR<\fIsubtype\fR>:
+.TP
+.BI "appcfg:" "xx"
+.I xx
+is a hexadecimal value representing an 8 bit bitmap where
+1 bits indicate the priorities which frames for the applications specified by
+.I subtype
+should use.  The lowest order bit maps to priority 0.
+
+.PP
+Feature specific arguments for \fBll:\fR<\fIsubtype\fR>:
+.TP
+\fBstatus:\fR[\fB0\fR|\fB1\fR]
+For testing purposes, the logical link status may be set to 0 or 1.  This
+setting is not persisted in the configuration file.
+
+.SH EXAMPLES
+
+.PP
+Enable DCB on interface \fIeth2\fR
+.PP
+.B dcbtool sc eth2 dcb on
+
+.PP
+Assign priorites 0-3 to priority group 0, priorites 4-6 to priority group 1 and
+priority 7 to the unrestricted priority.  Also, allocate 25% of link
+bandwidth to priority group 0 and 75% to group 1.
+.PP
+.B dcbtool sc eth2 pg pgid:0000111f pgpct:25,75,0,0,0,0,0,0 
+
+.PP
+Enable transmit of Priority Flow Control for priority 3 and assign FCoE to
+priority 3.
+.PP
+.B dcbtool sc eth2 pfc pfcup:00010000
+.br
+.B dcbtool sc eth2 app:0 appcfg:08
+
+.SH COPYRIGHT
+dcbtool - DCB configuration utility
+.br
+Copyright(c) 2007-2010 Intel Corporation.
+.BR
+Portions of dcbtool are based on:
+.IP hostapd-0.5.7
+.IP Copyright 
+(c) 2004-2008, Jouni Malinen <j@w1.fi>
+
+.SH LICENSE
+This program is free software; you can redistribute it and/or modify it
+under the terms and conditions of the GNU General Public License,
+version 2, as published by the Free Software Foundation.
+.LP
+This program is distributed in the hope it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+more details.
+.LP
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+.LP
+The full GNU General Public License is included in this distribution in
+the file called "COPYING".
+.SH SUPPORT
+Contact Information:
+e1000-eedc Mailing List <e1000-eedc@lists.sourceforge.net>
+Intel Corporation, 5200 N.E. Elam Young Parkway, Hillsboro, OR 97124-6497
+
