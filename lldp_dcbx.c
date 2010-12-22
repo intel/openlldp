@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <sys/socket.h>
-#include <linux/if.h>
+#include "linux/if.h"
 #include "lldp.h"
 #include "dcb_types.h"
 #include "lldp_dcbx.h"

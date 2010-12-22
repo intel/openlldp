@@ -41,7 +41,7 @@
 #include "lldp.h"
 #include "tlv_dcbx.h"
 #include "lldp_rtnl.h"
-#include <linux/if.h>
+#include "linux/if.h"
 
 static void handle_opermode_true(char *device_name);
 u8        gdcbx_subtype = dcbx_subtype2;

@@ -33,11 +33,11 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
-#include <linux/dcbnl.h>
 #include <net/ethernet.h>
-#include <linux/if.h>
+#include "linux/netlink.h"
+#include "linux/rtnetlink.h"
+#include "linux/dcbnl.h"
+#include "linux/if.h"
 #include "lldp_rtnl.h"
 #include "messages.h"
 #include "lldp.h"

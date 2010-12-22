@@ -35,9 +35,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdarg.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
-#include <linux/dcbnl.h>
+#include "linux/netlink.h"
+#include "linux/rtnetlink.h"
+#include "linux/dcbnl.h"
 #include "lldp.h"
 #include "dcb_types.h"
 #include "dcb_protocol.h"
