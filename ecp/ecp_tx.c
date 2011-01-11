@@ -82,7 +82,7 @@ void ecp_print_frameout(struct vdp_data *vd)
 		c = sprintf(s, "%02x ", vd->ecp.tx.frameout[i]);
 		s += c;
 		if (!((i+1) % 16)) {
-			LLDPAD_DBG("%s", t);
+			LLDPAD_DBG("%s\n", t);
 			s = t;
 		}
 	}
