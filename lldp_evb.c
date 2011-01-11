@@ -289,11 +289,6 @@ static int evb_bld_tlv(struct evb_data *ed)
 		goto out_err;
 	}
 
-	if (!init_cfg()) {
-		rc = ENOENT;
-		goto out_err;
-	}
-
 	if (evb_bld_cfg_tlv(ed)) {
 		LLDPAD_DBG("%s:%s:evb_bld_cfg_tlv() failed\n",
 				__func__, ed->ifname);
@@ -507,10 +502,6 @@ static int evb_rchange(struct port *port, struct unpacked_tlv *tlv)
 	struct tlv_info_evb *tie = (struct tlv_info_evb *) tlv->info;
 	u8 oui_subtype[OUI_SUB_SIZE] = LLDP_OUI_SUBTYPE;
 
-	if (!init_cfg()) {
-		return SUBTYPE_INVALID;
-	}
-
 	ed = evb_data(port->ifname);
 
 	if (!ed)
@@ -591,11 +582,6 @@ void evb_ifup(char *ifname)
 		goto out_err;
 	}
 	strncpy(ed->ifname, ifname, IFNAMSIZ);
-
-	if (!init_cfg()) {
-		LLDPAD_ERR("%s:%s init_cfg failed\n", __func__, ifname);
-		goto out_free;
-	}
 
 	if (evb_init_cfg_tlv(ed)) {
 		LLDPAD_ERR("%s:%s evb_init_cfg_tlv failed\n", __func__, ifname);

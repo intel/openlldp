@@ -939,20 +939,12 @@ static int vdp_bld_tlv(struct vdp_data *vd, struct vsi_profile *profile)
 		goto out_err;
 	}
 
-	if (!init_cfg()) {
-		rc = ENOENT;
-		goto out_err;
-	}
-
 	if (vdp_bld_vsi_tlv(vd, profile)) {
 		LLDPAD_ERR("%s:%s:vdp_bld_vsi_tlv() failed\n",
 				__func__, vd->ifname);
 		rc = EINVAL;
-		goto out_err_destroy;
+		goto out_err;
 	}
-
-out_err_destroy:
-	destroy_cfg();
 
 out_err:
 	return rc;
@@ -1207,11 +1199,6 @@ void vdp_ifup(char *ifname)
 	}
 	strncpy(vd->ifname, ifname, IFNAMSIZ);
 
-	if (!init_cfg()) {
-		free(vd);
-		goto out_err;
-	}
-
 	vd->role = VDP_ROLE_STATION;
 
 	if (!get_cfg(ifname, "vdp.role", (void *)&p,
@@ -1229,7 +1216,11 @@ void vdp_ifup(char *ifname)
 	ud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_VDP);
 	LIST_INSERT_HEAD(&ud->head, vd, entry);
 
-	ecp_init(ifname);
+	if (ecp_init(ifname)) {
+		LLDPAD_ERR("%s:%s unable to init ecp !\n", __func__, ifname);
+		vdp_ifdown(ifname);
+		goto out_err;
+	}
 
 	LLDPAD_DBG("%s:%s vdp added\n", __func__, ifname);
 	return;

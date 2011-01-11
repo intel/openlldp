@@ -291,13 +291,9 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 		      *tb_vfinfo_list;
 	struct vsi_profile *profile, *p;
 	struct ifinfomsg *ifinfo;
+	struct vdp_data *vd;
 	char *ifname;
 	int rem;
-
-	profile = malloc(sizeof(struct vsi_profile));
-	if (!profile)
-		return -ENOMEM;
-	memset(profile, 0, sizeof(struct vsi_profile));
 
 	if (nlmsg_parse(nlh, sizeof(struct ifinfomsg),
 			(struct nlattr **)&tb, IFLA_MAX, NULL)) {
@@ -309,10 +305,22 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 
 	if (tb[IFLA_IFNAME]) {
 		ifname = (char *)RTA_DATA(tb[IFLA_IFNAME]);
-		LLDPAD_DBG("IFLA_IFNAME=%s\n", ifname);
 	} else {
+		ifname = malloc(IFNAMSIZ);
 		ifinfo = (struct ifinfomsg *)NLMSG_DATA(nlh);
 		LLDPAD_DBG("interface index: %d\n", ifinfo->ifi_index);
+		if (!if_indextoname(ifinfo->ifi_index, ifname)) {
+			LLDPAD_ERR("Could not find name for interface %i !\n", ifinfo->ifi_index);
+			return -ENXIO;
+		}
+	}
+
+	LLDPAD_DBG("IFLA_IFNAME=%s\n", ifname);
+
+	vd = vdp_data(ifname);
+	if (!vd) {
+		LLDPAD_ERR("interface %s has not yet been configured !\n", ifname);
+		return -ENXIO;
 	}
 
 	if (!tb[IFLA_VFINFO_LIST]) {
@@ -334,6 +342,11 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 			return -EINVAL;
 		}
 	}
+
+	profile = malloc(sizeof(struct vsi_profile));
+	if (!profile)
+		return -ENOMEM;
+	memset(profile, 0, sizeof(struct vsi_profile));
 
 	if (tb_vfinfo[IFLA_VF_MAC]) {
 		struct ifla_vf_mac *mac = RTA_DATA(tb_vfinfo[IFLA_VF_MAC]);
