@@ -44,8 +44,8 @@ lldp_dcbx.c include/lldp_dcbx.h tlv_dcbx.c include/tlv_dcbx.h \
 lldp_dcbx_cfg.c include/lldp_dcbx_cfg.h lldp_util.c \
 lldp_mand.c include/lldp_mand.h \
 lldp_mand_cmds.c lldp_basman_cmds.c lldp_8023_cmds.c lldp_med_cmds.c \
-lldp_evb_cmds.c lldp_evb.c include/lldp_evb.h lldp_vdp_cmds.c lldp_vdp_cmds.h \
-ecp/ecp.c ecp/ecp_tx.c ecp/ecp_rx.c lldp_vdp.c include/lldp_vdp.h \
+lldp_evb_cmds.c lldp_evb.c include/lldp_evb.h lldp_vdp_cmds.c include/lldp_vdp_cmds.h \
+ecp/ecp.c ecp/ecp_tx.c ecp/ecp_rx.c ecp/ecp.h lldp_vdp.c include/lldp_vdp.h \
 lldp_tlv.c include/lldp_tlv.h \
 lldp_basman.c include/lldp_basman.h \
 lldp_med.c include/lldp_med.h \
