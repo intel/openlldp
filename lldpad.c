@@ -384,7 +384,6 @@ int main(int argc, char *argv[])
 
 	init_modules("");
 
-
 	eloop_register_signal_terminate(eloop_terminate, NULL);
 	eloop_register_signal_reconfig(lldpad_reconfig, NULL); 
 
@@ -394,8 +393,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	/* Find available interfaces, read in the lldpad.conf file and
-	 * add adapters */
+	/* Find available interfaces and add adapters */
 	init_ports();
 
 	/* setup event RT netlink interface */
