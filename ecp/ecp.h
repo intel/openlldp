@@ -71,7 +71,6 @@ enum {
 };
 
 static const char *ecp_tx_states[] = {
-	"ECP_TX_IDLE",
 	"ECP_TX_INIT_TRANSMIT",
 	"ECP_TX_TRANSMIT_ECPDU",
 	"ECP_TX_WAIT_FOR_ACK",
