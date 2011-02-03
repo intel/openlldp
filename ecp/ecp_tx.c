@@ -53,7 +53,7 @@ void ecp_somethingChangedLocal(struct vdp_data *vd)
 	if (!vd)
 		return;
 
-	vd->ecp.tx.localChange = 1;
+	vd->ecp.tx.localChange = true;
 
 	return;
 }
@@ -216,7 +216,7 @@ void ecp_tx_Initialize(struct vdp_data *vd)
 		free(vd->ecp.tx.frameout);
 		vd->ecp.tx.frameout = NULL;
 	}
-	vd->ecp.tx.localChange = VDP_PROFILE_REQ;
+	vd->ecp.tx.localChange = true;
 	vd->ecp.lastSequence = ECP_SEQUENCE_NR_START;
 	vd->ecp.stats.statsFramesOutTotal = 0;
 	vd->ecp.ackTimerExpired = false;
@@ -265,7 +265,7 @@ void ecp_tx_create_frame(struct vdp_data *vd)
 		ecp_txFrame(vd);
 	}
 
-	vd->ecp.tx.localChange = 0;
+	vd->ecp.tx.localChange = false;
 	return;
 }
 
@@ -431,7 +431,7 @@ static bool ecp_set_tx_state(struct vdp_data *vd)
 		}
 		return false;
 	case ECP_TX_REQUEST_PDU:
-		if (vd->ecp.tx.localChange & VDP_PROFILE_REQ) {
+		if (vd->ecp.tx.localChange) {
 			ecp_tx_change_state(vd, ECP_TX_TRANSMIT_ECPDU);
 			return true;
 		}
@@ -470,7 +470,7 @@ void ecp_tx_run_sm(struct vdp_data *vd)
 				       vd->ifname);
 				LLDPAD_DBG("%s(%i)-%s: seqECPDU %x lastSequence %x \n", __func__, __LINE__,
 				       vd->ifname, vd->ecp.seqECPDU, vd->ecp.lastSequence);
-				vd->ecp.tx.localChange = 0;
+				vd->ecp.tx.localChange = false;
 				ecp_tx_stop_ackTimer(vd);
 			}
 			break;

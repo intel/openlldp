@@ -62,13 +62,6 @@ static char *vsi_responses[] = {
 	"out of sync"
 };
 
-enum {
-	VDP_PROFILE_NOCHANGE = 0,
-	VDP_PROFILE_REQ,
-	VDP_PROFILE_ACK,
-	VDP_PROFILE_NACK,
-};
-
 #define VDP_MACVLAN_FORMAT_1	1
 
 #define VDP_TIMER_GRANULARITY		10000 /* 10 ms in us */
