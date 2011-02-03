@@ -129,6 +129,26 @@ void vdp_print_profile(struct vsi_profile *profile)
 	LLDPAD_DBG("vlan: %i\n", profile->vlan);
 }
 
+/* vdp_ack_profiles - set ackReceived for all profiles with seqnr
+ * @vd: vd for the interface
+ * @seqnr: seqnr the ack has been received with
+ *
+ * no return value
+ *
+ * set the ackReceived for all profiles which have been sent out with
+ * the seqnr that we now have received the ack for.
+ */
+void vdp_ack_profiles(struct vdp_data *vd, int seqnr)
+{
+	struct vsi_profile *p;
+
+	LIST_FOREACH(p, &vd->profile_head, profile) {
+		if (p->seqnr == seqnr)
+			p->ackReceived = true;
+	}
+
+}
+
 /* vdp_somethingChangedLocal - set flag if profile has changed
  * @profile: profile to set the flag for
  * @flag: set the flag to true or false
@@ -185,6 +205,8 @@ void vdp_timeout_handler(void *eloop_data, void *user_ctx)
 
 	vd = (struct vdp_data *) user_ctx;
 
+	vd->nroftimers--;
+
 	LIST_FOREACH(p, &vd->profile_head, profile) {
 		if (p->ackTimer > 0)
 			p->ackTimer--;
@@ -194,9 +216,15 @@ void vdp_timeout_handler(void *eloop_data, void *user_ctx)
 
 		if (vdp_ackTimer_expired(p) ||
 		    vdp_keepaliveTimer_expired(p) ||
-		    p->ackReceived ||
-		    p->localChange)
+		    p->ackReceived) {
+			LLDPAD_DBG("%s(%i): vdp_ackTimer_expired %i\n", __func__, __LINE__,
+				   vdp_ackTimer_expired(p));
+			LLDPAD_DBG("%s(%i): p->ackReceived %i\n", __func__, __LINE__,
+				   p->ackReceived);
+			LLDPAD_DBG("%s(%i): vdp_keepaliveTimer_expired %i\n", __func__, __LINE__,
+				   vdp_keepaliveTimer_expired(p));
 			vdp_vsi_sm_station(p);
+		}
 	}
 
 	vdp_start_timer(vd);
@@ -214,6 +242,8 @@ static int vdp_stop_timer(struct vdp_data *vd)
 	LLDPAD_DBG("%s(%i)-%s: stopping vdp timer\n", __func__, __LINE__,
 	       vd->ifname);
 
+	vd->nroftimers--;
+
 	return eloop_cancel_timeout(vdp_timeout_handler, NULL, (void *) vd);
 }
 
@@ -230,6 +260,15 @@ static int vdp_start_timer(struct vdp_data *vd)
 
 	secs = 0;
 	usecs = VDP_TIMER_GRANULARITY;
+
+	vd->nroftimers++;
+
+	if (vd->nroftimers > 1) {
+		LLDPAD_WARN("%s(%i)-%s: nroftimers %i !\n", __func__, __LINE__,
+			   vd->ifname, vd->nroftimers);
+		vd->nroftimers--;
+		return 0;
+	}
 
 	return eloop_register_timeout(secs, usecs, vdp_timeout_handler, NULL, (void *) vd);
 }
@@ -301,6 +340,7 @@ void vdp_vsi_change_station_state(struct vsi_profile *profile, u8 newstate)
 		break;
 	case VSI_ASSOC_PROCESSING:
 		assert((profile->state == VSI_PREASSOCIATED) ||
+		       (profile->state == VSI_ASSOCIATED) ||
 		       (profile->state == VSI_UNASSOCIATED));
 		break;
 	case VSI_ASSOCIATED:
@@ -308,7 +348,8 @@ void vdp_vsi_change_station_state(struct vsi_profile *profile, u8 newstate)
 			(profile->state == VSI_ASSOCIATED));
 		break;
 	case VSI_PREASSOC_PROCESSING:
-		assert(profile->state == VSI_UNASSOCIATED);
+		assert((profile->state == VSI_PREASSOCIATED) ||
+			profile->state == VSI_UNASSOCIATED);
 		break;
 	case VSI_PREASSOCIATED:
 		assert((profile->state == VSI_PREASSOC_PROCESSING) ||
@@ -366,8 +407,6 @@ static bool vdp_vsi_set_station_state(struct vsi_profile *profile)
 		}
 		return false;
 	case VSI_ASSOC_PROCESSING:
-		LLDPAD_DBG("profile->ackReceived %i, vdp_ackTimer %i\n",
-			   profile->ackReceived, profile->ackTimer);
 		if (profile->ackReceived) {
 			vdp_vsi_change_station_state(profile, VSI_ASSOCIATED);
 			return true;
@@ -383,23 +422,35 @@ static bool vdp_vsi_set_station_state(struct vsi_profile *profile)
 		} else if (profile->mode == VDP_MODE_DEASSOCIATE) {
 			vdp_vsi_change_station_state(profile, VSI_DEASSOC_PROCESSING);
 			return true;
+		} else if (vdp_keepaliveTimer_expired(profile)) {
+			vdp_stop_keepaliveTimer(profile);
+			vdp_somethingChangedLocal(profile, true);
+			vdp_vsi_change_station_state(profile, VSI_ASSOC_PROCESSING);
+			return true;
 		}
 		return false;
 	case VSI_PREASSOC_PROCESSING:
+		LLDPAD_DBG("%s(%i): profile->ackReceived %i, vdp_ackTimer %i\n", __func__,
+			   __LINE__, profile->ackReceived, profile->ackTimer);
 		if (profile->ackReceived) {
 			vdp_vsi_change_station_state(profile, VSI_PREASSOCIATED);
 			return true;
-		} else if (vdp_ackTimer_expired(profile)) {
+		} else if (!profile->ackReceived && vdp_ackTimer_expired(profile)) {
 			vdp_vsi_change_station_state(profile, VSI_EXIT);
 			return true;
 		}
+		return false;
 	case VSI_PREASSOCIATED:
-		if (profile->mode == VDP_MODE_DEASSOCIATE) {
-			vdp_vsi_change_station_state(profile, VSI_DEASSOC_PROCESSING);
-			return true;
-		}
 		if (profile->mode == VDP_MODE_ASSOCIATE) {
 			vdp_vsi_change_station_state(profile, VSI_ASSOC_PROCESSING);
+			return true;
+		} else if (profile->mode == VDP_MODE_DEASSOCIATE) {
+			vdp_vsi_change_station_state(profile, VSI_DEASSOC_PROCESSING);
+			return true;
+		} else if (vdp_keepaliveTimer_expired(profile)) {
+			vdp_stop_keepaliveTimer(profile);
+			vdp_somethingChangedLocal(profile, true);
+			vdp_vsi_change_station_state(profile, VSI_PREASSOC_PROCESSING);
 			return true;
 		}
 		return false;
@@ -438,55 +489,44 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 		case VSI_UNASSOCIATED:
 			break;
 		case VSI_ASSOC_PROCESSING:
+			vdp_stop_keepaliveTimer(profile);
 			profile->response = VDP_RESPONSE_NO_RESPONSE;
 			if (profile->localChange) {
 				ecp_somethingChangedLocal(vd);
+				vdp_start_ackTimer(profile);
 				ecp_tx_run_sm(vd);
 			}
-			vdp_somethingChangedLocal(profile, false);
-			vdp_start_ackTimer(profile);
 			break;
 		case VSI_ASSOCIATED:
 			profile->ackReceived = false;
 			vdp_somethingChangedLocal(profile, false);
 			vdp_stop_ackTimer(profile);
-			if (vdp_keepaliveTimer_expired(profile)) {
-				vdp_somethingChangedLocal(profile, true);
-				ecp_somethingChangedLocal(vd);
-				ecp_tx_run_sm(vd);
-				vdp_start_keepaliveTimer(profile);
-			}
+			vdp_start_keepaliveTimer(profile);
 			break;
 		case VSI_PREASSOC_PROCESSING:
-			/* send out profile */
+			vdp_stop_keepaliveTimer(profile);
 			profile->response = VDP_RESPONSE_NO_RESPONSE;
 			if (profile->localChange) {
 				ecp_somethingChangedLocal(vd);
+				vdp_start_ackTimer(profile);
 				ecp_tx_run_sm(vd);
 			}
-			vdp_somethingChangedLocal(profile, false);
-			vdp_start_ackTimer(profile);
 			break;
 		case VSI_PREASSOCIATED:
 			profile->ackReceived = false;
 			vdp_somethingChangedLocal(profile, false);
 			vdp_stop_ackTimer(profile);
-			if (vdp_keepaliveTimer_expired(profile)) {
-				vdp_somethingChangedLocal(profile, true);
-				ecp_somethingChangedLocal(vd);
-				ecp_tx_run_sm(vd);
-			}
 			vdp_start_keepaliveTimer(profile);
 			break;
 		case VSI_DEASSOC_PROCESSING:
+			vdp_stop_keepaliveTimer(profile);
 			profile->response = VDP_RESPONSE_NO_RESPONSE;
 			vdp_stop_keepaliveTimer(profile);
 			if (profile->localChange) {
 				ecp_somethingChangedLocal(vd);
+				vdp_start_ackTimer(profile);
 				ecp_tx_run_sm(vd);
 			}
-			vdp_somethingChangedLocal(profile, false);
-			vdp_start_ackTimer(profile);
 			break;
 		case VSI_EXIT:
 			/* TODO: send DEASSOC here ? */
@@ -1175,7 +1215,7 @@ void vdp_ifup(char *ifname)
 	vd = vdp_data(ifname);
 	if (vd) {
 		LLDPAD_WARN("%s:%s vdp data already exists !\n", __func__, ifname);
-		goto out_start_timer;
+		goto out_start_again;
 	}
 
 	/* not found, alloc/init per-port module data */
@@ -1204,6 +1244,7 @@ void vdp_ifup(char *ifname)
 	ud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_VDP);
 	LIST_INSERT_HEAD(&ud->head, vd, entry);
 
+out_start_again:
 	if (ecp_init(ifname)) {
 		LLDPAD_ERR("%s:%s unable to init ecp !\n", __func__, ifname);
 		vdp_ifdown(ifname);
@@ -1213,7 +1254,8 @@ void vdp_ifup(char *ifname)
 	vd->keepaliveTimer = VDP_KEEPALIVE_TIMER_DEFAULT;
 	vd->ackTimer = VDP_ACK_TIMER_DEFAULT;
 
-out_start_timer:
+	LLDPAD_DBG("%s(%i)-%s: starting vdp timer (%i)\n", __func__, __LINE__,
+	       vd->ifname, vd->nroftimers);
 	vdp_start_timer(vd);
 
 	LLDPAD_DBG("%s:%s vdp added\n", __func__, ifname);

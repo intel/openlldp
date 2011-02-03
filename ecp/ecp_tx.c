@@ -172,6 +172,8 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 			fb_offset += ptlv->size;
 		}
 
+		p->seqnr = vd->ecp.lastSequence;
+
 		ptlv = free_pkd_tlv(ptlv);
 	}
 
@@ -406,7 +408,7 @@ static bool ecp_set_tx_state(struct vdp_data *vd)
 			return true;
 		}
 		ecp_tx_change_state(vd, ECP_TX_WAIT_FOR_ACK);
-		return true;
+		return false;
 	case ECP_TX_WAIT_FOR_ACK:
 		if (vd->ecp.ackTimerExpired) {
 			vd->ecp.retries++;

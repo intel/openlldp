@@ -60,14 +60,18 @@ int ecp_init(char *ifname)
 		goto fail;
 	}
 
-	vd->ecp.l2 = l2_packet_init(vd->ifname, NULL, ETH_P_ECP,
-		ecp_rx_ReceiveFrame, vd, 1);
+	if (!vd->ecp.l2) {
+		vd->ecp.l2 = l2_packet_init(vd->ifname, NULL, ETH_P_ECP,
+					    ecp_rx_ReceiveFrame, vd, 1);
+	}
+
 	if (!vd->ecp.l2) {
 		LLDPAD_ERR("ERROR: Failed to open register layer 2 access to "
 			"ETH_P_ECP\n");
 		goto fail;
 	}
 
+	vd->ecp.ackTimerExpired = true;
 	ecp_tx_run_sm(vd);
 	ecp_rx_run_sm(vd);
 

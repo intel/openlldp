@@ -268,6 +268,7 @@ void ecp_rx_ReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t 
 		vd->ecp.ackReceived = true;
 		LLDPAD_DBG("%s(%i)-%s: received ack frame \n", __func__, __LINE__, vd->ifname);
 		ecp_print_framein(vd);
+		vdp_ack_profiles(vd, vd->ecp.seqECPDU);
 		ecp_tx_run_sm(vd);
 		vd->ecp.ackReceived = false;
 		break;

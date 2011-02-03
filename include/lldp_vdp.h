@@ -126,6 +126,7 @@ struct vsi_profile {
 	int ackReceived;
 	int keepaliveTimer;
 	int state;
+	int seqnr;
 	bool localChange;
 	LIST_ENTRY(vsi_profile) profile;
 };
@@ -137,6 +138,7 @@ struct vdp_data {
 	int role;
 	int keepaliveTimer;
 	int ackTimer;
+	int nroftimers;
 	LIST_HEAD(profile_head, vsi_profile) profile_head;
 	LIST_ENTRY(vdp_data) entry;
 };
