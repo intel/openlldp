@@ -388,17 +388,23 @@ int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie)
 		ed->tie->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
 	}
 
-	/* If both sides support RTE, set it */
-	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_RTE)
+	/* If both sides support RTE, support and configure it */
+	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_RTE) {
 		ed->tie->scap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
+		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
+	}
 
 	/* If both sides support ECP, set it */
-	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_ECP)
+	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_ECP) {
 		ed->tie->scap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
+		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
+	}
 
 	/* If both sides support VDP, set it */
-	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_VDP)
+	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_VDP) {
 		ed->tie->scap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+	}
 
 	/* If supported caps include VDP take over min value of both */
 	if (ed->tie->scap & LLDP_EVB_CAPABILITY_PROTOCOL_VDP)
