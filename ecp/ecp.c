@@ -92,8 +92,6 @@ int ecp_deinit(char *ifname)
 
 	ecp_tx_stop_ackTimer(vd);
 
-	l2_packet_deinit(vd->ecp.l2);
-
 	return 0;
 
 fail:

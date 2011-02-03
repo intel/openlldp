@@ -71,8 +71,11 @@ enum {
 
 #define VDP_MACVLAN_FORMAT_1	1
 
-#define VDP_TRANSMISSION_TIMER(rte)	3*EVB_RTM(rte)*EVB_RTG
-#define VDP_TRANSMISSION_DIVIDER	10000
+#define VDP_TIMER_GRANULARITY		10000 /* 10 ms in us */
+#define VDP_KEEPALIVE_TIMER_DEFAULT	1000
+#define VDP_ACK_TIMER_DEFAULT		150
+#define VDP_KEEPALIVE_TIMER_STOPPED	-1
+#define VDP_ACK_TIMER_STOPPED		-1
 
 #define VDP_ROLE_STATION		0
 #define VDP_ROLE_BRIDGE			1
@@ -126,9 +129,9 @@ struct vsi_profile {
 	u8 mac[6]; /* TODO: currently only one MAC/VLAN pair supported, more later */
 	u16 vlan;
 	struct port *port;
-	int ackTimerExpired;
+	int ackTimer;
 	int ackReceived;
-	int keepaliveTimerExpired;
+	int keepaliveTimer;
 	int state;
 	bool localChange;
 	LIST_ENTRY(vsi_profile) profile;
@@ -139,6 +142,8 @@ struct vdp_data {
 	struct ecp ecp;
 	struct unpacked_tlv *vdp;
 	int role;
+	int keepaliveTimer;
+	int ackTimer;
 	LIST_HEAD(profile_head, vsi_profile) profile_head;
 	LIST_ENTRY(vdp_data) entry;
 };
@@ -154,6 +159,7 @@ struct packed_tlv *vdp_gettlv(struct vdp_data *vd, struct vsi_profile *profile);
 void vdp_vsi_sm_station(struct vsi_profile *profile);
 struct vsi_profile *vdp_add_profile(struct vsi_profile *profile);
 void vdp_somethingChangedLocal(struct vsi_profile *profile, bool mode);
+static int vdp_start_timer(struct vdp_data *vd);
 
 #define MAC_ADDR_STRLEN		18
 #define INSTANCE_STRLEN		36
