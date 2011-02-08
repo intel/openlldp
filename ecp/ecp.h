@@ -34,8 +34,7 @@
 #define ECP_MAX_RETRIES			3
 #define ECP_SEQUENCE_NR_START		0x0
 
-#define ECP_TRANSMISSION_TIMER(rte)	EVB_RTM(rte)*EVB_RTG
-#define ECP_TRANSMISSION_DIVIDER	10000
+#define ECP_ACK_TIMER_DEFAULT		500000 /* 500 ms in us */
 
 typedef enum {
 	ECP_REQUEST = 0,
