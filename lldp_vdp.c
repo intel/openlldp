@@ -131,16 +131,16 @@ void vdp_print_profile(struct vsi_profile *profile)
 
 /* vdp_somethingChangedLocal - set flag if profile has changed
  * @profile: profile to set the flag for
- * @mode: mode to set the flag to
+ * @flag: set the flag to true or false
  *
  * no return value
  *
  * set the localChange flag with a mode to indicate a profile has changed.
  * used next time when a ecpdu with profiles is sent out.
  */
-void vdp_somethingChangedLocal(struct vsi_profile *profile, bool mode)
+void vdp_somethingChangedLocal(struct vsi_profile *profile, bool flag)
 {
-	profile->localChange = mode;
+	profile->localChange = flag;
 }
 
 /* vdp_keepaliveTimer_expired - checks for expired ack timer
@@ -192,10 +192,10 @@ void vdp_timeout_handler(void *eloop_data, void *user_ctx)
 		if (p->keepaliveTimer > 0)
 			p->keepaliveTimer--;
 
-		if (vdp_ackTimer_expired(p))
-			vdp_vsi_sm_station(p);
-
-		if (vdp_keepaliveTimer_expired(p))
+		if (vdp_ackTimer_expired(p) ||
+		    vdp_keepaliveTimer_expired(p) ||
+		    p->ackReceived ||
+		    p->localChange)
 			vdp_vsi_sm_station(p);
 	}
 
@@ -481,9 +481,11 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 		case VSI_DEASSOC_PROCESSING:
 			profile->response = VDP_RESPONSE_NO_RESPONSE;
 			vdp_stop_keepaliveTimer(profile);
-			vdp_somethingChangedLocal(profile, true);
-			ecp_somethingChangedLocal(vd);
-			ecp_tx_run_sm(vd);
+			if (profile->localChange) {
+				ecp_somethingChangedLocal(vd);
+				ecp_tx_run_sm(vd);
+			}
+			vdp_somethingChangedLocal(profile, false);
 			vdp_start_ackTimer(profile);
 			break;
 		case VSI_EXIT:
@@ -825,8 +827,6 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode)
 
 				LLDPAD_DBG("%s(%i): profile response: %s (%i).\n", __func__, __LINE__,
 					   vsi_responses[p->response], p->response);
-
-				vdp_vsi_sm_station(p);
 			} else {
 				LLDPAD_DBG("%s(%i): station: profile not found !\n", __func__, __LINE__);
 				/* ignore profile */

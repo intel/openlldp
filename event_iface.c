@@ -454,8 +454,7 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 		return -EINVAL;
 	}
 
-	vdp_somethingChangedLocal(profile, true);
-	vdp_vsi_sm_station(p);
+	vdp_somethingChangedLocal(p, true);
 
 	return 0;
 }

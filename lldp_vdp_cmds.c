@@ -323,7 +323,6 @@ static int set_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
        }
 
        vdp_somethingChangedLocal(profile, true);
-       vdp_vsi_sm_station(p);
 
        return cmd_success;
 }
