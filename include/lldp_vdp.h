@@ -40,7 +40,7 @@ static char *vsi_modes[] = {
 	"VDP_MODE_PREASSOCIATED",
 	"VDP_MODE_PREASSOCIATED_WITH_RR",
 	"VDP_MODE_ASSOCIATED",
-	"VDP_MODE_DEASSOCITATED"
+	"VDP_MODE_DEASSOCIATED"
 };
 
 #define VDP_RESPONSE_SUCCESS		0x0
@@ -168,7 +168,7 @@ static int vdp_start_timer(struct vdp_data *vd);
   c = sprintf(s, "state: %i", p->state); s += c; \
   c = sprintf(s, " (%s)\n", vsi_states[p->state]); s+= c; \
   c = sprintf(s, "mgrid: %i\n", p->mgrid); s += c; \
-  c = sprintf(s, "id: %x\n", p->id); \
+  c = sprintf(s, "id: %i (0x%x)\n", p->id, p->id); \
   s += c; \
   c = sprintf(s, "version: %i\n", p->version); s += c; \
   char instance[INSTANCE_STRLEN+2]; \
