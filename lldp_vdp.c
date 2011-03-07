@@ -55,7 +55,7 @@ struct vdp_data *vdp_data(char *ifname)
 	struct vdp_user_data *ud;
 	struct vdp_data *vd = NULL;
 
-	ud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_VDP);
+	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP);
 	if (ud) {
 		LIST_FOREACH(vd, &ud->head, entry) {
 			if (!strncmp(ifname, vd->ifname, IFNAMSIZ))
@@ -1268,7 +1268,7 @@ void vdp_ifup(char *ifname)
 
 	LIST_INIT(&vd->profile_head);
 
-	ud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_VDP);
+	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP);
 	LIST_INSERT_HEAD(&ud->head, vd, entry);
 
 	port = port_find_by_name(ifname);

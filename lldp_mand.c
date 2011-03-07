@@ -97,7 +97,7 @@ static struct mand_data *mand_data(const char *ifname)
 	struct mand_user_data *mud;
 	struct mand_data *md = NULL;
 
-	mud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_MAND);
+	mud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_MAND);
 	if (mud) {
 		LIST_FOREACH(md, &mud->head, entry) {
 			if (!strncmp(ifname, md->ifname, IFNAMSIZ))
@@ -606,7 +606,7 @@ void mand_ifup(char *ifname)
 	md->rebuild_chassis = 1; 
 	/* portid is built once and remains constant */
 	md->rebuild_portid = 1; 
-	mud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_MAND);
+	mud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_MAND);
 	LIST_INSERT_HEAD(&mud->head, md, entry);
 	LLDPAD_INFO("%s:port %s added\n", __func__, ifname); 
 	return;

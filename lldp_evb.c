@@ -48,7 +48,7 @@ struct evb_data *evb_data(char *ifname)
 	struct evb_user_data *ud;
 	struct evb_data *ed = NULL;
 
-	ud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_EVB);
+	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_EVB);
 	if (ud) {
 		LIST_FOREACH(ed, &ud->head, entry) {
 			if (!strncmp(ifname, ed->ifname, IFNAMSIZ))
@@ -597,7 +597,7 @@ void evb_ifup(char *ifname)
 	ed->state = EVB_OFFER_CAPABILITIES;
 	evb_bld_tlv(ed);
 
-	ud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_EVB);
+	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_EVB);
 	LIST_INSERT_HEAD(&ud->head, ed, entry);
 	LLDPAD_DBG("%s:port %s added\n", __func__, ifname);
 	return;

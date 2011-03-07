@@ -116,7 +116,7 @@ struct dcbx_tlvs *dcbx_data(const char *ifname)
 	struct dcbd_user_data *dud;
 	struct dcbx_tlvs *tlv = NULL;
 
-	dud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_DCBX);
+	dud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_DCBX);
 	if (dud) {
 		LIST_FOREACH(tlv, &dud->head, entry) {
 			if (!strncmp(tlv->ifname, ifname, IFNAMSIZ))
@@ -443,7 +443,7 @@ void dcbx_ifup(char *ifname)
 		port = port->next;
 	}
 
-	dud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_DCBX);
+	dud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_DCBX);
 	tlvs = dcbx_data(ifname);	
 
 	if (!port || !check_port_dcb_mode(ifname)) 

@@ -108,8 +108,7 @@ static inline struct lldp_module *find_module_by_id(struct lldp_head *head, int 
 	return NULL;
 }
 
-static inline void *find_module_user_data_by_if(const char *ifname,
-						struct lldp_head *head, int id)
+static inline void *find_module_user_data_by_id(struct lldp_head *head, int id)
 {
 	struct lldp_module *mod;
 

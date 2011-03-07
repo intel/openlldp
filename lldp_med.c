@@ -96,7 +96,7 @@ static struct med_data *med_data(const char *ifname)
 	struct med_user_data *mud;
 	struct med_data *md = NULL;
 
-	mud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_MED);
+	mud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_MED);
 	if (mud) {
 		LIST_FOREACH(md, &mud->head, entry) {
 			if (!strncmp(ifname, md->ifname, IFNAMSIZ))
@@ -902,7 +902,7 @@ void med_ifup(char *ifname)
 		free(md);
 		goto out_err;
 	}
-	mud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_MED);
+	mud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_MED);
 	LIST_INSERT_HEAD(&mud->head, md, entry);
 	LLDPAD_INFO("%s:port %s added\n", __func__, ifname);
 	return;
