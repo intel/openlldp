@@ -160,10 +160,10 @@ static int get_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
                count++;
        }
 
-       s = t = malloc(count*VDP_BUF_SIZE+1);
+       s = t = malloc((count+1)*VDP_BUF_SIZE);
        if (!s)
                return cmd_invalid;
-       memset(s, 0, count*VDP_BUF_SIZE+1);
+       memset(s, 0, (count+1)*VDP_BUF_SIZE);
 
        LIST_FOREACH(np, &vd->profile_head, profile) {
                PRINT_PROFILE(t, np);
@@ -321,8 +321,6 @@ static int set_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
                free(profile);
                return cmd_invalid;
        }
-
-       vdp_somethingChangedLocal(profile, true);
 
        return cmd_success;
 }

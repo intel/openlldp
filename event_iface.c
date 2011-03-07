@@ -463,8 +463,6 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 		goto out_err;
 	}
 
-	vdp_somethingChangedLocal(p, true);
-
 	return ret;
 
 out_err:

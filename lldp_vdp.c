@@ -1135,18 +1135,22 @@ struct vsi_profile *vdp_add_profile(struct vsi_profile *profile)
 				if (p->mode == profile->mode) {
 					LLDPAD_DBG("%s(%i): profile already exists, ignoring !\n",
 					       __func__, __LINE__);
-					return p;
 				} else {
 					LLDPAD_DBG("%s(%i): taking new mode !\n", __func__,
 					       __LINE__);
 					p->mode = profile->mode;
-					return p;
 				}
+
+				vdp_somethingChangedLocal(p, true);
+
+				return p;
 			}
 		}
 	}
 
 	LIST_INSERT_HEAD(&vd->profile_head, profile, profile );
+
+	vdp_somethingChangedLocal(profile, true);
 
 	return profile;
 }
