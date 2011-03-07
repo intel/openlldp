@@ -103,19 +103,13 @@ int clif_request(struct clif *clif, const char *cmd, size_t cmd_len,
 	int res;
 	fd_set rfds;
 	const char *_cmd;
-	char *cmd_buf = NULL;
 	size_t _cmd_len;
 
-	{
-		_cmd = cmd;
-		_cmd_len = cmd_len;
-	}
+	_cmd = cmd;
+	_cmd_len = cmd_len;
 
-	if (send(clif->s, _cmd, _cmd_len, 0) < 0) {
-		free(cmd_buf);
+	if (send(clif->s, _cmd, _cmd_len, 0) < 0)
 		return -1;
-	}
-	free(cmd_buf);
 
 	for (;;) {
 		tv.tv_sec = CMD_RESPONSE_TIMEOUT;
