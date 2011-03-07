@@ -1235,6 +1235,7 @@ void vdp_ifup(char *ifname)
 	char *p;
 	struct vdp_data *vd;
 	struct vdp_user_data *ud;
+	struct port *port;
 
 	LLDPAD_DBG("%s(%i): starting VDP for if %s !\n", __func__, __LINE__, ifname);
 
@@ -1269,6 +1270,20 @@ void vdp_ifup(char *ifname)
 
 	ud = find_module_user_data_by_if(ifname, &lldp_head, LLDP_MOD_VDP);
 	LIST_INSERT_HEAD(&ud->head, vd, entry);
+
+	port = port_find_by_name(ifname);
+
+	if (!port) {
+		LLDPAD_ERR("%s(%i): could not find port for %s!\n",
+			   __func__, __LINE__, ifname);
+		goto out_err;
+	}
+
+	if (port->adminStatus != enabledRxTx) {
+		LLDPAD_WARN("%s(%i): port %s not enabled for RxTx (%i) !\n",
+			    __func__, __LINE__, ifname, port->adminStatus);
+		return;
+	}
 
 out_start_again:
 	if (ecp_init(ifname)) {
