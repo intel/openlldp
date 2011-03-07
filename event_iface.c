@@ -294,6 +294,7 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 	struct vdp_data *vd;
 	char *ifname;
 	int rem;
+	int ret = 0;
 
 	if (nlmsg_parse(nlh, sizeof(struct ifinfomsg),
 			(struct nlattr **)&tb, IFLA_MAX, NULL)) {
@@ -379,7 +380,8 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 			if (nla_parse_nested(tb3, IFLA_PORT_MAX, tb_vf_ports,
 					     ifla_port_policy)) {
 				LLDPAD_ERR("nested parsing on level 2 failed.\n");
-				return -EINVAL;
+				ret = -EINVAL;
+				goto out_err;
 			}
 
 			if (tb3[IFLA_PORT_VF]) {
@@ -435,28 +437,39 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 		}
 	}
 
-	if (ifname) {
-		struct port *port = port_find_by_name(ifname);
+	struct port *port = port_find_by_name(ifname);
 
-		if (port) {
-			profile->port = port;
-		} else {
-			LLDPAD_ERR("%s(%i): Could not find port for %s\n", __func__,
-			       __LINE__, ifname);
-			return -EEXIST;
-		}
+	if (port) {
+		profile->port = port;
+	} else {
+		LLDPAD_ERR("%s(%i): Could not find port for %s\n", __func__,
+		       __LINE__, ifname);
+		ret = -EEXIST;
+		goto out_err;
+	}
+
+	/* If the link is down, reject request */
+	if (!port->portEnabled) {
+		LLDPAD_WARN("%s(%i): Unable to associate, port %s not enabled !\n", __func__,
+		       __LINE__, ifname);
+		ret = -ENXIO;
+		goto out_err;
 	}
 
 	p = vdp_add_profile(profile);
 
 	if (!p) {
-		free(profile);
-		return -EINVAL;
+		ret = -EINVAL;
+		goto out_err;
 	}
 
 	vdp_somethingChangedLocal(p, true);
 
-	return 0;
+	return ret;
+
+out_err:
+	free(profile);
+	return ret;
 }
 
 static void event_if_parseResponseMsg(struct nlmsghdr *nlh)
