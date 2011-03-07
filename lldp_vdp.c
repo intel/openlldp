@@ -510,7 +510,7 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			vdp_stop_keepaliveTimer(profile);
 			profile->response = VDP_RESPONSE_NO_RESPONSE;
 			if (profile->localChange) {
-				ecp_somethingChangedLocal(vd);
+				ecp_somethingChangedLocal(vd, true);
 				vdp_start_ackTimer(profile);
 			}
 			break;
@@ -524,7 +524,7 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			vdp_stop_keepaliveTimer(profile);
 			profile->response = VDP_RESPONSE_NO_RESPONSE;
 			if (profile->localChange) {
-				ecp_somethingChangedLocal(vd);
+				ecp_somethingChangedLocal(vd, true);
 				vdp_start_ackTimer(profile);
 			}
 			break;
@@ -535,10 +535,11 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			vdp_start_keepaliveTimer(profile);
 			break;
 		case VSI_DEASSOC_PROCESSING:
+			profile->ackReceived = false;
 			vdp_stop_keepaliveTimer(profile);
 			profile->response = VDP_RESPONSE_NO_RESPONSE;
 			if (profile->localChange) {
-				ecp_somethingChangedLocal(vd);
+				ecp_somethingChangedLocal(vd, true);
 				vdp_start_ackTimer(profile);
 			}
 			break;

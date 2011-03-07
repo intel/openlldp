@@ -48,12 +48,15 @@ void ecp_tx_run_sm(struct vdp_data *);
  * used  to signal an ecpdu needs to be sent out.
  */
 
-void ecp_somethingChangedLocal(struct vdp_data *vd)
+void ecp_somethingChangedLocal(struct vdp_data *vd, bool flag)
 {
 	if (!vd)
 		return;
 
-	vd->ecp.tx.localChange = true;
+	LLDPAD_DBG("%s(%i): setting vd->ecp.tx.localChange to %s.", __func__,
+		   __LINE__, (flag == true) ? "true" : "false");
+
+	vd->ecp.tx.localChange = flag;
 
 	return;
 }
@@ -218,7 +221,7 @@ void ecp_tx_Initialize(struct vdp_data *vd)
 		free(vd->ecp.tx.frameout);
 		vd->ecp.tx.frameout = NULL;
 	}
-	vd->ecp.tx.localChange = true;
+	ecp_somethingChangedLocal(vd, true);
 	vd->ecp.lastSequence = ECP_SEQUENCE_NR_START;
 	vd->ecp.stats.statsFramesOutTotal = 0;
 	vd->ecp.ackTimer = ECP_ACK_TIMER_STOPPED;
@@ -267,7 +270,7 @@ void ecp_tx_create_frame(struct vdp_data *vd)
 		ecp_txFrame(vd);
 	}
 
-	vd->ecp.tx.localChange = false;
+	ecp_somethingChangedLocal(vd, false);
 	return;
 }
 
@@ -395,7 +398,7 @@ static bool ecp_set_tx_state(struct vdp_data *vd)
 		if (ecp_ackTimer_expired(vd)) {
 			vd->ecp.retries++;
 			if (vd->ecp.retries < ECP_MAX_RETRIES) {
-				ecp_somethingChangedLocal(vd);
+				ecp_somethingChangedLocal(vd, true);
 				ecp_tx_change_state(vd, ECP_TX_TRANSMIT_ECPDU);
 				return true;
 			}
@@ -446,7 +449,7 @@ void ecp_tx_run_sm(struct vdp_data *vd)
 		case ECP_TX_TRANSMIT_ECPDU:
 			ecp_tx_create_frame(vd);
 			ecp_tx_start_ackTimer(vd);
-			vd->ecp.tx.localChange = false;
+			ecp_somethingChangedLocal(vd, false);
 			break;
 		case ECP_TX_WAIT_FOR_ACK:
 			if (vd->ecp.ackReceived) {
@@ -454,7 +457,7 @@ void ecp_tx_run_sm(struct vdp_data *vd)
 				       vd->ifname);
 				LLDPAD_DBG("%s(%i)-%s: seqECPDU %x lastSequence %x \n", __func__, __LINE__,
 				       vd->ifname, vd->ecp.seqECPDU, vd->ecp.lastSequence);
-				vd->ecp.tx.localChange = false;
+				ecp_somethingChangedLocal(vd, false);
 				ecp_tx_stop_ackTimer(vd);
 			}
 			break;
