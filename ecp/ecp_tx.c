@@ -53,7 +53,7 @@ void ecp_somethingChangedLocal(struct vdp_data *vd, bool flag)
 	if (!vd)
 		return;
 
-	LLDPAD_DBG("%s(%i): setting vd->ecp.tx.localChange to %s.", __func__,
+	LLDPAD_DBG("%s(%i): vd->ecp.tx.localChange to %s.", __func__,
 		   __LINE__, (flag == true) ? "true" : "false");
 
 	vd->ecp.tx.localChange = flag;
@@ -412,6 +412,11 @@ static bool ecp_set_tx_state(struct vdp_data *vd)
 		}
 		if (vd->ecp.ackReceived && vd->ecp.seqECPDU == vd->ecp.lastSequence) {
 			vd->ecp.ackReceived = false;
+			if (vdp_vsis_pending(vd)) {
+				LLDPAD_DBG("%s(%i)-%s: still work pending !\n",
+					   __func__, __LINE__, vd->ifname);
+				ecp_somethingChangedLocal(vd, true);
+			}
 			ecp_tx_change_state(vd, ECP_TX_REQUEST_PDU);
 			return true;
 		}

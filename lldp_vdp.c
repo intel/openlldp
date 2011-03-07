@@ -149,6 +149,26 @@ void vdp_ack_profiles(struct vdp_data *vd, int seqnr)
 
 }
 
+/* vdp_vsis_pending - check for pending VSIs
+ * @vd: vdp data for the interface
+ *
+ * returns the number of VSIs found
+ *
+ * walk through the list of VSIs and return the count.
+ */
+int vdp_vsis_pending(struct vdp_data *vd)
+{
+	struct vsi_profile *p;
+	int count = 0;
+
+	LIST_FOREACH(p, &vd->profile_head, profile) {
+		if (p->localChange && (p->ackReceived == false))
+			count++;
+	}
+
+	return count;
+}
+
 /* vdp_somethingChangedLocal - set flag if profile has changed
  * @profile: profile to set the flag for
  * @flag: set the flag to true or false
