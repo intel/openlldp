@@ -71,8 +71,8 @@ int ecp_init(char *ifname)
 		goto fail;
 	}
 
-	vd->ecp.ackTimerExpired = true;
 	ecp_tx_run_sm(vd);
+	ecp_rx_change_state(vd, ECP_RX_IDLE);
 	ecp_rx_run_sm(vd);
 
 	return 0;
