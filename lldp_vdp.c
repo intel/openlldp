@@ -512,7 +512,6 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			if (profile->localChange) {
 				ecp_somethingChangedLocal(vd);
 				vdp_start_ackTimer(profile);
-				ecp_tx_run_sm(vd);
 			}
 			break;
 		case VSI_ASSOCIATED:
@@ -527,7 +526,6 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			if (profile->localChange) {
 				ecp_somethingChangedLocal(vd);
 				vdp_start_ackTimer(profile);
-				ecp_tx_run_sm(vd);
 			}
 			break;
 		case VSI_PREASSOCIATED:
@@ -542,7 +540,6 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			if (profile->localChange) {
 				ecp_somethingChangedLocal(vd);
 				vdp_start_ackTimer(profile);
-				ecp_tx_run_sm(vd);
 			}
 			break;
 		case VSI_EXIT:

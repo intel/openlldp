@@ -34,7 +34,10 @@
 #define ECP_MAX_RETRIES			3
 #define ECP_SEQUENCE_NR_START		0x0
 
-#define ECP_ACK_TIMER_DEFAULT		500000 /* 500 ms in us */
+#define ECP_ACK_TIMER_DEFAULT		50 /* 500 ms in 10 ms chunks */
+#define ECP_TIMER_GRANULARITY		10000 /* 10 ms in us */
+
+#define ECP_ACK_TIMER_STOPPED		-1
 
 typedef enum {
 	ECP_REQUEST = 0,
@@ -46,7 +49,7 @@ struct ecp {
 	int sequence;
 	int retries;
 	int ackReceived;
-	int ackTimerExpired;
+	int ackTimer;
 	u16 lastSequence;
 	u16 seqECPDU;
 	struct portrx rx;

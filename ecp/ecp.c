@@ -37,6 +37,70 @@
 #include "lldp/l2_packet.h"
 #include "ecp/ecp.h"
 
+static int ecp_start_timer(struct vdp_data *vd);
+
+/* ecp_timeout_handler - handles the timer expiry
+ * @eloop_data: data structure of event loop
+ * @user_ctx: user context, vdp_data here
+ *
+ * no return value
+ *
+ * called when the ECP timer has expired. Calls the ECP station state machine.
+ */
+void ecp_timeout_handler(void *eloop_data, void *user_ctx)
+{
+	struct vdp_data *vd;
+
+	vd = (struct vdp_data *) user_ctx;
+
+	if (vd->ecp.ackTimer > 0)
+		vd->ecp.ackTimer--;
+
+	if ((ecp_ackTimer_expired(vd) == true) ||
+	    vd->ecp.tx.localChange) {
+		LLDPAD_DBG("%s(%i)-%s: ecp_ackTimer_expired (%i) !\n",
+			   __func__, __LINE__, vd->ifname, vd->ecp.ackTimer);
+		LLDPAD_DBG("%s(%i)-%s: ecp.tx.localChange %i!\n",
+			   __func__, __LINE__,
+			   vd->ifname, vd->ecp.tx.localChange);
+		ecp_tx_run_sm(vd);
+	}
+
+	ecp_start_timer(vd);
+}
+
+/* ecp_start_timer - starts the ECP timer
+ * @vd: vdp_data for the interface
+ *
+ * returns 0 on success, -1 on error
+ *
+ * starts the ECP timer when the interface comes up.
+ */
+static int ecp_start_timer(struct vdp_data *vd)
+{
+	unsigned int secs, usecs;
+
+	secs = 0;
+	usecs = ECP_TIMER_GRANULARITY;
+
+	return eloop_register_timeout(secs, usecs, ecp_timeout_handler, NULL, (void *) vd);
+}
+
+/* ecp_stop_timer - stop the ECP timer
+ * @vd: vdp_data for the interface
+ *
+ * returns the number of removed handlers
+ *
+ * stops the ECP timer. Used e.g. when the host interface goes down.
+ */
+static int ecp_stop_timer(struct vdp_data *vd)
+{
+	LLDPAD_DBG("%s(%i)-%s: stopping ecp timer\n", __func__, __LINE__,
+	       vd->ifname);
+
+	return eloop_cancel_timeout(ecp_timeout_handler, NULL, (void *) vd);
+}
+
 /* ecp_init - initialize ecp module
  * @ifname: interface for which the module is initialized
  *
@@ -71,9 +135,10 @@ int ecp_init(char *ifname)
 		goto fail;
 	}
 
-	ecp_tx_run_sm(vd);
 	ecp_rx_change_state(vd, ECP_RX_IDLE);
 	ecp_rx_run_sm(vd);
+
+	ecp_start_timer(vd);
 
 	return 0;
 
@@ -94,6 +159,7 @@ int ecp_deinit(char *ifname)
 		goto fail;
 	}
 
+	ecp_stop_timer(vd);
 	ecp_tx_stop_ackTimer(vd);
 
 	return 0;

@@ -221,7 +221,7 @@ void ecp_tx_Initialize(struct vdp_data *vd)
 	vd->ecp.tx.localChange = true;
 	vd->ecp.lastSequence = ECP_SEQUENCE_NR_START;
 	vd->ecp.stats.statsFramesOutTotal = 0;
-	vd->ecp.ackTimerExpired = false;
+	vd->ecp.ackTimer = ECP_ACK_TIMER_STOPPED;
 	vd->ecp.retries = 0;
 
 	struct port *port = port_find_by_name(vd->ifname);
@@ -271,29 +271,6 @@ void ecp_tx_create_frame(struct vdp_data *vd)
 	return;
 }
 
-/* ecp_timeout_handler - handles the ack timer expiry
- * @eloop_data: data structure of event loop
- * @user_ctx: user context, port here
- *
- * no return value
- *
- * called when the ECP ack timer has expired. sets a flag and calls the ECP
- * state machine.
- */
-static void ecp_tx_timeout_handler(void *eloop_data, void *user_ctx)
-{
-	struct vdp_data *vd;
-
-	vd = (struct vdp_data *) user_ctx;
-
-	vd->ecp.ackTimerExpired = true;
-
-	LLDPAD_DBG("%s(%i)-%s: timer expired\n", __func__, __LINE__,
-	       vd->ifname);
-
-	ecp_tx_run_sm(vd);
-}
-
 /* ecp_tx_stop_ackTimer - stop the ECP ack timer
  * @vd: currently used port
  *
@@ -302,16 +279,16 @@ static void ecp_tx_timeout_handler(void *eloop_data, void *user_ctx)
  * stops the ECP ack timer. used when a ack frame for the port has been
  * received.
  */
-int ecp_tx_stop_ackTimer(struct vdp_data *vd)
+void ecp_tx_stop_ackTimer(struct vdp_data *vd)
 {
-	LLDPAD_DBG("%s(%i)-%s: stopping timer\n", __func__, __LINE__,
-	       vd->ifname);
+	vd->ecp.ackTimer = ECP_ACK_TIMER_STOPPED;
 
-	return eloop_cancel_timeout(ecp_tx_timeout_handler, NULL, (void *) vd);
+	LLDPAD_DBG("%s(%i)-%s: stopped ecp ack timer\n", __func__, __LINE__,
+	       vd->ifname);
 }
 
 /* ecp_tx_start_ackTimer - starts the ECP ack timer
- * @profile: profile to process
+ * @vd: vdp_data to process
  *
  * returns 0 on success, -1 on error
  *
@@ -319,17 +296,22 @@ int ecp_tx_stop_ackTimer(struct vdp_data *vd)
  */
 static void ecp_tx_start_ackTimer(struct vdp_data *vd)
 {
-	unsigned int secs, usecs, rte;
+	vd->ecp.ackTimer = ECP_ACK_TIMER_DEFAULT;
 
-	vd->ecp.ackTimerExpired = false;
-
-	secs = 0;
-	usecs = ECP_ACK_TIMER_DEFAULT;
-
-	LLDPAD_DBG("%s(%i)-%s: starting timer\n", __func__, __LINE__,
+	LLDPAD_DBG("%s(%i)-%s: starting ecp ack timer\n", __func__, __LINE__,
 	       vd->ifname);
+}
 
-	eloop_register_timeout(secs, usecs, ecp_tx_timeout_handler, NULL, (void *) vd);
+/* ecp_ackTimer_expired - checks for expired ack timer
+ * @vd: vdp_data for interface
+ *
+ * returns true or false
+ *
+ * returns true if ack timer has expired, false otherwise.
+ */
+bool ecp_ackTimer_expired(struct vdp_data *vd)
+{
+	return (vd->ecp.ackTimer == 0);
 }
 
 /* ecp_tx_change_state - changes the ecp tx sm state
@@ -410,7 +392,7 @@ static bool ecp_set_tx_state(struct vdp_data *vd)
 		ecp_tx_change_state(vd, ECP_TX_WAIT_FOR_ACK);
 		return false;
 	case ECP_TX_WAIT_FOR_ACK:
-		if (vd->ecp.ackTimerExpired) {
+		if (ecp_ackTimer_expired(vd)) {
 			vd->ecp.retries++;
 			if (vd->ecp.retries < ECP_MAX_RETRIES) {
 				ecp_somethingChangedLocal(vd);
@@ -420,6 +402,7 @@ static bool ecp_set_tx_state(struct vdp_data *vd)
 			if (vd->ecp.retries == ECP_MAX_RETRIES) {
 				LLDPAD_DBG("%s(%i)-%s: 1 \n", __func__, __LINE__,
 				       vd->ifname);
+				ecp_tx_stop_ackTimer(vd);
 				ecp_tx_change_state(vd, ECP_TX_REQUEST_PDU);
 				return true;
 			}
@@ -463,6 +446,7 @@ void ecp_tx_run_sm(struct vdp_data *vd)
 		case ECP_TX_TRANSMIT_ECPDU:
 			ecp_tx_create_frame(vd);
 			ecp_tx_start_ackTimer(vd);
+			vd->ecp.tx.localChange = false;
 			break;
 		case ECP_TX_WAIT_FOR_ACK:
 			if (vd->ecp.ackReceived) {

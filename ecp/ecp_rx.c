@@ -50,7 +50,7 @@ void ecp_rx_Initialize(struct vdp_data *vd)
 	vd->ecp.rx.rcvFrame = false;
 	vd->ecp.rx.badFrame = false;
 
-	vd->ecp.ackReceived = 0;
+	vd->ecp.ackReceived = false;
 
 	if (vd->ecp.rx.framein) {
 		free(vd->ecp.rx.framein);
@@ -258,16 +258,19 @@ void ecp_rx_ReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t 
 
 	vd->ecp.seqECPDU = ntohs(ecp_hdr->seqnr);
 
+	ecp_print_framein(vd);
+
 	switch(ecp_hdr->mode) {
 	case ECP_REQUEST:
+		LLDPAD_DBG("%s(%i)-%s: received REQ frame \n",
+			   __func__, __LINE__, vd->ifname);
 		vd->ecp.ackReceived = false;
-		ecp_print_framein(vd);
 		ecp_rx_run_sm(vd);
 		break;
 	case ECP_ACK:
+		LLDPAD_DBG("%s(%i)-%s: received ACK frame \n",
+			   __func__, __LINE__, vd->ifname);
 		vd->ecp.ackReceived = true;
-		LLDPAD_DBG("%s(%i)-%s: received ack frame \n", __func__, __LINE__, vd->ifname);
-		ecp_print_framein(vd);
 		vdp_ack_profiles(vd, vd->ecp.seqECPDU);
 		ecp_tx_run_sm(vd);
 		vd->ecp.ackReceived = false;
@@ -280,7 +283,7 @@ void ecp_rx_ReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t 
 	ecp_rx_freeFrame(vd);
 }
 
-/* ecp_rx_validateFrame - validates received frame
+/* ecp_rx_validate_frame - validates received frame
  * @vd: vdp_data used by ecp
  *
  * no return value
@@ -288,7 +291,7 @@ void ecp_rx_ReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t 
  * checks wether received frame has correct subtype and mode
  */
 
-void ecp_rx_validateFrame(struct vdp_data *vd)
+void ecp_rx_validate_frame(struct vdp_data *vd)
 {
 	u16 tlv_offset = 0;
 	struct ecp_hdr *ecp_hdr;
@@ -329,21 +332,6 @@ void ecp_rx_validateFrame(struct vdp_data *vd)
 	/* FIXME: also done in ecp_rx_ReceiveFrame,
 	 * are both necessary ? */
 	vd->ecp.seqECPDU = ntohs(ecp_hdr->seqnr);
-}
-
-/* ecp_rx_validate_frame - wrapper around ecp_rx_validateFrame
- * @vd: currently used port
- *
- * no return value
- *
- * sets rcvFrame to false and validates frame. used in ECP_RX_RECEIVE_ECPDU
- * state of ecp_rx_run_sm
- */
-void ecp_rx_validate_frame(struct vdp_data *vd)
-{
-	vd->ecp.rx.rcvFrame = false;
-	ecp_rx_validateFrame(vd);
-	return;
 }
 
 /* ecp_rx_ProcessFrame - process received ecp frames
@@ -412,7 +400,7 @@ void ecp_rx_ProcessFrame(struct vdp_data *vd)
 
 		if (!tlv) {
 			LLDPAD_ERR("ERROR: Failed to malloc space for "
-				"incoming TLV. \n");
+				   "incoming TLV. \n");
 			goto out;
 		}
 
@@ -602,6 +590,7 @@ void ecp_rx_run_sm(struct vdp_data *vd)
 		case ECP_RX_RECEIVE_WAIT:
 			break;
 		case ECP_RX_RECEIVE_ECPDU:
+			vd->ecp.rx.rcvFrame = false;
 			ecp_rx_validate_frame(vd);
 			break;
 		case ECP_RX_SEND_ACK:
