@@ -892,6 +892,7 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode)
 					   vsi_responses[p->response],
 					   p->response, p->instance[15],
 					   vsi_states[p->state]);
+				free(profile);
 			} else {
 				LLDPAD_DBG("%s(%i): station: profile not found !\n",
 					   __func__, __LINE__);
