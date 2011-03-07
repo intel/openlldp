@@ -332,6 +332,14 @@ static void vdp_stop_keepaliveTimer(struct vsi_profile *profile)
 		   profile->instance[15], profile->keepaliveTimer);
 }
 
+static bool vdp_vsi_negative_response(struct vsi_profile *profile)
+{
+	if ((profile->response > 0) && (profile->response < 255))
+		return true;
+	else
+		return false;
+}
+
 /* vdp_vsi_change_station_state - changes the VDP station sm state
  * @profile: profile to process
  * @newstate: new state for the sm
@@ -426,8 +434,10 @@ static bool vdp_vsi_set_station_state(struct vsi_profile *profile)
 		if (profile->mode == VDP_MODE_PREASSOCIATE) {
 			vdp_vsi_change_station_state(profile, VSI_PREASSOC_PROCESSING);
 			return true;
-		} else if (profile->mode == VDP_MODE_DEASSOCIATE) {
+		} else if ((profile->mode == VDP_MODE_DEASSOCIATE) ||
+			   vdp_vsi_negative_response(profile)) {
 			vdp_vsi_change_station_state(profile, VSI_DEASSOC_PROCESSING);
+			vdp_somethingChangedLocal(profile, true);
 			return true;
 		} else if (vdp_keepaliveTimer_expired(profile)) {
 			vdp_stop_keepaliveTimer(profile);
@@ -874,6 +884,9 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode)
 				p->mode = vdp->mode;
 				p->response = vdp->response;
 
+				if (vdp_vsi_negative_response(p))
+					p->mode = VDP_MODE_DEASSOCIATE;
+
 				LLDPAD_DBG("%s(%i): profile response: %s (%i) "
 					   "for profile 0x%02x at state %s.\n",
 					   __func__, __LINE__,
@@ -881,7 +894,8 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode)
 					   p->response, p->instance[15],
 					   vsi_states[p->state]);
 			} else {
-				LLDPAD_DBG("%s(%i): station: profile not found !\n", __func__, __LINE__);
+				LLDPAD_DBG("%s(%i): station: profile not found !\n",
+					   __func__, __LINE__);
 				/* ignore profile */
 			}
 		}
