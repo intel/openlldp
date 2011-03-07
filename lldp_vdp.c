@@ -547,6 +547,8 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			break;
 		case VSI_EXIT:
 			/* TODO: send DEASSOC here ? */
+			vdp_stop_ackTimer(profile);
+			vdp_stop_keepaliveTimer(profile);
 			vdp_remove_profile(profile);
 			break;
 		default:
