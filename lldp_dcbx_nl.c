@@ -45,6 +45,7 @@
 #include "lldp_dcbx_nl.h"
 #include "messages.h"
 #include "lldp_rtnl.h"
+#include "lldp/ports.h"
 
 static int nl_sd = 0;
 static int rtseq = 0;
@@ -418,12 +419,11 @@ int init_drv_if(void)
 
 int deinit_drv_if(void)
 {
-	int err = 0;
-
 	if (nl_sd) {
 		shutdown(nl_sd, 2);
 		nl_sd = 0;
 	}
+	return 0;
 }
 		
 
