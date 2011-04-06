@@ -1135,55 +1135,6 @@ void  mibUpdateObjects(struct port *port)
 	return;
 }
 
-
-void process_dcbx_tlv(struct port *port,struct unpacked_tlv *tlv)
-{
-	if (port->rx.tooManyNghbrs){
-		if(NULL != port->tlvs.last_peer) {
-			if(NULL != port->tlvs.last_peer->info)
-				free(port->tlvs.last_peer->info);
-			free(port->tlvs.last_peer);
-			port->tlvs.last_peer = NULL;
-		}
-		mibUpdateObjects(port);
-	} else if (port->tlvs.last_peer == NULL) {
-		/* First tlv. Create and load */
-		load_peer_tlvs(port,tlv, LAST_PEER);
-		mibUpdateObjects(port); /* Put 1st in peer mem */
-	} else {
-		if (tlv->length == port->tlvs.last_peer->length) {
-			if (memcmp(tlv->info, port->tlvs.last_peer->info,
-				tlv->length) != 0) {
-				/* Strings are different unpack the tlvs and
-				 * store in peer mem
-				 * Load tlv in last_peer
-				*/
-				mibUpdateObjects(port);
-				port->tlvs.last_peer->type = tlv->type;
-				port->tlvs.last_peer->length = tlv->length;
-				if (port->tlvs.last_peer->info) {
-					memcpy(port->tlvs.last_peer->info,
-					 tlv->info,tlv->length);
-				}
-			}
-		} else {
-			/* Lengths are different unpack the tlvs and store in
-			 * peer memory. Load tlv in last_peer
-			*/
-			if(NULL != port->tlvs.last_peer) {
-				if(NULL != port->tlvs.last_peer->info)
-					free(port->tlvs.last_peer->info);
-				free(port->tlvs.last_peer);
-				port->tlvs.last_peer = NULL;
-			}
-			load_peer_tlvs(port,tlv, LAST_PEER);
-			mibUpdateObjects(port);
-		}
-	}
-	port->tlvs.cur_peer = free_unpkd_tlv(tlv);
-	return;
-}
-
 bool process_dcbx_ctrl_tlv(struct port *port)
 {
 	struct dcbx_tlvs *tlvs;

@@ -228,8 +228,6 @@ struct dcb_control_info {
 #ifdef __cplusplus
 extern "C" {
 #endif
-void        process_dcbx_tlv(struct port *,struct unpacked_tlv *);
-
 struct unpacked_tlv *bld_dcbx1_tlv(struct dcbx_tlvs *dcbx);
 struct unpacked_tlv *bld_dcbx2_tlv(struct dcbx_tlvs *dcbx);
 struct unpacked_tlv *bld_dcbx_ctrl_tlv(struct dcbx_tlvs *dcbx);

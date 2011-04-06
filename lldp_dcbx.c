@@ -599,6 +599,7 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 	u8 oui[DCB_OUI_LEN] = INIT_DCB_OUI;
 	struct dcbx_tlvs *dcbx;
 	struct dcbx_manifest *manifest;
+	int res;
 
 	dcbx = dcbx_data(port->ifname);
 
@@ -623,12 +624,9 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 			return TLV_ERR;
 		}
 
-		/* expect oui_st to match tlv_info. */
-		if ((memcmp(tlv->info, &oui, DCB_OUI_LEN) != 0)) {
-			assert(port->tlvs.cur_peer == NULL);
-			/* not a DCBX TLV */
+		/* Match DCB OUI */
+		if ((memcmp(tlv->info, &oui, DCB_OUI_LEN) != 0))
 			return SUBTYPE_INVALID;
-		}
 
 		if (dcbx->dcbx_st == dcbx_subtype2) {
 			if ((tlv->info[DCB_OUI_LEN] == dcbx_subtype2)
@@ -657,37 +655,30 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 	}
 
 	if (tlv->type == TYPE_0) {
-		/*  unpack highest dcbx subtype first, to allow lower
-		 *  subtype to store tlvs if higher was not present
+		/* Only process DCBXv2 or DCBXv1 but not both this
+		 * is required because processing both could be
+		 * problamatic. Specifically if the DCB attributes do
+		 * not match across versions.
 		 */
-		if ((dcbx->dcbx_st == dcbx_subtype2) &&
-			 dcbx->manifest->dcbx2) {
-			 load_peer_tlvs(port, dcbx->manifest->dcbx2,
-				CURRENT_PEER);
-			if (unpack_dcbx2_tlvs(port,
-				dcbx->manifest->dcbx2) == false) {
+		if (dcbx->manifest->dcbx2) {
+			res = unpack_dcbx2_tlvs(port, dcbx->manifest->dcbx2);
+			if (!res) {
 				LLDPAD_DBG("Error unpacking the DCBX2"
 					"TLVs - Discarding LLDPDU\n");
 				return TLV_ERR;
 			}
-		}
-		if (dcbx->manifest->dcbx1) {
-			if (!dcbx->manifest->dcbx2)
-				load_peer_tlvs(port,
-					dcbx->manifest->dcbx1,
-					CURRENT_PEER);
-			if (unpack_dcbx1_tlvs(port,
-				dcbx->manifest->dcbx1) == false) {
+			mibUpdateObjects(port);
+		} else if (dcbx->manifest->dcbx1) {
+			res = unpack_dcbx1_tlvs(port, dcbx->manifest->dcbx1);
+			if (!res) {
 				LLDPAD_DBG("Error unpacking the DCBX1"
 					"TLVs - Discarding LLDPDU\n");
 				return TLV_ERR;
 			}
+			mibUpdateObjects(port);
 		}
-		if (port->tlvs.cur_peer) {
-			process_dcbx_tlv(port, port->tlvs.cur_peer);
-		}
-		free_unpkd_tlv(tlv);
 
+		free_unpkd_tlv(tlv);
 		clear_dcbx_manifest(dcbx);
 		dcbx->dcbdu = 0;
 	}

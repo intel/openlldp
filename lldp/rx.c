@@ -391,9 +391,6 @@ out:
 	}
 
 	port->lldpdu = 0;
-	if (port->tlvs.cur_peer)
-		port->tlvs.cur_peer =
-			free_unpkd_tlv(port->tlvs.cur_peer);
 	clear_manifest(port);
 
 	return;
@@ -410,9 +407,6 @@ u8 mibDeleteObjects(struct port *port)
 	}
 
 	/* Clear history */
-	if (port->tlvs.last_peer)
-		port->tlvs.last_peer = free_unpkd_tlv(port->tlvs.last_peer);
-
 	port->msap.length1 = 0;
 	if (port->msap.msap1) {
 		free(port->msap.msap1);
@@ -640,34 +634,6 @@ void rx_change_state(struct port *port, u8 newstate) {
 			LLDPAD_DBG("ERROR: The RX State Machine is broken!\n");
 	}
 	port->rx.state = newstate;
-}
-
-
-void load_peer_tlvs(struct port *port,struct unpacked_tlv *tlv,int type)
-{
-	struct unpacked_tlv *tmp = NULL;
-
-	tmp = create_tlv();
-	if (tmp) {
-		tmp->type = tlv->type;
-		tmp->length = tlv->length;
-		tmp->info = (u8 *)malloc(tlv->length);
-		if (tmp->info) {
-			memset(tmp->info,0, tlv->length);
-			memcpy(tmp->info,tlv->info,tlv->length);
-		} else {
-			LLDPAD_DBG("load_peer_tlvs: Failed to malloc info\n");
-		}
-
-		if (type == CURRENT_PEER) {
-			assert(port->tlvs.cur_peer == NULL);
-			port->tlvs.cur_peer = tmp;
-		} else if (type == LAST_PEER) {
-			assert(port->tlvs.last_peer == NULL);
-			port->tlvs.last_peer = tmp;
-		}
-	}
-	return;
 }
 
 void clear_manifest(struct port *port) {

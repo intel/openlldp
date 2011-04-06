@@ -132,11 +132,6 @@ enum portAdminStatus {
 	enabledRxTx,
 };
 
-struct porttlvs{
-	struct unpacked_tlv *cur_peer; /* Should be in manifest */
-	struct unpacked_tlv *last_peer;
-};
-
 struct port {
 	char *ifname;
 	u8 hw_resetting;
@@ -153,9 +148,6 @@ struct port {
 	u8 rxChanges;
 	u16   lldpdu;
 	struct msap msap;
-
-	/* not sure */
-	struct porttlvs tlvs;
 
 	struct port *next;
 };

@@ -246,8 +246,6 @@ int reinit_port(const char *ifname)
 
 	/* init TX path */
 	txInitializeLLDP(port);
-	port->tlvs.last_peer = NULL;
-	port->tlvs.cur_peer = NULL;
 
 	return 0;
 }
@@ -306,8 +304,6 @@ int add_port(const char *ifname)
 
 	/* init TX path */
 	txInitializeLLDP(newport);
-	newport->tlvs.last_peer = NULL;
-	newport->tlvs.cur_peer = NULL;
 
 	/* enable TX path */
 	if (porthead)
@@ -367,12 +363,6 @@ int remove_port(const char *ifname)
 		return -1;
 
 	/* Remove the tlvs */
-	if (port->tlvs.cur_peer != NULL)
-		port->tlvs.cur_peer = free_unpkd_tlv(port->tlvs.cur_peer);
-
-	if (port->tlvs.last_peer != NULL)
-		port->tlvs.last_peer = free_unpkd_tlv(port->tlvs.last_peer);
-
 	if (port->msap.msap1) {
 		free(port->msap.msap1);
 		port->msap.msap1 = NULL;
