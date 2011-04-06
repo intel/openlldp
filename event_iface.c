@@ -449,7 +449,7 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 	}
 
 	/* If the link is down, reject request */
-	if (!port->portEnabled) {
+	if ((!port->portEnabled) && (profile->mode != VDP_MODE_DEASSOCIATE)) {
 		LLDPAD_WARN("%s(%i): Unable to associate, port %s not enabled !\n", __func__,
 		       __LINE__, ifname);
 		ret = -ENXIO;
