@@ -48,10 +48,13 @@ static void hexprint(char *b, int len)
 }
 #endif
 
+#define NLMSG_TAIL(nmsg) \
+	((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
+
 static int init_socket(void)
 {
 	int sd;
-	int rcv_size;
+	int rcv_size = 8 * 1024;
 	struct sockaddr_nl snl;
 
 	sd = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
@@ -116,6 +119,56 @@ static struct nlmsghdr *start_msg(__u16 msg_type, __u8 arg)
 
 }
 
+int addattr_l(struct nlmsghdr *n, int type, const void *data,
+	      int alen)
+{
+	int len = RTA_LENGTH(alen);
+	struct rtattr *rta;
+
+	if (NLMSG_ALIGN(n->nlmsg_len) + RTA_ALIGN(len) > MAX_MSG_SIZE) {
+		fprintf(stderr, "addattr_l: message exceeded bound of %d\n",
+			MAX_MSG_SIZE);
+		return -1;
+	}
+	rta = NLMSG_TAIL(n);
+	rta->rta_type = type;
+	rta->rta_len = len;
+	memcpy(RTA_DATA(rta), data, alen);
+	n->nlmsg_len = NLMSG_ALIGN(n->nlmsg_len) + RTA_ALIGN(len);
+	return 0;
+}
+
+struct rtattr *addattr_nest(struct nlmsghdr *n, int type)
+{
+	struct rtattr *nest = NLMSG_TAIL(n);
+
+	addattr_l(n, type, NULL, 0);
+	return nest;
+}
+
+int addattr_nest_end(struct nlmsghdr *n, struct rtattr *nest)
+{
+	nest->rta_len = (void *)NLMSG_TAIL(n) - (void *)nest;
+	return n->nlmsg_len;
+}
+
+int parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len)
+{
+	memset(tb, 0, sizeof(struct rtattr *) * (max + 1));
+	while (RTA_OK(rta, len)) {
+		if ((rta->rta_type <= max) && (!tb[rta->rta_type]))
+			tb[rta->rta_type] = rta;
+		rta = RTA_NEXT(rta, len);
+	}
+	if (len)
+		fprintf(stderr, "!!!Deficit %d, rta_len=%d\n",
+			len, rta->rta_len);
+	return 0;
+}
+
+#define parse_rtattr_nested(tb, max, rta) \
+	(parse_rtattr((tb), (max), RTA_DATA(rta), RTA_PAYLOAD(rta)))
+
 static struct rtattr *add_rta(struct nlmsghdr *nlh, __u16 rta_type,
                               void *attr, __u16 rta_len)
 {
@@ -172,8 +225,8 @@ static struct nlmsghdr *get_msg(void)
 	if ((nlh->nlmsg_type == NLMSG_ERROR) || (len < 0) ||
 	    !(NLMSG_OK(nlh, (unsigned int)len))) {
 		free(nlh);
-#ifdef HEXDUMP
 		printf("RECEIVE FAILED: %d\n", len);
+#ifdef HEXDUMP
 		if (len > 0)
 			hexprint((char *)nlh, len);
 #endif
@@ -535,6 +588,7 @@ static int get_cap(char *ifname, __u8 *cap)
 		       "would sure be nice.\n");
 		return -EIO;
 	}
+
 	rta_child = NLA_DATA(rta_parent);
 	rta_parent = (struct rtattr *)((char *)rta_parent +
 	                               NLMSG_ALIGN(rta_parent->rta_len));
@@ -569,6 +623,9 @@ static int get_cap(char *ifname, __u8 *cap)
 			break;
 		case DCB_CAP_ATTR_BCN:
 			printf("bcn:     ");
+			break;
+		case DCB_CAP_ATTR_DCBX:
+			printf("dcbx:    ");
 			break;
 		default:
 			printf("unknown type: ");
@@ -1081,6 +1138,178 @@ int set_hw_app0(char *ifname, appgroup_attribs *app_data)
 }
 #endif /* DCB_APP_DRV_IF_SUPPORTED */
 
+void print_app(struct rtattr *app_attr)
+{
+	struct dcb_app *data;
+
+	data = RTA_DATA(app_attr);
+	printf("selector %i protocol %i priority %i\n",
+		data->selector, data->protocol, data->priority);
+}
+
+void print_pfc(struct ieee_pfc *pfc)
+{
+	int i;
+	printf("PFC:\n");
+	printf("\t cap %2x en %2x\n", pfc->pfc_cap, pfc->pfc_en);
+	printf("\t mbc %2x delay %i\n", pfc->mbc, pfc->delay);
+
+	printf("\t requests: ");
+	for (i = 0; i < 8; i++)
+		printf("%i ", pfc->requests[i]);
+	printf("\n");
+
+	printf("\t requests: ");
+	for (i = 0; i < 8; i++)
+		printf("%i ", pfc->indications[i]);
+	printf("\n");
+}
+
+void print_ets(struct ieee_ets *ets)
+{
+	int i;
+	printf("ETS:\n");
+	printf("\tcap %2x cbs %2x\n", ets->ets_cap, ets->cbs);
+
+	printf("\tets tc_tx_bw: ");
+	for (i = 0; i < 8; i++)
+		printf("%i ", ets->tc_tx_bw[i]);
+	printf("\n");
+
+	printf("\tets tc_rx_bw: ");
+	for (i = 0; i < 8; i++)
+		printf("%i ", ets->tc_rx_bw[i]);
+	printf("\n");
+
+	printf("\tets tc_tsa: ");
+	for (i = 0; i < 8; i++)
+		printf("%i ", ets->tc_tsa[i]);
+	printf("\n");
+
+	printf("\tets prio_tc: ");
+	for (i = 0; i < 8; i++)
+		printf("%i ", ets->prio_tc[i]);
+	printf("\n");
+}
+
+int set_ieee(char *ifname, struct ieee_ets *ets_data, struct ieee_pfc *pfc_data,
+	     struct dcb_app *app_data)
+{
+	struct nlmsghdr *nlh;
+	struct rtattr *ieee, *apptbl;
+
+	nlh = start_msg(RTM_SETDCB, DCB_CMD_IEEE_SET);
+	if (NULL == nlh)
+		return -EIO;
+
+	addattr_l(nlh, DCB_ATTR_IFNAME, ifname, strlen(ifname) + 1);
+	ieee = addattr_nest(nlh, DCB_ATTR_IEEE);
+	if (ets_data)
+		addattr_l(nlh, DCB_ATTR_IEEE_ETS, ets_data, sizeof(*ets_data));
+	if (pfc_data)
+		addattr_l(nlh, DCB_ATTR_IEEE_PFC, pfc_data, sizeof(*pfc_data));
+	if (app_data) {
+		apptbl = addattr_nest(nlh, DCB_ATTR_IEEE_APP_TABLE);
+		addattr_l(nlh, DCB_ATTR_IEEE_APP, app_data, sizeof(*app_data));
+#if 1
+		app_data->protocol++;
+		addattr_l(nlh, DCB_ATTR_IEEE_APP, app_data, sizeof(*app_data));
+#endif
+		addattr_nest_end(nlh, apptbl);
+	}
+	addattr_nest_end(nlh, ieee);
+
+	if (send_msg(nlh))
+		return -EIO;
+
+	return recv_msg(DCB_CMD_IEEE_SET, DCB_ATTR_IEEE);
+}
+
+#define DCB_RTA(r) \
+	((struct rtattr *)(((char *)(r)) + NLMSG_ALIGN(sizeof(struct dcbmsg))))
+
+int get_ieee(char *ifname)
+{
+	struct nlmsghdr *nlh;
+	struct dcbmsg *d;
+	struct rtattr *dcb, *ieee[DCB_ATTR_IEEE_MAX+1];
+	struct rtattr *tb[DCB_ATTR_MAX + 1];
+	int len;
+
+	nlh = start_msg(RTM_GETDCB, DCB_CMD_IEEE_GET);
+	if (NULL == nlh) {
+		printf("start_msg failed\n");
+		return -EIO;
+	}
+
+	addattr_l(nlh, DCB_ATTR_IFNAME, ifname, strlen(ifname) + 1);
+	if (send_msg(nlh)) {
+		printf("send failure\n");
+		return -EIO;
+	}
+
+	/* Receive 802.1Qaz parameters */
+	memset(nlh, 0, MAX_MSG_SIZE);
+	len = recv(nl_sd, (void *)nlh, MAX_MSG_SIZE, 0);
+	if (len < 0) {
+		perror("ieee_get");
+		return -EIO;
+	}
+
+	if (nlh->nlmsg_type != RTM_GETDCB) {
+		struct nlmsgerr *err = (struct nlmsgerr *) NLMSG_DATA(nlh);
+		if (nlh->nlmsg_type == NLMSG_ERROR) {
+			printf("NLMSG_ERROR: err(%i): %s\n",
+				err->error, strerror(err->error * -1));
+		}
+		return -1;
+	}
+
+	d = NLMSG_DATA(nlh);
+	len -= NLMSG_LENGTH(sizeof(*d));
+	if (len < 0) {
+		printf("Broken message\n");
+		return -1;
+	}
+
+	parse_rtattr(tb, DCB_ATTR_MAX, DCB_RTA(d), len);
+	if (!tb[DCB_ATTR_IEEE]) {
+		printf("Missing DCB_ATTR_IEEE attribute!\n");
+		return -1;
+	}
+
+	if (tb[DCB_ATTR_IFNAME]) {
+		printf("\tifname %s\n", RTA_DATA(tb[DCB_ATTR_IFNAME]));
+	} else {
+		printf("Missing DCB_ATTR_IFNAME attribute!\n");
+		return -1;
+	}
+
+	dcb = tb[DCB_ATTR_IEEE];
+	parse_rtattr_nested(ieee, DCB_ATTR_IEEE_MAX, dcb);
+	if (ieee[DCB_ATTR_IEEE_ETS]) {
+		struct ieee_ets *ets = RTA_DATA(ieee[DCB_ATTR_IEEE_ETS]);
+		print_ets(ets);
+	}
+
+	if (ieee[DCB_ATTR_IEEE_PFC]) {
+		struct ieee_pfc *pfc = RTA_DATA(ieee[DCB_ATTR_IEEE_PFC]);
+		print_pfc(pfc);
+	}
+
+	if (ieee[DCB_ATTR_IEEE_APP_TABLE]) {
+		struct rtattr *i, *app_list = ieee[DCB_ATTR_IEEE_APP_TABLE];
+		int rem = RTA_PAYLOAD(app_list);
+		printf("APP: %i\n");
+		for (i = RTA_DATA(app_list);
+		     RTA_OK(i, rem);
+		     i = RTA_NEXT(i, rem))
+			print_app(i);
+	}
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	struct tc_config tc[8];
@@ -1285,6 +1514,22 @@ int main(int argc, char *argv[])
 		printf("GETTING APP FAILED!.\n"); 
 	}
 #endif /* DCB_APP_DRV_IF_SUPPORTED */
+
+	if (1) {
+		printf("\nSETTING ETS:\n");
+		struct ieee_ets ets = { 0, 0x1, 0,
+					{25, 25, 25, 25, 0, 0, 0, 0},
+					{0, 0, 0, 0, 25, 25, 25, 25},
+					{1, 2, 3, 4, 1, 2, 3, 4},
+					{1, 2, 3, 4, 1, 2, 3, 4} };
+		struct ieee_pfc pfc = {0xf1, 0, 0, 0x32};
+		struct dcb_app app = {0, 0x8906, 4};
+
+		set_ieee(argv[1], &ets, &pfc, &app);
+	}
+
+	get_ieee(argv[1]);
+
 err_main:
 	close(nl_sd);
 	return err;
