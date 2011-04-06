@@ -503,6 +503,7 @@ void dcbx_ifup(char *ifname)
 	tlvs->dcbx_st = gdcbx_subtype;
 	LIST_INSERT_HEAD(&dud->head, tlvs, entry);		
 
+initialized:
 	dcbx_add_adapter(ifname);
 	/* ensure advertise bits are set consistently with enabletx */
 	enabletx = is_tlv_txenabled(ifname, (OUI_CEE_DCBX << 8) |
@@ -511,7 +512,6 @@ void dcbx_ifup(char *ifname)
 		dont_advertise_dcbx_all(ifname);
 	dcbx_bld_tlv(port);
 
-initialized:
 	if (get_operstate(ifname) == IF_OPER_UP)
 		set_hw_all(ifname);
 
