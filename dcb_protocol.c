@@ -42,6 +42,7 @@
 #include "tlv_dcbx.h"
 #include "lldp_rtnl.h"
 #include "linux/if.h"
+#include "linux/dcbnl.h"
 
 static void handle_opermode_true(char *device_name);
 u8        gdcbx_subtype = dcbx_subtype2;
@@ -2754,13 +2755,13 @@ int set_configuration(char *device_name, u32 EventFlag)
 		DCB_TEST_FLAGS(EventFlag, DCB_REMOTE_CHANGE_LLINK,
 		DCB_REMOTE_CHANGE_LLINK)) {
 		return dcb_success;
-#ifdef DCB_APP_DRV_IF_SUPPORTED
 	} else if (DCB_TEST_FLAGS(EventFlag,
 				  DCB_LOCAL_CHANGE_APPTLV(APP_FCOE_STYPE),
 				  DCB_LOCAL_CHANGE_APPTLV(APP_FCOE_STYPE)) ||
 		DCB_TEST_FLAGS(EventFlag,
 			       DCB_REMOTE_CHANGE_APPTLV(APP_FCOE_STYPE),
 			       DCB_REMOTE_CHANGE_APPTLV(APP_FCOE_STYPE))) {
+		appgroup_attribs app_data;
 
 		/* Get Oper store */
 		app_it Oper = apptlv_find(&oper_apptlv, device_name,
@@ -2768,7 +2769,6 @@ int set_configuration(char *device_name, u32 EventFlag)
 		if (Oper == NULL)
 			return dcb_success;
 
-		appgroup_attribs app_data;
 		app_data.dcb_app_idtype = DCB_APP_IDTYPE_ETHTYPE;
 		app_data.dcb_app_id = APP_FCOE_ETHTYPE;
 		app_data.dcb_app_priority = Oper->second->AppData[0];
@@ -2788,7 +2788,6 @@ int set_configuration(char *device_name, u32 EventFlag)
 		}
 		return set_hw_app1(device_name, Oper->second->AppData[0],
 			Local->second->protocol.OperMode);
-#endif /* DCB_APP_DRV_IF_SUPPORTED */
 	}
 	return dcb_success;
 }

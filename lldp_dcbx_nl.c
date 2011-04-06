@@ -699,9 +699,6 @@ int set_hw_pfc(char *ifname, dcb_pfc_list_type pfc_data,
 	return rval;
 }
 
-
-#ifdef DCB_APP_DRV_IF_SUPPORTED
-
 /* returns: 0 on success
  *          1 on failure
 */
@@ -775,7 +772,6 @@ int set_hw_app1(char *ifname, u8 pri, int mode)
 	return(0);
 
 }
-#endif /* DCB_APP_DRV_IF_SUPPORTED */
 
 int set_hw_all(char *ifname)
 {

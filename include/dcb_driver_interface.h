@@ -33,21 +33,17 @@ typedef struct pgroup_attribs {
 	dcb_traffic_attribs_type rx;
 } pgroup_attribs;
 
-#ifdef DCB_APP_DRV_IF_SUPPORTED
 typedef struct appgroup_attribs {
 	u8  dcb_app_idtype;
 	u16 dcb_app_id;
 	u8  dcb_app_priority;
 } appgroup_attribs;
-#endif
 
 int set_hw_pg(char *device_name, pgroup_attribs *pg_data, bool Opermode);
 int set_hw_pfc(char *device_name, dcb_pfc_list_type pfc_data, bool Opermode);
 
-#ifdef DCB_APP_DRV_IF_SUPPORTED
 int set_hw_app0(char *device_name, appgroup_attribs *app_data);
 int set_hw_app1(char *device_name, u8 priority, int mode);
-#endif /* DCB_APP_DRV_IF_SUPPORTED */
 
 int set_hw_all(char *device_name);
 
