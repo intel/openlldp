@@ -409,7 +409,8 @@ void vdp_vsi_change_station_state(struct vsi_profile *profile, u8 newstate)
 		break;
 	case VSI_PREASSOC_PROCESSING:
 		assert((profile->state == VSI_PREASSOCIATED) ||
-			profile->state == VSI_UNASSOCIATED);
+			(profile->state == VSI_ASSOCIATED) ||
+			(profile->state == VSI_UNASSOCIATED));
 		break;
 	case VSI_PREASSOCIATED:
 		assert((profile->state == VSI_PREASSOC_PROCESSING) ||
