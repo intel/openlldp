@@ -1612,7 +1612,6 @@ dcb_result put_pg(char *device_name,  pg_attribs *pg_data)
 	full_dcb_attrib_ptrs	attr_ptr;
 	u32 			EventFlag = 0;
 	dcb_result		result = dcb_success;
-	bool			bChange = false;
 
 	if (!pg_data)
 		return dcb_bad_params;
@@ -1634,7 +1633,6 @@ dcb_result put_pg(char *device_name,  pg_attribs *pg_data)
 			result = dcb_bad_params;
 			goto Exit;
 		}
-		bChange = true;
 		if (set_persistent(device_name, &attr_ptr) != dcb_success) {
 			LLDPAD_DBG("Set persistent failed put_pg()\n");
 			result = dcb_device_not_found;
@@ -1662,9 +1660,8 @@ dcb_result put_pg(char *device_name,  pg_attribs *pg_data)
 		DCB_SET_FLAGS(EventFlag, DCB_LOCAL_CHANGE_PG);
 
 		/* Run the protocol */
-		if (bChange)
-			result = run_dcb_protocol(device_name, EventFlag,
-						  SUBTYPE_DEFAULT);
+		result = run_dcb_protocol(device_name, EventFlag,
+					  SUBTYPE_DEFAULT);
 	} else {
 		/* Not in DCB data store, so store in persistent storage */
 		if (get_persistent(device_name, &attribs) == dcb_success) {
