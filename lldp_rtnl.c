@@ -222,7 +222,7 @@ static ssize_t rtnl_recv_operstate(int s, int ifindex,
 
 	/* recv ifname reply */
 	memset(nlh, 0, NLMSG_SIZE);
-	rc = recv(s, (void *) nlh, sizeof(*nlh), MSG_DONTWAIT);
+	rc = recv(s, (void *) nlh, NLMSG_SIZE, MSG_DONTWAIT);
 	if (rc < 0)
 		goto out;
 	ifi = NLMSG_DATA(nlh);
