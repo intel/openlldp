@@ -42,8 +42,7 @@ typedef struct appgroup_attribs {
 int set_hw_pg(char *device_name, pgroup_attribs *pg_data, bool Opermode);
 int set_hw_pfc(char *device_name, dcb_pfc_list_type pfc_data, bool Opermode);
 
-int set_hw_app0(char *device_name, appgroup_attribs *app_data);
-int set_hw_app1(char *device_name, appgroup_attribs *app_data, int mode);
+int set_hw_app(char *device_name, appgroup_attribs *app_data);
 
 int set_hw_all(char *device_name);
 

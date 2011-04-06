@@ -702,13 +702,13 @@ int set_hw_pfc(char *ifname, dcb_pfc_list_type pfc_data,
 /* returns: 0 on success
  *          1 on failure
 */
-int set_hw_app0(char *ifname, appgroup_attribs *app_data)
+int set_hw_app(char *ifname, appgroup_attribs *app_data)
 {
 	struct nlmsghdr *nlh;
 	struct rtattr *rta_parent, *rta_child;
 	int seq;
 
-	LLDPAD_DBG("set_hw_app0: %s\n", ifname);
+	LLDPAD_DBG("set_hw_app: %s\n", ifname);
 
 	nlh = start_msg(RTM_SETDCB, DCB_CMD_SAPP);
 	if (NULL == nlh)
@@ -746,35 +746,6 @@ void run_cmd(char *cmd, ...)
 	va_end(args);
 	system(cbuf);
 	return;
-}
-
-/* returns: 0 on success
- *          1 on failure
-*/
-int set_hw_app1(char *ifname, appgroup_attribs *app_data, int mode)
-{
-	int queue;
-
-	LLDPAD_INFO("  set_hw_app1: %s, %s, pri - %d\n", ifname,
-			mode ? "Enabled" : "Disabled", mode);
-
-	/* find first bit set in u8 bitmask for queue_mapping */
-	queue = ffs(app_data->dcb_app_priority);
-
-	run_cmd("tc qdisc del dev %s root 2>/dev/null", ifname, NULL, NULL);
-	if (mode) {
-		run_cmd("tc qdisc add dev %s root handle 1: multiq", ifname, NULL, NULL);
-		run_cmd("tc filter add dev %s protocol ip parent 1: u32 match ip dport %d 0xffff action skbedit queue_mapping %d", ifname, 3260, queue);
-		run_cmd("tc filter add dev %s protocol ip parent 1: u32 match ip sport %d 0xffff action skbedit queue_mapping %d", ifname, 3260, queue);
-		run_cmd("tc filter add dev %s protocol ipv6 parent 1: u32 match ip6 dport %d 0xffff action skbedit queue_mapping %d", ifname, 3260, queue);
-		run_cmd("tc filter add dev %s protocol ipv6 parent 1: u32 match ip6 sport %d 0xffff action skbedit queue_mapping %d", ifname, 3260, queue);
-	}
-
-	/* And push configuration to kernel */
-	set_hw_app0(ifname, app_data);
-
-	return(0);
-
 }
 
 int set_hw_all(char *ifname)

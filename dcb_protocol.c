@@ -2772,7 +2772,7 @@ int set_configuration(char *device_name, u32 EventFlag)
 		app_data.dcb_app_idtype = DCB_APP_IDTYPE_ETHTYPE;
 		app_data.dcb_app_id = APP_FCOE_ETHTYPE;
 		app_data.dcb_app_priority = Oper->second->AppData[0];
-		return set_hw_app0(device_name, &app_data);
+		return set_hw_app(device_name, &app_data);
 	} else if (DCB_TEST_FLAGS(EventFlag, DCB_LOCAL_CHANGE_APPTLV(APP_ISCSI_STYPE),
 		DCB_LOCAL_CHANGE_APPTLV(APP_ISCSI_STYPE)) ||
 		DCB_TEST_FLAGS(EventFlag, DCB_REMOTE_CHANGE_APPTLV(APP_ISCSI_STYPE),
@@ -2792,8 +2792,7 @@ int set_configuration(char *device_name, u32 EventFlag)
 		app_data.dcb_app_id = APP_ISCSI_PORT;
 		app_data.dcb_app_priority = Oper->second->AppData[0];
 
-		return set_hw_app1(device_name, &app_data,
-				   Local->second->protocol.OperMode);
+		return set_hw_app(device_name, &app_data);
 	}
 	return dcb_success;
 }
