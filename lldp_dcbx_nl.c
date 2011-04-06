@@ -751,7 +751,7 @@ void run_cmd(char *cmd, ...)
 /* returns: 0 on success
  *          1 on failure
 */
-int set_hw_app1(char *ifname, u8 pri, int mode)
+int set_hw_app1(char *ifname, appgroup_attribs *app_data, int mode)
 {
 	int queue;
 
@@ -759,7 +759,7 @@ int set_hw_app1(char *ifname, u8 pri, int mode)
 			mode ? "Enabled" : "Disabled", mode);
 
 	/* find first bit set in u8 bitmask for queue_mapping */
-	queue = ffs(pri);
+	queue = ffs(app_data->dcb_app_priority);
 
 	run_cmd("tc qdisc del dev %s root 2>/dev/null", ifname, NULL, NULL);
 	if (mode) {
@@ -769,6 +769,10 @@ int set_hw_app1(char *ifname, u8 pri, int mode)
 		run_cmd("tc filter add dev %s protocol ipv6 parent 1: u32 match ip6 dport %d 0xffff action skbedit queue_mapping %d", ifname, 3260, queue);
 		run_cmd("tc filter add dev %s protocol ipv6 parent 1: u32 match ip6 sport %d 0xffff action skbedit queue_mapping %d", ifname, 3260, queue);
 	}
+
+	/* And push configuration to kernel */
+	set_hw_app0(ifname, app_data);
+
 	return(0);
 
 }

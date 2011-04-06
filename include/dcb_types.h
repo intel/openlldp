@@ -180,6 +180,9 @@ typedef struct dcb_traffic_attribs {
 #define APP_FCOE_ETHTYPE 0x8906
 #endif
 
+/* APP PROTOCOL TYPES */
+#define APP_ISCSI_PORT 3260
+
 /* Flags */
 #define DCB_SET_FLAGS(_FlagsVar, _BitsToSet)    \
 		(_FlagsVar) = (_FlagsVar) | (_BitsToSet)

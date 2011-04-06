@@ -2777,6 +2777,7 @@ int set_configuration(char *device_name, u32 EventFlag)
 		DCB_LOCAL_CHANGE_APPTLV(APP_ISCSI_STYPE)) ||
 		DCB_TEST_FLAGS(EventFlag, DCB_REMOTE_CHANGE_APPTLV(APP_ISCSI_STYPE),
 		DCB_REMOTE_CHANGE_APPTLV(APP_ISCSI_STYPE))) {
+		appgroup_attribs app_data;
 
 		/* Get Oper store */
 		app_it Oper = apptlv_find(&oper_apptlv, device_name,
@@ -2786,8 +2787,13 @@ int set_configuration(char *device_name, u32 EventFlag)
 		if (Oper == NULL || Local == NULL) {
 			return dcb_failed;
 		}
-		return set_hw_app1(device_name, Oper->second->AppData[0],
-			Local->second->protocol.OperMode);
+
+		app_data.dcb_app_idtype = DCB_APP_IDTYPE_PORTNUM;
+		app_data.dcb_app_id = APP_ISCSI_PORT;
+		app_data.dcb_app_priority = Oper->second->AppData[0];
+
+		return set_hw_app1(device_name, &app_data,
+				   Local->second->protocol.OperMode);
 	}
 	return dcb_success;
 }
