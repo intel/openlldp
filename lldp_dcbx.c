@@ -296,13 +296,12 @@ struct packed_tlv* dcbx_gettlv(struct port *port)
 		return NULL;
 
 	tlvs = dcbx_data(port->ifname);
-
-	dcbx_free_tlv(tlvs);
 	if (!tlvs)
 		return NULL;
 
-	dcbx_bld_tlv(port);
+	dcbx_free_tlv(tlvs);
 
+	dcbx_bld_tlv(port);
 	if (tlvs->dcbx_st == dcbx_subtype2) {
 		/* Load Type127 - dcbx subtype 2*/
 		if (tlv_ok(tlvs->dcbx2))
