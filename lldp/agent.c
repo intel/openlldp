@@ -47,8 +47,11 @@ static void timer(void *eloop_data, void *user_ctx)
 			if (n->ops && n->ops->timer)
 				n->ops->timer(port);
 		}
+		if (port->timers.dormantDelay)
+			port->timers.dormantDelay--;
 		port = port->next;
 	};
+
 	/* Load new timer */
 	eloop_register_timeout(1, 0, timer, NULL, NULL);
 }

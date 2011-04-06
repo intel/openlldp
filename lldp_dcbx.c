@@ -79,8 +79,6 @@ static int dcbx_check_operstate(struct port *port)
 	if (!port->portEnabled || !port->timers.dormantDelay)
 		return 0;
 
-	port->timers.dormantDelay--;
-
 	err = get_app(port->ifname, 0, &app_data);
 	if (err)
 		goto err_out;
@@ -101,7 +99,6 @@ static int dcbx_check_operstate(struct port *port)
 			__func__, port->ifname, port->timers.dormantDelay,
 			pfc_data.protocol.OperMode,
 			app_data.protocol.OperMode);
-		port->timers.dormantDelay = 0;
 		set_operstate(port->ifname, IF_OPER_UP);
 	}
 
