@@ -393,14 +393,14 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	/* Find available interfaces and add adapters */
-	init_ports();
-
 	/* setup event RT netlink interface */
 	if (event_iface_init() < 0) {
 		LLDPAD_ERR("failed to register event interface\n");
 		exit(1);
 	}
+
+	/* Find available interfaces and add adapters */
+	init_ports();
 
 	if (ctrl_iface_register(clifd) < 0) {
 		if (!daemonize)
