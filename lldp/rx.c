@@ -560,6 +560,13 @@ void process_rx_frame(struct port *port)
 void process_delete_info(struct port *port)
 {
 	mibDeleteObjects(port);
+
+	if (port->rx.framein) {
+		free(port->rx.framein);
+		port->rx.framein = NULL;
+	}
+
+	port->rx.sizein = 0;
 	port->rx.remoteChange = true;
 	return;
 }
