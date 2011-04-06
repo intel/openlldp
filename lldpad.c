@@ -410,9 +410,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	LLDPAD_WARN("%s is starting", argv[0]);
 	eloop_run();
-	LLDPAD_WARN("%s is stopping", argv[0]);
 
 	clean_lldp_agent();
 	deinit_modules();
