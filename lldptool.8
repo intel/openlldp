@@ -201,6 +201,19 @@ Set a Management Address TLV on eth3 to carry IPv6 address ::192.168.10.10
 Get the configured IPv4 address for the Management Address TLV on eth3
 .B lldptool -t -eth3 -V mngAddr ipv4
 
+.TP
+Enable transmit of the Edge Virtual Bridging TLV for interface eth4
+.B lldptool -i eth4 -T -V evbCfg enableTx=yes
+
+.TP
+Configure EVB TLV to set reflective relay and RTE,ECP and VDP capabilities
+.B lldptool -T -i eth4 -V evbCfg fmode=reflectiverelay
+.br
+.B lldptool -T -i eth4 -V evbCfg capabilities=rte,ecp,vdp
+
+.TP
+Enable transmit of the VDP for interface eth4
+.B lldptool -i eth4 -T -V vdp enableTx=yes
 
 .PP
 Configurations per port have higher precedence than global configurations.
