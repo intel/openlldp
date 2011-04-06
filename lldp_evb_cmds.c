@@ -325,6 +325,9 @@ static int set_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
 	if (strcasestr(argvalue, VAL_EVB_CAPA_VDP))
 		scap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
 
+	if (strcasestr(argvalue, VAL_EVB_CAPA_NONE))
+		scap = 0;
+
 	ed->policy->scap = scap;
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.capabilities",

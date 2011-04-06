@@ -64,8 +64,8 @@ static void evb_print_tlvinfo(struct tlv_info_evb *tie)
 	LLDPAD_INFO("%s(%i): configured forwarding mode: %02x\n", __FILE__, __LINE__,  tie->cmode);
 	LLDPAD_INFO("%s(%i): supported capabilities: %02x\n", __FILE__, __LINE__,  tie->scap);
 	LLDPAD_INFO("%s(%i): configured capabilities: %02x\n", __FILE__, __LINE__,  tie->ccap);
-	LLDPAD_INFO("%s(%i): supported no. of vsis: %04i\n", __FILE__, __LINE__,  tie->svsi);
-	LLDPAD_INFO("%s(%i): configured no. of vsis: %04i\n", __FILE__, __LINE__,  tie->cvsi);
+	LLDPAD_INFO("%s(%i): supported no. of vsis: %04i\n", __FILE__, __LINE__,  ntohs(tie->svsi));
+	LLDPAD_INFO("%s(%i): configured no. of vsis: %04i\n", __FILE__, __LINE__,  ntohs(tie->cvsi));
 	LLDPAD_INFO("%s(%i): rte: %02i\n", __FILE__, __LINE__,  tie->rte);
 }
 
@@ -100,6 +100,30 @@ unsigned int evb_get_rte(char *ifname)
 	return (unsigned int) ed->tie->rte;
 }
 
+/* evb_process_tlv - processes the tlv
+ * @ed: evb_data for the interface
+ * @tie: incoming tlv
+ *
+ * checks the received tlv and takes over values as needed.
+ *
+ */
+static void evb_update_tlv(struct evb_data *ed)
+{
+	/* waiting for valid packets to pour in
+	 * if valid packet was received,
+	 *		- check parameters with what we have offered for this if,
+	 *		- fill structure with data,
+	 *		- enable local tx
+	 */
+	if (evb_check_and_fill(ed, ed->last) != TLV_OK) {
+		LLDPAD_ERR("Invalid contents of EVB Cfg TLV !\n");
+		return;
+	}
+
+	somethingChangedLocal(ed->ifname); /* trigger tx with new values */
+	return;
+}
+
 /*
  * evb_bld_cfg_tlv - build the EVB TLV
  * @ed: the evb data struct
@@ -124,8 +148,9 @@ static int evb_bld_cfg_tlv(struct evb_data *ed)
 
 	if (ed->tie->smode != ed->policy->smode) {
 		ed->tie->smode = ed->policy->smode;
-		ed->state = EVB_OFFER_CAPABILITIES;
 	}
+
+	evb_update_tlv(ed);
 
 	tlv = create_tlv();
 	if (!tlv)
@@ -142,7 +167,7 @@ static int evb_bld_cfg_tlv(struct evb_data *ed)
 	}
 	memcpy(tlv->info, ed->tie, tlv->length);
 
-	LLDPAD_DBG("%s(%i): TLV about to be sent out:", __func__, __LINE__);
+	LLDPAD_DBG("%s(%i): TLV about to be sent out:\n", __func__, __LINE__);
 	evb_dump_tlv(tlv);
 
 	ed->evb = tlv;
@@ -178,7 +203,7 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 		LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
 	ed->policy->cmode = 0;
 	ed->policy->ccap = 0;
-	ed->policy->svsi = LLDP_EVB_DEFAULT_SVSI;
+	ed->policy->svsi = htons(LLDP_EVB_DEFAULT_SVSI);
 	ed->policy->rte = LLDP_EVB_DEFAULT_RTE;
 
 	/* pull forwarding mode into policy */
@@ -221,6 +246,10 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 			ed->policy->scap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
 		}
 
+		if (strcasestr(param, VAL_EVB_CAPA_NONE)) {
+			ed->policy->scap = 0;
+		}
+
 		LLDPAD_DBG("%s:%s: policy param capabilities = %s.\n", __func__, ed->ifname, param);
 		LLDPAD_DBG("%s:%s: policy param scap = %x.\n", __func__, ed->ifname, ed->policy->scap);
 	}
@@ -247,10 +276,10 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 		LLDPAD_INFO("%s:%s: loading EVB policy for vsis failed, using default.\n",
 			__func__, ed->ifname);
 	} else {
-		ed->policy->svsi = atoi(param);
+		ed->policy->svsi = htons(atoi(param));
 
 		LLDPAD_DBG("%s:%s: policy param vsis = %s.\n", __func__, ed->ifname, param);
-		LLDPAD_DBG("%s:%s: policy param vsis = %i.\n", __func__, ed->ifname, ed->policy->svsi);
+		LLDPAD_DBG("%s:%s: policy param vsis = %i.\n", __func__, ed->ifname, ntohs(ed->policy->svsi));
 	}
 
 	/* load last used EVB TLV ... */
@@ -270,12 +299,22 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 		ed->tie->cmode = 0x0;
 		ed->tie->scap  = ed->policy->scap;
 		ed->tie->ccap = 0x0;
-		ed->tie->svsi = LLDP_EVB_DEFAULT_SVSI;
-		ed->tie->cvsi = 0x0;
+		ed->tie->svsi = htons(LLDP_EVB_DEFAULT_SVSI);
+		ed->tie->cvsi = htons(0x0);
 		ed->tie->rte = LLDP_EVB_DEFAULT_RTE;
 	} else {
 		LLDPAD_INFO("%s(%i): loaded last used EVB TLV from file.\n", __FILE__, __LINE__);
 	}
+
+	ed->last = (struct tlv_info_evb *) calloc(1, sizeof(struct tlv_info_evb));
+
+	if (!ed->last) {
+		free(ed->policy);
+		free(ed->tie);
+		return ENOMEM;
+	}
+
+	ed->last->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
 
 	return 0;
 }
@@ -369,46 +408,62 @@ int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie)
 	}
 
 	if ((tie->svsi < 0) || (tie->svsi > LLDP_EVB_DEFAULT_MAX_VSI)) {
-		LLDPAD_ERR("nr of supported vsis (%i) exceeds allow value range !", tie->svsi);
+		LLDPAD_ERR("nr of supported vsis (%i) exceeds allow value range !", ntohs(tie->svsi));
 		return TLV_ERR;
 	}
 
 	if ((tie->cvsi < 0) || (tie->cvsi > LLDP_EVB_DEFAULT_MAX_VSI)) {
-		LLDPAD_ERR("nr of configured vsis (%i) exceeds allow value range !", tie->cvsi);
+		LLDPAD_ERR("nr of configured vsis (%i) exceeds allow value range !", ntohs(tie->cvsi));
 		return TLV_ERR;
 	}
 
 	/* check bridge capabilities against local policy*/
 	/* if bridge supports RR and we support it as well, request it
 	 * by setting smode in tlv to be sent out (ed->tie->smode) */
-	if ( (tie->smode & ed->policy->smode) ==
-	     LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY ) {
+	if ((tie->smode & LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY) &&
+	     (ed->policy->smode & LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY)) {
 		ed->tie->smode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
 	} else {
 		ed->tie->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
 	}
 
+	/* maybe switch has already set the mode based on the saved info sent
+	 * out on ifup */
+
+	if (tie->cmode == ed->tie->smode)
+		ed->tie->cmode = tie->cmode;
+
+	ed->tie->scap = ed->policy->scap;
+
 	/* If both sides support RTE, support and configure it */
 	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_RTE) {
-		ed->tie->scap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
 		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
+	} else {
+		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
 	}
 
 	/* If both sides support ECP, set it */
 	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_ECP) {
-		ed->tie->scap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
 		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
+	} else {
+		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
 	}
 
 	/* If both sides support VDP, set it */
 	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_VDP) {
-		ed->tie->scap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
 		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+	} else {
+		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
 	}
 
 	/* If supported caps include VDP take over min value of both */
-	if (ed->tie->scap & LLDP_EVB_CAPABILITY_PROTOCOL_VDP)
-		ed->tie->cvsi = MIN(ed->policy->svsi,tie->svsi);
+	if (ed->tie->scap & LLDP_EVB_CAPABILITY_PROTOCOL_VDP) {
+		ed->tie->svsi = tie->svsi;
+		ed->tie->cvsi = htons(vdp_vsis(ed->ifname));
+	} else {
+		ed->tie->svsi = 0;
+		ed->tie->cvsi = 0;
+	}
 
 	/* If both sides support RTE and value offer is > 0, set it */
 	if ((ed->tie->scap & LLDP_EVB_CAPABILITY_PROTOCOL_RTE) &&
@@ -422,78 +477,7 @@ int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie)
 		LLDPAD_INFO("%s(%i): saved tlv_info_evb to config !\n", __FILE__, __LINE__);
 	}
 
-	/* maybe switch has already set the mode based on the saved info sent
-	 * out on ifup */
-
-	if (tie->cmode == ed->tie->smode)
-		ed->tie->cmode = tie->cmode;
-
 	return TLV_OK;
-}
-
-/* evb_compare
- *
- * compare our own and received tlv_info_evb
- */
-static int evb_compare(struct evb_data *ed, struct tlv_info_evb *tie)
-{
-	LLDPAD_DBG("%s(%i): \n", __func__, __LINE__);
-
-	if (ed->tie->cmode == tie->cmode)
-		return 0;
-	else
-		return 1;
-}
-
-/* evb_statemachine:
- *
- * handle possible states during EVB capabilities exchange
- *
- * possible states:	EVB_OFFER_CAPABILITIES
- *			EVB_CONFIGURE
- *			EVB_CONFIRMATION
- */
-static void evb_statemachine(struct evb_data *ed, struct tlv_info_evb *tie)
-{
-	switch(ed->state) {
-	case EVB_OFFER_CAPABILITIES:
-		/* waiting for valid packets to pour in
-		 * if valid packet was received,
-		 *		- check parameters with what we have offered for this if,
-		 *		- fill structure with data,
-		 *		- enable local tx
-		 *		- switch to EVB_CONFIGURE
-		 */
-		LLDPAD_DBG("%s: state -> EVB_OFFER_CAPABILITIES\n", __func__);
-		if (evb_check_and_fill(ed, tie) != TLV_OK) {
-			LLDPAD_ERR("Invalid contents of EVB Cfg TLV !\n");
-			return;
-		}
-		somethingChangedLocal(ed->ifname); /* trigger tx with new values */
-		ed->state = EVB_CONFIGURE;
-		break;
-	case EVB_CONFIGURE:
-		/* we received a valid packet, if contents is same with our local settings
-		 * we can switch state to EVB_CONFIRMATION.*/
-		LLDPAD_DBG("%s: state -> EVB_CONFIGURE\n", __func__);
-		if (evb_compare(ed, tie)) {
-			ed->state= EVB_OFFER_CAPABILITIES;
-		} else {
-			LLDPAD_ERR("tlv_info_evb now equal !\n");
-			ed->state = EVB_CONFIRMATION;
-		}
-		somethingChangedLocal(ed->ifname);
-		break;
-	case EVB_CONFIRMATION:
-		/* we are already in confirmation and received a new packet with
-		 * different parameters ? Check parameters. switch state back to
-		 * EVB_CONFIGURE ? */
-		LLDPAD_DBG("%s: state -> EVB_CONFIRMATION\n", __func__);
-		break;
-	default:
-		LLDPAD_ERR("EVB statemachine reached invalid state !\n");
-		break;
-	}
 }
 
 /*
@@ -531,15 +515,14 @@ static int evb_rchange(struct port *port, struct unpacked_tlv *tlv)
 			return TLV_OK;
 		}
 
-		LLDPAD_DBG("%s(%i): received tlv:", __func__, __LINE__);
+		LLDPAD_DBG("%s(%i): received tlv:\n", __func__, __LINE__);
 		evb_dump_tlv(tlv);
-		evb_print_tlvinfo(tie);
+		memcpy(ed->last, tlv->info, tlv->length);
+		evb_print_tlvinfo(ed->last);
 
-		/* change state */
-		evb_statemachine(ed, tie);
+		evb_update_tlv(ed);
 
-		/* check which values have been taken over */
-		LLDPAD_DBG("%s(%i): new tlv:", __func__, __LINE__);
+		LLDPAD_DBG("%s(%i): new tlv:\n", __func__, __LINE__);
 		evb_print_tlvinfo(ed->tie);
 	}
 
@@ -594,7 +577,6 @@ void evb_ifup(char *ifname)
 		goto out_free;
 	}
 
-	ed->state = EVB_OFFER_CAPABILITIES;
 	evb_bld_tlv(ed);
 
 	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_EVB);
@@ -604,6 +586,7 @@ void evb_ifup(char *ifname)
 
 out_free:
 	free(ed->tie);
+	free(ed->last);
 	free(ed->policy);
 	free(ed);
 

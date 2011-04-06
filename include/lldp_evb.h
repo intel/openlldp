@@ -66,9 +66,9 @@ struct evb_data {
 	char ifname[IFNAMSIZ];
 	struct unpacked_tlv *evb;
 	struct tlv_info_evb *tie;
+	struct tlv_info_evb *last;
 	/* local policy */
 	struct tlv_info_evb *policy;
-	int state;
 	LIST_ENTRY(evb_data) entry;
 };
 
