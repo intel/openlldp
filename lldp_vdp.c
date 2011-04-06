@@ -480,8 +480,10 @@ static bool vdp_vsi_set_station_state(struct vsi_profile *profile)
 		if (profile->mode == VDP_MODE_PREASSOCIATE) {
 			vdp_vsi_change_station_state(profile, VSI_PREASSOC_PROCESSING);
 			return true;
-		} else if ((profile->mode == VDP_MODE_DEASSOCIATE) ||
-			   vdp_vsi_negative_response(profile)) {
+		} else if (profile->mode == VDP_MODE_DEASSOCIATE) {
+			vdp_vsi_change_station_state(profile, VSI_DEASSOC_PROCESSING);
+			return true;
+		} else if (vdp_vsi_negative_response(profile)) {
 			vdp_vsi_change_station_state(profile, VSI_DEASSOC_PROCESSING);
 			vdp_somethingChangedLocal(profile, true);
 			return true;
@@ -518,7 +520,8 @@ static bool vdp_vsi_set_station_state(struct vsi_profile *profile)
 		}
 		return false;
 	case VSI_DEASSOC_PROCESSING:
-		if ((profile->ackReceived) || vdp_ackTimer_expired(profile)) {
+		if ((profile->ackReceived) || vdp_ackTimer_expired(profile) ||
+		    profile->remoteChange) {
 			vdp_vsi_change_station_state(profile, VSI_EXIT);
 			return true;
 		}
@@ -590,7 +593,6 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			}
 			break;
 		case VSI_EXIT:
-			/* TODO: send DEASSOC here ? */
 			vdp_stop_ackTimer(profile);
 			vdp_stop_keepaliveTimer(profile);
 			vdp_remove_profile(profile);
@@ -927,7 +929,12 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode)
 
 				p->ackReceived = true;
 				p->keepaliveTimer = VDP_KEEPALIVE_TIMER_DEFAULT;
-				p->mode = vdp->mode;
+				if (vdp->mode != p->mode) {
+					p->mode = vdp->mode;
+					p->remoteChange = true;
+					LLDPAD_DBG("%s(%i): station: remoteChange %i !\n",
+						   __func__, __LINE__, p->remoteChange);
+				}
 				p->response = vdp->response;
 
 				if (vdp_vsi_negative_response(p))

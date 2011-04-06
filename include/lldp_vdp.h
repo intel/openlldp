@@ -128,6 +128,7 @@ struct vsi_profile {
 	int state;
 	int seqnr;
 	bool localChange;
+	bool remoteChange;
 	LIST_ENTRY(vsi_profile) profile;
 };
 
