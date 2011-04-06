@@ -740,7 +740,7 @@ static void vdp_vsi_sm_bridge(struct vsi_profile *profile)
 			LLDPAD_DBG("%s(%i)-%s: framein %p, sizein %i\n", __func__, __LINE__,
 			       profile->port->ifname, vd->ecp.rx.framein,
 			       vd->ecp.rx.sizein);
-			ecp_rx_send_ack_frame(profile->port);
+			ecp_rx_send_ack_frame(vd);
 			break;
 		case VSI_PREASSOCIATED:
 			LLDPAD_DBG("%s(%i)-%s: \n", __func__, __LINE__, profile->port->ifname);
