@@ -149,6 +149,31 @@ void vdp_ack_profiles(struct vdp_data *vd, int seqnr)
 
 }
 
+/* vdp_vsis - find out number of VSIs for this interface
+ * @ifname: interfac name
+ *
+ * returns the number of VSIs
+ *
+ * walk through the list of VSIs and return the count.
+ */
+int vdp_vsis(char *ifname)
+{
+	struct vdp_data *vd;
+	struct vsi_profile *p;
+	int count = 0;
+
+	vd = vdp_data(ifname);
+
+	if (!vd)
+		return 0;
+
+	LIST_FOREACH(p, &vd->profile_head, profile) {
+		count++;
+	}
+
+	return count;
+}
+
 /* vdp_vsis_pending - check for pending VSIs
  * @vd: vdp data for the interface
  *
