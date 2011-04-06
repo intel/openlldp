@@ -328,20 +328,33 @@ static int set_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
 static int get_arg_role(struct cmd *cmd, char *arg, char *argvalue,
                               char *obuf)
 {
-       char *p;
        char arg_path[VDP_BUF_SIZE];
+       struct vdp_data *vd;
 
        if (cmd->cmd != cmd_gettlv)
                return cmd_invalid;
 
+       vd = vdp_data(cmd->ifname);
+
+       if (!vd) {
+               LLDPAD_ERR("%s(%i): could not find vdp_data for %s !\n",
+                      __FILE__, __LINE__, cmd->ifname);
+               return cmd_invalid;
+       }
+
        switch (cmd->tlvid) {
        case ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE:
-               snprintf(arg_path, sizeof(arg_path), "%s.%s",
-                        VDP_PREFIX, arg);
+	       if (vd->role == VDP_ROLE_STATION) {
+		       sprintf(obuf, "%02x%s%04x%s", (unsigned int) strlen(arg), arg,
+			       (unsigned int) strlen("station"), "station");
+	       } else if (vd->role == VDP_ROLE_BRIDGE) {
+		       sprintf(obuf, "%02x%s%04x%s", (unsigned int) strlen(arg), arg,
+			       (unsigned int) strlen("bridge"), "bridge");
+	       } else {
+		       return cmd_failed;
+	       }
 
-               if (get_cfg(cmd->ifname, arg_path, (void *)&p,
-                                       CONFIG_TYPE_STRING))
-                       return cmd_failed;
+
                break;
        case INVALID_TLVID:
                return cmd_invalid;
@@ -349,8 +362,6 @@ static int get_arg_role(struct cmd *cmd, char *arg, char *argvalue,
                return cmd_not_applicable;
        }
 
-       sprintf(obuf, "%02x%s%04x%s", (unsigned int) strlen(arg), arg,
-               (unsigned int) strlen(p), p);
 
        return cmd_success;
 }
