@@ -52,6 +52,7 @@ struct l2_packet_data {
 	u8 perm_mac_addr[ETH_ALEN];
 	u8 curr_mac_addr[ETH_ALEN];
 	u8 san_mac_addr[ETH_ALEN];
+	u8 remote_mac_addr[ETH_ALEN];
 	void (*rx_callback)(void *ctx, unsigned int ifindex,
 			    const u8 *buf, size_t len);
 	void *rx_callback_ctx;
@@ -80,12 +81,27 @@ int l2_packet_get_own_src_addr(struct l2_packet_data *l2, u8 *addr)
 	return 0;
 }
 
+
+/*
+ * Extracts the remote peer's MAC address from the rx frame  and
+ * puts it in the l2_packet_data
+ */
+void get_remote_peer_mac_addr(struct port *port)
+{
+	int offset = ETH_ALEN;  /* points to remote MAC address in RX frame */
+	memcpy(port->l2->remote_mac_addr, &port->rx.framein[offset], ETH_ALEN);
+}
+
+void l2_packet_get_remote_addr(struct l2_packet_data *l2, u8 *addr)
+{
+	memcpy(addr, l2->remote_mac_addr, ETH_ALEN);
+}
+
 int l2_packet_get_own_addr(struct l2_packet_data *l2, u8 *addr)
 {
 	memcpy(addr, l2->perm_mac_addr, ETH_ALEN);
 	return 0;
 }
-
 
 int l2_packet_send(struct l2_packet_data *l2, const u8 *dst_addr, u16 proto,
 		   const u8 *buf, size_t len)

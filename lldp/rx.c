@@ -153,7 +153,7 @@ void rxProcessFrame(struct port * port)
 		return;
 	}
 	memset(port->rx.manifest,0, sizeof(rxmanifest));
-
+	get_remote_peer_mac_addr(port);
 	tlv_offset = sizeof(struct l2_ethhdr);  /* Points to 1st TLV */
 
 	do {

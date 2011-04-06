@@ -130,6 +130,9 @@ int l2_packet_get_own_src_addr(struct l2_packet_data *l2, u8 *addr);
  */
 int l2_packet_get_own_addr(struct l2_packet_data *l2, u8 *addr);
 
+void get_remote_peer_mac_addr(struct port *port);
+void l2_packet_get_remote_addr(struct l2_packet_data *l2, u8 *addr);
+
 /**
  * l2_packet_send - Send a packet
  * @l2: Pointer to internal l2_packet data from l2_packet_init()
