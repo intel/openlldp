@@ -645,9 +645,11 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 			(tlv->info[DCB_OUI_LEN] == dcbx_subtype2)) {
 			port->lldpdu |= RCVD_LLDP_DCBX2_TLV;
 			dcbx->manifest->dcbx2 = tlv;
+			return TLV_OK;
 		} else if (tlv->info[DCB_OUI_LEN] == dcbx_subtype1) {
 			port->lldpdu |= RCVD_LLDP_DCBX1_TLV;
 			dcbx->manifest->dcbx1 = tlv;
+			return TLV_OK;
 		} else {
 			/* not a DCBX subtype we support */
 			return SUBTYPE_INVALID;
@@ -678,12 +680,14 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 			mibUpdateObjects(port);
 		}
 
-		free_unpkd_tlv(tlv);
 		clear_dcbx_manifest(dcbx);
-		dcbx->dcbdu = 0;
 	}
 
-	return TLV_OK;
+	/* TLV is not handled by DCBx module return invalid to
+	 * indicate lldpad core should continue to look for
+	 * a module to handle this TLV
+	 */
+	return SUBTYPE_INVALID;
 }
 
 u8 dcbx_mibDeleteObjects(struct port *port)
