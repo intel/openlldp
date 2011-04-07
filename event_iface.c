@@ -90,9 +90,6 @@ static struct nla_policy ifla_port_policy[IFLA_PORT_MAX + 1] =
 
 static void event_if_decode_rta(int type, struct rtattr *rta, int *ls, char *d)
 {
-
-	LLDPAD_DBG("    rta_type  =\n", rta->rta_len);
-	
 	switch (type) {
 	case IFLA_ADDRESS:
 		LLDPAD_DBG(" IFLA_ADDRESS\n");
@@ -100,22 +97,83 @@ static void event_if_decode_rta(int type, struct rtattr *rta, int *ls, char *d)
 	case IFLA_BROADCAST:
 		LLDPAD_DBG(" IFLA_BROADCAST\n");
 		break;
-	case IFLA_OPERSTATE:
-		LLDPAD_DBG(" IFLA_OPERSTATE \n", type);
-		*ls = (*((int *)RTA_DATA(rta)));
-		break;
-	case IFLA_LINKMODE:
-		LLDPAD_DBG(" IFLA_LINKMODE \n", type);
-		LLDPAD_DBG("        LINKMODE = \n", (*((int *)RTA_DATA(rta)))?
-			"IF_LINK_MODE_DORMANT": "IF_LINK_MODE_DEFAULT");
-		break;
 	case IFLA_IFNAME:
 		strncpy(d, (char *)RTA_DATA(rta), IFNAMSIZ);
 		LLDPAD_DBG(" IFLA_IFNAME\n");
-		LLDPAD_DBG(" device name is \n", d);
+		LLDPAD_DBG("        device name is %s\n", d);
+		break;
+	case IFLA_MTU:
+		LLDPAD_DBG(" IFLA_MTU\n");
+		break;
+	case IFLA_LINK:
+		LLDPAD_DBG(" IFLA_LINK\n");
+		break;
+	case IFLA_QDISC:
+		LLDPAD_DBG(" IFLA_QDISC\n");
+		break;
+	case IFLA_STATS:
+		LLDPAD_DBG(" IFLA_STATS\n");
+		break;
+	case IFLA_COST:
+		LLDPAD_DBG(" IFLA_COST\n");
+		break;
+	case IFLA_PRIORITY:
+		LLDPAD_DBG(" IFLA_PRIORITY\n");
+		break;
+	case IFLA_MASTER:
+		LLDPAD_DBG(" IFLA_MASTER\n");
+		break;
+	case IFLA_WIRELESS:
+		LLDPAD_DBG(" IFLA_WIRELESS\n");
+		break;
+	case IFLA_PROTINFO:
+		LLDPAD_DBG(" IFLA_PROTINFO\n");
+		break;
+	case IFLA_TXQLEN:
+		LLDPAD_DBG(" IFLA_TXQLEN\n");
+		break;
+	case IFLA_MAP:
+		LLDPAD_DBG(" IFLA_MAP\n");
+		break;
+	case IFLA_WEIGHT:
+		LLDPAD_DBG(" IFLA_WEIGHT\n");
+		break;
+	case IFLA_OPERSTATE:
+		LLDPAD_DBG(" IFLA_OPERSTATE\n");
+		*ls = (*((int *)RTA_DATA(rta)));
+		LLDPAD_DBG("        OPERSTATE = 0x%02x\n", *ls);
+		break;
+	case IFLA_LINKMODE:
+		LLDPAD_DBG(" IFLA_LINKMODE\n");
+		LLDPAD_DBG("        LINKMODE = %s\n", (*((int *)RTA_DATA(rta)))?
+			"IF_LINK_MODE_DORMANT": "IF_LINK_MODE_DEFAULT");
+		break;
+	case IFLA_LINKINFO:
+		LLDPAD_DBG(" IFLA_LINKINFO\n");
+		break;
+	case IFLA_NET_NS_PID:
+		LLDPAD_DBG(" IFLA_NET_NS_PID\n");
+		break;
+	case IFLA_IFALIAS:
+		LLDPAD_DBG(" IFLA_IFALIAS\n");
+		break;
+	case IFLA_NUM_VF:
+		LLDPAD_DBG(" IFLA_NUMVF\n");
+		break;
+	case IFLA_VFINFO_LIST:
+		LLDPAD_DBG(" IFLA_VFINFO_LIST\n");
+		break;
+	case IFLA_STATS64:
+		LLDPAD_DBG(" IFLA_STATS64\n");
+		break;
+	case IFLA_VF_PORTS:
+		LLDPAD_DBG(" IFLA_VF_PORTS\n");
+		break;
+	case IFLA_PORT_SELF:
+		LLDPAD_DBG(" IFLA_PORT_SELF\n");
 		break;
 	default:
-		LLDPAD_DBG(" unknown type : \n", type);
+		LLDPAD_DBG(" unknown type : 0x%02x\n", type);
 		break;
 	}
 }
@@ -175,16 +233,16 @@ static void event_if_decode_nlmsg(int route_type, void *data, int len)
 	case RTM_DELLINK:
 	case RTM_SETLINK:
 	case RTM_GETLINK:
-		LLDPAD_DBG("  IFINFOMSG\n");
-		LLDPAD_DBG("  ifi_family = \n",
+		LLDPAD_DBG(" IFINFOMSG\n");
+		LLDPAD_DBG("        ifi_family = 0x%02x\n",
 			((struct ifinfomsg *)data)->ifi_family);
-		LLDPAD_DBG("  ifi_type   = \n",
+		LLDPAD_DBG("        ifi_type   = 0x%x\n",
 			((struct ifinfomsg *)data)->ifi_type);
-		LLDPAD_DBG("  ifi_index  = \n",
+		LLDPAD_DBG("        ifi_index  = %i\n",
 			((struct ifinfomsg *)data)->ifi_index);
-		LLDPAD_DBG("  ifi_flags  = \n",
+		LLDPAD_DBG("        ifi_flags  = 0x%04x\n",
 			((struct ifinfomsg *)data)->ifi_flags);
-		LLDPAD_DBG("  ifi_change = \n",
+		LLDPAD_DBG("        ifi_change = 0x%04x\n",
 			((struct ifinfomsg *)data)->ifi_change);
 
 		/* print attributes */
@@ -197,8 +255,8 @@ static void event_if_decode_nlmsg(int route_type, void *data, int len)
 			rta = RTA_NEXT(rta, attrlen);
 		}
 
-		LLDPAD_DBG("link status: \n", link_status);
-		LLDPAD_DBG("device name: \n", device_name);
+		LLDPAD_DBG("        link status: %i\n", link_status);
+		LLDPAD_DBG("        device name: %s\n", device_name);
 
 		switch (link_status) {
 		case IF_OPER_DOWN:
