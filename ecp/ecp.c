@@ -37,9 +37,65 @@
 #include "lldp/l2_packet.h"
 #include "ecp/ecp.h"
 
-static int ecp_start_timer(struct vdp_data *vd);
+/* ecp_localchange_handler - triggers the processing of a local change
+ * @eloop_data: data structure of event loop
+ * @user_ctx: user context, vdp_data here
+ *
+ * no return value
+ *
+ * called from ecp_somethingchangedlocal when a change is pending. Calls
+ * the ECP tx station state machine. A oneshot handler. This detour is taken
+ * to not having to call the ecp code from the vdp state machine. Instead, we
+ * return to the event loop, giving other code a chance to do work.
+ */
+void ecp_localchange_handler(void *eloop_data, void *user_ctx)
+{
+	struct vdp_data *vd;
 
-/* ecp_timeout_handler - handles the timer expiry
+	vd = (struct vdp_data *) user_ctx;
+
+	if (vd->ecp.tx.localChange) {
+		LLDPAD_DBG("%s(%i)-%s: ecp.tx.localChange %i!\n",
+			   __func__, __LINE__,
+			   vd->ifname, vd->ecp.tx.localChange);
+		ecp_tx_run_sm(vd);
+	}
+}
+
+/* ecp_start_localchange_timer - starts the ECP localchange timer
+ * @vd: vdp_data for the interface
+ *
+ * returns 0 on success, -1 on error
+ *
+ * starts the ECP localchange timer when a localchange has been signaled from
+ * the VDP state machine.
+ */
+int ecp_start_localchange_timer(struct vdp_data *vd)
+{
+	unsigned int usecs;
+
+	usecs = ECP_LOCALCHANGE_TIMEOUT;
+
+	return eloop_register_timeout(0, usecs, ecp_localchange_handler, NULL, (void *) vd);
+}
+
+/* ecp_stop_localchange_timer - stop the ECP localchange timer
+ * @vd: vdp_data for the interface
+ *
+ * returns the number of removed handlers
+ *
+ * stops the ECP localchange timer. Used e.g. when the host interface goes down.
+ */
+static int ecp_stop_localchange_timer(struct vdp_data *vd)
+{
+	LLDPAD_DBG("%s(%i)-%s: stopping ecp localchange timer\n", __func__, __LINE__,
+	       vd->ifname);
+
+	return eloop_cancel_timeout(ecp_localchange_handler, NULL, (void *) vd);
+}
+
+
+/* ecp_ack_timeout_handler - handles the ack timer expiry
  * @eloop_data: data structure of event loop
  * @user_ctx: user context, vdp_data here
  *
@@ -47,58 +103,55 @@ static int ecp_start_timer(struct vdp_data *vd);
  *
  * called when the ECP timer has expired. Calls the ECP station state machine.
  */
-void ecp_timeout_handler(void *eloop_data, void *user_ctx)
+void ecp_ack_timeout_handler(void *eloop_data, void *user_ctx)
 {
 	struct vdp_data *vd;
 
 	vd = (struct vdp_data *) user_ctx;
 
 	if (vd->ecp.ackTimer > 0)
-		vd->ecp.ackTimer--;
+		vd->ecp.ackTimer -= ECP_ACK_TIMER_DEFAULT;
 
-	if ((ecp_ackTimer_expired(vd) == true) ||
-	    vd->ecp.tx.localChange) {
+	if (ecp_ackTimer_expired(vd) == true) {
 		LLDPAD_DBG("%s(%i)-%s: ecp_ackTimer_expired (%i) !\n",
 			   __func__, __LINE__, vd->ifname, vd->ecp.ackTimer);
-		LLDPAD_DBG("%s(%i)-%s: ecp.tx.localChange %i!\n",
-			   __func__, __LINE__,
-			   vd->ifname, vd->ecp.tx.localChange);
 		ecp_tx_run_sm(vd);
+	} else {
+		LLDPAD_DBG("%s(%i)-%s: BUG ! handler called but"
+			   "vdp->ecp.ackTimer not expired (%i) !\n",
+			   __func__, __LINE__, vd->ecp.ackTimer);
 	}
-
-	ecp_start_timer(vd);
 }
 
-/* ecp_start_timer - starts the ECP timer
+/* ecp_start_ack_timer - starts the ECP ack timer
  * @vd: vdp_data for the interface
  *
  * returns 0 on success, -1 on error
  *
- * starts the ECP timer when the interface comes up.
+ * starts the ECP ack timer when a frame has been sent out.
  */
-static int ecp_start_timer(struct vdp_data *vd)
+int ecp_start_ack_timer(struct vdp_data *vd)
 {
-	unsigned int secs, usecs;
+	unsigned int usecs;
 
-	secs = 0;
-	usecs = ECP_TIMER_GRANULARITY;
+	usecs = ECP_ACK_TIMER_DEFAULT;
 
-	return eloop_register_timeout(secs, usecs, ecp_timeout_handler, NULL, (void *) vd);
+	return eloop_register_timeout(0, usecs, ecp_ack_timeout_handler, NULL, (void *) vd);
 }
 
-/* ecp_stop_timer - stop the ECP timer
+/* ecp_stop_ack_timer - stop the ECP ack timer
  * @vd: vdp_data for the interface
  *
  * returns the number of removed handlers
  *
- * stops the ECP timer. Used e.g. when the host interface goes down.
+ * stops the ECP ack timer. Used e.g. when the host interface goes down.
  */
-static int ecp_stop_timer(struct vdp_data *vd)
+int ecp_stop_ack_timer(struct vdp_data *vd)
 {
-	LLDPAD_DBG("%s(%i)-%s: stopping ecp timer\n", __func__, __LINE__,
+	LLDPAD_DBG("%s(%i)-%s: stopping ecp ack timer\n", __func__, __LINE__,
 	       vd->ifname);
 
-	return eloop_cancel_timeout(ecp_timeout_handler, NULL, (void *) vd);
+	return eloop_cancel_timeout(ecp_ack_timeout_handler, NULL, (void *) vd);
 }
 
 /* ecp_init - initialize ecp module
@@ -138,7 +191,7 @@ int ecp_init(char *ifname)
 	ecp_rx_change_state(vd, ECP_RX_IDLE);
 	ecp_rx_run_sm(vd);
 
-	ecp_start_timer(vd);
+	ecp_somethingChangedLocal(vd, true);
 
 	return 0;
 
@@ -159,7 +212,8 @@ int ecp_deinit(char *ifname)
 		goto fail;
 	}
 
-	ecp_stop_timer(vd);
+	ecp_stop_ack_timer(vd);
+	ecp_stop_localchange_timer(vd);
 	ecp_tx_stop_ackTimer(vd);
 
 	return 0;

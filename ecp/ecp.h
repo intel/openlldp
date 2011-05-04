@@ -34,8 +34,11 @@
 #define ECP_MAX_RETRIES			3
 #define ECP_SEQUENCE_NR_START		0x0
 
-#define ECP_ACK_TIMER_DEFAULT		50 /* 500 ms in 10 ms chunks */
-#define ECP_TIMER_GRANULARITY		10000 /* 10 ms in us */
+#define MSECS				1000
+#define SECS				1000*MSECS
+
+#define ECP_ACK_TIMER_DEFAULT		500*MSECS /* 500 ms */
+#define ECP_LOCALCHANGE_TIMEOUT		1*MSECS /* 1 ms */
 
 #define ECP_ACK_TIMER_STOPPED		-1
 

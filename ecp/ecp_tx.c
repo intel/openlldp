@@ -53,10 +53,12 @@ void ecp_somethingChangedLocal(struct vdp_data *vd, bool flag)
 	if (!vd)
 		return;
 
-	LLDPAD_DBG("%s(%i): vd->ecp.tx.localChange to %s.", __func__,
+	LLDPAD_DBG("%s(%i): vd->ecp.tx.localChange to %s.\n", __func__,
 		   __LINE__, (flag == true) ? "true" : "false");
 
 	vd->ecp.tx.localChange = flag;
+
+	ecp_start_localchange_timer(vd);
 
 	return;
 }
@@ -288,6 +290,8 @@ void ecp_tx_stop_ackTimer(struct vdp_data *vd)
 
 	LLDPAD_DBG("%s(%i)-%s: stopped ecp ack timer\n", __func__, __LINE__,
 	       vd->ifname);
+
+	ecp_stop_ack_timer(vd);
 }
 
 /* ecp_tx_start_ackTimer - starts the ECP ack timer
@@ -303,6 +307,8 @@ static void ecp_tx_start_ackTimer(struct vdp_data *vd)
 
 	LLDPAD_DBG("%s(%i)-%s: starting ecp ack timer\n", __func__, __LINE__,
 	       vd->ifname);
+
+	ecp_start_ack_timer(vd);
 }
 
 /* ecp_ackTimer_expired - checks for expired ack timer
