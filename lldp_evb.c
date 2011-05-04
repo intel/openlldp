@@ -594,6 +594,38 @@ out_err:
 	return;
 }
 
+u8 evb_mibdelete(struct port *port)
+{
+	struct evb_data *ed;
+
+	if (!is_tlv_txenabled(port->ifname, TLVID_8021Qbg(LLDP_EVB_SUBTYPE))) {
+		goto out_err;
+	}
+
+	LLDPAD_DBG("%s(%i): mibdelete triggered for port %s.\n", __func__,
+		   __LINE__, port->ifname);
+
+	ed = evb_data(port->ifname);
+	if (!ed) {
+		LLDPAD_DBG("%s:%s does not exist.\n", __func__, port->ifname);
+		goto out_err;
+	}
+
+	free(ed->tie);
+	free(ed->last);
+	free(ed->policy);
+
+	if (evb_init_cfg_tlv(ed)) {
+		LLDPAD_ERR("%s:%s evb_init_cfg_tlv failed\n", __func__, port->ifname);
+		goto out_err;
+	}
+
+	evb_bld_tlv(ed);
+
+out_err:
+	return 0;
+}
+
 static const struct lldp_mod_ops evb_ops =  {
 	.lldp_mod_register	= evb_register,
 	.lldp_mod_unregister	= evb_unregister,
@@ -601,6 +633,7 @@ static const struct lldp_mod_ops evb_ops =  {
 	.lldp_mod_rchange	= evb_rchange,
 	.lldp_mod_ifup		= evb_ifup,
 	.lldp_mod_ifdown	= evb_ifdown,
+	.lldp_mod_mibdelete	= evb_mibdelete,
 	.get_arg_handler	= evb_get_arg_handlers,
 };
 
