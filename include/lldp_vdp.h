@@ -64,11 +64,12 @@ static char *vsi_responses[] = {
 
 #define VDP_MACVLAN_FORMAT_1	1
 
-#define VDP_TIMER_GRANULARITY		10000 /* 10 ms in us */
-#define VDP_KEEPALIVE_TIMER_DEFAULT	1000  /* 10s in 10ms chunks */
+#define VDP_TIMER_GRANULARITY		100*MSECS /* 100 ms */
+#define VDP_KEEPALIVE_TIMER_DEFAULT	10*SECS  /* 10s */
 #define VDP_ACK_TIMER_DEFAULT		(2*ECP_ACK_TIMER_DEFAULT*ECP_MAX_RETRIES)
 #define VDP_KEEPALIVE_TIMER_STOPPED	-1
 #define VDP_ACK_TIMER_STOPPED		-1
+#define VDP_LOCALCHANGE_TIMEOUT		1*MSECS /* 1 ms */
 
 #define VDP_ROLE_STATION		0
 #define VDP_ROLE_BRIDGE			1
@@ -155,7 +156,6 @@ struct packed_tlv *vdp_gettlv(struct vdp_data *vd, struct vsi_profile *profile);
 void vdp_vsi_sm_station(struct vsi_profile *profile);
 struct vsi_profile *vdp_add_profile(struct vsi_profile *profile);
 void vdp_somethingChangedLocal(struct vsi_profile *profile, bool mode);
-static int vdp_start_timer(struct vdp_data *vd);
 
 #define MAC_ADDR_STRLEN		18
 #define INSTANCE_STRLEN		36

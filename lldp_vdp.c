@@ -143,8 +143,10 @@ void vdp_ack_profiles(struct vdp_data *vd, int seqnr)
 	struct vsi_profile *p;
 
 	LIST_FOREACH(p, &vd->profile_head, profile) {
-		if (p->seqnr == seqnr)
+		if (p->seqnr == seqnr) {
 			p->ackReceived = true;
+			vdp_start_localchange_timer(p);
+		}
 	}
 
 }
@@ -205,7 +207,13 @@ int vdp_vsis_pending(struct vdp_data *vd)
  */
 void vdp_somethingChangedLocal(struct vsi_profile *profile, bool flag)
 {
+	LLDPAD_DBG("%s(%i): setting profile->localChange to %s.\n",
+		   __func__, __LINE__, (flag == true) ? "true" : "false");
+
 	profile->localChange = flag;
+
+	if (flag == true)
+		vdp_start_localchange_timer(profile);
 }
 
 /* vdp_keepaliveTimer_expired - checks for expired ack timer
@@ -234,147 +242,182 @@ static bool vdp_ackTimer_expired(struct vsi_profile *profile)
 	return (profile->ackTimer == 0);
 }
 
-/* vdp_timeout_handler - handles the timer expiry
+/* vdp_localchange_handler - triggers in case of ackReceived or on vdp localchange
  * @eloop_data: data structure of event loop
  * @user_ctx: user context, vdp_data here
  *
  * no return value
  *
- * called when the VDP timer has expired. Decrements ack and keepaliveTimer
- * and calls the VDP station state machine if necessary.
+ * called from vdp_somethingchangedlocal or vdp_ack_profiles when a change is
+ * pending. Calls the VDP station state machine. This detour is taken
+ * to not having to call the vdp code from the ecp state machine. Instead, we
+ * return to the event loop, giving other code a chance to do work.
  */
-void vdp_timeout_handler(void *eloop_data, void *user_ctx)
+void vdp_localchange_handler(void *eloop_data, void *user_ctx)
 {
-	struct vdp_data *vd;
 	struct vsi_profile *p;
 
-	vd = (struct vdp_data *) user_ctx;
+	p = (struct vsi_profile *) user_ctx;
 
-	vd->nroftimers--;
-
-	LIST_FOREACH(p, &vd->profile_head, profile) {
-		if (p->ackTimer > 0)
-			p->ackTimer--;
-
-		if (p->keepaliveTimer > 0)
-			p->keepaliveTimer--;
-
-		if (vdp_ackTimer_expired(p) ||
-		    vdp_keepaliveTimer_expired(p) ||
-		    p->ackReceived) {
-			LLDPAD_DBG("%s(%i): profile 0x%02x\n",
-				   __func__, __LINE__, p->instance[15]);
-			LLDPAD_DBG("%s(%i): vdp_ackTimer_expired %i\n",
-				   __func__, __LINE__, vdp_ackTimer_expired(p));
-			LLDPAD_DBG("%s(%i): p->ackReceived %i\n",
-				   __func__, __LINE__, p->ackReceived);
-			LLDPAD_DBG("%s(%i): vdp_keepaliveTimer_expired %i\n",
-				   __func__, __LINE__,
-				   vdp_keepaliveTimer_expired(p));
-			vdp_vsi_sm_station(p);
-		}
+	if ((p->ackReceived) || (p->localChange)) {
+		LLDPAD_DBG("%s(%i): p->localChange %i!\n",
+			   __func__, __LINE__, p->localChange);
+		LLDPAD_DBG("%s(%i): p->ackReceived %i!\n",
+			   __func__, __LINE__, p->ackReceived);
+		vdp_vsi_sm_station(p);
 	}
-
-	vdp_start_timer(vd);
 }
 
-/* vdp_stop_timer - stop the VDP timer
- * @vd: vdp_data for the interface
- *
- * returns the number of removed handlers
- *
- * stops the VDP timer. Used e.g. when the host interface goes down.
- */
-static int vdp_stop_timer(struct vdp_data *vd)
-{
-	LLDPAD_DBG("%s(%i)-%s: stopping vdp timer\n", __func__, __LINE__,
-	       vd->ifname);
-
-	vd->nroftimers--;
-
-	return eloop_cancel_timeout(vdp_timeout_handler, NULL, (void *) vd);
-}
-
-/* vdp_start_timer - starts the VDP timer
+/* vdp_start_localchange_timer - starts the VDP localchange timer
  * @vd: vdp_data for the interface
  *
  * returns 0 on success, -1 on error
  *
- * starts the VDP timer when the interface comes up.
+ * starts the VPP localchange timer when a localchange has been signaled from
+ * the VDP state machine.
  */
-static int vdp_start_timer(struct vdp_data *vd)
+int vdp_start_localchange_timer(struct vsi_profile *p)
 {
-	unsigned int secs, usecs, rte;
+	unsigned int usecs;
 
-	secs = 0;
-	usecs = VDP_TIMER_GRANULARITY;
+	usecs = VDP_LOCALCHANGE_TIMEOUT;
 
-	vd->nroftimers++;
-
-	if (vd->nroftimers > 1) {
-		LLDPAD_WARN("%s(%i)-%s: nroftimers %i !\n", __func__, __LINE__,
-			   vd->ifname, vd->nroftimers);
-		vd->nroftimers--;
-		return 0;
-	}
-
-	return eloop_register_timeout(secs, usecs, vdp_timeout_handler, NULL, (void *) vd);
+	return eloop_register_timeout(0, usecs, vdp_localchange_handler, NULL, (void *) p);
 }
 
-/* vdp_start_ackTimer - starts the VDP ack timer
- * @profile: profile to process
+/* vdp_ack_timeout_handler - handles the ack timer expiry
+ * @eloop_data: data structure of event loop
+ * @user_ctx: user context, vdp_data here
  *
- * starts the ack timer when a frame has been sent out.
+ * no return value
+ *
+ * called when the VDP ack timer for a profile has expired.
+ * Calls the VDP station state machine for the profile.
  */
-static void vdp_start_ackTimer(struct vsi_profile *profile)
+void vdp_ack_timeout_handler(void *eloop_data, void *user_ctx)
 {
+	struct vsi_profile *p = (struct vsi_profile *) user_ctx;
+
+	if (p->ackTimer > 0)
+		p->ackTimer -= VDP_ACK_TIMER_DEFAULT;
+
+	if (vdp_ackTimer_expired(p)) {
+		LLDPAD_DBG("%s(%i): profile 0x%02x\n",
+			   __func__, __LINE__, p->instance[15]);
+		LLDPAD_DBG("%s(%i): vdp_ackTimer_expired %i\n",
+			   __func__, __LINE__, vdp_ackTimer_expired(p));
+		LLDPAD_DBG("%s(%i): p->ackReceived %i\n",
+			   __func__, __LINE__, p->ackReceived);
+		vdp_vsi_sm_station(p);
+	}
+}
+
+/* vdp_start_ack_timer - starts the VDP profile ack timer
+ * @profile: vsi_profile
+ *
+ * returns 0 on success, -1 on error
+ *
+ * starts the VDP profile ack timer when a profile has been handed to ecp for
+ * transmission.
+ */
+static int vdp_start_ackTimer(struct vsi_profile *profile)
+{
+	unsigned int usecs;
+
+	usecs = VDP_ACK_TIMER_DEFAULT;
+
 	profile->ackTimer = VDP_ACK_TIMER_DEFAULT;
 
 	LLDPAD_DBG("%s(%i)-%s: starting ack timer for 0x%02x (%i)\n",
 		   __func__, __LINE__, profile->port->ifname,
 		   profile->instance[15], profile->ackTimer);
+
+	return eloop_register_timeout(0, usecs, vdp_ack_timeout_handler, NULL, (void *) profile);
 }
 
-/* vdp_start_keepaliveTimer - starts the VDP keepalive timer for a profile
- * @profile: profile to process
+/* vdp_stop_ackTimer - stops the VDP profile ack timer
+ * @vd: vdp_data for the interface
  *
- * starts the keepalive timer when a frame has been sent out.
+ * returns the number of removed handlers
+ *
+ * stops the VDP tck imer. Used e.g. when the host interface goes down.
  */
-static void vdp_start_keepaliveTimer(struct vsi_profile *profile)
+static int vdp_stop_ackTimer(struct vsi_profile *profile)
 {
+	LLDPAD_DBG("%s(%i)-%s: stopping ack timer for 0x%02x (%i)\n",
+		   __func__, __LINE__, profile->port->ifname,
+		   profile->instance[15], profile->ackTimer);
+
+	return eloop_cancel_timeout(vdp_ack_timeout_handler, NULL, (void *) profile);
+}
+
+/* vdp_keepalive_timeout_handler - handles the keepalive timer expiry
+ * @eloop_data: data structure of event loop
+ * @user_ctx: user context, vdp_data here
+ *
+ * no return value
+ *
+ * called when the VDP keepalive timer for a profile has expired.
+ * Calls the VDP station state machine for the profile.
+ */
+void vdp_keepalive_timeout_handler(void *eloop_data, void *user_ctx)
+{
+	struct vsi_profile *p = (struct vsi_profile *) user_ctx;
+
+	if (p->keepaliveTimer > 0)
+		p->keepaliveTimer -= VDP_KEEPALIVE_TIMER_DEFAULT;
+
+	if (vdp_keepaliveTimer_expired(p)) {
+		LLDPAD_DBG("%s(%i): profile 0x%02x\n",
+			   __func__, __LINE__, p->instance[15]);
+		LLDPAD_DBG("%s(%i): vdp_keepaliveTimer_expired %i\n",
+			   __func__, __LINE__, vdp_keepaliveTimer_expired(p));
+		LLDPAD_DBG("%s(%i): p->ackReceived %i\n",
+			   __func__, __LINE__, p->ackReceived);
+		vdp_vsi_sm_station(p);
+	}
+}
+
+/* vdp_start_keepalive_timer - starts the VDP profile keepalive timer
+ * @vd: vdp_data for the interface
+ *
+ * returns 0 on success, -1 on error
+ *
+ * starts the VDP profile keepalive timer when a profile has been handed to ecp for
+ * transmission.
+ */
+static int vdp_start_keepaliveTimer(struct vsi_profile *profile)
+{
+	unsigned int usecs;
+
+	usecs = VDP_KEEPALIVE_TIMER_DEFAULT;
+
 	profile->keepaliveTimer = VDP_KEEPALIVE_TIMER_DEFAULT;
 
 	LLDPAD_DBG("%s(%i)-%s: starting keepalive timer for 0x%02x (%i)\n",
 		   __func__, __LINE__, profile->port->ifname,
 		   profile->instance[15], profile->keepaliveTimer);
+
+	return eloop_register_timeout(0, usecs, vdp_keepalive_timeout_handler,
+				      NULL, (void *) profile);
 }
 
-/* vdp_stop_ackTimer - stops the VDP ack timer
- * @profile: profile to process
+/* vdp_stop_keepalive_timer - stops the VDP profile keepalive timer
+ * @vd: vdp_data for the interface
  *
- * stops the ack timer when a frame has been sent out.
- */
-static void vdp_stop_ackTimer(struct vsi_profile *profile)
-{
-	profile->ackTimer = VDP_ACK_TIMER_STOPPED;
-
-	LLDPAD_DBG("%s(%i)-%s: stopping ack timer for 0x%02x (%i)\n",
-		   __func__, __LINE__, profile->port->ifname,
-		   profile->instance[15], profile->ackTimer);
-}
-
-/* vdp_stop_keepaliveTimer - stops the VDP keepalive timer for a profile
- * @profile: profile to process
+ * returns the number of removed handlers
  *
- * stops the keepalive timer when a frame has been sent out.
+ * stops the VDP tck imer. Used e.g. when the host interface goes down.
  */
-static void vdp_stop_keepaliveTimer(struct vsi_profile *profile)
+static int vdp_stop_keepaliveTimer(struct vsi_profile *profile)
 {
 	profile->keepaliveTimer = VDP_KEEPALIVE_TIMER_STOPPED;
 
 	LLDPAD_DBG("%s(%i)-%s: stopping keepalive timer for 0x%02x (%i)\n",
 		   __func__, __LINE__, profile->port->ifname,
 		   profile->instance[15], profile->keepaliveTimer);
+
+	return eloop_cancel_timeout(vdp_keepalive_timeout_handler, NULL, (void *) profile);
 }
 
 static bool vdp_vsi_negative_response(struct vsi_profile *profile)
@@ -560,6 +603,7 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			profile->response = VDP_RESPONSE_NO_RESPONSE;
 			if (profile->localChange) {
 				ecp_somethingChangedLocal(vd, true);
+				profile->ackReceived = false;
 				vdp_start_ackTimer(profile);
 			}
 			break;
@@ -573,6 +617,7 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			vdp_stop_keepaliveTimer(profile);
 			profile->response = VDP_RESPONSE_NO_RESPONSE;
 			if (profile->localChange) {
+				profile->ackReceived = false;
 				ecp_somethingChangedLocal(vd, true);
 				vdp_start_ackTimer(profile);
 			}
@@ -588,6 +633,7 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			vdp_stop_keepaliveTimer(profile);
 			profile->response = VDP_RESPONSE_NO_RESPONSE;
 			if (profile->localChange) {
+				profile->ackReceived = false;
 				ecp_somethingChangedLocal(vd, true);
 				vdp_start_ackTimer(profile);
 			}
@@ -1271,7 +1317,12 @@ void vdp_ifdown(char *ifname)
 	if (ecp_deinit(ifname))
 		goto out_err;
 
-	vdp_stop_timer(vd);
+	LIST_FOREACH(p, &vd->profile_head, profile) {
+		if (p->ackTimer > 0)
+			vdp_stop_ackTimer(p);
+		if (p->keepaliveTimer > 0)
+			vdp_stop_keepaliveTimer(p);
+	}
 
 	LLDPAD_INFO("%s:%s vdp data removed\n", __func__, ifname);
 	return;
@@ -1291,10 +1342,11 @@ out_err:
  */
 void vdp_ifup(char *ifname)
 {
-	char *p;
+	char *string;
 	struct vdp_data *vd;
 	struct vdp_user_data *ud;
 	struct port *port;
+	struct vsi_profile *p;
 
 	LLDPAD_DBG("%s(%i): starting VDP for if %s !\n", __func__, __LINE__, ifname);
 
@@ -1315,9 +1367,9 @@ void vdp_ifup(char *ifname)
 
 	vd->role = VDP_ROLE_STATION;
 
-	if (!get_cfg(ifname, "vdp.role", (void *)&p,
+	if (!get_cfg(ifname, "vdp.role", (void *)&string,
 		    CONFIG_TYPE_STRING)) {
-		if (!strcasecmp(p, VAL_BRIDGE)) {
+		if (!strcasecmp(string, VAL_BRIDGE)) {
 			vd->role = VDP_ROLE_BRIDGE;
 		}
 	}
@@ -1356,7 +1408,15 @@ out_start_again:
 
 	LLDPAD_DBG("%s(%i)-%s: starting vdp timer (%i)\n", __func__, __LINE__,
 	       vd->ifname, vd->nroftimers);
-	vdp_start_timer(vd);
+
+	LIST_FOREACH(p, &vd->profile_head, profile) {
+		if (p->ackTimer > 0) {
+			vdp_somethingChangedLocal(p, true);
+			vdp_start_ackTimer(p);
+		}
+		if (p->keepaliveTimer > 0)
+			vdp_start_keepaliveTimer(p);
+	}
 
 	LLDPAD_DBG("%s:%s vdp added\n", __func__, ifname);
 	return;
