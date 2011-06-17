@@ -427,6 +427,27 @@ int deinit_drv_if(void)
 }
 		
 
+int set_dcbx_mode(char *ifname, __u8 mode)
+{
+	struct nlmsghdr *nlh;
+	struct rtattr *rta_parent;
+	struct rtattr *rta_child;
+	int seq;
+
+	nlh = start_msg(RTM_SETDCB, DCB_CMD_SDCBX);
+	if (NULL == nlh)
+		return -EIO;
+
+	seq = nlh->nlmsg_seq;
+	add_rta(nlh, DCB_ATTR_IFNAME, (void *)ifname, strlen(ifname) + 1);
+	add_rta(nlh, DCB_ATTR_DCBX, (void *)&mode, sizeof(__u8));
+
+	if (send_msg(nlh))
+		return -EIO;
+
+	return recv_msg(DCB_CMD_SDCBX, DCB_ATTR_DCBX, seq);
+}
+
 int get_dcb_capabilities(char *ifname,
 	struct feature_support *dcb_capabilities)
 {
@@ -475,7 +496,6 @@ int get_dcb_capabilities(char *ifname,
 	                               NLMSG_ALIGN(rta_parent->rta_len));
 
 	for (i = 0; rta_parent > rta_child; i++) {
-
 		cap = *(u8 *)NLA_DATA(rta_child);
 
 		switch (rta_child->rta_type) {
@@ -496,6 +516,9 @@ int get_dcb_capabilities(char *ifname,
 			break;
 		case DCB_CAP_ATTR_GSP:
 			dcb_capabilities->gsp = cap;
+			break;
+		case DCB_CAP_ATTR_DCBX:
+			dcb_capabilities->dcbx = cap;
 			break;
 		default:
 			LLDPAD_DBG("unknown capability %d: %02x\n",

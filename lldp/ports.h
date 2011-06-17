@@ -168,6 +168,7 @@ int set_port_hw_resetting(const char *ifname, int resetting);
 int get_port_hw_resetting(const char *ifname);
 void set_lldp_port_enable_state(const char *ifname, int enable);
 void set_lldp_port_admin(const char *ifname, int enable);
+int get_lldp_port_admin(const char *ifname);
 
 int get_lldp_port_statistics(char *ifname, struct portstats *stats);
 

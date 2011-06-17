@@ -175,5 +175,6 @@ int set_hw_state(char *device_name, int dcb_state);
 int get_hw_state(char *device_name, int *dcb_state);
 int init_drv_if(void);
 bool check_port_dcb_mode(char *device_name);
+int set_dcbx_mode(char *ifname, __u8 mode);
 
 #endif

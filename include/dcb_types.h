@@ -289,6 +289,8 @@ typedef struct feature_support {
 	 */
 	__u8  traffic_classes;
 	__u8  pfc_traffic_classes;
+
+	__u8  dcbx;
 } feature_support;
 
 typedef struct dcbx_state {

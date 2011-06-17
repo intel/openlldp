@@ -29,6 +29,7 @@
 #include <assert.h>
 #include <sys/socket.h>
 #include "linux/if.h"
+#include "include/linux/dcbnl.h"
 #include "lldp.h"
 #include "dcb_types.h"
 #include "lldp_dcbx.h"
@@ -46,6 +47,7 @@
 #include "lldp_dcbx_nl.h"
 #include "lldp_dcbx_cfg.h"
 #include "lldp_dcbx_cmds.h"
+#include "lldp_8021qaz.h"
 #include "lldp_rtnl.h"
 #include "lldp_tlv.h"
 #include "lldp_rtnl.h"
@@ -452,6 +454,7 @@ void dcbx_ifup(char *ifname)
 	struct dcbx_tlvs *tlvs;
 	struct dcbd_user_data *dud;
 	struct dcbx_manifest *manifest;
+	feature_support dcb_support;
 	int dcb_enable, err;
 	long adminstatus;
 	long enabletx;
@@ -471,23 +474,17 @@ void dcbx_ifup(char *ifname)
 	dud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_DCBX);
 	tlvs = dcbx_data(ifname);	
 
-	if (!port || !check_port_dcb_mode(ifname)) 
+	if (!port)
 		return;
 	else if (tlvs)
 		goto initialized;
 
-	err = get_dcb_enable_state(ifname, &dcb_enable);
-	if (err) {
-		LLDPAD_ERR("%s: %s get DCB enable state failed\n",
-			   __func__, ifname);
+	/* Abort initialization on hardware that does not support
+	 * querying the DCB state. We assume this means the driver
+	 * does not support DCB.
+	 */
+	if (get_hw_state(ifname, &dcb_enable) < 0)
 		return;
-	} else if (!dcb_enable) {
-		return;
-	}
-
-	LLDPAD_INFO("%s: %s set DCB hardware %i\n",
-		    __func__, ifname, dcb_enable);
-	set_hw_state(ifname, dcb_enable);
 
 	/* if no adminStatus setting or wrong setting for adminStatus,
 	 * then set adminStatus to enabledRxTx.
@@ -554,9 +551,21 @@ initialized:
 		dont_advertise_dcbx_all(ifname);
 	dcbx_bld_tlv(port);
 
-	tlvs->active = false;
+	/* if the dcbx field is not filled in by the capabilities
+	 * query, then the kernel is older and does not support
+	 * IEEE mode, so make CEE DCBX active by default.
+	 */
+	get_dcb_capabilities(ifname, &dcb_support);
+	if (!dcb_support.dcbx) {
+		set_hw_state(ifname, 1);
+		set_dcbx_mode(tlvs->ifname,
+			      DCB_CAP_DCBX_HOST | DCB_CAP_DCBX_VER_CEE);
+		tlvs->active = true;
+	} else {
+		tlvs->active = false;
+	}
 
-	if (get_operstate(ifname) == IF_OPER_UP)
+	if (tlvs->active && (get_operstate(ifname) == IF_OPER_UP))
 		set_hw_all(ifname);
 
 	return;
@@ -700,8 +709,12 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 	}
 
 	if (tlv->type == TYPE_0) {
-		if (!dcbx->active && dcbx->rxed_tlvs) {
+		if (!dcbx->active && !ieee8021qaz_tlvs_rxed(dcbx->ifname) &&
+		    dcbx->rxed_tlvs) {
 			LLDPAD_INFO("CEE DCBX %s going ACTIVE\n", dcbx->ifname);
+			set_dcbx_mode(port->ifname,
+				      DCB_CAP_DCBX_HOST | DCB_CAP_DCBX_VER_CEE);
+			set_hw_state(port->ifname, 1);
 			dcbx->active = true;
 			somethingChangedLocal(port->ifname);
 		}

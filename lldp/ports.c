@@ -99,6 +99,19 @@ int get_neighbor_tlvs(char *ifname, unsigned char *tlvs, int *size)
 	return 0;
 }
 
+int get_lldp_port_admin(const char *ifname)
+{
+	struct port *port = NULL;
+
+	port = porthead;
+	while (port != NULL) {
+		if (!strncmp(ifname, port->ifname, IFNAMSIZ))
+			return port->adminStatus;
+		port = port->next;
+	}
+	return disabled;
+}
+
 void set_lldp_port_admin(const char *ifname, int admin)
 {
 	struct port *port = NULL;

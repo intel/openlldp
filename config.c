@@ -692,6 +692,19 @@ int set_config_tlvfield_bool(const char *ifname, u32 tlvid, const char *field, i
 	return set_config_tlvfield(ifname, tlvid, field, value, CONFIG_TYPE_BOOL);
 }
 
+int is_tlv_txdisabled(const char *ifname, u32 tlvid)
+{
+	char arg[64];
+	int enabletx = true;
+
+	snprintf(arg, sizeof(arg), "%s%08x.%s", TLVID_PREFIX,
+		 tlvid, ARG_TLVTXENABLE);
+
+	get_config_setting(ifname, arg, (void *)&enabletx, CONFIG_TYPE_BOOL);
+
+	return !enabletx;
+}
+
 int is_tlv_txenabled(const char *ifname, u32 tlvid)
 {
 	char arg[64];

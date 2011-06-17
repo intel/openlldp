@@ -49,7 +49,8 @@ ecp/ecp.c ecp/ecp_tx.c ecp/ecp_rx.c ecp/ecp.h lldp_vdp.c include/lldp_vdp.h \
 lldp_tlv.c include/lldp_tlv.h \
 lldp_basman.c include/lldp_basman.h \
 lldp_med.c include/lldp_med.h \
-lldp_8023.c include/lldp_8023.h
+lldp_8023.c include/lldp_8023.h \
+lldp_8021qaz.c include/lldp_8021qaz.h
 
 dcbtool_SOURCES = dcbtool.c clif.c dcbtool_cmds.c parse_cli.l \
 $(lldpad_include_HEADERS) $(noinst_HEADERS)

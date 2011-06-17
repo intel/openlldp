@@ -51,6 +51,7 @@
 #include "lldp_8023.h"
 #include "lldp_evb.h"
 #include "lldp_vdp.h"
+#include "lldp_8021qaz.h"
 #include "config.h"
 #include "lldpad_shm.h"
 #include "clif.h"
@@ -68,6 +69,7 @@ struct lldp_module *(*register_tlv_table[])(void) = {
 	ieee8023_register,
 	evb_register,
 	vdp_register,
+	ieee8021qaz_register,
 	NULL,
 };
 

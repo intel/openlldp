@@ -66,6 +66,7 @@ int set_config_tlvfield_bin(const char *ifname, u32 tlvid, const char *field, vo
 int set_config_tlvfield_str(const char *ifname, u32 tlvid, const char *field, void *value, size_t size);
 int set_config_tlvinfo_bin(const char *ifname, u32 tlvid, void *value, size_t size);
 int set_config_tlvinfo_str(const char *ifname, u32 tlvid, void *value, size_t size);
+int is_tlv_txdisabled(const char *ifname, u32 tlvid);
 int is_tlv_txenabled(const char *ifname, u32 tlvid);
 int tlv_enabletx(const char *ifname, u32 tlvid);
 int tlv_disabletx(const char *ifname, u32 tlvid);

@@ -195,6 +195,12 @@ enum {
 #define LLDP_MED_LOCID_ECS_ELIN		3
 #define LLDP_MED_LOCID_FORMAT_INVALID(t) (((t) == 0) || ((t) > 3))
 
+/* IEEE 802.1Qaz Organizationally Specific TLV Subtypes */
+#define LLDP_8021QAZ_ETSCFG	9
+#define LLDP_8021QAZ_ETSREC	10
+#define LLDP_8021QAZ_PFC	11
+#define LLDP_8021QAZ_APP	12
+
 /* IEEE 802.3 Organizationally Specific TLV Subtypes: 802.1AB-2005 Annex G */
 #define LLDP_8023_RESERVED		0
 #define LLDP_8023_MACPHY_CONFIG_STATUS	1
