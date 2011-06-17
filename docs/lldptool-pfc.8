@@ -1,0 +1,74 @@
+.TH lldptool 8 "February 2010" "open-lldp" "Linux"
+.SH NAME
+PFC \- Show / manipulate PFC TLV configuration
+.SH SYNOPSIS
+.B lldptool -t -i ethx -V PFC { willing | enabled | delay | numtcs }
+.sp
+.B lldptool -T -i ethx -V PFC
+.RI COMMAND
+.sp
+.ti +4
+.IR	COMMAND " :=
+.sp
+.BR		willing " = " {0|1} " | "
+.sp
+.BR		enabled " = " [0..7],[0..7],... " | "
+.sp
+.BR		delay " = " integer
+.sp
+.SH DESCRIPTION
+The PFC TLV is used to display and set current PFC TLV
+attributes.
+
+.SH ARGUMENTS
+.TP
+.B willing
+Display or set willing attribute. If set and peer TLV is received
+the peer PFC attributes will be used. If cleared locally configured
+attributes are used.
+.TP
+.B enabled
+Display or set traffic classes with PFC enabled. The set attribute
+takes a comma separated list of traffic classes to enable.
+.TP
+.B delay
+Display or set delay attribute used to configure PFC thresholds in
+hardware buffers. If PFC is enabled and frames continue to be dropped
+due to full hardware buffers increasing this value may help.
+.TP
+.B numtc
+Display number of traffic classes that support enabling PFC. This
+is a read only parameter.
+
+.SH Theory of Operations
+The PFC TLV uses Symmetric attribute passing meaning the attributes
+used will depend on the willing bit. If the willing bit is enabled
+and a peer TLV is received the peers attributes will be used. If the
+willing bit is set to 0 the local attributes should be used. When
+both the peer and local configuration are willing a tie breaking
+scheme is used. For more detailed coverage see the specification.
+
+.SH EXAMPLE & USAGE
+.TP
+Enable PFC on traffic classes 1, 2, and 4 for \fIeth2\fR
+.B lldptool -T -i eth2 -V PFC enabled=1,2,4
+.TP
+Display number of traffic classes that support PFC for \fIeth2\fR
+.B lldptool -t -i eth2 -V PFC numtcs
+.TP
+Display last transmitted PFC TLV on \fIeth2\fR
+.B lldptool -t -i eth2 -V PFC
+.SH SOURCE
+.TP
+o
+IEEE 802.1Qaz (http://www.ieee802.org/1/pages/dcbridges.html)
+
+.SH NOTES
+
+.SH SEE ALSO
+.BR lldptool (8),
+.BR lldpad (8)
+
+.SH AUTHOR
+John Fastabend
+
