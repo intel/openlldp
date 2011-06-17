@@ -44,6 +44,7 @@
 #include "lldp_dcbx_clif.h"
 #include "lldp_evb_clif.h"
 #include "lldp_vdp_clif.h"
+#include "lldp_8021qaz_clif.h"
 #include "lldptool.h"
 #include "lldptool_cli.h"
 #include "lldp_mod.h"
@@ -164,6 +165,7 @@ struct lldp_module *(*register_tlv_table[])(void) = {
 	dcbx_cli_register,
 	evb_cli_register,
 	vdp_cli_register,
+	ieee8021qaz_cli_register,
 	NULL,
 };
 
