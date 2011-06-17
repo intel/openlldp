@@ -600,7 +600,10 @@ bool add_control_protocol(char *device_name, dcbx_state *state)
 
 		init_control_prot(store, state);
 		ctrl_prot_insert(&dcb_control_prot, device_name, store);
+	} else if (get_operstate(device_name) == IF_OPER_DORMANT) {
+		init_control_prot(it->second, state);
 	}
+
 	return true;
 }
 
