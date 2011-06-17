@@ -453,6 +453,8 @@ void print_cmd_response(char *ibuf, int status)
 		break;
 	case cmd_settlv:
 	case cmd_set_lldp:
+		printf("%s", ibuf+ioff);
+		break;
 	default:
 		return;
 	}

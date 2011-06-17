@@ -191,11 +191,14 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	else
 		return cmd_invalid;
 
-	current_value = is_tlv_txenabled(cmd->ifname, cmd->tlvid);
-	if (current_value == value)
+	if (test)
 		return cmd_success;
 
-	if (test)
+	current_value = is_tlv_txenabled(cmd->ifname, cmd->tlvid);
+
+	snprintf(obuf, obuf_len, "enabled = %s\n", value ? "yes" : "no");
+
+	if (current_value == value)
 		return cmd_success;
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,

@@ -152,6 +152,8 @@ static int _set_arg_willing(struct cmd *cmd, char *args,
 	if (test)
 		return cmd_success;
 
+	snprintf(obuf, obuf_len, "willing = %i\n", !!willing);
+
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, args);
 	set_config_setting(cmd->ifname, arg_path, &willing, CONFIG_TYPE_INT);
@@ -256,7 +258,7 @@ static int _set_arg_up2tc(struct cmd *cmd, char *args,
 	char *toked_maps, *parse;
 	u32 *pmap;
 	u32 save_pmap;
-	int err = cmd_success;
+	int i, err = cmd_success;
 
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
@@ -318,6 +320,17 @@ static int _set_arg_up2tc(struct cmd *cmd, char *args,
 		return cmd_success;
 	}
 
+	/* Build output buffer */
+	strncat(obuf, "up2tc = ", obuf_len - strlen(obuf) - 1);
+	for (i = 0; i < 8; i++) {
+		char cat[5];
+
+		snprintf(cat, sizeof(cat), "%i:%i ", i, get_prio_map(*pmap, i));
+		strncat(obuf, cat, obuf_len - strlen(obuf) - 1);
+	}
+	strncat(obuf, "\n", obuf_len - strlen(obuf) - 1);
+
+	/* Update configuration file with new attribute */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, args);
 	set_config_setting(cmd->ifname, arg_path, &arg_value,
@@ -433,6 +446,15 @@ static int _set_arg_tcbw(struct cmd *cmd, char *args,
 		memcpy(tcbw, percent, sizeof(tcbw));
 	}
 
+	strncat(obuf, "tcbw = ", obuf_len - strlen(obuf) - 1);
+	for (i = 0; i < 8; i++) {
+		char cat[5];
+		snprintf(cat, sizeof(cat), "%i%% ", percent[i]);
+		printf("%i%% ", percent[i]);
+		strncat(obuf, cat, obuf_len - strlen(obuf) - 1);
+	}
+	strncat(obuf, "\n", obuf_len - strlen(obuf) - 1);
+
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, args);
 	set_config_setting(cmd->ifname, arg_path, &arg_value,
@@ -524,7 +546,7 @@ static int _set_arg_tsa(struct cmd *cmd, char *args, char *arg_value,
 	struct ieee8021qaz_tlvs *tlvs;
 	char arg_path[256];
 	char *toked_maps, *parse;
-	int err = cmd_success;
+	int i, err = cmd_success;
 	u8 *tsa;
 
 	if (cmd->cmd != cmd_settlv)
@@ -594,6 +616,35 @@ static int _set_arg_tsa(struct cmd *cmd, char *args, char *arg_value,
 		free(parse);
 		return cmd_success;
 	}
+
+	strncat(obuf, "TSA = ", obuf_len - strlen(obuf) - 1);
+	for (i = 0; i < 8; i++) {
+		char cnt[3];
+		int space_left;
+
+		snprintf(cnt, sizeof(cnt), "%i:", i);
+		strncat(obuf, cnt, obuf_len - strlen(obuf) - 1);
+
+		space_left = obuf_len - strlen(obuf) - 1;
+		switch (tsa[i]) {
+		case IEEE8021Q_TSA_STRICT:
+			strncat(obuf, "strict ", space_left);
+			break;
+		case IEEE8021Q_TSA_CBSHAPER:
+			strncat(obuf, "cb_shaper ", space_left);
+			break;
+		case IEEE8021Q_TSA_ETS:
+			strncat(obuf, "ets ", space_left);
+			break;
+		case IEEE8021Q_TSA_VENDOR:
+			strncat(obuf, "vendor ", space_left);
+			break;
+		default:
+			strncat(obuf, "unknown ", space_left);
+			break;
+		}
+	}
+	strncat(obuf, "\n", obuf_len - strlen(obuf) - 1);
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 		 TLVID_PREFIX, cmd->tlvid, args);
@@ -789,6 +840,8 @@ static int _set_arg_delay(struct cmd *cmd, char *args,
 
 	tlvs->pfc->local.delay = delay;
 
+	snprintf(obuf, obuf_len, "delay = %i\n", delay);
+
 	/* Set configuration */
 	snprintf(arg_path, sizeof(arg_path),
 		 "%s%08x.%s", TLVID_PREFIX, cmd->tlvid, args);
@@ -848,7 +901,6 @@ static int get_arg_app(struct cmd *cmd, char *args, char *arg_value,
 				(apps[i].prs & 0x07),
 				ntohs(apps[i].pid));
 		}
-
 		strncat(app_buf, temp, sizeof(app_buf) - strlen(app_buf) - 1);
 	}
 	free(apps);
@@ -869,6 +921,9 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	char arg_path[256];
 	u8 prio, sel;
 	u16 pid;
+	struct app_prio *apps;
+	int cnt, i;
+	char temp[80], app_buf[1024] = "(prio,sel,proto)\n";
 
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
@@ -911,6 +966,24 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 
 	ieee8021qaz_add_app(&tlvs->app_head, 0, prio, sel, pid);
 	ieee8021qaz_app_sethw(cmd->ifname, &tlvs->app_head);
+
+	apps = get_ieee_app(cmd->ifname, &cnt);
+	for (i = 0; i < cnt; i++) {
+		if ((apps[i].prs & 0x07) == 1) {
+			snprintf(obuf, obuf_len,
+				"%i:(%i,%i,0x%0004x) ", i,
+				(apps[i].prs & 0xE0) >> 5,
+				(apps[i].prs & 0x07),
+				apps[i].pid);
+		} else {
+			snprintf(obuf, obuf_len,
+				"%i:(%i,%i,%i) ", i,
+				(apps[i].prs & 0xE0) >> 5,
+				(apps[i].prs & 0x07),
+				ntohs(apps[i].pid));
+		}
+	}
+	strncat(obuf, "\n", obuf_len - strlen(obuf) - 1);
 
 	snprintf(arg_path, sizeof(arg_path),
 		 "%s%08x.%s", TLVID_PREFIX, cmd->tlvid, args);
@@ -979,7 +1052,7 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		s = VAL_NO;
 
 	snprintf(obuf, obuf_len, "%02x%s%04x%s", (unsigned int)strlen(arg), arg,
-		(unsigned int)strlen(s), s);
+		 (unsigned int)strlen(s), s);
 
 	return cmd_success;
 }
@@ -1017,10 +1090,13 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		 cmd->tlvid, ARG_TLVTXENABLE);
 	err = get_config_setting(cmd->ifname, arg_path,
 				(void *)&curr, CONFIG_TYPE_BOOL);
-	if (!err && curr == value)
-		return cmd_success;
 
 	if (test)
+		return cmd_success;
+
+	snprintf(obuf, obuf_len, "enabled = %s\n", value ? "yes" : "no");
+
+	if (!err && curr == value)
 		return cmd_success;
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
@@ -1028,6 +1104,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 
 	if (set_cfg(cmd->ifname, arg_path, (void *)&value, CONFIG_TYPE_BOOL))
 		return cmd_failed;
+
 
 	somethingChangedLocal(cmd->ifname);
 

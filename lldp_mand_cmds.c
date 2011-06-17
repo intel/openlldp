@@ -191,6 +191,8 @@ int _set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue,
 
 	set_lldp_port_admin(cmd->ifname, value);
 
+	sprintf(obuf + strlen(obuf), "adminStatus = %s\n", argvalue);
+
 	return cmd_success;
 }
 
