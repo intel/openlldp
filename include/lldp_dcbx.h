@@ -79,6 +79,7 @@ struct dcbx_tlvs *dcbx_data(const char *);
 
 int dcbx_tlvs_rxed(const char *ifname);
 int dcbx_check_active(const char *ifname);
+int dcbx_get_legacy_version();
 
 struct packed_tlv *dcbx_gettlv(struct port *port);
 int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv);

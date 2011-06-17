@@ -373,7 +373,7 @@ void init_pg(pg_attribs *Attrib, pg_attribs *Store)
 	Attrib->protocol.State = DCB_INIT;
 	Attrib->protocol.Advertise_prev = false;
 	Attrib->protocol.tlv_sent = false;
-	Attrib->protocol.dcbx_st = gdcbx_subtype;
+	Attrib->protocol.dcbx_st = gdcbx_subtype & MASK_DCBX_FORCE;
 	memcpy(Store, Attrib, sizeof (*Attrib));
 }
 
@@ -464,7 +464,7 @@ void init_apptlv(app_attribs *Attrib, app_attribs *Store)
 	Attrib->protocol.State           = DCB_INIT;
 	Attrib->protocol.Advertise_prev  = false;
 	Attrib->protocol.tlv_sent        = false;
-	Attrib->protocol.dcbx_st         = gdcbx_subtype;
+	Attrib->protocol.dcbx_st         = gdcbx_subtype & MASK_DCBX_FORCE;
 	memcpy(Store, Attrib, sizeof (*Attrib));
 }
 
@@ -638,7 +638,7 @@ void init_pfc(pfc_attribs *Attrib, pfc_attribs *Store)
 	Attrib->protocol.State = DCB_INIT;
 	Attrib->protocol.Advertise_prev = false;
 	Attrib->protocol.tlv_sent = false;
-	Attrib->protocol.dcbx_st = gdcbx_subtype;
+	Attrib->protocol.dcbx_st = gdcbx_subtype & MASK_DCBX_FORCE;
 	memcpy(Store, Attrib, sizeof(*Attrib));
 }
 
@@ -750,7 +750,7 @@ void init_llink(llink_attribs *Attrib, llink_attribs *Store)
 	Attrib->protocol.State = DCB_INIT;
 	Attrib->protocol.Advertise_prev = false;
 	Attrib->protocol.tlv_sent = false;
-	Attrib->protocol.dcbx_st = gdcbx_subtype;
+	Attrib->protocol.dcbx_st = gdcbx_subtype & MASK_DCBX_FORCE;
 	memcpy(Store, Attrib, sizeof(*Attrib));
 }
 

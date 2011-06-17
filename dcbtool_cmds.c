@@ -626,7 +626,24 @@ void print_dcb_cmd_response(char *buf, int status)
 		      (*(buf+doff+DCB_STATE) == '1')?("on"):("off"));	
 		break;
 	case FEATURE_DCBX:
-		printf("DCBX Version:\t%c\n", *(buf+doff+DCBX_VERSION));
+		printf("DCBX Version:\t");
+		switch (*(buf+doff+DCBX_VERSION) ^ '0') {
+		case dcbx_subtype1:
+			printf("CIN\n");
+			break;
+		case dcbx_subtype2:
+			printf("CEE\n");
+			break;
+		case dcbx_force_subtype1:
+			printf("FORCED CIN\n");
+			break;
+		case dcbx_force_subtype2:
+			printf("FORCED CEE\n");
+			break;
+		default:
+			printf("unknown version\n");
+			break;
+		}
 		break;
 	case FEATURE_PG_DESC:
 		printf("PGID:       \t%d\n", *(buf+doff+PG_DESC_PGID) & 0x0f);

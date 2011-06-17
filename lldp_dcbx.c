@@ -142,6 +142,11 @@ int dcbx_tlvs_rxed(const char *ifname)
 	return 0;
 }
 
+int dcbx_get_legacy_version()
+{
+	return gdcbx_subtype;
+}
+
 int dcbx_check_active(const char *ifname)
 {
 	struct dcbd_user_data *dud;
@@ -539,7 +544,7 @@ void dcbx_ifup(char *ifname)
 	strncpy(tlvs->ifname, ifname, IFNAMSIZ);
 	tlvs->port = port;
 	tlvs->dcbdu = 0;
-	tlvs->dcbx_st = gdcbx_subtype;
+	tlvs->dcbx_st = gdcbx_subtype & MASK_DCBX_FORCE;
 	LIST_INSERT_HEAD(&dud->head, tlvs, entry);		
 
 initialized:
@@ -556,7 +561,7 @@ initialized:
 	 * IEEE mode, so make CEE DCBX active by default.
 	 */
 	get_dcb_capabilities(ifname, &dcb_support);
-	if (!dcb_support.dcbx) {
+	if (!dcb_support.dcbx || (gdcbx_subtype & ~MASK_DCBX_FORCE)) {
 		set_hw_state(ifname, 1);
 		set_dcbx_mode(tlvs->ifname,
 			      DCB_CAP_DCBX_HOST | DCB_CAP_DCBX_VER_CEE);

@@ -39,23 +39,15 @@
 
 #define LINK_STRICT_PGID          15
 
-// client interface DCBX return values
-#define DCBX_GOOD        0
-#define DCBX_ERR         1
-#define DCBX_LOCAL       2
-#define DCBX_UNK         3
-
-/* DCBX MSG Types */
-
 /* DCBX subtypes */
 typedef enum {
 	dcbx_subtype1 = 1,
-	dcbx_subtype2,
+	dcbx_subtype2 = 2,
+	dcbx_force_subtype1 = 5,
+	dcbx_force_subtype2 = 6,
 } dcbx_subtype;
 
-#define DEF_DCBX_SUBTYPE          2
-#define MIN_DCBX_SUBTYPE          1
-#define MAX_DCBX_SUBTYPE          2
+#define MASK_DCBX_FORCE 0x03
 
 /* PFC configuration */
 typedef enum {

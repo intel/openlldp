@@ -289,6 +289,8 @@ static dcb_result set_dcbx_config(char *ibuf, int ilen)
 		switch (version) {
 		case dcbx_subtype1:
 		case dcbx_subtype2:
+		case dcbx_force_subtype1:
+		case dcbx_force_subtype2:
 			rval = save_dcbx_version(version);
 			break;
 		default:

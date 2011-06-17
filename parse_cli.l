@@ -222,7 +222,23 @@ gp	{ if (!cmd) {
 				BEGIN(getdcbxver);
 				}
 
-<getdcbxver>[12]		{ dcbx_version = atoi(yytext);
+<getdcbxver>[1256]		{ dcbx_version = atoi(yytext);
+				BEGIN(cmddone);
+				}
+
+<getdcbxver>cee			{ dcbx_version = dcbx_subtype2;
+				BEGIN(cmddone);
+				}
+
+<getdcbxver>cin			{ dcbx_version = dcbx_subtype1;
+				BEGIN(cmddone);
+				}
+
+<getdcbxver>force-cee		{ dcbx_version = dcbx_force_subtype2;
+				BEGIN(cmddone);
+				}
+
+<getdcbxver>force-cin		{ dcbx_version = dcbx_force_subtype1;
 				BEGIN(cmddone);
 				}
 

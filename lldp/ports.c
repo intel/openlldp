@@ -41,8 +41,6 @@ struct port *porthead = NULL; /* Head pointer */
 struct port *portcurrent = NULL; /* Working  pointer loaded from ports or
 				  * port->next */
 
-extern u8 gdcbx_subtype;
-
 void agent_receive(void *, const u8 *, const u8 *, size_t);
 
 int get_lldp_port_statistics(char *ifname, struct portstats *stats)

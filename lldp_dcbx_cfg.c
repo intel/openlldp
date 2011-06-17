@@ -38,8 +38,6 @@
 #include "lldp_util.h"
 
 #define CFG_VERSION "1.0"
-#define DEFAULT_DCBX_VERSION  2
-
 
 extern config_t lldpad_cfg;
 
@@ -207,7 +205,7 @@ void dcbx_default_cfg_file(void)
 	config_setting_set_string(tmp_setting, CFG_VERSION);
 	tmp_setting = config_setting_add(dcbx_setting, "dcbx_version",
 		CONFIG_TYPE_INT);
-	config_setting_set_int(tmp_setting, DEFAULT_DCBX_VERSION);
+	config_setting_set_int(tmp_setting, dcbx_subtype2);
 
 	config_write_file(&lldpad_cfg, cfg_file_name);
 }
@@ -969,6 +967,8 @@ int get_dcbx_version(int *result)
 		switch (*result) {
 		case dcbx_subtype1:
 		case dcbx_subtype2:
+		case dcbx_force_subtype1:
+		case dcbx_force_subtype2:
 			rval = 1;
 			break;
 		default:

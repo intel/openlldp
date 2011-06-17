@@ -86,16 +86,26 @@ the operational version) after
 .B lldpad
 is restarted.
 .TP
-.BR "sc dcbx v:" "[" "1" "|" "2" "]"
+.BR "sc dcbx v:" "[" "cin" "|" "cee" "|" "force-cin" "|" "force-cee" "]"
 set the version of the DCB capabilities exchange protocol which will be used
 the next time
 .B lldpad
-is started.  Information about version 1 can be found at:
+is started.  Information about the CIN version can be found at:
 .br
 <http://download.intel.com/technology/eedc/dcb_cep_spec.pdf>
-Information about version 2 can be found at:
+Information about the CEE version can be found at:
 .br
 <http://www.ieee802.org/1/files/public/docs2008/az-wadekar-dcbx-capability-exchange-discovery-protocol-1108-v1.01.pdf>
+.br
+Note that the dcbx setting is a global setting and changes only take effect
+when
+.B lldpad
+is restarted.  The default DCBX version used is the IEEE standard version.
+If a pre-IEEE DCBX version is detected (per port), then
+.B lldpad
+will fall back to the configured global dcbx setting.  If the dcbx setting
+is set to either 'force-cin' or 'force-cee' then any port doing DCBX will
+start out in the corresponding legacy DCBX mode.
 .PP
 DCB per-interface commands:
 .TP

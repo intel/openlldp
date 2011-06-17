@@ -73,8 +73,6 @@ struct lldp_module *(*register_tlv_table[])(void) = {
 	NULL,
 };
 
-extern u8 gdcbx_subtype;
-
 char *cfg_file_name = NULL;
 bool daemonize = 0;
 int loglvl = LOG_WARNING;
