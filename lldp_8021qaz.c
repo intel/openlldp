@@ -63,6 +63,7 @@ static const struct lldp_mod_ops ieee8021qaz_ops = {
 	.lldp_mod_ifup		= ieee8021qaz_ifup,
 	.lldp_mod_ifdown	= ieee8021qaz_ifdown,
 	.lldp_mod_mibdelete	= ieee8021qaz_mibDeleteObject,
+	.get_arg_handler	= ieee8021qaz_get_arg_handlers,
 	.timer			= ieee8021qaz_check_pending,
 };
 

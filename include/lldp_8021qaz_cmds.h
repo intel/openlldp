@@ -1,7 +1,7 @@
 /*******************************************************************************
 
   LLDP Agent Daemon (LLDPAD) Software
-  Copyright(c) 2007-2010 Intel Corporation.
+  Copyright(c) 2007-2011 Intel Corporation.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -47,5 +47,6 @@
 /* APP */
 #define ARG_APP	    "APP"
 
-#endif
+struct arg_handlers *ieee8021qaz_get_arg_handlers();
 
+#endif

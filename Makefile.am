@@ -20,7 +20,7 @@ include/clif.h include/lldp_dcbx_cmds.h \
 include/lldpad.h include/lldp_mand_cmds.h \
 include/clif_msgs.h include/lldp_basman_cmds.h include/lldp_8023_cmds.h \
 include/lldp_med_cmds.h include/lldp_util.h \
-include/lldp_evb_cmds.h include/lldp_vdp_cmds.h
+include/lldp_evb_cmds.h include/lldp_vdp_cmds.h include/lldp_8021qaz_cmds.h
 
 noinst_HEADERS = include/config.h include/ctrl_iface.h \
 include/dcb_driver_interface.h \
@@ -50,7 +50,8 @@ lldp_tlv.c include/lldp_tlv.h \
 lldp_basman.c include/lldp_basman.h \
 lldp_med.c include/lldp_med.h \
 lldp_8023.c include/lldp_8023.h \
-lldp_8021qaz.c include/lldp_8021qaz.h
+lldp_8021qaz.c include/lldp_8021qaz.h \
+lldp_8021qaz_cmds.c include/lldp_8021qaz_cmds.h
 
 dcbtool_SOURCES = dcbtool.c clif.c dcbtool_cmds.c parse_cli.l \
 $(lldpad_include_HEADERS) $(noinst_HEADERS)
