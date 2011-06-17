@@ -143,9 +143,9 @@ Disable the LLDP adminStatus for all interfaces
 
 .TP
 Query the LLDP adminStatus for interface \fIeth3\fR
-.B lldptool -l -i eth3 adminStatus=disabled
+.B lldptool -l -i eth3 adminStatus
 .br
-.B lldptool get-lldp -i eth3 adminStatus=disabled
+.B lldptool get-lldp -i eth3 adminStatus
 
 .TP
 Query the LLDP statistics for interface \fIeth3\fR
@@ -191,15 +191,15 @@ Query value of the transmit setting for the Port Description TLV for a given int
 
 .TP
 Set a Management Address TLV on eth3 to carry IPv4 address 192.168.10.10
-.B lldptool -T -eth3 -V mngAddr ipv4=192.168.10.10
+.B lldptool -T -i eth3 -V mngAddr ipv4=192.168.10.10
 
 .TP
 Set a Management Address TLV on eth3 to carry IPv6 address ::192.168.10.10
-.B lldptool -T -eth3 -V mngAddr ipv6=::192.168.10.10
+.B lldptool -T -i eth3 -V mngAddr ipv6=::192.168.10.10
 
 .TP
 Get the configured IPv4 address for the Management Address TLV on eth3
-.B lldptool -t -eth3 -V mngAddr ipv4
+.B lldptool -t -i eth3 -V mngAddr ipv4
 
 .TP
 Enable transmit of the Edge Virtual Bridging TLV for interface eth4
