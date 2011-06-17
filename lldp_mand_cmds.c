@@ -140,7 +140,7 @@ int handle_get_arg(struct cmd *cmd, char *arg, char *argvalue,
 {
 	struct lldp_module *np;
 	struct arg_handlers *ah;
-	int rval = cmd_invalid;
+	int rval, status = cmd_not_applicable;
 
 	LIST_FOREACH(np, &lldp_head, lldp) {
 		if (!np->ops->get_arg_handler)
@@ -155,13 +155,14 @@ int handle_get_arg(struct cmd *cmd, char *arg, char *argvalue,
 				if (rval != cmd_success &&
 				    rval != cmd_not_applicable)
 					return rval;
-				else
-					break;
+				else if (rval == cmd_success)
+					status = rval;
+				break;
 			}
 			ah++;
 		}
 	}
-	return rval;
+	return status;
 }
 
 int _set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue,
@@ -236,7 +237,7 @@ int handle_test_arg(struct cmd *cmd, char *arg, char *argvalue,
 {
 	struct lldp_module *np;
 	struct arg_handlers *ah;
-	int rval = cmd_device_not_found;
+	int rval, status = cmd_not_applicable;
 
 	LIST_FOREACH(np, &lldp_head, lldp) {
 		if (!np->ops->get_arg_handler)
@@ -250,14 +251,15 @@ int handle_test_arg(struct cmd *cmd, char *arg, char *argvalue,
 				if (rval != cmd_not_applicable &&
 				    rval != cmd_success)
 					return rval;
-				else
-					break;
+				else if (rval == cmd_success)
+					status = rval;
+				break;
 			}
 			ah++;
 		}
 	}
 
-	return rval;
+	return status;
 }
 
 int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
@@ -265,7 +267,7 @@ int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
 {
 	struct lldp_module *np;
 	struct arg_handlers *ah;
-	int rval = cmd_invalid;
+	int rval, status = cmd_not_applicable;
 
 	LIST_FOREACH(np, &lldp_head, lldp) {
 		if (!np->ops->get_arg_handler)
@@ -279,14 +281,15 @@ int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
 				if (rval != cmd_not_applicable &&
 				    rval != cmd_success)
 					return rval;
-				else
-					break;
+				else if (rval == cmd_success)
+					status = rval;
+				break;
 			}
 			ah++;
 		}
 	}
 
-	return rval;
+	return status;
 }
 
 
