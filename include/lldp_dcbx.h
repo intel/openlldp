@@ -45,6 +45,8 @@ struct dcbx_manifest {
 };
 
 struct dcbx_tlvs {
+	bool active;
+	bool rxed_tlvs;
 	u16  dcbdu;
 	u8   dcbx_st;
 	char ifname[IFNAMSIZ];
@@ -74,6 +76,9 @@ struct dcbx_tlvs *dcbx_data(const char *);
 #ifdef __cplusplus
 }
 #endif
+
+int dcbx_tlvs_rxed(const char *ifname);
+int dcbx_check_active(const char *ifname);
 
 struct packed_tlv *dcbx_gettlv(struct port *port);
 int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv);

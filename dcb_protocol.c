@@ -2879,6 +2879,9 @@ dcb_result run_feature_protocol(char *device_name, u32 EventFlag, u32 Subtype)
 	u32 llink_events = 0;
 	int i, mask;
 
+	if (!dcbx_check_active(device_name))
+		return dcb_success;
+
 	memset(&old_pg_opcfg, 0, sizeof(pg_attribs));
 	memset(&old_pfc_opcfg, 0, sizeof(pfc_attribs));
 	memset(&old_app_opcfg, 0, sizeof(app_attribs));
@@ -3755,6 +3758,9 @@ dcb_result run_control_protocol(char *device_name, u32 EventFlag)
 	pg_attribs pg_dstore;
 	int i, mask;
 
+	if (!dcbx_check_active(device_name))
+		return dcb_success;
+
 	/* Get the local control protocol variables. */
 	control_prot_it ctrl_prot = ctrl_prot_find(&dcb_control_prot,
 							device_name);
@@ -3965,6 +3971,9 @@ dcb_result run_dcb_protocol(char *device_name, u32 EventFlag, u32 Subtype)
 
 	LLDPAD_DBG("running DCB protocol for %s, flags:%04x\n", device_name,
 		EventFlag);
+
+	if (!dcbx_check_active(device_name))
+		return result;
 
 	/* if valid use SubType param, otherwise process all SubTypes */
 	if (Subtype < DCB_MAX_APPTLV) {

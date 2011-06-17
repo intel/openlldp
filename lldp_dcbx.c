@@ -124,6 +124,38 @@ struct dcbx_tlvs *dcbx_data(const char *ifname)
 	return NULL;
 }
 
+int dcbx_tlvs_rxed(const char *ifname)
+{
+	struct dcbd_user_data *dud;
+	struct dcbx_tlvs *tlv = NULL;
+
+	dud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_DCBX);
+	if (dud) {
+		LIST_FOREACH(tlv, &dud->head, entry) {
+			if (!strncmp(tlv->ifname, ifname, IFNAMSIZ))
+				return tlv->rxed_tlvs;
+		}
+	}
+
+	return 0;
+}
+
+int dcbx_check_active(const char *ifname)
+{
+	struct dcbd_user_data *dud;
+	struct dcbx_tlvs *tlv = NULL;
+
+	dud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_DCBX);
+	if (dud) {
+		LIST_FOREACH(tlv, &dud->head, entry) {
+			if (!strncmp(tlv->ifname, ifname, IFNAMSIZ))
+				return tlv->active;
+		}
+	}
+
+	return 0;
+}
+
 int dcbx_bld_tlv(struct port *newport)
 {
 	bool success;
@@ -139,7 +171,7 @@ int dcbx_bld_tlv(struct port *newport)
 	enabletx = is_tlv_txenabled(newport->ifname, (OUI_CEE_DCBX << 8) |
 				  tlvs->dcbx_st);
 
-	if (!enabletx || adminstatus != enabledRxTx)
+	if (!tlvs->active || !enabletx || adminstatus != enabledRxTx)
 		return 0;
 
 	tlvs->control = bld_dcbx_ctrl_tlv(tlvs);
@@ -420,7 +452,7 @@ void dcbx_ifup(char *ifname)
 	struct dcbx_tlvs *tlvs;
 	struct dcbd_user_data *dud;
 	struct dcbx_manifest *manifest;
-	int dcb_enable;
+	int dcb_enable, err;
 	long adminstatus;
 	long enabletx;
 	char arg_path[256];
@@ -428,9 +460,6 @@ void dcbx_ifup(char *ifname)
 	/* dcb does not support bonded devices */
 	if (is_bond(ifname) || is_vlan(ifname))
 		return;
-
-	if (!get_dcb_enable_state(ifname, &dcb_enable))
-		set_hw_state(ifname, dcb_enable);
 
 	port = porthead;
 	while (port != NULL) {
@@ -446,6 +475,19 @@ void dcbx_ifup(char *ifname)
 		return;
 	else if (tlvs)
 		goto initialized;
+
+	err = get_dcb_enable_state(ifname, &dcb_enable);
+	if (err) {
+		LLDPAD_ERR("%s: %s get DCB enable state failed\n",
+			   __func__, ifname);
+		return;
+	} else if (!dcb_enable) {
+		return;
+	}
+
+	LLDPAD_INFO("%s: %s set DCB hardware %i\n",
+		    __func__, ifname, dcb_enable);
+	set_hw_state(ifname, dcb_enable);
 
 	/* if no adminStatus setting or wrong setting for adminStatus,
 	 * then set adminStatus to enabledRxTx.
@@ -511,6 +553,8 @@ initialized:
 	if (!enabletx)
 		dont_advertise_dcbx_all(ifname);
 	dcbx_bld_tlv(port);
+
+	tlvs->active = false;
 
 	if (get_operstate(ifname) == IF_OPER_UP)
 		set_hw_all(ifname);
@@ -613,6 +657,7 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 		memset(manifest, 0, sizeof(*manifest));
 		dcbx->manifest = manifest;
 		dcbx->dcbdu = 0;
+		dcbx->rxed_tlvs = false;
 	}
 
 	if (tlv->type == TYPE_127) {
@@ -641,10 +686,12 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 			(tlv->info[DCB_OUI_LEN] == dcbx_subtype2)) {
 			port->lldpdu |= RCVD_LLDP_DCBX2_TLV;
 			dcbx->manifest->dcbx2 = tlv;
+			dcbx->rxed_tlvs = true;
 			return TLV_OK;
 		} else if (tlv->info[DCB_OUI_LEN] == dcbx_subtype1) {
 			port->lldpdu |= RCVD_LLDP_DCBX1_TLV;
 			dcbx->manifest->dcbx1 = tlv;
+			dcbx->rxed_tlvs = true;
 			return TLV_OK;
 		} else {
 			/* not a DCBX subtype we support */
@@ -653,6 +700,12 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 	}
 
 	if (tlv->type == TYPE_0) {
+		if (!dcbx->active && dcbx->rxed_tlvs) {
+			LLDPAD_INFO("CEE DCBX %s going ACTIVE\n", dcbx->ifname);
+			dcbx->active = true;
+			somethingChangedLocal(port->ifname);
+		}
+
 		/* Only process DCBXv2 or DCBXv1 but not both this
 		 * is required because processing both could be
 		 * problamatic. Specifically if the DCB attributes do
