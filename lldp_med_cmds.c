@@ -44,12 +44,16 @@
 
 static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *);
 static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *);
+static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *);
 static int get_arg_med_devtype(struct cmd *, char *, char *, char *);
 static int set_arg_med_devtype(struct cmd *, char *, char *, char *);
+static int test_arg_med_devtype(struct cmd *, char *, char *, char *);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable },
-	{ ARG_MED_DEVTYPE, get_arg_med_devtype, set_arg_med_devtype },
+	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable,
+			   test_arg_tlvtxenable },
+	{ ARG_MED_DEVTYPE, get_arg_med_devtype, set_arg_med_devtype,
+			   test_arg_med_devtype },
 	{ NULL }
 };
 
@@ -100,8 +104,8 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf, bool test)
 {
 	int value;
 	char arg_path[256];
@@ -136,6 +140,9 @@ static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	else
 		return cmd_invalid;
 
+	if (test)
+		return cmd_success;
+
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, arg);
 
@@ -146,6 +153,18 @@ static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	somethingChangedLocal(cmd->ifname);
 
 	return cmd_success;
+}
+
+static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, false);
+}
+
+static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, true);
 }
 
 static int get_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
@@ -204,8 +223,8 @@ static int get_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-static int set_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+static int _set_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf, bool test)
 {
 	long value;
 
@@ -248,6 +267,9 @@ static int set_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
 		value = LLDP_MED_DEVTYPE_NETWORK_CONNECTIVITY;
 	else
 		return cmd_invalid;
+
+	if (test)
+		return cmd_success;
 
 	set_med_devtype(cmd->ifname, value);
 
@@ -292,6 +314,18 @@ static int set_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
 	somethingChangedLocal(cmd->ifname);
 
 	return cmd_success;
+}
+
+static int set_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_med_devtype(cmd, arg, argvalue, obuf, false);
+}
+
+static int test_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_med_devtype(cmd, arg, argvalue, obuf, true);
 }
 
 struct arg_handlers *med_get_arg_handlers()

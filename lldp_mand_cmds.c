@@ -38,17 +38,22 @@
 #include "config.h"
 #include "clif_msgs.h"
 #include "lldp/states.h"
+#include "lldp_util.h"
 
 static int get_arg_adminstatus(struct cmd *, char *, char *, char *);
 static int set_arg_adminstatus(struct cmd *, char *, char *, char *);
+static int test_arg_adminstatus(struct cmd *, char *, char *, char *);
 static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *);
 static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *);
 static int handle_get_arg(struct cmd *, char *, char *, char *);
 static int handle_set_arg(struct cmd *, char *, char *, char *);
+static int handle_test_arg(struct cmd *, char *, char *, char *);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_ADMINSTATUS, get_arg_adminstatus, set_arg_adminstatus },
-	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable },
+	{ ARG_ADMINSTATUS, get_arg_adminstatus, set_arg_adminstatus,
+			   test_arg_adminstatus},
+	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable,
+			   set_arg_tlvtxenable}, /* test same as set */
 	{ NULL }
 };
 
@@ -56,6 +61,7 @@ struct arg_handlers *mand_get_arg_handlers()
 {
 	return &arg_handlers[0];
 }
+
 
 int get_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
 {
@@ -153,7 +159,8 @@ int handle_get_arg(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
 	return rval;
 }
 
-int set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
+int _set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue, char *obuf,
+			 bool test)
 {
 	long value;
 
@@ -171,6 +178,9 @@ int set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
 	else
 		return cmd_invalid;  /* ignore invalid value */
 
+	if (test)
+		return cmd_success;
+
 	if (set_config_setting(cmd->ifname, arg, (void *)&value,
 			       CONFIG_TYPE_INT)) {
 		return cmd_failed;
@@ -179,6 +189,16 @@ int set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
 	set_lldp_port_admin(cmd->ifname, value);
 
 	return cmd_success;
+}
+
+int test_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
+{
+	return _set_arg_adminstatus(cmd, arg, argvalue, obuf, true);
+}
+
+int set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
+{
+	return _set_arg_adminstatus(cmd, arg, argvalue, obuf, false);
 }
 
 int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
@@ -199,6 +219,34 @@ int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
 	default:
 		return cmd_not_applicable;
 	}
+}
+
+int handle_test_arg(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
+{
+	struct lldp_module *np;
+	struct arg_handlers *ah;
+	int rval = cmd_success;
+
+	LIST_FOREACH(np, &lldp_head, lldp) {
+		if (!np->ops->get_arg_handler)
+			continue;
+		if (!(ah = np->ops->get_arg_handler()))
+			continue;
+		while (ah->arg) {
+			if (!strcasecmp(ah->arg, arg) && ah->handle_test) {
+				rval = ah->handle_test(cmd, ah->arg, argvalue,
+						      obuf);
+				if (rval != cmd_not_applicable &&
+				    rval != cmd_success)
+					return rval;
+				else
+					break;
+			}
+			ah++;
+		}
+	}
+
+	return cmd_success;
 }
 
 int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
@@ -313,12 +361,16 @@ int mand_clif_cmd(void  *data,
 {
 	struct cmd cmd;
 	u8 len;
-	u8 arglen;
-	u16 argvalue_len;
 	int ioff, roff;
 	int rstatus = cmd_invalid;
-	char *arg = NULL;
-	char *argvalue = NULL;
+	char *args[MAX_ARGS+1];
+	char *argvals[MAX_ARGS+1];
+	bool test_failed = false;
+	int numargs = 0;
+	int i;
+
+	memset(args, 0, sizeof(args));
+	memset(argvals, 0, sizeof(argvals));
 
 	/* pull out the command elements of the command message */
 	hexstr2bin(ibuf+CMD_CODE, (u8 *)&cmd.cmd, sizeof(cmd.cmd));
@@ -342,70 +394,56 @@ int mand_clif_cmd(void  *data,
 		cmd.tlvid = INVALID_TLVID;
 	}
 
-	/* check for an arg and argvalue */
-	if (ilen - ioff > 2*sizeof(arglen)) {
-		hexstr2bin(ibuf+ioff, &arglen, sizeof(arglen));
-		ioff += 2*sizeof(arglen);
-		if (ilen - ioff >= arglen) {
-			arg = ibuf+ioff;
-			ioff += arglen;
+	if ((cmd.ops & op_arg) && (cmd.ops & op_argval))
+		numargs = get_arg_val_list(ibuf, ilen, &ioff, args, argvals);
+	else if (cmd.ops & op_arg)
+		numargs = get_arg_list(ibuf, ilen, &ioff, args);
 
-			if (ilen - ioff > 2*sizeof(argvalue_len)) {
-				hexstr2bin(ibuf+ioff, (u8 *)&argvalue_len,
-					   sizeof(argvalue_len));
-				argvalue_len = ntohs(argvalue_len);
-				ioff += 2*sizeof(argvalue_len);
-				if (ilen - ioff >= argvalue_len) {
-					argvalue = ibuf+ioff;
-					ioff += argvalue_len;
-				}
-			}
-		}
-	}
-
-	if (arg)
-		arg[arglen] = '\0';
-	if (argvalue)
-		argvalue[argvalue_len] = '\0';
-	
 	sprintf(rbuf, "%c%1x%02x%08x%02x%s", CMD_REQUEST, CLIF_MSG_VERSION,
 		cmd.cmd, cmd.ops, (unsigned int)strlen(cmd.ifname), cmd.ifname);
 	roff = strlen(rbuf);
 
 	switch (cmd.cmd) {
 	case cmd_getstats:
-		if (arg || argvalue)
+		if (numargs)
 			break;
 		rstatus = get_port_stats(&cmd, rbuf+roff);
 		break;
 	case cmd_gettlv:
 		sprintf(rbuf+roff, "%08x", cmd.tlvid);
 		roff+=8;
-		if (argvalue)
-			break;
-		if (arg)
-			rstatus = handle_get_arg(&cmd, arg, NULL,
-						 rbuf+strlen(rbuf));
-		else
+		if (!numargs)
 			rstatus = get_tlvs(&cmd, rbuf+roff);
+		for (i = 0; i < numargs; i++)
+			rstatus = handle_get_arg(&cmd, args[i], NULL,
+						 rbuf+strlen(rbuf));
 		break;
 	case cmd_settlv:
 		sprintf(rbuf+roff, "%08x", cmd.tlvid);
 		roff+=8;
-		if (arg && argvalue)
-			rstatus = handle_set_arg(&cmd, arg, argvalue,
+		for (i = 0; i < numargs; i++) {
+			rstatus = handle_test_arg(&cmd, args[i], argvals[i],
+					 rbuf+strlen(rbuf));
+			if (rstatus != cmd_not_applicable &&
+			    rstatus != cmd_success) {
+				test_failed = true;
+				break;
+			}
+		}
+		if (test_failed)
+			break;
+		for (i = 0; i < numargs; i++)
+			rstatus = handle_set_arg(&cmd, args[i], argvals[i],
 					 rbuf+strlen(rbuf));
 		break;
 	case cmd_get_lldp:
-		if (argvalue)
-			break;
-		if (arg)
-			rstatus = handle_get_arg(&cmd, arg, NULL,
+		for (i = 0; i < numargs; i++)
+			rstatus = handle_get_arg(&cmd, args[i], NULL,
 					 rbuf+strlen(rbuf));
 		break;
 	case cmd_set_lldp:
-		if (arg && argvalue)
-			rstatus = handle_set_arg(&cmd, arg, argvalue,
+		for (i = 0; i < numargs; i++)
+			rstatus = handle_set_arg(&cmd, args[i], argvals[i],
 				rbuf+strlen(rbuf));
 		break;
 	default:

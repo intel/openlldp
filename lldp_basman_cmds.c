@@ -43,15 +43,19 @@
 
 static int get_arg_ipv4(struct cmd *, char *, char *, char *);
 static int set_arg_ipv4(struct cmd *, char *, char *, char *);
+static int test_arg_ipv4(struct cmd *, char *, char *, char *);
 static int get_arg_ipv6(struct cmd *, char *, char *, char *);
 static int set_arg_ipv6(struct cmd *, char *, char *, char *);
+static int test_arg_ipv6(struct cmd *, char *, char *, char *);
 static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *);
 static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *);
+static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_IPV4_ADDR,   get_arg_ipv4,        set_arg_ipv4 },
-	{ ARG_IPV6_ADDR,   get_arg_ipv6,        set_arg_ipv6 },
-	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable },
+	{ ARG_IPV4_ADDR,   get_arg_ipv4,        set_arg_ipv4, test_arg_ipv4 },
+	{ ARG_IPV6_ADDR,   get_arg_ipv6,        set_arg_ipv6, test_arg_ipv6 },
+	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable,
+			   test_arg_tlvtxenable},
 	{ NULL }
 };
 
@@ -95,8 +99,8 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf, bool test)
 {
 	int value;
 	char arg_path[256];
@@ -124,6 +128,9 @@ static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	else
 		return cmd_invalid;
 
+	if (test)
+		return cmd_success;
+
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, arg);
 
@@ -133,6 +140,18 @@ static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	somethingChangedLocal(cmd->ifname);
 
 	return cmd_success;
+}
+
+static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, false);
+}
+
+static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, true);
 }
 
 struct arg_handlers *basman_get_arg_handlers()
@@ -181,7 +200,8 @@ int get_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
 	return cmd_success;
 }
 
-int set_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
+int _set_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue, char *obuf,
+		  bool test)
 {
 	struct in_addr ipv4addr;
 	char arg_path[256];
@@ -192,6 +212,48 @@ int set_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
 
 	if (!inet_pton(AF_INET, argvalue, (void *)&ipv4addr))
 		return cmd_bad_params;
+
+	if (test)
+		return cmd_success;
+
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
+		 cmd->tlvid, arg);
+
+	p = &argvalue[0];
+	if (set_config_setting(cmd->ifname, arg_path, (void *)&p,
+		    CONFIG_TYPE_STRING))
+		return cmd_failed;
+
+	somethingChangedLocal(cmd->ifname);
+
+	return cmd_success;
+}
+
+int set_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
+{
+	return _set_arg_ipv4(cmd, arg, argvalue, obuf, false);
+}
+
+int test_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
+{
+	return _set_arg_ipv4(cmd, arg, argvalue, obuf, true);
+}
+
+int _set_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue, char *obuf,
+		  bool test)
+{
+	struct in6_addr ipv6addr;
+	char arg_path[256];
+	char *p;
+
+	if (cmd->cmd != cmd_settlv || cmd->tlvid != MANAGEMENT_ADDRESS_TLV)
+		return cmd_bad_params;
+
+	if (!inet_pton(AF_INET6, argvalue, (void *)&ipv6addr))
+		return cmd_bad_params;
+
+	if (test)
+		return cmd_success;
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, arg);
@@ -208,25 +270,10 @@ int set_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
 
 int set_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
 {
-	struct in6_addr ipv6addr;
-	char arg_path[256];
-	char *p;
+	return _set_arg_ipv6(cmd, arg, argvalue, obuf, false);
+}
 
-	if (cmd->cmd != cmd_settlv || cmd->tlvid != MANAGEMENT_ADDRESS_TLV)
-		return cmd_bad_params;
-
-	if (!inet_pton(AF_INET6, argvalue, (void *)&ipv6addr))
-		return cmd_bad_params;
-
-	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
-		 cmd->tlvid, arg);
-
-	p = &argvalue[0];
-	if (set_config_setting(cmd->ifname, arg_path, (void *)&p,
-		    CONFIG_TYPE_STRING))
-		return cmd_failed;
-
-	somethingChangedLocal(cmd->ifname);
-
-	return cmd_success;
+int test_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue, char *obuf)
+{
+	return _set_arg_ipv6(cmd, arg, argvalue, obuf, false);
 }

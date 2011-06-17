@@ -42,40 +42,49 @@
 
 static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *);
 static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *);
+static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *);
 
 static int get_arg_willing(struct cmd *, char *, char *, char *);
 static int set_arg_willing(struct cmd *, char *, char *, char *);
+static int test_arg_willing(struct cmd *, char *, char *, char *);
 
 static int get_arg_numtc(struct cmd *, char *, char *, char *);
+static int test_arg_numtc(struct cmd *, char *, char *, char *);
 
 static int get_arg_up2tc(struct cmd *, char *, char *, char *);
 static int set_arg_up2tc(struct cmd *, char *, char *, char *);
+static int test_arg_up2tc(struct cmd *, char *, char *, char *);
 
 static int get_arg_tcbw(struct cmd *, char *, char *, char *);
 static int set_arg_tcbw(struct cmd *, char *, char *, char *);
+static int test_arg_tcbw(struct cmd *, char *, char *, char *);
 
 static int get_arg_tsa(struct cmd *, char *, char *, char *);
 static int set_arg_tsa(struct cmd *, char *, char *, char *);
+static int test_arg_tsa(struct cmd *, char *, char *, char *);
 
 static int get_arg_enabled(struct cmd *, char *, char *, char *);
 static int set_arg_enabled(struct cmd *, char *, char *, char *);
+static int test_arg_enabled(struct cmd *, char *, char *, char *);
 
 static int get_arg_delay(struct cmd *, char *, char *, char *);
 static int set_arg_delay(struct cmd *, char *, char *, char *);
+static int test_arg_delay(struct cmd *, char *, char *, char *);
 
 static int get_arg_app(struct cmd *, char *, char *, char *);
 static int set_arg_app(struct cmd *, char *, char *, char *);
+static int test_arg_app(struct cmd *, char *, char *, char *);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable },
-	{ ARG_WILLING, get_arg_willing, set_arg_willing	},
-	{ ARG_ETS_NUMTCS, get_arg_numtc,			},
-	{ ARG_ETS_UP2TC, get_arg_up2tc, set_arg_up2tc		},
-	{ ARG_ETS_TCBW, get_arg_tcbw, set_arg_tcbw		},
-	{ ARG_ETS_TSA, get_arg_tsa, set_arg_tsa			},
-	{ ARG_PFC_ENABLED, get_arg_enabled, set_arg_enabled	},
-	{ ARG_PFC_DELAY, get_arg_delay, set_arg_delay		},
-	{ ARG_APP, get_arg_app, set_arg_app			},
+	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable, test_arg_tlvtxenable },
+	{ ARG_WILLING, get_arg_willing, set_arg_willing, test_arg_willing },
+	{ ARG_ETS_NUMTCS, get_arg_numtc, NULL, test_arg_numtc },
+	{ ARG_ETS_UP2TC, get_arg_up2tc, set_arg_up2tc, test_arg_up2tc },
+	{ ARG_ETS_TCBW, get_arg_tcbw, set_arg_tcbw, test_arg_tcbw },
+	{ ARG_ETS_TSA, get_arg_tsa, set_arg_tsa, test_arg_tsa },
+	{ ARG_PFC_ENABLED, get_arg_enabled, set_arg_enabled, test_arg_enabled },
+	{ ARG_PFC_DELAY, get_arg_delay, set_arg_delay, test_arg_delay },
+	{ ARG_APP, get_arg_app, set_arg_app, test_arg_app },
 	{ NULL }
 };
 
@@ -111,8 +120,8 @@ static int get_arg_willing(struct cmd *cmd, char *args,
 	return cmd_success;
 }
 
-static int set_arg_willing(struct cmd *cmd, char *args,
-			   char *arg_value, char *obuf)
+static int _set_arg_willing(struct cmd *cmd, char *args,
+			   char *arg_value, char *obuf, bool test)
 {
 	long willing = strtol(arg_value, NULL, 10);
 	struct ieee8021qaz_tlvs *tlvs;
@@ -127,10 +136,12 @@ static int set_arg_willing(struct cmd *cmd, char *args,
 
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
-		tlvs->ets->cfgl->willing = !!willing;
+		if (!test)
+			tlvs->ets->cfgl->willing = !!willing;
 		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC:
-		tlvs->pfc->local.willing = !!willing;
+		if (!test)
+			tlvs->pfc->local.willing = !!willing;
 		break;
 	case INVALID_TLVID:
 		return cmd_invalid;
@@ -138,12 +149,27 @@ static int set_arg_willing(struct cmd *cmd, char *args,
 		return cmd_not_applicable;
 	}
 
+	if (test)
+		return cmd_success;
+
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, args);
 	set_config_setting(cmd->ifname, arg_path, &willing, CONFIG_TYPE_INT);
 	somethingChangedLocal(cmd->ifname);
 
 	return cmd_success;
+}
+
+static int set_arg_willing(struct cmd *cmd, char *args,
+			   char *arg_value, char *obuf)
+{
+	return _set_arg_willing(cmd, args, arg_value, obuf, false);
+}
+
+static int test_arg_willing(struct cmd *cmd, char *args,
+			   char *arg_value, char *obuf)
+{
+	return _set_arg_willing(cmd, args, arg_value, obuf, true);
 }
 
 static int get_arg_numtc(struct cmd *cmd, char *args,
@@ -172,6 +198,12 @@ static int get_arg_numtc(struct cmd *cmd, char *args,
 		(unsigned int) strlen(args), args, 1, tlvs->ets->cfgl->max_tcs);
 
 	return cmd_success;
+}
+
+static int test_arg_numtc(struct cmd *cmd, char *args,
+			 char *arg_value, char *obuf)
+{
+	return cmd_invalid;
 }
 
 static int get_arg_up2tc(struct cmd *cmd, char *args,
@@ -216,13 +248,14 @@ static int get_arg_up2tc(struct cmd *cmd, char *args,
 	return cmd_success;
 }
 
-static int set_arg_up2tc(struct cmd *cmd, char *args,
-			 char *arg_value, char *obuf)
+static int _set_arg_up2tc(struct cmd *cmd, char *args,
+			 char *arg_value, char *obuf, bool test)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 	char arg_path[256];
 	char *toked_maps, *parse;
 	u32 *pmap;
+	u32 save_pmap;
 	int err = cmd_success;
 
 	if (cmd->cmd != cmd_settlv)
@@ -244,6 +277,7 @@ static int set_arg_up2tc(struct cmd *cmd, char *args,
 	default:
 		return cmd_not_applicable;
 	}
+	save_pmap = *pmap;
 
 	parse = strdup(arg_value);
 	if (!parse)
@@ -278,6 +312,12 @@ static int set_arg_up2tc(struct cmd *cmd, char *args,
 		*pmap = 0;
 	}
 
+	if (test) {
+		*pmap = save_pmap;
+		free(parse);
+		return cmd_success;
+	}
+
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, args);
 	set_config_setting(cmd->ifname, arg_path, &arg_value,
@@ -286,6 +326,18 @@ static int set_arg_up2tc(struct cmd *cmd, char *args,
 invalid:
 	free(parse);
 	return err;
+}
+
+static int set_arg_up2tc(struct cmd *cmd, char *args,
+			 char *arg_value, char *obuf)
+{
+	return _set_arg_up2tc(cmd, args, arg_value, obuf, false);
+}
+
+static int test_arg_up2tc(struct cmd *cmd, char *args,
+			 char *arg_value, char *obuf)
+{
+	return _set_arg_up2tc(cmd, args, arg_value, obuf, true);
 }
 
 static int get_arg_tcbw(struct cmd *cmd, char *args,
@@ -328,8 +380,8 @@ static int get_arg_tcbw(struct cmd *cmd, char *args,
 	return cmd_success;
 }
 
-static int set_arg_tcbw(struct cmd *cmd, char *args,
-			char *arg_value, char *obuf)
+static int _set_arg_tcbw(struct cmd *cmd, char *args,
+			 char *arg_value, char *obuf, bool test)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 	char arg_path[256];
@@ -374,6 +426,9 @@ static int set_arg_tcbw(struct cmd *cmd, char *args,
 	if (total != 100) {
 		err = cmd_invalid;
 		goto invalid;
+	} else if (test) {
+		free(parse);
+		return cmd_success;
 	} else {
 		memcpy(tcbw, percent, sizeof(tcbw));
 	}
@@ -386,6 +441,18 @@ static int set_arg_tcbw(struct cmd *cmd, char *args,
 invalid:
 	free(parse);
 	return err;
+}
+
+static int set_arg_tcbw(struct cmd *cmd, char *args,
+			char *arg_value, char *obuf)
+{
+	return _set_arg_tcbw(cmd, args, arg_value, obuf, false);
+}
+
+static int test_arg_tcbw(struct cmd *cmd, char *args,
+			char *arg_value, char *obuf)
+{
+	return _set_arg_tcbw(cmd, args, arg_value, obuf, true);
 }
 
 static int get_arg_tsa(struct cmd *cmd, char *args, char *arg_value, char *obuf)
@@ -449,7 +516,8 @@ static int get_arg_tsa(struct cmd *cmd, char *args, char *arg_value, char *obuf)
 	return cmd_success;
 }
 
-static int set_arg_tsa(struct cmd *cmd, char *args, char *arg_value, char *obuf)
+static int _set_arg_tsa(struct cmd *cmd, char *args, char *arg_value,
+			char *obuf, bool test)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 	char arg_path[256];
@@ -512,11 +580,17 @@ static int set_arg_tsa(struct cmd *cmd, char *args, char *arg_value, char *obuf)
 				goto invalid;
 			}
 
-			tsa[tc] = type;
+			if (!test)
+				tsa[tc] = type;
 			toked_maps = strtok(NULL, ",");
 		}
-	} else {
+	} else if (!test) {
 		memset(tsa, 0, sizeof(tsa));
+	}
+
+	if (test) {
+		free(parse);
+		return cmd_success;
 	}
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
@@ -527,6 +601,18 @@ static int set_arg_tsa(struct cmd *cmd, char *args, char *arg_value, char *obuf)
 invalid:
 	free(parse);
 	return err;
+}
+
+static int set_arg_tsa(struct cmd *cmd, char *args, char *arg_value,
+			char *obuf)
+{
+	return _set_arg_tsa(cmd, args, arg_value, obuf, false);
+}
+
+static int test_arg_tsa(struct cmd *cmd, char *args, char *arg_value,
+			char *obuf)
+{
+	return _set_arg_tsa(cmd, args, arg_value, obuf, true);
 }
 
 static int get_arg_enabled(struct cmd *cmd, char *args,
@@ -571,13 +657,13 @@ static int get_arg_enabled(struct cmd *cmd, char *args,
 	return cmd_success;
 }
 
-static int set_arg_enabled(struct cmd *cmd, char *args,
-			   char *arg_value, char *obuf)
+static int _set_arg_enabled(struct cmd *cmd, char *args,
+			   char *arg_value, char *obuf, bool test)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 	char *priority, *parse;
 	char arg_path[256];
-	u8 mask = 0;
+	long mask = 0;
 	int err = cmd_success;
 
 	if (cmd->cmd != cmd_settlv)
@@ -616,6 +702,11 @@ static int set_arg_enabled(struct cmd *cmd, char *args,
 		}
 	}
 
+	if (test) {
+		free(parse);
+		return cmd_success;
+	}
+
 	/* Set configuration */
 	snprintf(arg_path, sizeof(arg_path),
 		 "%s%08x.%s", TLVID_PREFIX, cmd->tlvid, args);
@@ -624,7 +715,19 @@ static int set_arg_enabled(struct cmd *cmd, char *args,
 	somethingChangedLocal(cmd->ifname);
 invalid:
 	free(parse);
-	return cmd_success;
+	return err;
+}
+
+static int set_arg_enabled(struct cmd *cmd, char *args,
+			   char *arg_value, char *obuf)
+{
+	return _set_arg_enabled(cmd, args, arg_value, obuf, false);
+}
+
+static int test_arg_enabled(struct cmd *cmd, char *args,
+			   char *arg_value, char *obuf)
+{
+	return _set_arg_enabled(cmd, args, arg_value, obuf, true);
 }
 
 static int get_arg_delay(struct cmd *cmd, char *args,
@@ -655,8 +758,8 @@ static int get_arg_delay(struct cmd *cmd, char *args,
 	return cmd_success;
 }
 
-static int set_arg_delay(struct cmd *cmd, char *args,
-			 char *arg_value, char *obuf)
+static int _set_arg_delay(struct cmd *cmd, char *args,
+			 char *arg_value, char *obuf, bool test)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 	char arg_path[256];
@@ -678,6 +781,9 @@ static int set_arg_delay(struct cmd *cmd, char *args,
 		return cmd_not_applicable;
 	}
 
+	if (test)
+		return cmd_success;
+
 	tlvs->pfc->local.delay = delay;
 
 	/* Set configuration */
@@ -688,6 +794,18 @@ static int set_arg_delay(struct cmd *cmd, char *args,
 	somethingChangedLocal(cmd->ifname);
 
 	return cmd_success;
+}
+
+static int set_arg_delay(struct cmd *cmd, char *args,
+			 char *arg_value, char *obuf)
+{
+	return _set_arg_delay(cmd, args, arg_value, obuf, false);
+}
+
+static int test_arg_delay(struct cmd *cmd, char *args,
+			 char *arg_value, char *obuf)
+{
+	return _set_arg_delay(cmd, args, arg_value, obuf, true);
 }
 
 static int get_arg_app(struct cmd *cmd, char *args, char *arg_value, char *obuf)
@@ -738,7 +856,8 @@ static int get_arg_app(struct cmd *cmd, char *args, char *arg_value, char *obuf)
 	return cmd_success;
 }
 
-static int set_arg_app(struct cmd *cmd, char *args, char *arg_value, char *obuf)
+static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
+			char *obuf, bool test)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 	char *app_tuple, *parse;
@@ -781,6 +900,10 @@ static int set_arg_app(struct cmd *cmd, char *args, char *arg_value, char *obuf)
 		goto err;
 	pid = atoi(app_tuple);
 
+	free(parse);
+	if (test)
+		return cmd_success;
+
 	ieee8021qaz_add_app(&tlvs->app_head, 0, prio, sel, pid);
 	ieee8021qaz_app_sethw(cmd->ifname, &tlvs->app_head);
 
@@ -790,12 +913,20 @@ static int set_arg_app(struct cmd *cmd, char *args, char *arg_value, char *obuf)
 			   CONFIG_TYPE_STRING);
 
 	somethingChangedLocal(cmd->ifname);
-
-	free(parse);
 	return cmd_success;
 err:
 	free(parse);
 	return cmd_invalid;
+}
+
+static int set_arg_app(struct cmd *cmd, char *args, char *arg_value, char *obuf)
+{
+	return _set_arg_app(cmd, args, arg_value, obuf, false);
+}
+
+static int test_arg_app(struct cmd *cmd, char *args, char *arg_value, char *obuf)
+{
+	return _set_arg_app(cmd, args, arg_value, obuf, true);
 }
 
 static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
@@ -809,16 +940,24 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_invalid;
 
 	switch (cmd->tlvid) {
-	case (OUI_IEEE_8021 << 8):
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
-	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC:
+		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
+			 TLVID_PREFIX, cmd->tlvid, arg);
+
+		if (!is_tlv_txdisabled(cmd->ifname, cmd->tlvid))
+			value = true;
+		else
+			value = false;
+		break;
+	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_APP:
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 			 TLVID_PREFIX, cmd->tlvid, arg);
 
-		if (get_config_setting(cmd->ifname, arg_path, (void *)&value,
-					CONFIG_TYPE_BOOL))
+		if (is_tlv_txenabled(cmd->ifname, cmd->tlvid))
+			value = true;
+		else
 			value = false;
 		break;
 	case INVALID_TLVID:
@@ -838,8 +977,8 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf, bool test)
 {
 	int value, curr, err;
 	char arg_path[256];
@@ -874,6 +1013,9 @@ static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	if (!err && curr == value)
 		return cmd_success;
 
+	if (test)
+		return cmd_success;
+
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, arg);
 
@@ -883,6 +1025,18 @@ static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	somethingChangedLocal(cmd->ifname);
 
 	return cmd_success;
+}
+
+static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, false);
+}
+
+static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, true);
 }
 
 struct arg_handlers *ieee8021qaz_get_arg_handlers()

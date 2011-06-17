@@ -45,25 +45,35 @@
 
 static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *);
 static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *);
+static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *);
 
 static int get_arg_fmode(struct cmd *, char *, char *, char *);
 static int set_arg_fmode(struct cmd *, char *, char *, char *);
+static int test_arg_fmode(struct cmd *, char *, char *, char *);
 
 static int get_arg_rte(struct cmd *, char *, char *, char *);
 static int set_arg_rte(struct cmd *, char *, char *, char *);
+static int test_arg_rte(struct cmd *, char *, char *, char *);
 
 static int get_arg_vsis(struct cmd *, char *, char *, char *);
 static int set_arg_vsis(struct cmd *, char *, char *, char *);
+static int test_arg_vsis(struct cmd *, char *, char *, char *);
 
 static int get_arg_capabilities(struct cmd *, char *, char *, char *);
 static int set_arg_capabilities(struct cmd *, char *, char *, char *);
+static int test_arg_capabilities(struct cmd *, char *, char *, char *);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_EVB_FORWARDING_MODE, get_arg_fmode, set_arg_fmode },
-	{ ARG_EVB_CAPABILITIES, get_arg_capabilities, set_arg_capabilities },
-	{ ARG_EVB_VSIS, get_arg_vsis, set_arg_vsis },
-	{ ARG_EVB_RTE, get_arg_rte, set_arg_rte },
-	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable },
+	{ ARG_EVB_FORWARDING_MODE, get_arg_fmode, set_arg_fmode,
+			test_arg_fmode },
+	{ ARG_EVB_CAPABILITIES, get_arg_capabilities, set_arg_capabilities,
+			test_arg_capabilities },
+	{ ARG_EVB_VSIS, get_arg_vsis, set_arg_vsis,
+			test_arg_vsis },
+	{ ARG_EVB_RTE, get_arg_rte, set_arg_rte,
+			test_arg_rte },
+	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable,
+			test_arg_tlvtxenable },
 	{ NULL }
 };
 
@@ -103,8 +113,8 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+			        char *obuf, bool test)
 {
 	int value;
 	char arg_path[EVB_BUF_SIZE];
@@ -128,6 +138,9 @@ static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	else
 		return cmd_invalid;
 
+	if (test)
+		return cmd_success;
+
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 		 TLVID_PREFIX, cmd->tlvid, arg);
 
@@ -137,6 +150,18 @@ static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	somethingChangedLocal(cmd->ifname);
 
 	return cmd_success;
+}
+
+static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, false);
+}
+
+static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, true);
 }
 
 static int get_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
@@ -173,8 +198,8 @@ static int get_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-static int set_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+static int _set_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf, bool test)
 {
 	u8 smode;
 	char arg_path[EVB_BUF_SIZE];
@@ -209,6 +234,8 @@ static int set_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
 
 	if (smode == 0) {
 		return cmd_invalid;
+	} else if (test) {
+		return cmd_success;
 	} else {
 		ed->policy->smode = smode;
 	}
@@ -225,6 +252,18 @@ static int set_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
 	somethingChangedLocal(cmd->ifname);
 
 	return cmd_success;
+}
+
+static int set_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_fmode(cmd, arg, argvalue, obuf, false);
+}
+
+static int test_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_fmode(cmd, arg, argvalue, obuf, true);
 }
 
 static int get_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
@@ -292,8 +331,8 @@ out_free:
 	return cmd_invalid;
 }
 
-static int set_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+static int _set_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf, bool test)
 {
 	u8 scap = 0;
 	char arg_path[EVB_BUF_SIZE];
@@ -328,6 +367,9 @@ static int set_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
 	if (strcasestr(argvalue, VAL_EVB_CAPA_NONE))
 		scap = 0;
 
+	if (test)
+		return cmd_success;
+
 	ed->policy->scap = scap;
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.capabilities",
@@ -342,6 +384,18 @@ static int set_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
 	somethingChangedLocal(cmd->ifname);
 
 	return cmd_success;
+}
+
+static int set_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_capabilities(cmd, arg, argvalue, obuf, false);
+}
+
+static int test_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_capabilities(cmd, arg, argvalue, obuf, true);
 }
 
 static int get_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
@@ -375,8 +429,8 @@ static int get_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-static int set_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+static int _set_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf, bool test)
 {
 	int value, err;
 	char arg_path[EVB_BUF_SIZE];
@@ -404,6 +458,9 @@ static int set_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
 	if ((value < 0))
 		goto out_err;
 
+	if (test)
+		return cmd_success;
+
 	ed->policy->rte = value;
 
 	err = snprintf(arg_path, sizeof(arg_path), "%s%08x.rte",
@@ -425,6 +482,18 @@ static int set_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
 out_err:
 	printf("%s:%s: saving EVB rte failed.\n", __func__, ed->ifname);
 	return cmd_invalid;
+}
+
+static int set_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_rte(cmd, arg, argvalue, obuf, false);
+}
+
+static int test_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_rte(cmd, arg, argvalue, obuf, true);
 }
 
 static int get_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
@@ -458,8 +527,8 @@ static int get_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-static int set_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+static int _set_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf, bool test)
 {
 	int value, err;
 	char arg_path[EVB_BUF_SIZE];
@@ -489,6 +558,9 @@ static int set_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
 	if ((value < 0) || (value > LLDP_EVB_DEFAULT_MAX_VSI))
 		goto out_err;
 
+	if (test)
+		return cmd_success;
+
 	ed->policy->svsi = value;
 
 	err = snprintf(arg_path, sizeof(arg_path), "%s%08x.vsis",
@@ -514,6 +586,18 @@ static int set_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
 out_err:
 	printf("%s:%s: saving EVB vsis failed.\n", __func__, ed->ifname);
 	return cmd_invalid;
+}
+
+static int set_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_vsis(cmd, arg, argvalue, obuf, false);
+}
+
+static int test_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
+			       char *obuf)
+{
+	return _set_arg_vsis(cmd, arg, argvalue, obuf, true);
 }
 
 struct arg_handlers *evb_get_arg_handlers()

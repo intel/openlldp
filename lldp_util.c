@@ -113,8 +113,10 @@ int hexstr2bin(const char *hex, u8 *buf, size_t len)
 
 	for (i = 0; i < len; i++) {
 		a = hex2byte(ipos);
-		if (a < 0)
+		if (a < 0) {
+			printf("ipos=%2.2s, a=%x\n", ipos, a);
 			return -1;
+		}
 		*opos++ = a;
 		ipos += 2;
 	}
@@ -1223,4 +1225,75 @@ int check_link_status(const char *ifname)
 	close(fd);
 
 	return retval;
+}
+
+int get_arg_val_list(char *ibuf, int ilen, int *ioff,
+			    char **args, char **argvals)
+{
+	u8 arglen;
+	u16 argvalue_len;
+	int arglens[8];
+	int argvallens[8];
+	int numargs;
+	int i;
+
+	/* parse out args and argvals */
+	for (i = 0; (i < MAX_ARGS) && (ilen - *ioff > 2*sizeof(arglen)); i++) {
+		hexstr2bin(ibuf+*ioff, &arglen, sizeof(arglen));
+		*ioff += 2*sizeof(arglen);
+		if (ilen - *ioff >= arglen) {
+			args[i] = ibuf+*ioff;
+			*ioff += arglen;
+			arglens[i] = arglen;
+
+			if (ilen - *ioff > 2*sizeof(argvalue_len)) {
+				hexstr2bin(ibuf+*ioff, (u8 *)&argvalue_len,
+					   sizeof(argvalue_len));
+				argvalue_len = ntohs(argvalue_len);
+				*ioff += 2*sizeof(argvalue_len);
+				if (ilen - *ioff >= argvalue_len) {
+					argvals[i] = ibuf+*ioff;
+					*ioff += argvalue_len;
+					argvallens[i] = argvalue_len;
+				}
+			} else {
+				return 0;
+			}
+		} else {
+			return 0;
+		}
+	}
+	numargs = i;
+	for (i = 0; i < numargs; i++) {
+		args[i][arglens[i]] = '\0';
+		argvals[i][argvallens[i]] = '\0';
+	}
+	return numargs;
+}
+
+int get_arg_list(char *ibuf, int ilen, int *ioff, char **args)
+{
+	u8 arglen;
+	int arglens[8];
+	int numargs;
+	int i;
+
+	/* parse out args */
+	for (i = 0; (i < MAX_ARGS) && (ilen - *ioff > 2*sizeof(arglen)); i++) {
+		hexstr2bin(ibuf+(*ioff), &arglen, sizeof(arglen));
+		*ioff += 2*sizeof(arglen);
+		if (ilen - *ioff >= arglen) {
+			args[i] = ibuf+(*ioff);
+			*ioff += arglen;
+			arglens[i] = arglen;
+		} else {
+			return 0;
+		}
+	}
+	numargs = i;
+
+	for (i = 0; i < numargs; i++)
+		args[i][arglens[i]] = '\0';
+
+	return numargs;
 }

@@ -45,17 +45,21 @@
 
 static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *);
 static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *);
+static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *);
 
 static int get_arg_mode(struct cmd *, char *, char *, char *);
 static int set_arg_mode(struct cmd *, char *, char *, char *);
+static int test_arg_mode(struct cmd *, char *, char *, char *);
 
 static int get_arg_role(struct cmd *, char *, char *, char *);
 static int set_arg_role(struct cmd *, char *, char *, char *);
+static int test_arg_role(struct cmd *, char *, char *, char *);
 
 static struct arg_handlers arg_handlers[] = {
-       { ARG_VDP_MODE, get_arg_mode, set_arg_mode },
-       { ARG_VDP_ROLE, get_arg_role, set_arg_role },
-       { ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable },
+       { ARG_VDP_MODE, get_arg_mode, set_arg_mode, test_arg_mode },
+       { ARG_VDP_ROLE, get_arg_role, set_arg_role, test_arg_role },
+       { ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable,
+			  test_arg_tlvtxenable },
        { NULL }
 };
 
@@ -95,8 +99,8 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
        return cmd_success;
 }
 
-static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-                              char *obuf)
+static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+                              char *obuf, bool test)
 {
        int value;
        char arg_path[VDP_BUF_SIZE];
@@ -120,12 +124,27 @@ static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
        else
                return cmd_invalid;
 
+	if (test)
+		return cmd_success;
+
        snprintf(arg_path, sizeof(arg_path), "%s.%s", VDP_PREFIX, arg);
 
        if (set_cfg(cmd->ifname, arg_path, (void *)&value, CONFIG_TYPE_BOOL))
                return cmd_failed;
 
        return cmd_success;
+}
+
+static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+                              char *obuf)
+{
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, false);
+}
+
+static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+                              char *obuf)
+{
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, true);
 }
 
 static int get_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
@@ -287,8 +306,8 @@ out_free:
        return NULL;
 }
 
-static int set_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
-                              char *obuf)
+static int _set_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
+                              char *obuf, bool test)
 {
        int arglen;
        struct vsi_profile *profile, *p;
@@ -315,6 +334,11 @@ static int set_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
                return cmd_invalid;
        }
 
+	if (test) {
+		free(profile);
+		return cmd_success;
+	}
+
        p = vdp_add_profile(profile);
 
        if (!p) {
@@ -323,6 +347,18 @@ static int set_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
        }
 
        return cmd_success;
+}
+
+static int set_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
+                              char *obuf)
+{
+	return _set_arg_mode(cmd, arg, argvalue, obuf, false);
+}
+
+static int test_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
+                              char *obuf)
+{
+	return _set_arg_mode(cmd, arg, argvalue, obuf, true);
 }
 
 static int get_arg_role(struct cmd *cmd, char *arg, char *argvalue,
@@ -366,8 +402,8 @@ static int get_arg_role(struct cmd *cmd, char *arg, char *argvalue,
        return cmd_success;
 }
 
-static int set_arg_role(struct cmd *cmd, char *arg, char *argvalue,
-                              char *obuf)
+static int _set_arg_role(struct cmd *cmd, char *arg, char *argvalue,
+                              char *obuf, bool test)
 {
        struct vdp_data *vd;
        char arg_path[VDP_BUF_SIZE];
@@ -393,12 +429,17 @@ static int set_arg_role(struct cmd *cmd, char *arg, char *argvalue,
        }
 
        if (!strcasecmp(argvalue, VAL_BRIDGE)) {
-               vd->role = VDP_ROLE_BRIDGE;
+		if (!test)
+			vd->role = VDP_ROLE_BRIDGE;
        } else if (!strcasecmp(argvalue, VAL_STATION)) {
-               vd->role = VDP_ROLE_STATION;
+		if (!test)
+			vd->role = VDP_ROLE_STATION;
        } else {
                return cmd_invalid;
        }
+
+	if (test)
+		return cmd_success;
 
        snprintf(arg_path, sizeof(arg_path), "%s.%s", VDP_PREFIX, arg);
 
@@ -409,6 +450,17 @@ static int set_arg_role(struct cmd *cmd, char *arg, char *argvalue,
        return cmd_success;
 }
 
+static int set_arg_role(struct cmd *cmd, char *arg, char *argvalue,
+                              char *obuf)
+{
+	return _set_arg_role(cmd, arg, argvalue, obuf, false);
+}
+
+static int test_arg_role(struct cmd *cmd, char *arg, char *argvalue,
+                              char *obuf)
+{
+	return _set_arg_role(cmd, arg, argvalue, obuf, true);
+}
 
 struct arg_handlers *vdp_get_arg_handlers()
 {
