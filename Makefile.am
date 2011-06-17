@@ -65,7 +65,7 @@ lldptool_SOURCES = lldptool.c clif.c lldptool_cmds.c lldp_rtnl.c \
 nltest_SOURCES = nltest.c nltest.h
 
 ## man pages
-dist_man_MANS = lldpad.8 dcbtool.8 lldptool.8
+dist_man_MANS = docs/lldpad.8 docs/dcbtool.8 docs/lldptool.8
 
 ## force the creation of an empty configuration directory at install time
 lldpadconfigdir = /var/lib/lldpad
