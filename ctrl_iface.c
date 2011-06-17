@@ -65,10 +65,10 @@ static char *hexlist = "0123456789abcdef";
 struct clif_cmds {
 	int cmd;
 	int (*cmd_handler)(struct clif_data *cd,
-			     struct sockaddr_un *from,
-			     socklen_t fromlen,
-			     char *ibuf, int ilen,
-			     char *rbuf);
+			   struct sockaddr_un *from,
+			   socklen_t fromlen,
+			   char *ibuf, int ilen,
+			   char *rbuf, int rlen);
 };	
 
 static const struct clif_cmds cmd_tbl[] = {
@@ -85,10 +85,10 @@ static const struct clif_cmds cmd_tbl[] = {
  *	Returns a status value.  0 is successful, 1 is an error.
 */
 int clif_iface_module(struct clif_data *clifd,
-				     struct sockaddr_un *from,
-				     socklen_t fromlen,
-				     char *ibuf, int ilen,
-				     char *rbuf)
+		      struct sockaddr_un *from,
+		      socklen_t fromlen,
+		      char *ibuf, int ilen,
+		      char *rbuf, int rlen)
 {
 	u32 module_id;
 	char *cmd_start;
@@ -119,7 +119,7 @@ int clif_iface_module(struct clif_data *clifd,
 
 	if (mod)
 		return  (mod->ops->client_cmd)(clifd, from, fromlen,
-			 cmd_start, cmd_len, rbuf+strlen(rbuf));
+			 cmd_start, cmd_len, rbuf+strlen(rbuf), rlen);
 	else
 		return 1;
 }
@@ -129,10 +129,10 @@ int clif_iface_module(struct clif_data *clifd,
  *	Returns a status value.  0 is successful, 1 is an error.
 */
 int clif_iface_cmd_unknown(struct clif_data *clifd,
-				     struct sockaddr_un *from,
-				     socklen_t fromlen,
-				     char *ibuf, int ilen,
-				     char *rbuf)
+			   struct sockaddr_un *from,
+			   socklen_t fromlen,
+			   char *ibuf, int ilen,
+			   char *rbuf, int rlen)
 {
 	return 1;
 }
@@ -141,12 +141,12 @@ int clif_iface_cmd_unknown(struct clif_data *clifd,
  *	Returns a status value.  0 is successful, 1 is an error.
 */
 int clif_iface_ping(struct clif_data *clifd,
-				     struct sockaddr_un *from,
-				     socklen_t fromlen,
-				     char *ibuf, int ilen,
-				     char *rbuf)
+		    struct sockaddr_un *from,
+		    socklen_t fromlen,
+		    char *ibuf, int ilen,
+		    char *rbuf, int rlen)
 {
-	sprintf(rbuf, "%cPONG", PING_CMD);
+	snprintf(rbuf, rlen, "%cPONG", PING_CMD);
 
 	return 0;
 }
@@ -156,10 +156,10 @@ int clif_iface_ping(struct clif_data *clifd,
  *	Returns a status value.  0 is successful, 1 is an error.
 */
 int clif_iface_attach(struct clif_data *clifd,
-				     struct sockaddr_un *from,
-				     socklen_t fromlen,
-				     char *ibuf, int ilen,
-				     char *rbuf)
+		      struct sockaddr_un *from,
+		      socklen_t fromlen,
+		      char *ibuf, int ilen,
+		      char *rbuf, int rlen)
 {
 	struct ctrl_dst *dst;
 	char *tlv, *str, *tokenize;
@@ -224,14 +224,14 @@ int clif_iface_attach(struct clif_data *clifd,
 	free(tlv);
 
 	LLDPAD_DBG("CTRL_IFACE monitor attached\n");
-	sprintf(rbuf, "%c", ATTACH_CMD);
+	snprintf(rbuf, rlen, "%c", ATTACH_CMD);
 
 	return 0;
 err_types:
 	free(tlv);
 err_tlv:
 	LLDPAD_DBG("CTRL_IFACE monitor attach error\n");
-	sprintf(rbuf, "%c", ATTACH_CMD);
+	snprintf(rbuf, rlen, "%c", ATTACH_CMD);
 
 	return -1;
 }
@@ -274,9 +274,9 @@ int clif_iface_detach(struct clif_data *clifd,
 				     struct sockaddr_un *from,
 				     socklen_t fromlen,
 				     char *ibuf, int ilen,
-				     char *rbuf)
+				     char *rbuf, int rlen)
 {
-	sprintf(rbuf, "%c", DETACH_CMD);
+	snprintf(rbuf, rlen, "%c", DETACH_CMD);
 	return detach_clif_monitor(clifd, from, fromlen);
 }
 
@@ -288,13 +288,13 @@ int clif_iface_level(struct clif_data *clifd,
 				    struct sockaddr_un *from,
 				    socklen_t fromlen,
 				    char *ibuf, int ilen,
-				    char *rbuf)
+				    char *rbuf, int rlen)
 {
 	struct ctrl_dst *dst;
 	char *level;
 
 	level = ibuf+1;
-	sprintf(rbuf, "%c", LEVEL_CMD);
+	snprintf(rbuf, rlen, "%c", LEVEL_CMD);
 
 	LLDPAD_DBG("CTRL_IFACE LEVEL %s", level);
 
@@ -323,6 +323,11 @@ static int find_cmd_entry(int cmd)
 	return (i);
 }
 
+/* process_clif_cmd - routine to pass command to correct module routine and
+ *		      compute length and status.
+ *
+ * Note: ibuf and ilen must be verified by caller.
+ */
 static void process_clif_cmd(  struct clif_data *cd,
 			struct sockaddr_un *from,
 			socklen_t fromlen,
@@ -332,15 +337,11 @@ static void process_clif_cmd(  struct clif_data *cd,
 
 	/* setup minimum command response message
 	 * status will be updated at end */
-	sprintf(rbuf, "%c%02x", CMD_RESPONSE, dcb_failed);
-	*rlen = strlen(rbuf);
-
-	if (ilen < 1) {
-		return;
-	}
-
+	snprintf(rbuf, *rlen, "%c%02x", CMD_RESPONSE, dcb_failed);
 	status = cmd_tbl[find_cmd_entry((int)ibuf[0])].cmd_handler(
-		cd, from, fromlen, ibuf, ilen, rbuf+strlen(rbuf));
+					 cd, from, fromlen, ibuf, ilen,
+					 rbuf + strlen(rbuf),
+					 *rlen - strlen(rbuf) - 1);
 
 	/* update status and compute final length */
 	rbuf[CLIF_STAT_OFF] = hexlist[ (status & 0x0f0) >> 4 ];
@@ -358,12 +359,11 @@ static void ctrl_iface_receive(int sock, void *eloop_ctx,
 	struct sockaddr_un from;
 	socklen_t fromlen = sizeof(from);
 	char *reply;
-	const int reply_size = MAX_CLIF_MSGBUF;
-	int reply_len;
+	int reply_size = MAX_CLIF_MSGBUF;
 
 	res = recvfrom(sock, buf, sizeof(buf) - 1, MSG_DONTWAIT,
 		       (struct sockaddr *) &from, &fromlen);
-	if (res < 0) {
+	if (res < 1) {
 		perror("recvfrom(ctrl_iface)");
 		return;
 	}
@@ -377,9 +377,9 @@ static void ctrl_iface_receive(int sock, void *eloop_ctx,
 	}
 
 	memset(reply, 0, reply_size);
-	process_clif_cmd(clifd, &from, fromlen, buf, res, reply, &reply_len);
+	process_clif_cmd(clifd, &from, fromlen, buf, res, reply, &reply_size);
 
-	sendto(sock, reply, reply_len, 0, (struct sockaddr *) &from, fromlen);
+	sendto(sock, reply, reply_size, 0, (struct sockaddr *) &from, fromlen);
 	free(reply);
 }
 

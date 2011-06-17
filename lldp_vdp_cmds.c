@@ -43,17 +43,17 @@
 #include "clif_msgs.h"
 #include "lldp/states.h"
 
-static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *);
-static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *);
-static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *);
+static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
+static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
+static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 
-static int get_arg_mode(struct cmd *, char *, char *, char *);
-static int set_arg_mode(struct cmd *, char *, char *, char *);
-static int test_arg_mode(struct cmd *, char *, char *, char *);
+static int get_arg_mode(struct cmd *, char *, char *, char *, int);
+static int set_arg_mode(struct cmd *, char *, char *, char *, int);
+static int test_arg_mode(struct cmd *, char *, char *, char *, int);
 
-static int get_arg_role(struct cmd *, char *, char *, char *);
-static int set_arg_role(struct cmd *, char *, char *, char *);
-static int test_arg_role(struct cmd *, char *, char *, char *);
+static int get_arg_role(struct cmd *, char *, char *, char *, int);
+static int set_arg_role(struct cmd *, char *, char *, char *, int);
+static int test_arg_role(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
 	{ ARG_VDP_MODE, get_arg_mode, set_arg_mode, test_arg_mode },
@@ -64,7 +64,7 @@ static struct arg_handlers arg_handlers[] = {
 };
 
 static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+			       char *obuf, int obuf_len)
 {
 	int value;
 	char *s;
@@ -93,8 +93,8 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	else
 		s = VAL_NO;
 
-	sprintf(obuf, "%02x%s%04x%s", (unsigned int) strlen(arg), arg,
-		(unsigned int) strlen(s), s);
+	snprintf(obuf, obuf_len, "%02x%s%04x%s",
+		 (unsigned int) strlen(arg), arg, (unsigned int) strlen(s), s);
 
 	return cmd_success;
 }
@@ -136,19 +136,19 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+			       char *obuf, int obuf_len)
 {
 	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, false);
 }
 
 static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-				char *obuf)
+				char *obuf, int obuf_len)
 {
 	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, true);
 }
 
 static int get_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
-			char *obuf)
+			char *obuf, int obuf_len)
 {
 	char *s, *t;
 	struct vsi_profile *np;
@@ -188,8 +188,8 @@ static int get_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
 		PRINT_PROFILE(t, np);
 	}
 
-	sprintf(obuf, "%02x%s%04x%s", (unsigned int) strlen(arg), arg,
-		(unsigned int) strlen(s), s);
+	snprintf(obuf, obuf_len, "%02x%s%04x%s",
+		 (unsigned int) strlen(arg), arg, (unsigned int) strlen(s), s);
 
 	free(s);
 
@@ -350,19 +350,19 @@ static int _set_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 static int set_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
-			char *obuf)
+			char *obuf, int obuf_len)
 {
 	return _set_arg_mode(cmd, arg, argvalue, obuf, false);
 }
 
 static int test_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
-			 char *obuf)
+			 char *obuf, int obuf_len)
 {
 	return _set_arg_mode(cmd, arg, argvalue, obuf, true);
 }
 
 static int get_arg_role(struct cmd *cmd, char *arg, char *argvalue,
-			char *obuf)
+			char *obuf, int obuf_len)
 {
 	char arg_path[VDP_BUF_SIZE];
 	struct vdp_data *vd;
@@ -381,11 +381,11 @@ static int get_arg_role(struct cmd *cmd, char *arg, char *argvalue,
 	switch (cmd->tlvid) {
 	case ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE:
 		if (vd->role == VDP_ROLE_STATION) {
-			sprintf(obuf, "%02x%s%04x%s",
+			snprintf(obuf, obuf_len, "%02x%s%04x%s",
 				(unsigned int) strlen(arg), arg,
 	 			(unsigned int) strlen("station"), "station");
 		} else if (vd->role == VDP_ROLE_BRIDGE) {
-			sprintf(obuf, "%02x%s%04x%s",
+			snprintf(obuf, obuf_len, "%02x%s%04x%s",
 				(unsigned int) strlen(arg), arg,
 				(unsigned int) strlen("bridge"), "bridge");
 		} else {
@@ -450,13 +450,13 @@ static int _set_arg_role(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 static int set_arg_role(struct cmd *cmd, char *arg, char *argvalue,
-			char *obuf)
+			char *obuf, int obuf_len)
 {
 	return _set_arg_role(cmd, arg, argvalue, obuf, false);
 }
 
 static int test_arg_role(struct cmd *cmd, char *arg, char *argvalue,
-			 char *obuf)
+			 char *obuf, int obuf_len)
 {
 	return _set_arg_role(cmd, arg, argvalue, obuf, true);
 }

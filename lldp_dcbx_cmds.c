@@ -77,9 +77,9 @@ static void set_protocol_data(feature_protocol_attribs *protocol, char *ifname,
 static dcb_result get_cmd_protocol_data(feature_protocol_attribs *protocol,
 	u8 cmd, char *rbuf);
 
-static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *);
-static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *);
-static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *);
+static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
+static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
+static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
 	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable,
@@ -88,7 +88,7 @@ static struct arg_handlers arg_handlers[] = {
 };
 
 static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+			       char *obuf, int obuf_len)
 {
 	int value;
 	char *s;
@@ -118,7 +118,7 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	else
 		s = VAL_NO;
 	
-	sprintf(obuf, "%02x%s%04x%s", (unsigned int)strlen(arg), arg,
+	snprintf(obuf, obuf_len, "%02x%s%04x%s", (unsigned int)strlen(arg), arg,
 		(unsigned int)strlen(s), s);
 
 	return cmd_success;
@@ -165,7 +165,7 @@ void dont_advertise_dcbx_all(char *ifname)
 }
 
 static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, bool test)
+			       char *obuf, int obuf_len, bool test)
 {
 	int value;
 	int current_value;
@@ -216,15 +216,15 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+			       char *obuf, int obuf_len)
 {
-	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, false);
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, false);
 }
 
 static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf)
+			       char *obuf, int obuf_len)
 {
-	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, true);
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, true);
 }
 
 struct arg_handlers *dcbx_get_arg_handlers()
@@ -482,7 +482,7 @@ int dcbx_clif_cmd(void *data,
 		  struct sockaddr_un *from,
 		  socklen_t fromlen,
 		  char *ibuf, int ilen,
-		  char *rbuf)
+		  char *rbuf, int rlen)
 {
 	u8 status=dcb_success;
 	u8 cmd;
@@ -523,7 +523,8 @@ int dcbx_clif_cmd(void *data,
 	}
 
 	/* append standard dcb command response content */
-	sprintf(rbuf , "%*.*s", DCB_PORT_OFF+plen, DCB_PORT_OFF+plen, ibuf);
+	snprintf(rbuf , rlen, "%*.*s",
+		 DCB_PORT_OFF+plen, DCB_PORT_OFF+plen, ibuf);
 
 	memcpy(port_id, ibuf+DCB_PORT_OFF, plen);
 	port_id[plen] = '\0';

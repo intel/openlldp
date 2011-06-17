@@ -66,7 +66,7 @@ struct lldp_mod_ops {
 	int  			(* client_cmd)(void *data,
 					      struct sockaddr_un *from,
 					      socklen_t fromlen, char *ibuf,
-					      int ilen, char *rbuf);
+					      int ilen, char *rbuf, int rlen);
 	int  			(* print_tlv)(u32, u16, char *);
 	u32			(* lookup_tlv_name)(char *);
 	int			(* print_help)();

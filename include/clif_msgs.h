@@ -141,9 +141,9 @@ struct type_name_info {
 
 struct arg_handlers {
 	char *arg;
-	int (* handle_get)(struct cmd *, char *, char *, char *);
-	int (* handle_set)(struct cmd *, char *, char *, char *);
-	int (* handle_test)(struct cmd *, char *, char *, char *);
+	int (*handle_get)(struct cmd *, char *, char *, char *, int);
+	int (*handle_set)(struct cmd *, char *, char *, char *, int);
+	int (*handle_test)(struct cmd *, char *, char *, char *, int);
 };
 
 #endif

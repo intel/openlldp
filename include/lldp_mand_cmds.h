@@ -34,6 +34,6 @@ int mand_clif_cmd(void *data,
 		  struct sockaddr_un *from,
 		  socklen_t fromlen,
 		  char *ibuf, int ilen,
-		  char *rbuf);
+		  char *rbuf, int rlen);
 
 #endif

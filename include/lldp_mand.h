@@ -28,6 +28,7 @@
 #define _LLDP_MAND_H
 
 #include "lldp_mod.h"
+#include "lldp_mand_cmds.h"
 
 #define LLDP_MOD_MAND	1
 
@@ -51,7 +52,4 @@ void mand_unregister(struct lldp_module *mod);
 struct packed_tlv *mand_gettlv(struct port *port);
 void mand_ifdown(char *);
 void mand_ifup(char *);
-int mand_clif_cmd(void *, struct sockaddr_un *,
-		  socklen_t , char *, int, char *);
-
 #endif /* _LLDP_MAND_H */

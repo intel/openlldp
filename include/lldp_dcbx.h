@@ -88,6 +88,6 @@ void dcbx_ifdown(char *device_name);
 struct lldp_module *dcbx_register(void);
 void dcbx_unregister(struct lldp_module *);
 int dcbx_clif_cmd(void *, struct sockaddr_un *,
-		  socklen_t , char *, int, char *);
+		  socklen_t , char *, int, char *, int);
 
 #endif /* _LLDP_DCBX_H */

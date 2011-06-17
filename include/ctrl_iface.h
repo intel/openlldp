@@ -53,36 +53,36 @@ int ctrl_iface_init(struct clif_data *clifd);
 int ctrl_iface_register(struct clif_data *clifd);
 void ctrl_iface_deinit(struct clif_data *clifd);
 void ctrl_iface_send(struct clif_data *clifd, int level, u32 moduleid,
-				char *buf, size_t len);
+		     char *buf, size_t len);
 
 int clif_iface_attach(struct clif_data *clifd,
-				struct sockaddr_un *from,
-				socklen_t fromlen,
-				char *ibuf, int ilen,
-				char *rbuf);
+		      struct sockaddr_un *from,
+		      socklen_t fromlen,
+		      char *ibuf, int ilen,
+		      char *rbuf, int rlen);
 int clif_iface_detach(struct clif_data *clifd,
-				struct sockaddr_un *from,
-				socklen_t fromlen,
-				char *ibuf, int ilen,
-				char *rbuf);
+		      struct sockaddr_un *from,
+		      socklen_t fromlen,
+		      char *ibuf, int ilen,
+		      char *rbuf, int rlen);
 int clif_iface_level(struct clif_data *clifd,
-				struct sockaddr_un *from,
-				socklen_t fromlen,
-				char *ibuf, int ilen,
-				char *rbuf);
+		     struct sockaddr_un *from,
+		     socklen_t fromlen,
+		     char *ibuf, int ilen,
+		     char *rbuf, int rlen);
 int clif_iface_ping(struct clif_data *clifd,
-				struct sockaddr_un *from,
-				socklen_t fromlen,
-				char *ibuf, int ilen,
-				char *rbuf);
+		    struct sockaddr_un *from,
+		    socklen_t fromlen,
+		    char *ibuf, int ilen,
+		    char *rbuf, int rlen);
 int clif_iface_cmd_unknown(struct clif_data *clifd,
-				struct sockaddr_un *from,
-				socklen_t fromlen,
-				char *ibuf, int ilen,
-				char *rbuf);
+			   struct sockaddr_un *from,
+			   socklen_t fromlen,
+			   char *ibuf, int ilen,
+			   char *rbuf, int rlen);
 int clif_iface_module(struct clif_data *clifd,
-				struct sockaddr_un *from,
-				socklen_t fromlen,
-				char *ibuf, int ilen,
-				char *rbuf);
+		      struct sockaddr_un *from,
+		      socklen_t fromlen,
+		      char *ibuf, int ilen,
+		      char *rbuf, int rlen);
 #endif /* CTRL_IFACE_H */
