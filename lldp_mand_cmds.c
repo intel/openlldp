@@ -151,7 +151,9 @@ int handle_get_arg(struct cmd *cmd, char *arg, char *argvalue,
 			if (!strcasecmp(ah->arg, arg) && ah->handle_get) {
 				rval = ah->handle_get(cmd, ah->arg, argvalue,
 						      obuf, obuf_len);
-				if (rval != cmd_not_applicable)
+
+				if (rval != cmd_success &&
+				    rval != cmd_not_applicable)
 					return rval;
 				else
 					break;
@@ -234,7 +236,7 @@ int handle_test_arg(struct cmd *cmd, char *arg, char *argvalue,
 {
 	struct lldp_module *np;
 	struct arg_handlers *ah;
-	int rval = cmd_success;
+	int rval = cmd_device_not_found;
 
 	LIST_FOREACH(np, &lldp_head, lldp) {
 		if (!np->ops->get_arg_handler)
@@ -255,7 +257,7 @@ int handle_test_arg(struct cmd *cmd, char *arg, char *argvalue,
 		}
 	}
 
-	return cmd_success;
+	return rval;
 }
 
 int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
@@ -263,7 +265,7 @@ int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
 {
 	struct lldp_module *np;
 	struct arg_handlers *ah;
-	int rval = cmd_success;
+	int rval = cmd_invalid;
 
 	LIST_FOREACH(np, &lldp_head, lldp) {
 		if (!np->ops->get_arg_handler)
@@ -284,7 +286,7 @@ int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
 		}
 	}
 
-	return cmd_success;
+	return rval;
 }
 
 
@@ -297,13 +299,16 @@ int get_tlvs(struct cmd *cmd, char *rbuf, int rlen)
 	int off = 0;
 	int moff = 0;
 	u16 type, len;
+	int res;
 
 	if (cmd->ops & op_local) {
-		if (get_local_tlvs(cmd->ifname, &tlvs[0], &size))
-			return cmd_failed;
+		res = get_local_tlvs(cmd->ifname, &tlvs[0], &size);
+		if (res)
+			return res;
 	} else if (cmd->ops & op_neighbor) {
-		if (get_neighbor_tlvs(cmd->ifname, &tlvs[0], &size))
-			return cmd_failed;
+		res = get_neighbor_tlvs(cmd->ifname, &tlvs[0], &size);
+		if (res)
+			return res;
 	} else
 		return cmd_failed;
 
@@ -377,6 +382,7 @@ int mand_clif_cmd(void  *data,
 		  char *rbuf, int rlen)
 {
 	struct cmd cmd;
+	struct port *port;
 	u8 len;
 	int ioff, roff;
 	int rstatus = cmd_invalid;
@@ -421,6 +427,11 @@ int mand_clif_cmd(void  *data,
 		 cmd.cmd, cmd.ops,
 		(unsigned int)strlen(cmd.ifname), cmd.ifname);
 	roff = strlen(rbuf);
+
+	/* Confirm port is a lldpad managed port */
+	port = port_find_by_name(cmd.ifname);
+	if (!port)
+		return cmd_device_not_found;
 
 	switch (cmd.cmd) {
 	case cmd_getstats:

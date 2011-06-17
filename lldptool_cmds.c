@@ -244,7 +244,7 @@ static char *print_status(cmd_status status)
 		str = "Failed";
 		break;
 	case cmd_device_not_found:
-		str = "Device not found or link down";
+		str = "Device not found or inactive";
 		break;
 	case cmd_invalid:
 		str = "Invalid command";

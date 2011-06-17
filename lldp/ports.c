@@ -35,6 +35,7 @@
 #include "lldp.h"
 #include "config.h"
 #include "messages.h"
+#include "clif_msgs.h"
 
 struct port *porthead = NULL; /* Head pointer */
 struct port *portcurrent = NULL; /* Working  pointer loaded from ports or
@@ -42,15 +43,17 @@ struct port *portcurrent = NULL; /* Working  pointer loaded from ports or
 
 void agent_receive(void *, const u8 *, const u8 *, size_t);
 
+/* Port routines used for command processing -- return cmd_xxx codes */
+
 int get_lldp_port_statistics(char *ifname, struct portstats *stats)
 {
 	struct port *port;
 
 	port = port_find_by_name(ifname);
 	if (!port)
-		return 1;
+		return cmd_device_not_found;
 	memcpy((void *)stats, (void *)&port->stats, sizeof(struct portstats));
-	return 0;
+	return cmd_success;
 }
 
 int get_local_tlvs(char *ifname, unsigned char *tlvs, int *size)
@@ -59,20 +62,20 @@ int get_local_tlvs(char *ifname, unsigned char *tlvs, int *size)
 
 	port = port_find_by_name(ifname);
 	if (!port)
-		return 1;
+		return cmd_device_not_found;
 
 	if (port->tx.frameout == NULL) {
 		*size = 0;
-		return 0;
+		return cmd_success;
 	}
 
 	*size = port->tx.sizeout - sizeof(struct l2_ethhdr);
 	if (*size < 0)
-		return 1;
+		return cmd_invalid;
 	memcpy((void *)tlvs,
 	       (void *)port->tx.frameout + sizeof(struct l2_ethhdr), *size);
 
-	return 0;
+	return cmd_success;
 }
 
 int get_neighbor_tlvs(char *ifname, unsigned char *tlvs, int *size)
@@ -81,20 +84,22 @@ int get_neighbor_tlvs(char *ifname, unsigned char *tlvs, int *size)
 
 	port = port_find_by_name(ifname);
 	if (!port)
-		return 1;
+		return cmd_device_not_found;
 
 	if (port->rx.framein == NULL) {
 		*size = 0;
-		return 0;
+		return cmd_success;
 	}
 
 	*size = port->rx.sizein - sizeof(struct l2_ethhdr);
 	if (*size < 0)
-		return 1;
+		return cmd_invalid;
 	memcpy((void *)tlvs,
 	       (void *)port->rx.framein + sizeof(struct l2_ethhdr), *size);
-	return 0;
+	return cmd_success;
 }
+
+/* Routines used for managing interfaces -- return std C return values */
 
 int get_lldp_port_admin(const char *ifname)
 {

@@ -81,9 +81,6 @@ static const struct clif_cmds cmd_tbl[] = {
 	{ UNKNOWN_CMD, clif_iface_cmd_unknown }
 };
 
-/*
- *	Returns a status value.  0 is successful, 1 is an error.
-*/
 int clif_iface_module(struct clif_data *clifd,
 		      struct sockaddr_un *from,
 		      socklen_t fromlen,
@@ -112,7 +109,7 @@ int clif_iface_module(struct clif_data *clifd,
 		cmd_len = ilen - MOD_ID - 2*sizeof(module_id);
 		break;
 	default:
-		return 1;
+		return cmd_invalid;
 	}
 
 	mod = find_module_by_id(&lldp_head, module_id);
@@ -121,25 +118,19 @@ int clif_iface_module(struct clif_data *clifd,
 		return  (mod->ops->client_cmd)(clifd, from, fromlen,
 			 cmd_start, cmd_len, rbuf+strlen(rbuf), rlen);
 	else
-		return 1;
+		return cmd_device_not_found;
 }
 
 
-/*
- *	Returns a status value.  0 is successful, 1 is an error.
-*/
 int clif_iface_cmd_unknown(struct clif_data *clifd,
 			   struct sockaddr_un *from,
 			   socklen_t fromlen,
 			   char *ibuf, int ilen,
 			   char *rbuf, int rlen)
 {
-	return 1;
+	return cmd_invalid;
 }
 
-/*
- *	Returns a status value.  0 is successful, 1 is an error.
-*/
 int clif_iface_ping(struct clif_data *clifd,
 		    struct sockaddr_un *from,
 		    socklen_t fromlen,
@@ -151,10 +142,6 @@ int clif_iface_ping(struct clif_data *clifd,
 	return 0;
 }
 
-
-/*
- *	Returns a status value.  0 is successful, 1 is an error.
-*/
 int clif_iface_attach(struct clif_data *clifd,
 		      struct sockaddr_un *from,
 		      socklen_t fromlen,
@@ -233,12 +220,9 @@ err_tlv:
 	LLDPAD_DBG("CTRL_IFACE monitor attach error\n");
 	snprintf(rbuf, rlen, "%c", ATTACH_CMD);
 
-	return -1;
+	return cmd_failed;
 }
 
-/*
- *	Returns a status value.  0 is successful, 1 is an error.
-*/
 static int detach_clif_monitor(struct clif_data *clifd,
 				     struct sockaddr_un *from,
 				     socklen_t fromlen)
@@ -264,12 +248,9 @@ static int detach_clif_monitor(struct clif_data *clifd,
 		prev = dst;
 		dst = dst->next;
 	}
-	return 1;
+	return cmd_failed;
 }
 
-/*
- *	Returns a status value.  0 is successful, 1 is an error.
-*/
 int clif_iface_detach(struct clif_data *clifd,
 				     struct sockaddr_un *from,
 				     socklen_t fromlen,
@@ -280,10 +261,6 @@ int clif_iface_detach(struct clif_data *clifd,
 	return detach_clif_monitor(clifd, from, fromlen);
 }
 
-
-/*
- *	Returns a status value.  0 is successful, 1 is an error.
-*/
 int clif_iface_level(struct clif_data *clifd,
 				    struct sockaddr_un *from,
 				    socklen_t fromlen,
@@ -310,7 +287,7 @@ int clif_iface_level(struct clif_data *clifd,
 		dst = dst->next;
 	}
 
-	return 1;
+	return cmd_failed;
 }
 
 static int find_cmd_entry(int cmd)
@@ -344,8 +321,8 @@ static void process_clif_cmd(  struct clif_data *cd,
 					 *rlen - strlen(rbuf) - 1);
 
 	/* update status and compute final length */
-	rbuf[CLIF_STAT_OFF] = hexlist[ (status & 0x0f0) >> 4 ];
-	rbuf[CLIF_STAT_OFF+1] = hexlist[ status & 0x0f ];
+	rbuf[CLIF_STAT_OFF] = hexlist[(status & 0x0f1) >> 4];
+	rbuf[CLIF_STAT_OFF+1] = hexlist[status & 0x0f];
 	*rlen = strlen(rbuf);
 }
 
