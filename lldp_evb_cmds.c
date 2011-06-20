@@ -23,13 +23,15 @@
 
 *******************************************************************************/
 
+#define _GNU_SOURCE
+#include <string.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <syslog.h>
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
-#include <string.h>
 #include "lldpad.h"
 #include "ctrl_iface.h"
 #include "lldp.h"

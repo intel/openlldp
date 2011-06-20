@@ -23,6 +23,8 @@
 
 *******************************************************************************/
 
+#define _GNU_SOURCE
+
 #include <net/if.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
@@ -41,6 +43,7 @@
 #include "lldp_mand_clif.h"
 #include "lldp_evb_clif.h"
 #include "lldp_evb_cmds.h"
+
 
 extern struct lldp_head lldp_head;
 
