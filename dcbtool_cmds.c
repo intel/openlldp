@@ -477,8 +477,6 @@ void print_dcb_cmd_response(char *buf, int status)
 		doff = DCB_PORT_OFF + plen;
 	}
 
-
-	printf("Version:   \t%d\n", version);
 	if (version != CLIF_MSG_VERSION) {
 		printf("Unsupported client interface message version: %d\n",
 			version);
