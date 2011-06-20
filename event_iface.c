@@ -1,7 +1,7 @@
 /*******************************************************************************
 
   LLDP Agent Daemon (LLDPAD) Software
-  Copyright(c) 2007-2010 Intel Corporation.
+  Copyright(c) 2007-2011 Intel Corporation.
 
   implementation of libvirt netlink interface
   (c) Copyright IBM Corp. 2010
@@ -777,25 +777,26 @@ static void event_iface_receive_user_space(int sock, void *eloop_ctx, void *sock
 			LLDPAD_DBG("RTM_GETLINK\n");
 
 			err = event_if_parse_getmsg(nlh, &ifindex, ifname);
-
 			if (err) {
 				nl_msg = event_if_simpleResponse(nlh->nlmsg_pid,
 								 nlh->nlmsg_seq,
 								 err);
-			} else if (ifname) {
+				nlh2 = nlmsg_hdr(nl_msg);
+				break;
+			}
+			if (ifname) {
 				ifindex = if_nametoindex(ifname);
-				LLDPAD_DBG("%s(%i): ifname %s (%d)\n", __func__,
-				       __LINE__, ifname, ifindex);
+				LLDPAD_DBG("%s: ifname %s (%d)\n", __func__,
+				       ifname, ifindex);
 			} else {
-				LLDPAD_DBG("%s(%i): ifindex %i\n", __func__,
-				       __LINE__, ifindex);
+				LLDPAD_DBG("%s: ifindex %i\n", __func__,
+				       ifindex);
 			}
 
 			nl_msg = event_if_constructResponse(nlh, ifindex);
-
 			if (!nl_msg) {
-				LLDPAD_ERR("%s(%i): Unable to construct response !\n",
-				       __func__, __LINE__);
+				LLDPAD_ERR("%s: Unable to construct response\n",
+				       __func__);
 				goto out_err;
 			}
 
@@ -806,9 +807,14 @@ static void event_iface_receive_user_space(int sock, void *eloop_ctx, void *sock
 			event_if_parseResponseMsg(nlh2);
 
 			break;
+
+		default:
+			LLDPAD_ERR("%s: Unknown type: %d\n",
+				   __func__, nlh->nlmsg_type);
+			goto out_err2;
 	}
 
-	iov.iov_base = (void*)nlh2;
+	iov.iov_base = (void *)nlh2;
 	iov.iov_len = nlh2->nlmsg_len;
 
 	msg.msg_name = (void *)&dest_addr;
@@ -821,12 +827,13 @@ static void event_iface_receive_user_space(int sock, void *eloop_ctx, void *sock
 	if (result < 0) {
 		LLDPAD_ERR("Error sending on netlink socket (%s) !\n", strerror(errno));
 	} else {
-		LLDPAD_DBG("Sent %d bytes !\n",result);
+		LLDPAD_DBG("Sent %d bytes !\n", result);
 	}
 
 out_err:
-	free(nlh);
 	nlmsg_free(nl_msg);
+out_err2:
+	free(nlh);
 
 	return;
 }
