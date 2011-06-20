@@ -287,6 +287,7 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 
 	if (!ed->tie) {
 		free(ed->policy);
+		ed->policy = NULL;
 		return ENOMEM;
 	}
 
@@ -311,6 +312,8 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 	if (!ed->last) {
 		free(ed->policy);
 		free(ed->tie);
+		ed->policy = NULL;
+		ed->tie = NULL;
 		return ENOMEM;
 	}
 

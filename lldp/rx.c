@@ -250,7 +250,8 @@ void rxProcessFrame(struct port * port)
 				port->msap.msap1 = (u8 *)malloc(tlv->length);
 				if (!(port->msap.msap1)) {
 					LLDPAD_DBG("ERROR: Failed to malloc "
-						"space for msap1 \n");
+						"space for msap1\n");
+					free_unpkd_tlv(tlv);
 					goto out;
 				}
 				memcpy(port->msap.msap1, tlv->info,
@@ -281,7 +282,8 @@ void rxProcessFrame(struct port * port)
 				port->msap.msap2 = (u8 *)malloc(tlv->length);
 				if (!(port->msap.msap2)) {
 					LLDPAD_DBG("ERROR: Failed to malloc "
-						"space for msap2 \n");
+						"space for msap2\n");
+					free_unpkd_tlv(tlv);
 					goto out;
 				}
 				memcpy(port->msap.msap2, tlv->info, tlv->length);

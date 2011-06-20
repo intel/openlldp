@@ -175,10 +175,11 @@ int clif_iface_attach(struct clif_data *clifd,
 	/* set default string to DCBX Events */
 	if (ibuf[1] == '\0') {
 		u32 hex = LLDP_MOD_DCBX;
-		tlv = malloc(sizeof(char) * (8 + 1));
+		tlv = malloc(sizeof(char) * (8 + 2));
 		if (!tlv)
 			goto err_tlv;
 		tlv[0] = 'A';
+		tlv[9] = 0;
 		bin2hexstr((u8*)&hex, 4, &tlv[1], 8);
 	} else
 		tlv = strdup(ibuf);

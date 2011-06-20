@@ -183,8 +183,7 @@ void ecp_rx_send_ack_frame(struct vdp_data *vd)
  */
 void ecp_rx_ReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t len)
 {
-
-	struct vdp_data *vd = NULL;
+	struct vdp_data *vd;
 	struct port *port;
 	u8  frame_error = 0;
 	u16 tlv_offset;
@@ -192,8 +191,12 @@ void ecp_rx_ReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t 
 	struct l2_ethhdr example_hdr,*ex;
 	struct ecp_hdr *ecp_hdr;
 
-	if (ctx)
-		vd = (struct vdp_data *)ctx;
+	if (!ctx) {
+		LLDPAD_WARN("%s: no ctx - can't process frame\n", __func__);
+		return;
+	}
+
+	vd = (struct vdp_data *)ctx;
 
 	port = port_find_by_name(vd->ifname);
 
@@ -377,6 +380,14 @@ void ecp_rx_ProcessFrame(struct vdp_data *vd)
 		if (tlv_offset > vd->ecp.rx.sizein) {
 			LLDPAD_ERR("%s(%i)-%s: ERROR: Frame overrun! tlv_offset %i, sizein %i cnt %i\n",
 			       __func__, __LINE__, vd->ifname, tlv_offset, vd->ecp.rx.sizein, tlv_cnt);
+			frame_error++;
+			goto out;
+		}
+
+		if (tlv_offset + 2 > vd->ecp.rx.sizein) {
+			LLDPAD_WARN("%s: tlv end of frame problem, size=%d, "
+				    "offset=%d\n",
+				    __func__, vd->ecp.rx.sizein, tlv_offset);
 			frame_error++;
 			goto out;
 		}
