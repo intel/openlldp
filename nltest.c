@@ -1155,12 +1155,12 @@ void print_pfc(struct ieee_pfc *pfc)
 
 	printf("\t requests: ");
 	for (i = 0; i < 8; i++)
-		printf("%i ", pfc->requests[i]);
+		printf("%lli ", pfc->requests[i]);
 	printf("\n");
 
 	printf("\t requests: ");
 	for (i = 0; i < 8; i++)
-		printf("%i ", pfc->indications[i]);
+		printf("%lli ", pfc->indications[i]);
 	printf("\n");
 }
 
@@ -1299,7 +1299,7 @@ int get_ieee(char *ifname)
 	if (ieee[DCB_ATTR_IEEE_APP_TABLE]) {
 		struct rtattr *i, *app_list = ieee[DCB_ATTR_IEEE_APP_TABLE];
 		int rem = RTA_PAYLOAD(app_list);
-		printf("APP: %i\n");
+		printf("APP:\n");
 		for (i = RTA_DATA(app_list);
 		     RTA_OK(i, rem);
 		     i = RTA_NEXT(i, rem))

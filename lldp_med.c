@@ -905,6 +905,7 @@ void med_ifup(char *ifname)
 	LIST_INSERT_HEAD(&mud->head, md, entry);
 	LLDPAD_INFO("%s:port %s added\n", __func__, ifname);
 	return;
+
 out_err:
 	LLDPAD_INFO("%s:port %s adding failed\n", __func__, ifname);
 	return;
@@ -917,13 +918,13 @@ struct lldp_module *med_register(void)
 
 	mod = malloc(sizeof(*mod));
 	if (!mod) {
-		LLDPAD_ERR(" failed to malloc LLDP-MED module data");
+		LLDPAD_ERR("failed to malloc LLDP-MED module data\n");
 		goto out_err;
 	}
 	mud = malloc(sizeof(struct med_user_data));
 	if (!mud) {
 		free(mod);
-		LLDPAD_ERR(" failed to malloc LLDP-MED module user data");
+		LLDPAD_ERR("failed to malloc LLDP-MED module user data\n");
 		goto out_err;
 	}
 	LIST_INIT(&mud->head);
@@ -933,6 +934,7 @@ struct lldp_module *med_register(void)
 
 	LLDPAD_INFO("%s:done\n", __func__);
 	return mod;
+
 out_err:
 	LLDPAD_INFO("%s:failed\n", __func__);
 	return NULL;

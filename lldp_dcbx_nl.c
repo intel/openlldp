@@ -1,7 +1,7 @@
 /*******************************************************************************
 
   LLDP Agent Daemon (LLDPAD) Software
-  Copyright(c) 2007-2010 Intel Corporation.
+  Copyright(c) 2007-2011 Intel Corporation.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -161,7 +161,7 @@ static int send_msg(struct nlmsghdr *nlh)
 	do {
 		r = sendto(nl_sd, buf, len, 0, (struct sockaddr *)&nladdr,
 			sizeof(nladdr));
-		LLDPAD_DBG("send_msg: sendto = ", r);
+		LLDPAD_DBG("send_msg: sendto = %d\n", r);
 
 	} while (r < 0 && errno == EINTR);
 

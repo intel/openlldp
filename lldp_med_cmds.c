@@ -1,7 +1,7 @@
 /*******************************************************************************
 
   LLDP Agent Daemon (LLDPAD) Software
-  Copyright(c) 2007-2010 Intel Corporation.
+  Copyright(c) 2007-2011 Intel Corporation.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -313,7 +313,7 @@ static int _set_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_failed;
 	}
 
-	snprintf(obuf, obuf_len, "devtype = %i\n", value);
+	snprintf(obuf, obuf_len, "devtype = %li\n", value);
 
 	somethingChangedLocal(cmd->ifname);
 

@@ -300,21 +300,21 @@ static int get_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
 		goto out_free;
 
 	if (ed->policy->scap & LLDP_EVB_CAPABILITY_PROTOCOL_RTE) {
-		c = sprintf(s, VAL_EVB_CAPA_RTE " ");
+		c = sprintf(s, "%s ", VAL_EVB_CAPA_RTE);
 		if (c <= 0)
 			goto out_free;
 		s += c;
 	}
 
 	if (ed->policy->scap & LLDP_EVB_CAPABILITY_PROTOCOL_ECP) {
-		c = sprintf(s, VAL_EVB_CAPA_ECP " ");
+		c = sprintf(s, "%s ", VAL_EVB_CAPA_ECP);
 		if (c <= 0)
 			goto out_free;
 		s += c;
 	}
 
 	if (ed->policy->scap & LLDP_EVB_CAPABILITY_PROTOCOL_VDP) {
-		c = sprintf(s, VAL_EVB_CAPA_VDP " ");
+		c = sprintf(s, "%s ", VAL_EVB_CAPA_VDP);
 		if (c <= 0)
 			goto out_free;
 		s += c;

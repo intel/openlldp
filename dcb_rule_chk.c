@@ -1,7 +1,7 @@
 /*******************************************************************************
 
   LLDP Agent Daemon (LLDPAD) Software
-  Copyright(c) 2007-2010 Intel Corporation.
+  Copyright(c) 2007-2011 Intel Corporation.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -79,7 +79,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 					link_strict_pgid = pg->tx.up[i].pgid;
 				} else if (pg->tx.up[i].pgid != link_strict_pgid) {
 					LLDPAD_INFO("Too many LSP pgid %d\n",
-						"%d", (int)pg->tx.up[i].pgid);
+						(int)pg->tx.up[i].pgid);
 					return dcb_bad_params;
 				}
 			}
@@ -221,8 +221,8 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 			 */
 			if (rx_link_strict[i]) {
 				if (rx_bw_sum[i] && pg->rx.pg_percent[i]) {
-					LLDPAD_INFO("Non-zero BW on LSP tc\n",
-						i, (int)rx_bw_sum[i]);
+					LLDPAD_INFO("Non-zero BW on LSP tc "
+						"%u %u\n", i, rx_bw_sum[i]);
 					/* Link strict group should have zero bw */
 					return dcb_bad_params;
 				}
