@@ -6,7 +6,7 @@
 .\"
 .TH dcbtool 8 "June 29, 2009"
 .SH NAME
-dcbtool \- manage the Data Center Bridging (DCB) settings of a DCB interface
+dcbtool \- manage the Data Center Bridging (DCB) settings of a CEE DCB interface
 .SH SYNOPSIS
 .B dcbtool -h
 .br
@@ -19,7 +19,7 @@ dcbtool \- manage the Data Center Bridging (DCB) settings of a DCB interface
 .SH DESCRIPTION
 .B dcbtool
 is used to query and set the DCB settings of a
-DCB capable Ethernet interface.  It connects to the client interface
+Converged Enhanced Ethernet (CEE) DCB capable Ethernet interface.  It connects to the client interface
 of
 .B lldpad
 to perform these operations.
@@ -31,7 +31,11 @@ In interactive mode,
 also functions as an event listener and will print out events
 received from
 .B lldpad
-as they arrive.
+as they arrive. 802.1Qaz DCBX is not controllable from
+.B dcbtool
+instead
+.B lldptool
+can be used in this case. 
 .SH OPTIONS
 .TP
 .B \-h

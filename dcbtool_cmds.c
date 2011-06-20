@@ -80,6 +80,9 @@ static char *print_status(cmd_status status)
 	case cmd_not_capable:
 		str = "Device not capable";
 		break;
+	case cmd_not_applicable:
+		str = "Command not applicable in IEEE-DCBX modes";
+		break;
 	default:
 		str = "Unknown status";
 		break;

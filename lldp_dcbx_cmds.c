@@ -203,11 +203,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	if (set_cfg(cmd->ifname, arg_path, (void *)&value, CONFIG_TYPE_BOOL))
 		return cmd_failed;
 
-	/* if DCBX tlv is changed to disabled, then ensure all DCBX features
-	 * are set to 'not advertise'
-	 */
 	dont_advertise_dcbx_all(cmd->ifname, value);
-
 	somethingChangedLocal(cmd->ifname);
 
 	return cmd_success;
@@ -492,6 +488,8 @@ int dcbx_clif_cmd(void *data,
 	pfc_attribs pfc_data;
 	app_attribs app_data;
 	llink_attribs llink_data;
+	struct port *port;
+	struct dcbx_tlvs *dcbx;
 
 	data = (struct clif_data *) data;
 
@@ -527,7 +525,17 @@ int dcbx_clif_cmd(void *data,
 	memcpy(port_id, ibuf+DCB_PORT_OFF, plen);
 	port_id[plen] = '\0';
 
-	/* check that interface is present and in DCB state */
+	/* Confirm port is a lldpad managed port */
+	port = port_find_by_name(port_id);
+	if (!port)
+		return dcb_device_not_found;
+
+	/* DCBTOOL is not applicable in IEEE-DCBX modes */
+	dcbx = dcbx_data(port->ifname);
+	if (!dcbx || dcbx->active == 0)
+		return cmd_not_applicable;
+
+	/* check that DCB features is supported and in DCB state */
 	if (feature != FEATURE_DCB && check_port_dcb_mode(port_id) == false)
 		return dcb_device_not_found;
 
