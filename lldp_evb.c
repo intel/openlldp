@@ -35,6 +35,7 @@
 #include "lldp.h"
 #include "lldp_tlv.h"
 #include "lldp_evb.h"
+#include "lldp_vdp.h"
 #include "messages.h"
 #include "config.h"
 #include "lldp_mand_clif.h"
@@ -133,7 +134,6 @@ static void evb_update_tlv(struct evb_data *ed)
 static int evb_bld_cfg_tlv(struct evb_data *ed)
 {
 	int rc = 0;
-	int i;
 	struct unpacked_tlv *tlv = NULL;
 
 	/* free ed->evb if it exists */
@@ -490,9 +490,7 @@ int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie)
  */
 static int evb_rchange(struct port *port, struct unpacked_tlv *tlv)
 {
-	int i;
 	struct evb_data *ed;
-	struct tlv_info_evb *tie = (struct tlv_info_evb *) tlv->info;
 	u8 oui_subtype[OUI_SUB_SIZE] = LLDP_OUI_SUBTYPE;
 
 	ed = evb_data(port->ifname);

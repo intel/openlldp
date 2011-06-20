@@ -9,7 +9,7 @@ noinst_PROGRAMS = nltest
 AM_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR="\"${sysconfdir}\""
 
 ## system requires a shared libconfig
-AM_CFLAGS = $(LIBCONFIG_CFLAGS)
+AM_CFLAGS = -Wall $(LIBCONFIG_CFLAGS)
 AM_LDFLAGS = $(LIBCONFIG_LIBS)
 
 ## header files to be installed, for programs using the client interface to lldpad 

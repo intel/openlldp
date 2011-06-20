@@ -35,7 +35,7 @@
 #include "lldp_mod.h"
 #include "lldp_mand.h"
 #include "lldp_evb.h"
-#include "include/lldp_vdp.h"
+#include "lldp_vdp.h"
 
 void ecp_tx_run_sm(struct vdp_data *);
 

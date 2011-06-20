@@ -1278,7 +1278,7 @@ int get_ieee(char *ifname)
 	}
 
 	if (tb[DCB_ATTR_IFNAME]) {
-		printf("\tifname %s\n", RTA_DATA(tb[DCB_ATTR_IFNAME]));
+		printf("\tifname %s\n", (char *)RTA_DATA(tb[DCB_ATTR_IFNAME]));
 	} else {
 		printf("Missing DCB_ATTR_IFNAME attribute!\n");
 		return -1;
@@ -1522,7 +1522,7 @@ int main(int argc, char *argv[])
 					{1, 2, 3, 4, 1, 2, 3, 4},
 					{1, 2, 3, 4, 1, 2, 3, 4} };
 		struct ieee_pfc pfc = {0xf1, 0, 0, 0x32};
-		struct dcb_app app = {0, 0x8906, 4};
+		struct dcb_app app = {0, 4, 0x8906};
 
 		set_ieee(argv[1], &ets, &pfc, &app);
 	}

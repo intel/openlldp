@@ -61,6 +61,9 @@
 
 #define MAX_PAYLOAD 4096 /* maximum payload size */
 
+extern unsigned int if_nametoindex(const char *);
+extern char *if_indextoname(unsigned int, char *);
+
 static struct nla_policy ifla_vf_policy[IFLA_VF_MAX + 1] =
 {
 	[IFLA_VF_MAC] = { .minlen = sizeof(struct ifla_vf_mac),
@@ -468,7 +471,6 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 			}
 
 			if (tb3[IFLA_PORT_INSTANCE_UUID]) {
-				int i;
 				unsigned char *uuid;
 				uuid = (unsigned char *)RTA_DATA(tb3[IFLA_PORT_INSTANCE_UUID]);
 
@@ -584,7 +586,6 @@ static void event_if_parseResponseMsg(struct nlmsghdr *nlh)
 			}
 
 			if (tb3[IFLA_PORT_INSTANCE_UUID]) {
-				int i;
 				unsigned char *uuid;
 				uuid = (unsigned char *)RTA_DATA(tb3[IFLA_PORT_INSTANCE_UUID]);
 

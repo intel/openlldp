@@ -1272,7 +1272,6 @@ int dcbx_remove_all(void)
 /* Function to find all the dcb devices from store and remove them. */
 void remove_all_adapters()
 {
-	char sTmp[MAX_DEVICE_NAME_LEN*2];
 	struct port *port, *p;
 
 	port = porthead;
@@ -2421,7 +2420,8 @@ void CopyConfigToOper(char *device_name, u32 SrcFlag, u32 EventFlag,
 
 		/* Get the Local or Peer store */
 		pg_it Src;
-		pg_it localSrc;
+		pg_it localSrc = NULL;
+
 		if (SrcFlag == LOCAL_STORE) {
 			Src = pg_find(&pg, device_name);
 			if (Src == NULL)

@@ -255,7 +255,6 @@ static int get_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
 	if (!vd) {
 		LLDPAD_ERR("%s(%i): vdp_data for %s not found !\n",
 			    __func__, __LINE__, cmd->ifname);
-		free(t);
 		return cmd_invalid;
 	}
 
@@ -283,7 +282,6 @@ static int get_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
 static void str2instance(struct vsi_profile *profile, char *buffer)
 {
 	int i, j = 0;
-	char instance[INSTANCE_STRLEN+2];
 
 	for(i=0; i <= strlen(buffer); i++) {
 		if (buffer[i] == '-') {
@@ -447,7 +445,6 @@ static int test_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
 static int get_arg_role(struct cmd *cmd, char *arg, char *argvalue,
 			char *obuf, int obuf_len)
 {
-	char arg_path[VDP_BUF_SIZE];
 	struct vdp_data *vd;
 
 	if (cmd->cmd != cmd_gettlv)

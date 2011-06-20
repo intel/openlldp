@@ -27,7 +27,7 @@
 #define _ECP_H
 
 #include "lldp_mod.h"
-#include "include/lldp_vdp.h"
+#include "lldp_vdp.h"
 
 #define ECP_SUBTYPE			0x0
 
@@ -100,6 +100,21 @@ static const char *ecp_rx_states[] = {
 	"ECP_RX_RESEND_ACK",
 };
 
-void ecp_rx_ReceiveFrame(void *, unsigned int, const u8 *, size_t );
+
+struct vdp_data;
+
+void ecp_rx_ReceiveFrame(void *, unsigned int, const u8 *, size_t);
+void ecp_rx_run_sm(struct vdp_data *);
+void ecp_print_frameout(struct vdp_data *);
+u8 ecp_txFrame(struct vdp_data *);
+void ecp_tx_run_sm(struct vdp_data *);
+bool ecp_ackTimer_expired(struct vdp_data *);
+void ecp_rx_change_state(struct vdp_data *, u8 newstate);
+int ecp_stop_ack_timer(struct vdp_data *vd);
+int ecp_start_ack_timer(struct vdp_data *vd);
+void ecp_tx_stop_ackTimer(struct vdp_data *);
+int ecp_start_localchange_timer(struct vdp_data *vd);
+int ecp_init(char *ifname);
+int ecp_deinit(char *ifname);
 
 #endif /* _ECP_H */

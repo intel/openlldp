@@ -33,6 +33,6 @@
 
 int get_operstate(char *ifname);
 int set_operstate(char *ifname, __u8 operstate);
-int set_linkmode(char *ifname, __u8 linkmode);
+int set_linkmode(const char *ifname, __u8 linkmode);
 
 #endif

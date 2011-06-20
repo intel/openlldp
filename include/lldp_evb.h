@@ -83,4 +83,6 @@ void evb_ifdown(char *);
 void evb_ifup(char *);
 struct evb_data *evb_data(char *ifname);
 
+int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie);
+
 #endif /* _LLDP_EVB_H */

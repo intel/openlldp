@@ -133,6 +133,15 @@ void vdp_vsi_sm_station(struct vsi_profile *profile);
 struct vsi_profile *vdp_add_profile(struct vsi_profile *profile);
 void vdp_somethingChangedLocal(struct vsi_profile *profile, bool mode);
 
+void vdp_ack_profiles(struct vdp_data *vd, int seqnr);
+int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode);
+int vdp_vsis_pending(struct vdp_data *vd);
+int vdp_vsis(char *ifname);
+void vdp_print_profile(struct vsi_profile *);
+void ecp_somethingChangedLocal(struct vdp_data *vd, bool flag);
+void ecp_rx_send_ack_frame(struct vdp_data *vd);
+int instance2str(const u8 *p, char *dst, size_t size);
+
 #define MAC_ADDR_STRLEN		18
 #define INSTANCE_STRLEN		36
 

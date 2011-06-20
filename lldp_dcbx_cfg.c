@@ -40,13 +40,14 @@
 
 extern config_t lldpad_cfg;
 
+static void
 config_setting_add_app_default(config_setting_t *eth_setting, int subtype)
 {
 	config_setting_t *tmp_setting = NULL;
 	config_setting_t *tmp2_setting = NULL;
 	char abuf[32];
 
-	sprintf(abuf, "app_%d\0", subtype);
+	sprintf(abuf, "app_%d", subtype);
 
 	tmp_setting = config_setting_add(eth_setting, abuf,
 		CONFIG_TYPE_GROUP);
@@ -248,7 +249,6 @@ static int _set_persistent(char *device_name, int dcb_enable,
 	config_setting_t *setting_traffic = NULL;
 	config_setting_t *setting_value = NULL;
 	char abuf[2*DCB_MAX_TLV_LENGTH + 1];
-	char *p;
 	int result, i;
 
 	dcbx_setting = config_lookup(&lldpad_cfg, DCBX_SETTING);
@@ -647,7 +647,6 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 	config_setting_t *setting_value = NULL;
 	int result = dcb_failed, i;
 	int results[MAX_USER_PRIORITIES];
-	char *p;
 	int len;
 	char abuf[32];
 

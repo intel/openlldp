@@ -429,8 +429,6 @@ int deinit_drv_if(void)
 int set_dcbx_mode(char *ifname, __u8 mode)
 {
 	struct nlmsghdr *nlh;
-	struct rtattr *rta_parent;
-	struct rtattr *rta_child;
 	int seq;
 
 	nlh = start_msg(RTM_SETDCB, DCB_CMD_SDCBX);

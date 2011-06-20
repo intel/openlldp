@@ -29,6 +29,7 @@
 #include <sys/ioctl.h>
 #include <sys/utsname.h>
 #include <linux/if_bridge.h>
+#include "eloop.h"
 #include "lldp.h"
 #include "lldp_evb.h"
 #include "lldp_vdp.h"

@@ -108,7 +108,6 @@ done:
 /* return: 1 = success, 0 = failed */
 int lldpad_shm_set_msap(const char *device_name, int type, char *info, size_t len)
 {
-	char *p;
 	int shmid;
 	struct lldpad_shm_tbl *shmaddr=NULL;
 	pid_t rval = 0;

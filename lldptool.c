@@ -34,6 +34,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <signal.h>
+#include <ctype.h>
 
 #include "clif.h"
 #include "lldp_mand_clif.h"

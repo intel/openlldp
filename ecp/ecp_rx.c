@@ -35,6 +35,7 @@
 #include "clif_msgs.h"
 #include "lldp_mand.h"
 #include "lldp_vdp.h"
+#include "ecp.h"
 
 void ecp_rx_run_sm(struct vdp_data *);
 

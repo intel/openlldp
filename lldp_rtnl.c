@@ -104,21 +104,8 @@ static void add_rtattr(struct nlmsghdr *n, int type, const void *data, int alen)
 	n->nlmsg_len = NLMSG_ALIGN(n->nlmsg_len) + RTA_ALIGN(len);
 }
 
-static struct rtattr *add_rtattr_nest(struct nlmsghdr *n, int type)
-{
-	struct rtattr *nest = NLMSG_TAIL(n);
-
-	add_rtattr(n, type, NULL, 0);
-	return nest;
-}
-
-static void end_rtattr_nest(struct nlmsghdr *n, struct rtattr *nest)
-{
-	nest->rta_len = (void *)NLMSG_TAIL(n) - (void *)nest;
-}
-
 static ssize_t rtnl_send_linkmode(int s, int ifindex,
-				  char *ifname, __u8 linkmode)
+				  const char *ifname, __u8 linkmode)
 {
 	struct {
 		struct nlmsghdr nh;
@@ -144,7 +131,7 @@ static ssize_t rtnl_send_linkmode(int s, int ifindex,
 	return send(s, &req, req.nh.nlmsg_len, 0);
 }
 
-static int rtnl_set_linkmode(int ifindex, char *ifname, __u8 linkmode)
+static int rtnl_set_linkmode(int ifindex, const char *ifname, __u8 linkmode)
 {
 	int s;
 	int rc;
@@ -281,7 +268,7 @@ int get_operstate(char *ifname)
 	return operstate;
 }
 
-int set_linkmode(char *ifname, __u8 linkmode)
+int set_linkmode(const char *ifname, __u8 linkmode)
 {
 	return rtnl_set_linkmode(0, ifname, linkmode);
 }
@@ -295,8 +282,11 @@ int get_perm_hwaddr(const char *ifname, u8 *buf_perm, u8 *buf_san)
 	struct {
 		struct nlmsghdr nh;
 		struct dcbmsg d;
-		char attrbuf[RTA_SPACE(DCB_ATTR_IFNAME) + 
-			     RTA_SPACE(DCB_ATTR_PERM_HWADDR)];
+		union {
+			struct rtattr rta;
+			char attrbuf[RTA_SPACE(DCB_ATTR_IFNAME) +
+				     RTA_SPACE(DCB_ATTR_PERM_HWADDR)];
+		} u;
 	} req = {
 		.nh = {
 			.nlmsg_len = NLMSG_LENGTH(sizeof(struct dcbmsg)),
@@ -335,7 +325,7 @@ int get_perm_hwaddr(const char *ifname, u8 *buf_perm, u8 *buf_san)
 		goto out;
 	}
 
-	rta = (struct rtattr *) &req.attrbuf;
+	rta = &req.u.rta;
 	if (rta->rta_type != DCB_ATTR_PERM_HWADDR) {
 		/* Do we really want to code up an attribute parser?? */
 		rc = -EIO;

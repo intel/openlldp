@@ -250,7 +250,7 @@ bld_netaddr:
 
 	/* use ifname */
 	chassis.sub = CHASSIS_ID_INTERFACE_NAME;
-	strncpy(chassis.id.ifname, md->ifname, IFNAMSIZ);
+	strncpy((char *)chassis.id.ifname, md->ifname, IFNAMSIZ);
 	length = strlen(md->ifname) + sizeof(chassis.sub);
 
 bld_tlv:
@@ -396,7 +396,7 @@ bld_macaddr:
 
 	/* use ifname */
 	portid.sub = PORT_ID_INTERFACE_NAME;
-	strncpy(portid.id.ifname, md->ifname, IFNAMSIZ);
+	strncpy((char *)portid.id.ifname, md->ifname, IFNAMSIZ);
 	length = strlen(md->ifname) + sizeof(portid.sub);
 
 bld_tlv:

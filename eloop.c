@@ -17,6 +17,8 @@
 #include <signal.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/time.h>
+#include <unistd.h>
 #include "eloop.h"
 
 typedef long os_time_t;

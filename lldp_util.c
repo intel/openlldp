@@ -49,6 +49,7 @@
 #include "lldp.h"
 #include "lldp_util.h"
 #include "messages.h"
+#include "lldp_dcbx_nl.h"
 
 static int hex2num(char c)
 {

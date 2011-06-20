@@ -36,6 +36,8 @@
 #include "config.h"
 #include "messages.h"
 #include "clif_msgs.h"
+#include "lldp_rtnl.h"
+#include "lldp_dcbx_nl.h"
 
 struct port *porthead = NULL; /* Head pointer */
 struct port *portcurrent = NULL; /* Working  pointer loaded from ports or

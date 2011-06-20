@@ -63,6 +63,10 @@ const char * const vsi_states[] = {
 	[VSI_EXIT] = "VSI_EXIT",
 };
 
+int vdp_start_localchange_timer(struct vsi_profile *p);
+int vdp_remove_profile(struct vsi_profile *profile);
+int vdp_profile_equal(struct vsi_profile *p1, struct vsi_profile *p2);
+
 /* vdp_data - searches vdp_data in the list of modules for this port
  * @ifname: interface name to search for
  *

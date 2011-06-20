@@ -102,9 +102,6 @@ void scan_port(void *eloop_data, void *user_ctx)
 {
 	struct port *port;
 	struct if_nameindex *nameidx, *p;
-	struct lldp_module *np;
-	const struct lldp_mod_ops *ops;
-	int err;
 
 	LLDPAD_INFO("%s: NLMSG dropped, scan ports.\n", __func__);
 
@@ -172,7 +169,6 @@ void scan_port(void *eloop_data, void *user_ctx)
 		p++;
 	}
 
-err_out:
 	if_freenameindex(nameidx);
 	return;
 error_out:
@@ -255,14 +251,6 @@ static bool check_int(int int_setting)
 static bool check_priority(int priority_setting)
 {
 	if (priority_setting < dcb_none || priority_setting >= dcb_invalid)
-		return false;
-	else
-		return true;
-}
-
-static bool check_double(double double_setting)
-{
-	if (double_setting < 0 )
 		return false;
 	else
 		return true;

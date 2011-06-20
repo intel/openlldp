@@ -295,7 +295,7 @@ out_err:
 static int basman_bld_syscaps_tlv(struct basman_data *bd)
 {
 	int rc = 0;
-	u32 syscaps;
+	u16 syscaps[2];
 	struct unpacked_tlv *tlv = NULL;
 
 	/* free old if it's there */
@@ -310,11 +310,10 @@ static int basman_bld_syscaps_tlv(struct basman_data *bd)
 	/* load from config */
 	if (get_config_tlvinfo_bin(bd->ifname, TLVID_NOUI(SYSTEM_CAPABILITIES_TLV),
 			      (void *)&syscaps, sizeof(syscaps))) {
-		u16 *caps = (u16 *)&syscaps;
 		LLDPAD_DBG("%s:%s:Build System Caps from scratch\n",
 			__func__, bd->ifname);
-		caps[0] = htons(get_caps(bd->ifname));
-		caps[1] = (is_active(bd->ifname)) ? caps[0] : 0;
+		syscaps[0] = htons(get_caps(bd->ifname));
+		syscaps[1] = (is_active(bd->ifname)) ? syscaps[0] : 0;
 	}
 
 	tlv = create_tlv();

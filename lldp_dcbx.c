@@ -50,6 +50,7 @@
 #include "lldp_rtnl.h"
 #include "lldp_tlv.h"
 #include "lldp_rtnl.h"
+#include "dcb_driver_interface.h"
 
 extern u8 gdcbx_subtype;
 
