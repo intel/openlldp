@@ -858,29 +858,6 @@ static void vdp_vsi_sm_bridge(struct vsi_profile *profile)
 }
 
 /*
- * vdp_print_vsi_tlv - print the raw contents of a VSI TLV
- * @tlv: the unpacked tlv which gets printed
- *
- * No return value
- *
- * used for protocol debug purposes
- */
-static void vdp_print_vsi_tlv(struct unpacked_tlv *tlv)
-{
-	int i;
-
-	LLDPAD_DBG("%s:type %i, length %i, info:\n", __func__, tlv->type, tlv->length);
-
-	for (i=0; i < tlv->length; i++) {
-		LLDPAD_DBG("%02x ", tlv->info[i]);
-		if (!((i+1) % 16))
-			LLDPAD_DBG("\n");
-	}
-
-	LLDPAD_DBG("\n");
-}
-
-/*
  * vdp_validate_tlv - validates vsi tlvs
  * @vdp: decoded vsi tlv
  *
