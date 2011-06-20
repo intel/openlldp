@@ -1238,7 +1238,7 @@ int get_arg_val_list(char *ibuf, int ilen, int *ioff,
 	int i;
 
 	/* parse out args and argvals */
-	for (i = 0; (i < MAX_ARGS) && (ilen - *ioff > 2*sizeof(arglen)); i++) {
+	for (i = 0; ilen - *ioff > 2*sizeof(arglen); i++) {
 		hexstr2bin(ibuf+*ioff, &arglen, sizeof(arglen));
 		*ioff += 2*sizeof(arglen);
 		if (ilen - *ioff >= arglen) {
@@ -1279,7 +1279,7 @@ int get_arg_list(char *ibuf, int ilen, int *ioff, char **args)
 	int i;
 
 	/* parse out args */
-	for (i = 0; (i < MAX_ARGS) && (ilen - *ioff > 2*sizeof(arglen)); i++) {
+	for (i = 0; (ilen - *ioff > 2*sizeof(arglen)); i++) {
 		hexstr2bin(ibuf+(*ioff), &arglen, sizeof(arglen));
 		*ioff += 2*sizeof(arglen);
 		if (ilen - *ioff >= arglen) {

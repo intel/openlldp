@@ -25,6 +25,7 @@
 *******************************************************************************/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <syslog.h>
 #include <sys/un.h>
 #include <sys/stat.h>
@@ -389,14 +390,11 @@ int mand_clif_cmd(void  *data,
 	u8 len;
 	int ioff, roff;
 	int rstatus = cmd_invalid;
-	char *args[MAX_ARGS+1];
-	char *argvals[MAX_ARGS+1];
+	char **args;
+	char **argvals;
 	bool test_failed = false;
 	int numargs = 0;
-	int i;
-
-	memset(args, 0, sizeof(args));
-	memset(argvals, 0, sizeof(argvals));
+	int i, offset;
 
 	/* pull out the command elements of the command message */
 	hexstr2bin(ibuf+CMD_CODE, (u8 *)&cmd.cmd, sizeof(cmd.cmd));
@@ -420,6 +418,30 @@ int mand_clif_cmd(void  *data,
 		cmd.tlvid = INVALID_TLVID;
 	}
 
+	/* count args and argvalus */
+	offset = ioff;
+	for (numargs = 0; (ilen - offset) > 2; numargs++) {
+		offset += 2;
+		if (ilen - offset > 0) {
+			offset++;
+			if (ilen - offset > 4)
+				offset += 4;
+		}
+	}
+
+	args = malloc(numargs * sizeof(char *));
+	if (!args)
+		return cmd_failed;
+
+	argvals = malloc(numargs * sizeof(char *));
+	if (!argvals) {
+		free(args);
+		return cmd_failed;
+	}
+
+	memset(args, 0, sizeof(args));
+	memset(argvals, 0, sizeof(argvals));
+
 	if ((cmd.ops & op_arg) && (cmd.ops & op_argval))
 		numargs = get_arg_val_list(ibuf, ilen, &ioff, args, argvals);
 	else if (cmd.ops & op_arg)
@@ -435,6 +457,11 @@ int mand_clif_cmd(void  *data,
 	port = port_find_by_name(cmd.ifname);
 	if (!port)
 		return cmd_device_not_found;
+
+	/* Parse command for invalid TLV counts */
+	for (i = 0; i < numargs; i++) {
+
+	}
 
 	switch (cmd.cmd) {
 	case cmd_getstats:
@@ -485,8 +512,11 @@ int mand_clif_cmd(void  *data,
 						 rlen - strlen(rbuf));
 		break;
 	default:
+		rstatus = cmd_invalid;
 		break;
 	}
 
+	free(argvals);
+	free(args);
 	return rstatus;
 }

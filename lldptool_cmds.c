@@ -40,7 +40,7 @@
 
 static char *print_status(cmd_status status);
 
-static int render_cmd(struct cmd *cmd, char **args, char **argvals)
+static int render_cmd(struct cmd *cmd, int argc, char **args, char **argvals)
 {
 	int len;
 	int i;
@@ -59,7 +59,7 @@ static int render_cmd(struct cmd *cmd, char **args, char **argvals)
 			"%08x", cmd->tlvid);
 
 	/* add any args and argvals to the command message */
-	for (i = 0; args[i]; i++) {
+	for (i = 0; i < argc; i++) {
 		snprintf(cmd->obuf+strlen(cmd->obuf), len-strlen(cmd->obuf),
 			"%02x%s", (unsigned int)strlen(args[i]), args[i]);
 		if (argvals[i])
@@ -98,13 +98,24 @@ void get_arg_value(char *str, char **arg, char **argval)
 int cli_cmd_getstats(struct clif *clif, int argc, char *argv[],
 			struct cmd *cmd, int raw)
 {
-	char *args[MAX_ARGS+1];
-	char *argvals[MAX_ARGS+1];
+	char **args;
+	char **argvals;
+
+	args = malloc(argc * sizeof(char *));
+	if (!args)
+		return cmd_failed;
+	argvals = malloc(argc * sizeof(char *));
+	if (!argvals) {
+		free(args);
+		return cmd_failed;
+	}
 
 	memset(args, 0, sizeof(args));
 	memset(argvals, 0, sizeof(argvals));
 
-	render_cmd(cmd, args, argvals);
+	render_cmd(cmd, argc, args, argvals);
+	free(args);
+	free(argvals);
 	return clif_command(clif, cmd->obuf, raw);
 }
 
@@ -112,9 +123,19 @@ int cli_cmd_gettlv(struct clif *clif, int argc, char *argv[],
 			struct cmd *cmd, int raw)
 {
 	int numargs = 0;
-	char *args[MAX_ARGS+1];
-	char *argvals[MAX_ARGS+1];
+	char **args;
+	char **argvals;
 	int i;
+
+	args = malloc(argc * sizeof(char *));
+	if (!args)
+		return cmd_failed;
+
+	argvals = malloc(argc * sizeof(char *));
+	if (!argvals) {
+		free(args);
+		return cmd_failed;
+	}
 
 	memset(args, 0, sizeof(args));
 	memset(argvals, 0, sizeof(argvals));
@@ -133,24 +154,40 @@ int cli_cmd_gettlv(struct clif *clif, int argc, char *argv[],
 	for (i = 0; i < numargs; i++) {
 		if (argvals[i]) {
 			printf("%s\n", print_status(cmd_invalid));
-			return cmd_invalid;
+			goto out;
 		}
 	}
 
-	render_cmd(cmd, args, argvals);
+	render_cmd(cmd, argc, args, argvals);
+	free(args);
+	free(argvals);
 	return clif_command(clif, cmd->obuf, raw);
+out:
+	free(args);
+	free(argvals);
+	return cmd_invalid;
 }
 
 int cli_cmd_settlv(struct clif *clif, int argc, char *argv[],
 			struct cmd *cmd, int raw)
 {
 	int numargs = 0;
-	char *args[MAX_ARGS+1];
-	char *argvals[MAX_ARGS+1];
+	char **args;
+	char **argvals;
 	int i;
 
-	memset(args, 0, sizeof(args));
-	memset(argvals, 0, sizeof(argvals));
+	args = malloc(argc * sizeof(char *));
+	if (!args)
+		return cmd_failed;
+
+	argvals = malloc(argc * sizeof(char *));
+	if (!argvals) {
+		free(args);
+		return cmd_failed;
+	}
+
+	memset(args, 0, argc * sizeof(char *));
+	memset(argvals, 0, argc * sizeof(char *));
 
 	for (i = 0; i < argc; i++)
 		get_arg_value(argv[i], &args[i], &argvals[i]);
@@ -159,15 +196,21 @@ int cli_cmd_settlv(struct clif *clif, int argc, char *argv[],
 	for (i = 0; i < numargs; i++) {
 		if (!argvals[i]) {
 			printf("%s\n", print_status(cmd_invalid));
-			return cmd_invalid;
+			goto out;
 		}
 	}
 
 	if (numargs)
 		cmd->ops |= (op_arg | op_argval);
 
-	render_cmd(cmd, args, argvals);
+	render_cmd(cmd, argc, args, argvals);
+	free(args);
+	free(argvals);
 	return clif_command(clif, cmd->obuf, raw);
+out:
+	free(args);
+	free(argvals);
+	return cmd_invalid;
 }
 
 int cli_cmd_getlldp(struct clif *clif, int argc, char *argv[],
@@ -175,9 +218,19 @@ int cli_cmd_getlldp(struct clif *clif, int argc, char *argv[],
 {
 	int numargs = 0;
 	int numargvals = 0;
-	char *args[MAX_ARGS+1];
-	char *argvals[MAX_ARGS+1];
+	char **args;
+	char **argvals;
 	int i;
+
+	args = malloc(argc * sizeof(char *));
+	if (!args)
+		return cmd_failed;
+
+	argvals = malloc(argc * sizeof(char *));
+	if (!argvals) {
+		free(args);
+		return cmd_failed;
+	}
 
 	memset(args, 0, sizeof(args));
 	memset(argvals, 0, sizeof(argvals));
@@ -192,23 +245,39 @@ int cli_cmd_getlldp(struct clif *clif, int argc, char *argv[],
 
 	if (!numargs || numargvals) {
 		printf("%s\n", print_status(cmd_invalid));
-		return cmd_invalid;
+		goto out;
 	}
 
 	if (numargs)
 		cmd->ops |= op_arg;
 
-	render_cmd(cmd, args, argvals);
+	render_cmd(cmd, argc, args, argvals);
+	free(args);
+	free(argvals);
 	return clif_command(clif, cmd->obuf, raw);
+out:
+	free(args);
+	free(argvals);
+	return cmd_invalid;
 }
 
 int cli_cmd_setlldp(struct clif *clif, int argc, char *argv[],
 			struct cmd *cmd, int raw)
 {
 	int numargs = 0;
-	char *args[MAX_ARGS+1];
-	char *argvals[MAX_ARGS+1];
+	char **args;
+	char **argvals;
 	int i;
+
+	args = malloc(argc * sizeof(char *));
+	if (!args)
+		return cmd_failed;
+
+	argvals = malloc(argc * sizeof(char *));
+	if (!argvals) {
+		free(args);
+		return cmd_failed;
+	}
 
 	memset(args, 0, sizeof(args));
 	memset(argvals, 0, sizeof(argvals));
@@ -220,15 +289,21 @@ int cli_cmd_setlldp(struct clif *clif, int argc, char *argv[],
 	for (i = 0; i < numargs; i++) {
 		if (!argvals[i]) {
 			printf("%s\n", print_status(cmd_invalid));
-			return cmd_invalid;
+			goto out;
 		}
 	}
 
 	if (numargs)
 		cmd->ops |= (op_arg | op_argval);
 
-	render_cmd(cmd, args, argvals);
+	render_cmd(cmd, argc, args, argvals);
+	free(args);
+	free(argvals);
 	return clif_command(clif, cmd->obuf, raw);
+out:
+	free(args);
+	free(argvals);
+	return cmd_invalid;
 }
 
 
@@ -287,17 +362,36 @@ u32 get_tlvid(u16 tlv_type, char* ibuf)
 
 static int print_arg_value(char *ibuf)
 {
-	int ilen;
 	int ioff = 0;
-	char *args[MAX_ARGS+1];
-	char *argvals[MAX_ARGS+1];
+	char **args;
+	char **argvals;
 	int numargs;
-	int i;
+	int i, offset;
+	int ilen = strlen(ibuf);
+
+	/* count args and argvalus */
+	offset = ioff;
+	for (numargs = 0; (ilen - offset) > 2; numargs++) {
+		offset += 2;
+		if (ilen - offset > 0) {
+			offset++;
+			if (ilen - offset > 4)
+				offset += 4;
+		}
+	}
+
+	args = malloc(numargs * sizeof(char *));
+	if (!args)
+		return cmd_failed;
+
+	argvals = malloc(numargs * sizeof(char *));
+	if (!argvals) {
+		free(args);
+		return cmd_failed;
+	}
 
 	memset(args, 0, sizeof(args));
 	memset(argvals, 0, sizeof(argvals));
-
-	ilen = strlen(ibuf);
 
 	numargs = get_arg_val_list(ibuf, ilen, &ioff, args, argvals);
 
@@ -306,6 +400,8 @@ static int print_arg_value(char *ibuf)
 		printf(" = %s\n", argvals[i]);
 	}
 
+	free(args);
+	free(argvals);
 	return ioff;
 }
 
