@@ -37,7 +37,14 @@
 #include "lldp_vdp.h"
 #include "ecp.h"
 
-void ecp_rx_run_sm(struct vdp_data *);
+static const char *ecp_rx_states[] = {
+	"ECP_RX_IDLE",
+	"ECP_RX_INIT_RECEIVE",
+	"ECP_RX_RECEIVE_WAIT",
+	"ECP_RX_RECEIVE_ECPDU",
+	"ECP_RX_SEND_ACK",
+	"ECP_RX_RESEND_ACK",
+};
 
 /* ecp_rx_Initialize - initializes the ecp rx state machine
  * @vd: vd for the state machine

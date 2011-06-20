@@ -37,7 +37,12 @@
 #include "lldp_evb.h"
 #include "lldp_vdp.h"
 
-void ecp_tx_run_sm(struct vdp_data *);
+static const char *ecp_tx_states[] = {
+	"ECP_TX_INIT_TRANSMIT",
+	"ECP_TX_TRANSMIT_ECPDU",
+	"ECP_TX_WAIT_FOR_ACK",
+	"ECP_TX_REQUEST_PDU"
+};
 
 /* ecp_somethingChangedLocal - set flag if port has changed
  * @vd: port to set the flag for

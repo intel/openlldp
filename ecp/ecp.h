@@ -75,13 +75,6 @@ enum {
 	ECP_TX_REQUEST_PDU
 };
 
-static const char *ecp_tx_states[] = {
-	"ECP_TX_INIT_TRANSMIT",
-	"ECP_TX_TRANSMIT_ECPDU",
-	"ECP_TX_WAIT_FOR_ACK",
-	"ECP_TX_REQUEST_PDU"
-};
-
 enum {
 	ECP_RX_IDLE,
 	ECP_RX_INIT_RECEIVE,
@@ -90,16 +83,6 @@ enum {
 	ECP_RX_SEND_ACK,
 	ECP_RX_RESEND_ACK,
 };
-
-static const char *ecp_rx_states[] = {
-	"ECP_RX_IDLE",
-	"ECP_RX_INIT_RECEIVE",
-	"ECP_RX_RECEIVE_WAIT",
-	"ECP_RX_RECEIVE_ECPDU",
-	"ECP_RX_SEND_ACK",
-	"ECP_RX_RESEND_ACK",
-};
-
 
 struct vdp_data;
 
