@@ -218,7 +218,7 @@ void print_dcbx_v1(u16 len, char *info)
 
 			hexstr2bin(info+offset+8, (u8 *)&pfcmap,
 				   sizeof(pfcmap));
-			printf("\t  PFC enabled priorites: ");
+			printf("\t  PFC enabled priorities: ");
 			print_comma = 0;
 			for (i = 0; i < 8; i++) {
 				if ((1<<i) & pfcmap) {
@@ -364,7 +364,7 @@ void print_dcbx_v2(u16 len, char *info)
 				   sizeof(pfcmap));
 			hexstr2bin(info+offset+10, (u8 *)&numtcs,
 				   sizeof(numtcs));
-			printf("\t  PFC enabled priorites: ");
+			printf("\t  PFC enabled priorities: ");
 			print_comma = 0;
 			for (i = 0; i < 8; i++) {
 				if ((1<<i) & pfcmap) {
