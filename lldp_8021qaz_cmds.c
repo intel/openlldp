@@ -868,9 +868,9 @@ static int get_arg_app(struct cmd *cmd, char *args, char *arg_value,
 		       char *obuf, int obuf_len)
 {
 	struct ieee8021qaz_tlvs *tlvs;
-	struct app_prio *apps;
-	int cnt, i;
-	char temp[80], app_buf[1024] = "(prio,sel,proto)\n";
+	int  i = 0;
+	struct app_obj *np;
+	char app_buf[1024] = "(prio,sel,proto)\n";
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
@@ -888,22 +888,30 @@ static int get_arg_app(struct cmd *cmd, char *args, char *arg_value,
 		return cmd_not_applicable;
 	}
 
-	apps = get_ieee_app(cmd->ifname, &cnt);
-	for (i = 0; apps && i < cnt; i++) {
-		if ((apps[i].prs & 0x07) == 1) {
-			snprintf(temp, sizeof(temp), "%i:(%i,%i,0x%0004x)\n", i,
-				(apps[i].prs & 0xE0) >> 5,
-				(apps[i].prs & 0x07),
-				apps[i].pid);
+	LIST_FOREACH(np, &tlvs->app_head, entry) {
+		char new_app[80];
+		struct dcb_app *dcb_app = &np->app;
+
+		if (dcb_app->selector == 1) {
+			snprintf(new_app, sizeof(new_app),
+				"%i:(%i,%i,0x%04x) %s hw %i\n", i,
+				dcb_app->priority,
+				dcb_app->selector,
+				dcb_app->protocol,
+				np->peer ? "peer" : "local",
+				np->hw);
 		} else {
-			snprintf(temp, sizeof(temp), "%i:(%i,%i,%i)\n", i,
-				(apps[i].prs & 0xE0) >> 5,
-				(apps[i].prs & 0x07),
-				ntohs(apps[i].pid));
+			snprintf(new_app, sizeof(new_app),
+				"%i:(%i,%i,%i) %s hw %i\n", i,
+				dcb_app->priority,
+				dcb_app->selector,
+				dcb_app->protocol,
+				np->peer ? "peer" : "local",
+				np->hw);
 		}
-		strncat(app_buf, temp, sizeof(app_buf) - strlen(app_buf) - 1);
+		strncat(app_buf, new_app, sizeof(app_buf) - strlen(obuf) - 2);
+		i++;
 	}
-	free(apps);
 
 	sprintf(obuf, "%02x%s%04x%s",
 		(unsigned int) strlen(args), args,
@@ -921,9 +929,8 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	char arg_path[256];
 	u8 prio, sel;
 	u16 pid;
-	struct app_prio *apps;
-	int cnt, i;
-	char temp[80], app_buf[1024] = "(prio,sel,proto)\n";
+	struct app_obj *np;
+	int i, res;
 
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
@@ -967,26 +974,51 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	ieee8021qaz_add_app(&tlvs->app_head, 0, prio, sel, pid);
 	ieee8021qaz_app_sethw(cmd->ifname, &tlvs->app_head);
 
-	apps = get_ieee_app(cmd->ifname, &cnt);
-	for (i = 0; i < cnt; i++) {
-		if ((apps[i].prs & 0x07) == 1) {
-			snprintf(obuf, obuf_len,
-				"%i:(%i,%i,0x%0004x) ", i,
-				(apps[i].prs & 0xE0) >> 5,
-				(apps[i].prs & 0x07),
-				apps[i].pid);
+	i = 0;
+	LIST_FOREACH(np, &tlvs->app_head, entry) {
+		char new_app[80];
+		struct dcb_app *dcb_app = &np->app;
+
+		if (dcb_app->selector == 1) {
+			snprintf(new_app, sizeof(new_app),
+				"%i:(%i,%i,0x%04x) %s hw %i\n", i,
+				dcb_app->priority,
+				dcb_app->selector,
+				dcb_app->protocol,
+				np->peer ? "peer" : "local",
+				np->hw);
 		} else {
-			snprintf(obuf, obuf_len,
-				"%i:(%i,%i,%i) ", i,
-				(apps[i].prs & 0xE0) >> 5,
-				(apps[i].prs & 0x07),
-				ntohs(apps[i].pid));
+			snprintf(new_app, sizeof(new_app),
+				"%i:(%i,%i,%i) %s hw %i\n", i,
+				dcb_app->priority,
+				dcb_app->selector,
+				dcb_app->protocol,
+				np->peer ? "peer" : "local",
+				np->hw);
 		}
+		strncat(obuf, new_app, obuf_len - strlen(obuf) - 2);
+		i++;
 	}
-	strncat(obuf, "\n", obuf_len - strlen(obuf) - 1);
+
+	/* Count APP entries in config file */
+	for (i = 0; ; i++) {
+		char *dummy;
+
+		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s%i", TLVID_PREFIX,
+			 TLVID_8021(LLDP_8021QAZ_APP), ARG_APP, i);
+		res = get_config_setting(cmd->ifname, arg_path, &dummy,
+					 CONFIG_TYPE_STRING);
+
+		if (res)
+			break;
+
+		if (strcmp(dummy, arg_value) == 0)
+			return cmd_success;
+	}
 
 	snprintf(arg_path, sizeof(arg_path),
-		 "%s%08x.%s", TLVID_PREFIX, cmd->tlvid, args);
+		 "%s%08x.%s%i", TLVID_PREFIX, cmd->tlvid, args, i);
+
 	set_config_setting(cmd->ifname, arg_path, &arg_value,
 			   CONFIG_TYPE_STRING);
 

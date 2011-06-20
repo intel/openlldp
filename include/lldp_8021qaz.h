@@ -204,8 +204,6 @@ struct ieee8021qaz_user_data {
 	LIST_HEAD(ieee8021qaz_head, ieee8021qaz_tlvs) head;
 };
 
-struct app_prio *get_ieee_app(const char *ifname, int *cnt);
-
 int ieee8021qaz_add_app(struct app_tlv_head *head, int peer,
 			u8 prio, u8 sel, u16 proto);
 int ieee8021qaz_app_sethw(char *ifname, struct app_tlv_head *head);

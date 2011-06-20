@@ -345,6 +345,40 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 	res = get_config_setting(ifname, arg_path, &numtcs, CONFIG_TYPE_INT);
 	tlvs->pfc->local.pfc_cap = numtcs;
 
+	/* Read and add APP data to internal lldpad APP ring */
+	for (i = 0; ; i++) {
+		char *parse;
+		char *app_tuple;
+		u8 prio, sel;
+		u16 pid;
+
+		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s%i", TLVID_PREFIX,
+			 TLVID_8021(LLDP_8021QAZ_APP), ARG_APP, i);
+		res = get_config_setting(ifname, arg_path, &arg, CONFIG_TYPE_STRING);
+
+		if (res)
+			break;
+
+		parse = strdup(arg);
+		if (!parse)
+			break;
+		app_tuple = strtok(parse, ",");
+		if (!app_tuple)
+			break;
+		prio = atoi(app_tuple);
+		app_tuple = strtok(NULL, ",");
+		if (!app_tuple)
+			break;
+		sel = atoi(app_tuple);
+
+		app_tuple = strtok(NULL, ",");
+		if (!app_tuple)
+			break;
+		pid = atoi(app_tuple);
+		free(parse);
+		ieee8021qaz_add_app(&tlvs->app_head, 0, prio, sel, pid);
+	}
+
 	return 0;
 }
 
@@ -609,7 +643,7 @@ void print_pfc(struct ieee_pfc *pfc)
 }
 #endif
 
-struct app_prio *get_ieee_app(const char *ifname, int *cnt)
+static struct app_prio *get_ieee_app(const char *ifname, int *cnt)
 {
 	int err = 0;
 	int rem;
