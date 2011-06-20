@@ -27,6 +27,9 @@
 #include <syslog.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <ctype.h>
+#include <limits.h>
+#include <errno.h>
 #include "lldp.h"
 #include "lldpad.h"
 #include "lldp_mand_clif.h"
@@ -925,10 +928,10 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 			char *obuf, int obuf_len, bool test)
 {
 	struct ieee8021qaz_tlvs *tlvs;
-	char *app_tuple, *parse;
+	char *app_tuple, *parse, *end;
 	char arg_path[256];
-	u8 prio, sel;
-	u16 pid;
+	int prio, sel;
+	long pid;
 	struct app_obj *np;
 	int i, res;
 
@@ -965,13 +968,31 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	app_tuple = strtok(NULL, ",");
 	if (!app_tuple)
 		goto err;
-	pid = atoi(app_tuple);
+
+	errno = 0;
+	pid = strtol(app_tuple, &end, 0);
+
+	/* Verify input is valid hex or integer */
+	if (errno)
+		goto err;
+
+	/* Verify input does not contain extra input */
+	if (end == app_tuple || *end != '\0')
+		goto err;
+
+	/* Verify priority and selector within valid  IEEE range */
+	if (prio < 0 || prio > 7 ||
+	    sel < 1 || sel > 4 ||
+	    pid > 65535 || pid < 0)
+		goto err;
 
 	free(parse);
+
 	if (test)
 		return cmd_success;
 
-	ieee8021qaz_add_app(&tlvs->app_head, 0, prio, sel, pid);
+	/* Build app noting we verified prio, sel, and pid inputs */
+	ieee8021qaz_add_app(&tlvs->app_head, 0, (u8) prio, (u8) sel, (u16) pid);
 	ieee8021qaz_app_sethw(cmd->ifname, &tlvs->app_head);
 
 	i = 0;
