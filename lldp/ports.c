@@ -141,8 +141,8 @@ void set_lldp_port_admin(const char *ifname, int admin)
 			if (port->adminStatus != admin) {
 				port->adminStatus = admin;
 				somethingChangedLocal(ifname);
-				run_tx_sm(port, false);
-				run_rx_sm(port, false);
+				run_tx_sm(port);
+				run_rx_sm(port);
 			}
 
 			if (!all)
@@ -172,8 +172,8 @@ void set_lldp_port_enable_state(const char *ifname, int enable)
 	if (!enable) /* port->adminStatus = disabled; */
 		port->rx.rxInfoAge = false;
 
-	run_tx_sm(port, false);
-	run_rx_sm(port, false);
+	run_tx_sm(port);
+	run_rx_sm(port);
 }
 
 void set_port_oper_delay(const char *ifname)
@@ -247,6 +247,7 @@ int reinit_port(const char *ifname)
 
 	/* Reset relevant port variables */
 	port->tx.state  = TX_LLDP_INITIALIZE;
+	port->timers.state  = TX_TIMER_BEGIN;
 	port->rx.state = LLDP_WAIT_PORT_OPERATIONAL;
 	port->hw_resetting = false;
 	port->portEnabled = false;
@@ -262,6 +263,7 @@ int reinit_port(const char *ifname)
 	rxInitializeLLDP(port);
 
 	/* init TX path */
+	txInitializeTimers(port);
 	txInitializeLLDP(port);
 
 	return 0;
@@ -293,6 +295,7 @@ int add_port(const char *ifname)
 
 	/* Initialize relevant port variables */
 	newport->tx.state  = TX_LLDP_INITIALIZE;
+	newport->timers.state = TX_TIMER_BEGIN;
 	newport->rx.state = LLDP_WAIT_PORT_OPERATIONAL;
 	newport->hw_resetting = false;
 	newport->portEnabled = false;
@@ -320,6 +323,7 @@ int add_port(const char *ifname)
 	}
 
 	/* init TX path */
+	txInitializeTimers(newport);
 	txInitializeLLDP(newport);
 
 	/* enable TX path */
@@ -366,6 +370,7 @@ int remove_port(const char *ifname)
 
 	/* Re-initialize relevant port variables */
 	port->tx.state = TX_LLDP_INITIALIZE;
+	port->timers.state = TX_TIMER_BEGIN;
 	port->rx.state = LLDP_WAIT_PORT_OPERATIONAL;
 	port->portEnabled  = false;
 	port->adminStatus  = disabled;

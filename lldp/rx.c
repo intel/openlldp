@@ -59,7 +59,6 @@ void rxInitializeLLDP(struct port *port)
 
 void rxReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t len)
 {
-
 	struct port * port;
 	u8  frame_error = 0;
 	struct l2_ethhdr *hdr;
@@ -122,7 +121,7 @@ void rxReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t len)
 		port->stats.statsFramesInTotal++;
 		port->rx.rcvFrame = 1;
 	}
-	run_rx_sm(port, false);
+	run_rx_sm(port);
 }
 
 void rxProcessFrame(struct port * port)
@@ -287,6 +286,7 @@ void rxProcessFrame(struct port * port)
 					goto out;
 				}
 				memcpy(port->msap.msap2, tlv->info, tlv->length);
+				port->rx.newNeighbor = true;
 			} else {
 				if (tlv->length == port->msap.length2) {
 					if ((memcmp(tlv->info,port->msap.msap2,
@@ -301,6 +301,7 @@ void rxProcessFrame(struct port * port)
 				} else {
 					/* New neighbor */
 					port->rx.tooManyNghbrs = true;
+					port->rx.newNeighbor = true;
 					LLDPAD_INFO("** TOO_MANY_NGHBRS\n");
 				}
 			}
@@ -422,7 +423,7 @@ u8 mibDeleteObjects(struct port *port)
 	return 0;
 }
 
-void run_rx_sm(struct port *port, bool update_timers)
+void run_rx_sm(struct port *port)
 {
 	set_rx_state(port);
 	do {
@@ -452,9 +453,6 @@ void run_rx_sm(struct port *port, bool update_timers)
 			LLDPAD_DBG("ERROR: The RX State Machine is broken!\n");
 		}
 	} while (set_rx_state(port) == true);
-
-	if (update_timers)
-		update_rx_timers(port);
 }
 
 bool set_rx_state(struct port *port)
@@ -522,13 +520,11 @@ bool set_rx_state(struct port *port)
 
 void process_wait_port_operational(struct port *port)
 {
-	/* Maybe could sleep for a sec. ? */
 	return;
 }
 
 void process_delete_aged_info(struct port *port)
 {
-	port->rx.remoteChange = false;
 	mibDeleteObjects(port);
 	port->rx.rxInfoAge = false;
 	port->rx.remoteChange = true;
@@ -546,12 +542,12 @@ void process_wait_for_frame(struct port *port)
 {
 	port->rx.badFrame  = false;
 	port->rx.rxInfoAge = false;
-	port->rx.remoteChange = false;
 	return;
 }
 
 void process_rx_frame(struct port *port)
 {
+	port->rx.remoteChange = false;
 	port->rxChanges = false;
 	port->rx.rcvFrame = false;
 	rxProcessFrame(port);

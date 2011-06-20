@@ -48,6 +48,7 @@ void somethingChangedLocal(const char *ifname)
 		return;
 
 	port->tx.localChange = 1;
+	port->tx.txFast = port->timers.txFastInit;
 	return;
 }
 

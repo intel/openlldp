@@ -40,8 +40,11 @@ static void timer(void *eloop_data, void *user_ctx)
 	struct lldp_module *n;
 
 	while (port != NULL) {
-		run_tx_sm(port, true);
-		run_rx_sm(port, true);
+		update_tx_timers(port);
+		run_tx_timers_sm(port);
+		run_tx_sm(port);
+		run_rx_sm(port);
+		update_rx_timers(port);
 		LIST_FOREACH(n, &lldp_head, lldp) {
 			if (n->ops && n->ops->timer)
 				n->ops->timer(port);

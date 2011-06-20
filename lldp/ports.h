@@ -49,24 +49,29 @@
 
 #define DEFAULT_TX_HOLD         4
 #define DEFAULT_TX_INTERVAL     30
-#define FASTSTART_TX_INTERVAL   1
-#define FASTSTART_TX_COUNT      5
+#define FAST_TX_INTERVAL        1
+#define TX_FAST_INIT            4
 #define DEFAULT_TX_DELAY        1
 #define FASTSTART_TX_DELAY      1
 #define REINIT_DELAY            2
+#define TX_CREDIT_MAX           5
 
 #define DORMANT_DELAY	15
 
 struct porttimers {
 	u16 dormantDelay;
 /* Tx */
+	u16 state;
 	u16 reinitDelay;
 	u16 msgTxHold;
 	u16 msgTxInterval;
-	u16 txDelay;
+	u16 msgFastTx;
+	u16 txFastInit;
 	u16 txTTR;
 	u16 txShutdownWhile;
-	u16 txDelayWhile;
+	u16 txCredit;
+	u16 txMaxCredit;
+	bool txTick;
 /* Rx */
 	u16 tooManyNghbrsTimer;
 	u16 rxTTL;
@@ -79,6 +84,8 @@ struct porttx {
 	u8 state;
 	u8 localChange;
 	u16 txTTL;
+	bool txNow;
+	u16 txFast;
 };
 
 struct portstats {
@@ -115,6 +122,7 @@ struct portrx {
 	u8 tooManyNghbrs;
 	u8 dupTlvs;
 	u8 dcbx_st;
+	bool newNeighbor;
 	rxmanifest *manifest;
 };
 

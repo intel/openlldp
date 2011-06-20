@@ -110,14 +110,27 @@ void txInitializeLLDP(struct port *port)
 		free(port->tx.frameout);
 		port->tx.frameout = NULL;
 	}
-	port->tx.localChange = 1;
+	port->tx.localChange = false;
 	port->stats.statsFramesOutTotal = 0;
 	port->timers.reinitDelay   = REINIT_DELAY;
 	port->timers.msgTxHold     = DEFAULT_TX_HOLD;
-	port->timers.msgTxInterval = FASTSTART_TX_INTERVAL;
-	port->timers.txDelay       = FASTSTART_TX_DELAY;
+	port->timers.msgTxInterval = DEFAULT_TX_INTERVAL;
+	port->timers.msgFastTx     = FAST_TX_INTERVAL;
+	return;
+}
+
+void txInitializeTimers(struct port *port)
+{
+	port->timers.txTick = false;
+	port->tx.txNow = false;
+	port->tx.localChange = false;
+	port->timers.txTTR = 0;
+	port->tx.txFast = 0;
 	port->timers.txShutdownWhile = 0;
-	port->timers.txDelayWhile = 0;
+	port->rx.newNeighbor = false;
+	port->timers.txMaxCredit = TX_CREDIT_MAX;
+	port->timers.txCredit = TX_CREDIT_MAX;
+	port->timers.txFastInit = TX_FAST_INIT;
 	return;
 }
 
@@ -189,29 +202,16 @@ error:
 	return false;
 }
 
-u8 txFrame(struct port *port)
+void txFrame(struct port *port)
 {
-
-	int status = 0;
-
-	status = l2_packet_send(port->l2, (u8 *)&multi_cast_source,
+	l2_packet_send(port->l2, (u8 *)&multi_cast_source,
 		htons(ETH_P_LLDP),port->tx.frameout,port->tx.sizeout);
 	port->stats.statsFramesOutTotal++;
-	if (port->stats.statsFramesOutTotal == FASTSTART_TX_COUNT) {
-		/* We sent the fast start transmissions */
-		port->timers.msgTxInterval = DEFAULT_TX_INTERVAL;
-		port->timers.txDelay       = DEFAULT_TX_DELAY;
-	}
-
-	return 0;
 }
 
 
-void run_tx_sm(struct port *port, bool update_timers)
+void run_tx_sm(struct port *port)
 {
-	if (update_timers)
-		update_tx_timers(port);
-
 	set_tx_state(port);
 	do {
 		switch(port->tx.state) {
@@ -257,9 +257,7 @@ bool set_tx_state(struct port *port)
 			tx_change_state(port, TX_SHUTDOWN_FRAME);
 			return true;
 		}
-		if ((port->timers.txDelayWhile == 0) &&
-			((port->timers.txTTR == 0) ||
-			(port->tx.localChange))) {
+		if ((port->tx.txNow) && ((port->timers.txCredit > 0))) {
 			tx_change_state(port, TX_INFO_FRAME);
 			return true;
 		}
@@ -281,6 +279,15 @@ bool set_tx_state(struct port *port)
 
 void process_tx_idle(struct port *port)
 {
+	u32 tmpTTL;
+
+	tmpTTL = DEFAULT_TX_INTERVAL * port->timers.msgTxHold + 1;
+
+	if (tmpTTL < 65535)
+		port->tx.txTTL = htons(65535);
+	else
+		port->tx.txTTL = htons((u16)tmpTTL);
+
 	return;
 }
 
@@ -296,11 +303,12 @@ void process_tx_shutdown_frame(struct port *port)
 
 void process_tx_info_frame(struct port *port)
 {
-	if (port->tx.localChange)
-		mibConstrInfoLLDPDU(port);
+	mibConstrInfoLLDPDU(port);
 
 	txFrame(port);
-	port->tx.localChange = false;
+	if (port->timers.txCredit > 0)
+		port->timers.txCredit--;
+	port->tx.txNow = false;
 	return;
 }
 
@@ -309,18 +317,132 @@ void	update_tx_timers(struct port *port)
 	if (port->timers.txShutdownWhile)
 		port->timers.txShutdownWhile--;
 
-	if (port->timers.txDelayWhile)
-		port->timers.txDelayWhile--;
-
 	if (port->timers.txTTR)
 		port->timers.txTTR--;
+
+	port->timers.txTick = true;
+	return;
+}
+
+void	tx_timer_change_state(struct port *port, u8 newstate)
+{
+	switch(newstate) {
+	case TX_TIMER_INITIALIZE:
+		break;
+	case TX_TIMER_IDLE:
+		break;
+	case TX_TIMER_EXPIRES:
+		break;
+	case TX_TICK:
+		break;
+	case SIGNAL_TX:
+		break;
+	case TX_FAST_START:
+		break;
+	default:
+		LLDPAD_DBG("ERROR: tx_timer_change_state:  default\n");
+	}
+
+	port->timers.state = newstate;
+	return;
+}
+
+bool	set_tx_timers_state(struct port *port)
+{
+	if ((port->timers.state == TX_TIMER_BEGIN) ||
+	    (port->portEnabled == false) || (port->adminStatus == disabled) ||
+	    (port->adminStatus == enabledRxOnly)) {
+		tx_timer_change_state(port, TX_TIMER_INITIALIZE);
+	}
+
+	switch (port->timers.state) {
+	case TX_TIMER_INITIALIZE:
+		if (port->portEnabled && ((port->adminStatus == enabledRxTx) ||
+			(port->adminStatus == enabledTxOnly))) {
+			tx_timer_change_state(port, TX_TIMER_IDLE);
+			return true;
+		}
+		return false;
+	case TX_TIMER_IDLE:
+		if (port->tx.localChange) {
+			tx_timer_change_state(port, SIGNAL_TX);
+			return true;
+		}
+
+		if (port->timers.txTTR == 0) {
+			tx_timer_change_state(port, TX_TIMER_EXPIRES);
+			return true;
+		}
+
+		if (port->rx.newNeighbor) {
+			tx_timer_change_state(port, TX_FAST_START);
+			return true;
+		}
+
+		if (port->timers.txTick) {
+			tx_timer_change_state(port, TX_TICK);
+			return true;
+		}
+		return false;
+	case TX_TIMER_EXPIRES:
+		tx_timer_change_state(port, SIGNAL_TX);
+		return true;
+	case SIGNAL_TX:
+	case TX_TICK:
+		tx_timer_change_state(port, TX_TIMER_IDLE);
+		return true;
+	case TX_FAST_START:
+		tx_timer_change_state(port, TX_TIMER_EXPIRES);
+		return true;
+	default:
+		LLDPAD_DBG("ERROR: The TX State Machine is broken!\n");
+		return false;
+	}
+}
+
+void	run_tx_timers_sm(struct port *port)
+{
+	set_tx_timers_state(port);
+	do {
+		switch(port->timers.state) {
+		case TX_TIMER_INITIALIZE:
+			txInitializeTimers(port);
+			break;
+		case TX_TIMER_IDLE:
+			break;
+		case TX_TIMER_EXPIRES:
+			if (port->tx.txFast)
+				port->tx.txFast--;
+			break;
+		case TX_TICK:
+			port->timers.txTick = false;
+			if (port->timers.txCredit < port->timers.txMaxCredit)
+				port->timers.txCredit++;
+			break;
+		case SIGNAL_TX:
+			port->tx.txNow = true;
+			port->tx.localChange = false;
+			if (port->tx.txFast)
+				port->timers.txTTR = port->timers.msgFastTx;
+			else
+				port->timers.txTTR = port->timers.msgTxInterval;
+			break;
+		case TX_FAST_START:
+			port->rx.newNeighbor = false;
+			if (port->tx.txFast == 0)
+				port->tx.txFast = port->timers.txFastInit;
+			break;
+		default:
+			LLDPAD_DBG("ERROR The TX Timer State Machine "
+				   "is broken!\n");
+		}
+	} while (set_tx_timers_state(port) == true);
+
 	return;
 }
 
 void tx_change_state(struct port *port, u8 newstate)
 {
-	u32 tmpTTL = 0;
-
 	switch(newstate) {
 	case TX_LLDP_INITIALIZE:
 		if ((port->tx.state != TX_SHUTDOWN_FRAME) &&
@@ -334,16 +456,6 @@ void tx_change_state(struct port *port, u8 newstate)
 			assert(port->tx.state == TX_LLDP_INITIALIZE);
 			assert(port->tx.state == TX_INFO_FRAME);
 		}
-		tmpTTL = DEFAULT_TX_INTERVAL * port->timers.msgTxHold;
-
-		if (tmpTTL > 65535)
-			port->tx.txTTL = htons(65535);
-		else
-			port->tx.txTTL = htons((u16)tmpTTL);
-
-		tmpTTL = 0;
-		port->timers.txTTR = port->timers.msgTxInterval;
-		port->timers.txDelayWhile = port->timers.txDelay;
 		break;
 	case TX_SHUTDOWN_FRAME:
 	case TX_INFO_FRAME:

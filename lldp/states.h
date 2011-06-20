@@ -29,6 +29,17 @@
 
 #include "ports.h"
 
+/* Tx Timer States */
+enum {
+	TX_TIMER_BEGIN,
+	TX_TIMER_INITIALIZE,
+	TX_TIMER_IDLE,
+	TX_TIMER_EXPIRES,
+	TX_TICK,
+	SIGNAL_TX,
+	TX_FAST_START
+};
+
 /* Tx States */
 enum {
 	TX_LLDP_INITIALIZE,
@@ -69,15 +80,17 @@ bool mibConstrShutdownLLDPDU(struct port *port);
  * and the LLDP Ethertype to each LLDPDU as defined in 10.2.2 before it is
  * sent to the MAC for transmission.
 */ 
-u8 txFrame(struct port *port);
+void txFrame(struct port *port);
 
-void run_tx_sm(struct port *, bool);
+void run_tx_sm(struct port *);
 void process_tx_initialize_sm(struct port *);
 void process_tx_idle(struct port *);
 void process_tx_shutdown_frame(struct port *);
 void process_tx_info_frame(struct port *);
 void update_tx_timers(struct port *);
+void run_tx_timers_sm(struct port *);
 bool set_tx_state(struct port *);
+void txInitializeTimers(struct port *);
 void tx_change_state(struct port *, u8 );
 
 /******************************************************************************/
@@ -143,7 +156,7 @@ u8 mibDeleteObjects(struct port *port);
 */
 void mibUpdateObjects(struct port *);
 
-void run_rx_sm(struct port *, bool);
+void run_rx_sm(struct port *);
 bool set_rx_state(struct port *);
 void rx_change_state(struct port *, u8 );
 void process_wait_port_operational(struct port *);
