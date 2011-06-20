@@ -156,7 +156,7 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 	ecp_hdr.seqnr = htons(vd->ecp.lastSequence);
 
 	if ((sizeof(struct ecp_hdr)+fb_offset) > ETH_MAX_DATA_LEN)
-				goto error;
+		goto error;
 	memcpy(vd->ecp.tx.frameout+fb_offset, (void *)&ecp_hdr, sizeof(struct ecp_hdr));
 	datasize += sizeof(struct ecp_hdr);
 	fb_offset += sizeof(struct ecp_hdr);
@@ -263,6 +263,7 @@ u8 ecp_txFrame(struct vdp_data *vd)
 	vd->ecp.stats.statsFramesOutTotal++;
 
 	free(vd->ecp.tx.frameout);
+	vd->ecp.tx.frameout = NULL;
 
 	return status;
 }
@@ -278,10 +279,16 @@ void ecp_tx_create_frame(struct vdp_data *vd)
 {
 	/* send REQs */
 	if (vd->ecp.tx.localChange) {
+		int ret;
+
 		LLDPAD_DBG("%s(%i)-%s: sending REQs\n", __func__, __LINE__, vd->ifname);
-		ecp_build_ECPDU(vd);
-		ecp_print_frameout(vd);
-		ecp_txFrame(vd);
+		ret = ecp_build_ECPDU(vd);
+
+		/* ECPDU construction failed no frame to send */
+		if (ret == false) {
+			ecp_print_frameout(vd);
+			ecp_txFrame(vd);
+		}
 	}
 
 	ecp_somethingChangedLocal(vd, false);
