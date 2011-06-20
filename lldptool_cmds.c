@@ -127,7 +127,7 @@ int cli_cmd_gettlv(struct clif *clif, int argc, char *argv[],
 	if (!(cmd->ops & op_neighbor))
 		cmd->ops |= op_local;
 
-	if (numargs) 
+	if (numargs)
 		cmd->ops |= op_arg;
 
 	for (i = 0; i < numargs; i++) {
@@ -163,7 +163,7 @@ int cli_cmd_settlv(struct clif *clif, int argc, char *argv[],
 		}
 	}
 
-	if (numargs) 
+	if (numargs)
 		cmd->ops |= (op_arg | op_argval);
 
 	render_cmd(cmd, args, argvals);
@@ -261,6 +261,9 @@ static char *print_status(cmd_status status)
 	case cmd_not_capable:
 		str = "Device not capable";
 		break;
+	case cmd_not_applicable:
+		str = "Command not applicable";
+		break;
 	default:
 		str = "Unknown status";
 		break;
@@ -332,7 +335,8 @@ static void print_tlvs(struct cmd *cmd, char *ibuf)
 
 	while (ilen > 0) {
 		if (ilen < 2*sizeof(u16)) {
-			printf("corrupted TLV ilen=%d, tlv_len=%d\n", ilen, tlv_len);
+			printf("corrupted TLV ilen=%d, tlv_len=%d\n",
+				ilen, tlv_len);
 			break;
 		}
 		hexstr2bin(ibuf+offset, (u8 *)&tlv_type, sizeof(tlv_type));
@@ -344,7 +348,8 @@ static void print_tlvs(struct cmd *cmd, char *ibuf)
 		ilen -= 2*sizeof(u16);
 
 		if (ilen < 2*tlv_len) {
-			printf("corrupted TLV ilen = %d, tlv_len=%d\n", ilen, tlv_len);
+			printf("corrupted TLV ilen = %d, tlv_len=%d\n",
+				ilen, tlv_len);
 			break;
 		}
 
