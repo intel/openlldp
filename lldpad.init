@@ -39,7 +39,7 @@
 # Provides: lldpad
 # Required-Start: network
 # Required-Stop:
-# Default-Start:
+# Default-Start: 3 5
 # Default-Stop:
 # Short Description: Link Layer Discovery Protocol Agent Daemon
 # Description: Link Layer Discovery Protocol Agent Daemon
