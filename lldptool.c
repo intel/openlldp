@@ -535,11 +535,21 @@ static int request(struct clif *clif, int argc, char *argv[])
 			command.ifname[IFNAMSIZ] ='\0';
 			break;
 		case 'V':
+			if (command.tlvid != INVALID_TLVID) {
+				printf("\nInvalid command: multiple TLV "
+				       "identifiers: %s\n", optarg);
+				return -1;
+			}
+
+			/* Currently tlvid unset lookup and verify parameter */
 			command.tlvid = strtoul(optarg, (char **) NULL, 0);
-			if (!command.tlvid)
+			if (!command.tlvid) {
 				command.tlvid = lookup_tlvid(optarg);
+			}
+
 			if (command.tlvid == INVALID_TLVID) {
-				printf("invalid TLV identifier: %s\n\n", optarg);
+				printf("\nInvalid TLV identifier: %s\n",
+					optarg);
 				return -1;
 			}
 			break;
