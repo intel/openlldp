@@ -24,6 +24,7 @@
 *******************************************************************************/
 
 #include <stdio.h>
+#include <errno.h>
 #include <assert.h>
 #include "lldp/ports.h"
 #include "lldp/l2_packet.h"
@@ -73,28 +74,39 @@ void ecp_somethingChangedLocal(struct vdp_data *vd, bool flag)
  */
 void ecp_print_frameout(struct vdp_data *vd)
 {
-	int i;
-	char *s, *t;
+	unsigned i;
+	unsigned length;
+	char *s;
+	char buf[256];
 
-	s = t = malloc(256);
+	s = buf;
+	length = sizeof(buf);
+	memset(buf, 0, sizeof(buf));
 
-	 if (!s) {
-		LLDPAD_ERR("%s(%i): unable to allocate string !\n", __func__, __LINE__);
-	 }
-
-	for (i=0; i < vd->ecp.tx.sizeout; i++) {
+	for (i = 0; i < vd->ecp.tx.sizeout; i++) {
 		int c;
-		c = sprintf(s, "%02x ", vd->ecp.tx.frameout[i]);
+		c = snprintf(s, length, "%02x ", vd->ecp.tx.frameout[i]);
+		if (c < 0) {
+			LLDPAD_DBG("%s: snprintf error %d (%s)\n", __func__,
+				errno, strerror(errno));
+			break;
+		}
 		s += c;
-		if (!((i+1) % 16)) {
-			LLDPAD_DBG("%s\n", t);
-			s = t;
+		if ((unsigned)c >= length) {
+			LLDPAD_DBG("%s: string buffer overflow\n", __func__);
+			break;
+		}
+		length -= c;
+		if (!((i + 1) % 16)) {
+			LLDPAD_DBG("%s\n", buf);
+			s = buf;
+			length = sizeof(buf);
+			memset(buf, 0, sizeof(buf));
 		}
 	}
 
-	LLDPAD_DBG("%s\n", t);
-
-	free(t);
+	if (length != sizeof(buf))
+		LLDPAD_DBG("%s\n", buf);
 }
 
 /* ecp_build_ECPDU - create an ecp protocol data unit

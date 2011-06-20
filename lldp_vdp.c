@@ -43,6 +43,26 @@
 #include "lldp_tlv.h"
 #include "lldp_vdp_cmds.h"
 
+const char * const vsi_responses[] = {
+	[VDP_RESPONSE_SUCCESS] = "success",
+	[VDP_RESPONSE_INVALID_FORMAT] = "invalid format",
+	[VDP_RESPONSE_INSUFF_RESOURCES] = "insufficient resources",
+	[VDP_RESPONSE_UNUSED_VTID] = "unused VTID",
+	[VDP_RESPONSE_VTID_VIOLATION] = "VTID violation",
+	[VDP_RESPONSE_VTID_VER_VIOLATION] = "VTID version violation",
+	[VDP_RESPONSE_OUT_OF_SYNC] = "out of sync",
+};
+
+const char * const vsi_states[] = {
+	[VSI_UNASSOCIATED] = "VSI_UNASSOCIATED",
+	[VSI_ASSOC_PROCESSING] = "VSI_ASSOC_PROCESSING",
+	[VSI_ASSOCIATED] = "VSI_ASSOCIATED",
+	[VSI_PREASSOC_PROCESSING] = "VSI_PREASSOC_PROCESSING",
+	[VSI_PREASSOCIATED] = "VSI_PREASSOCIATED",
+	[VSI_DEASSOC_PROCESSING] = "VSI_DEASSOC_PROCESSING",
+	[VSI_EXIT] = "VSI_EXIT",
+};
+
 /* vdp_data - searches vdp_data in the list of modules for this port
  * @ifname: interface name to search for
  *

@@ -29,19 +29,12 @@
 #include "lldp_mod.h"
 #include "ecp/ecp.h"
 
-#define LLDP_MOD_VDP		OUI_IEEE_8021Qbg+1
+#define LLDP_MOD_VDP		(OUI_IEEE_8021Qbg + 1)
 
 #define VDP_MODE_PREASSOCIATE		0x0
 #define VDP_MODE_PREASSOCIATE_WITH_RR	0x1
 #define VDP_MODE_ASSOCIATE		0x2
 #define VDP_MODE_DEASSOCIATE		0x3
-
-static char *vsi_modes[] = {
-	"VDP_MODE_PREASSOCIATED",
-	"VDP_MODE_PREASSOCIATED_WITH_RR",
-	"VDP_MODE_ASSOCIATED",
-	"VDP_MODE_DEASSOCIATED"
-};
 
 #define VDP_RESPONSE_SUCCESS		0x0
 #define VDP_RESPONSE_INVALID_FORMAT	0x1
@@ -52,15 +45,8 @@ static char *vsi_modes[] = {
 #define VDP_RESPONSE_OUT_OF_SYNC	0x6
 #define VDP_RESPONSE_NO_RESPONSE	0xff
 
-static char *vsi_responses[] = {
-	"success",
-	"invalid format",
-	"insufficient resources",
-	"unused VTID",
-	"VTID violation",
-	"VTID version violation",
-	"out of sync"
-};
+extern const char * const vsi_responses[];
+extern const char * const vsi_states[];
 
 #define VDP_MACVLAN_FORMAT_1	1
 
@@ -82,16 +68,6 @@ enum {
 	VSI_PREASSOCIATED,
 	VSI_DEASSOC_PROCESSING,
 	VSI_EXIT,
-};
-
-static char *vsi_states[] = {
-	"VSI_UNASSOCIATED",
-	"VSI_ASSOC_PROCESSING",
-	"VSI_ASSOCIATED",
-	"VSI_PREASSOC_PROCESSING",
-	"VSI_PREASSOCIATED",
-	"VSI_DEASSOC_PROCESSING",
-	"VSI_EXIT"
 };
 
 struct mac_vlan {
@@ -159,26 +135,5 @@ void vdp_somethingChangedLocal(struct vsi_profile *profile, bool mode);
 
 #define MAC_ADDR_STRLEN		18
 #define INSTANCE_STRLEN		36
-
-#define PRINT_PROFILE(s, p)	\
-{ int c; \
-  c = sprintf(s, "\nmode: %i", p->mode); s += c; \
-  c = sprintf(s, " (%s)\n", vsi_modes[p->mode]); s+= c; \
-  c = sprintf(s, "response: %i", p->response); s += c; \
-  c = sprintf(s, " (%s)\n", vsi_responses[p->response]); s+= c; \
-  c = sprintf(s, "state: %i", p->state); s += c; \
-  c = sprintf(s, " (%s)\n", vsi_states[p->state]); s+= c; \
-  c = sprintf(s, "mgrid: %i\n", p->mgrid); s += c; \
-  c = sprintf(s, "id: %i (0x%x)\n", p->id, p->id); \
-  s += c; \
-  c = sprintf(s, "version: %i\n", p->version); s += c; \
-  char instance[INSTANCE_STRLEN+2]; \
-  instance2str(p->instance, instance, sizeof(instance)); \
-  c = sprintf(s, "instance: %s\n", &instance[0]); s += c; \
-  char macbuf[MAC_ADDR_STRLEN+1]; \
-  mac2str(p->mac, macbuf, MAC_ADDR_STRLEN); \
-  c = sprintf(s, "mac: %s\n", macbuf); s += c; \
-  c = sprintf(s, "vlan: %i\n\n", p->vlan); s += c; \
-}
 
 #endif /* _LLDP_VDP_H */

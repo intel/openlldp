@@ -63,6 +63,90 @@ static struct arg_handlers arg_handlers[] = {
 	{ NULL }
 };
 
+static const char * const vsi_modes[] = {
+	[VDP_MODE_PREASSOCIATE] = "VDP_MODE_PREASSOCIATED",
+	[VDP_MODE_PREASSOCIATE_WITH_RR] = "VDP_MODE_PREASSOCIATED_WITH_RR",
+	[VDP_MODE_ASSOCIATE] = "VDP_MODE_ASSOCIATED",
+	[VDP_MODE_DEASSOCIATE] = "VDP_MODE_DEASSOCIATED",
+};
+
+static char *check_and_update(size_t *total, size_t *length, char *s, int c)
+{
+	if (c < 0)
+		return NULL;
+	*total += c;
+	if ((unsigned)c >= *length)
+		return NULL;
+	*length -= c;
+	return s + c;
+}
+
+static void print_profile(char *s, size_t length, struct vsi_profile *p)
+{
+	int c;
+	size_t	total = 0;
+
+	c = snprintf(s, length, "\nmode: %i (%s)\n",
+			p->mode, vsi_modes[p->mode]);
+	s = check_and_update(&total, &length, s, c);
+	if (!s)
+		return;
+
+	c = snprintf(s, length, "response: %i (%s)\n", p->response,
+		vsi_responses[p->response]);
+	s = check_and_update(&total, &length, s, c);
+	if (!s)
+		return;
+
+	c = snprintf(s, length, "state: %i (%s)\n",
+		p->state, vsi_states[p->state]);
+	s = check_and_update(&total, &length, s, c);
+	if (!s)
+		return;
+
+	c = snprintf(s, length, "mgrid: %i\n", p->mgrid);
+	s = check_and_update(&total, &length, s, c);
+	if (!s)
+		return;
+
+	c = snprintf(s, length, "id: %i (0x%x)\n", p->id, p->id);
+	s = check_and_update(&total, &length, s, c);
+	if (!s)
+		return;
+
+	c = snprintf(s, length, "version: %i\n", p->version);
+	s = check_and_update(&total, &length, s, c);
+	if (!s)
+		return;
+
+	{
+		char instance[INSTANCE_STRLEN + 2];
+
+		instance2str(p->instance, instance, sizeof(instance));
+		c = snprintf(s, length, "instance: %s\n", &instance[0]);
+	}
+	s = check_and_update(&total, &length, s, c);
+	if (!s)
+		return;
+
+	{
+		char macbuf[MAC_ADDR_STRLEN + 1];
+
+		mac2str(p->mac, macbuf, MAC_ADDR_STRLEN);
+		c = snprintf(s, length, "mac: %s\n", macbuf);
+	}
+	s = check_and_update(&total, &length, s, c);
+	if (!s)
+		return;
+
+	c = snprintf(s, length, "vlan: %i\n\n", p->vlan);
+	s = check_and_update(&total, &length, s, c);
+	if (!s)
+		return;
+
+	return;
+}
+
 static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 			       char *obuf, int obuf_len)
 {
@@ -185,7 +269,7 @@ static int get_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
 	memset(s, 0, (count+1)*VDP_BUF_SIZE);
 
 	LIST_FOREACH(np, &vd->profile_head, profile) {
-		PRINT_PROFILE(t, np);
+		print_profile(t, (count + 1) * VDP_BUF_SIZE, np);
 	}
 
 	snprintf(obuf, obuf_len, "%02x%s%04x%s",
