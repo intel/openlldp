@@ -28,10 +28,11 @@
 #define CLIF_CMDS_H
 
 #include <sys/un.h>
+#include <stdbool.h>
 #include "clif_msgs.h"
 
 struct arg_handlers *dcbx_get_arg_handlers();
-void dont_advertise_dcbx_all(char *ifname);
+void dont_advertise_dcbx_all(char *ifname, bool ad);
 
 #define CLIF_RSP_MSG_OFF    0
 

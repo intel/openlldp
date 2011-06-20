@@ -124,7 +124,7 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-void dont_advertise_dcbx_all(char *ifname)
+void dont_advertise_dcbx_all(char *ifname, bool ad)
 {
 	int i;
 	pfc_attribs pfc_data;
@@ -133,31 +133,27 @@ void dont_advertise_dcbx_all(char *ifname)
 	llink_attribs llink_data;
 	u32 event_flag = 0;
 
-	if (get_pg(ifname, &pg_data) == dcb_success &&
-	    pg_data.protocol.Advertise) {
-		pg_data.protocol.Advertise = 0;
+	if (get_pg(ifname, &pg_data) == dcb_success) {
+		pg_data.protocol.Advertise = ad;
 		put_pg(ifname, &pg_data);
 		event_flag |= DCB_LOCAL_CHANGE_PG;
 	}
 
-	if (get_pfc(ifname, &pfc_data) == dcb_success &&
-	    pfc_data.protocol.Advertise) {
-		pfc_data.protocol.Advertise = 0;
+	if (get_pfc(ifname, &pfc_data) == dcb_success) {
+		pfc_data.protocol.Advertise = ad;
 		put_pfc(ifname, &pfc_data);
 		event_flag |= DCB_LOCAL_CHANGE_PFC;
 	}
 
 	for (i = 0; i < DCB_MAX_APPTLV ; i++) {
-		if (get_app(ifname, (u32)i, &app_data) == dcb_success &&
-		    app_data.protocol.Advertise) {
-			app_data.protocol.Advertise = 0;
+		if (get_app(ifname, (u32)i, &app_data) == dcb_success) {
+			app_data.protocol.Advertise = ad;
 			put_app(ifname, (u32)i, &app_data);
 			event_flag |= DCB_LOCAL_CHANGE_APPTLV(i);
 		}
 
-		if (get_llink(ifname, (u32)i, &llink_data) == dcb_success &&
-		    llink_data.protocol.Advertise) {
-			llink_data.protocol.Advertise = 0;
+		if (get_llink(ifname, (u32)i, &llink_data) == dcb_success) {
+			llink_data.protocol.Advertise = ad;
 			put_llink(ifname, (u32)i, &llink_data);
 			event_flag |= DCB_LOCAL_CHANGE_LLINK;
 		}
@@ -210,8 +206,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	/* if DCBX tlv is changed to disabled, then ensure all DCBX features
 	 * are set to 'not advertise'
 	 */
-	if (!value)
-		dont_advertise_dcbx_all(cmd->ifname);
+	dont_advertise_dcbx_all(cmd->ifname, value);
 
 	somethingChangedLocal(cmd->ifname);
 

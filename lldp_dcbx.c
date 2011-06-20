@@ -459,7 +459,7 @@ void dcbx_ifup(char *ifname)
 	struct dcbd_user_data *dud;
 	struct dcbx_manifest *manifest;
 	feature_support dcb_support;
-	int dcb_enable, err;
+	int dcb_enable, exists;
 	long adminstatus;
 	long enabletx;
 	char arg_path[256];
@@ -548,11 +548,16 @@ void dcbx_ifup(char *ifname)
 
 initialized:
 	dcbx_add_adapter(ifname);
+
 	/* ensure advertise bits are set consistently with enabletx */
-	enabletx = is_tlv_txenabled(ifname, (OUI_CEE_DCBX << 8) |
-				    tlvs->dcbx_st);
-	if (!enabletx)
-		dont_advertise_dcbx_all(ifname);
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
+		 (OUI_CEE_DCBX << 8) | tlvs->dcbx_st, ARG_TLVTXENABLE);
+	exists = get_config_setting(ifname, arg_path,
+				    &enabletx, CONFIG_TYPE_BOOL);
+
+	if (!exists || enabletx)
+		dont_advertise_dcbx_all(ifname, 1);
+
 	dcbx_bld_tlv(port);
 
 	/* if the dcbx field is not filled in by the capabilities
