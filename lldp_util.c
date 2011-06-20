@@ -1,7 +1,7 @@
 /*******************************************************************************
 
   LLDP Agent Daemon (LLDPAD) Software
-  Copyright(c) 2007-2010 Intel Corporation.
+  Copyright(c) 2007-2011 Intel Corporation.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -1157,7 +1157,7 @@ int str2mac(const char *src, u8 *mac, size_t size)
 
 	memset(mac, 0, size);
 	for (i = 0; i < 6; i++, mac++)
-		if (1 != sscanf(&src[i * 3], "%02X", mac))
+		if (1 != sscanf(&src[i * 3], "%02hhX", mac))
 			goto out_err;
 	rc = 0;
 out_err:

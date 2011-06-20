@@ -206,8 +206,7 @@ static void str2instance(struct vsi_profile *profile, char *buffer)
 			continue;
 		}
 
-		if ((sscanf(&buffer[i], "%02x", &profile->instance[j]) == 1) ||
-		    (sscanf(&buffer[i], "%02X", &profile->instance[j]) == 1)) {
+		if (sscanf(&buffer[i], "%02hhx", &profile->instance[j]) == 1) {
 			i++;
 			j++;
 		}
