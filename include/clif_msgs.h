@@ -139,8 +139,12 @@ struct type_name_info {
 	void (* get_info)(__u16, char *);
 };
 
+#define LLDP_ARG 0x00
+#define TLV_ARG 0x01
+
 struct arg_handlers {
 	char *arg;
+	int arg_class;
 	int (*handle_get)(struct cmd *, char *, char *, char *, int);
 	int (*handle_set)(struct cmd *, char *, char *, char *, int);
 	int (*handle_test)(struct cmd *, char *, char *, char *, int);

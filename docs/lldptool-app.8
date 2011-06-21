@@ -2,7 +2,7 @@
 .SH NAME
 APP \- Show / manipulate APP TLV configuration
 .SH SYNOPSIS
-.B lldptool -t -i ethx -V APP [app]
+.B lldptool -t -i ethx -V APP [-c app]
 .sp
 .B lldptool -T -i ethx -V APP app=prio,sel,pid
 .sp
@@ -38,7 +38,7 @@ Configure FCoE application for priority 3 on \fIeth2\fR
 .B lldptool -T -i eth2 -V APP app=3,1,35078
 .TP
 Display locally configured application table on \fIeth2\fR
-.B lldptool -t -i eth2 -V APP app
+.B lldptool -t -i eth2 -V APP -c app
 .TP
 Display last transmitted APP TLV on \fIeth2\fR
 .B lldptool -t -i eth2 -V APP

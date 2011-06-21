@@ -50,10 +50,12 @@ static int set_arg_med_devtype(struct cmd *, char *, char *, char *, int);
 static int test_arg_med_devtype(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable,
-			   test_arg_tlvtxenable },
-	{ ARG_MED_DEVTYPE, get_arg_med_devtype, set_arg_med_devtype,
-			   test_arg_med_devtype },
+	{ ARG_TLVTXENABLE, TLV_ARG,
+		get_arg_tlvtxenable, set_arg_tlvtxenable,
+		test_arg_tlvtxenable },
+	{ ARG_MED_DEVTYPE, TLV_ARG,
+		get_arg_med_devtype, set_arg_med_devtype,
+		test_arg_med_devtype },
 	{ NULL }
 };
 
@@ -193,6 +195,7 @@ static int get_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
 	case (OUI_TIA_TR41 << 8) | LLDP_MED_INV_MANUFACTURER:
 	case (OUI_TIA_TR41 << 8) | LLDP_MED_INV_MODELNAME:
 	case (OUI_TIA_TR41 << 8) | LLDP_MED_INV_ASSETID:
+		return cmd_not_applicable;
 	case INVALID_TLVID:
 		return cmd_invalid;
 	default:

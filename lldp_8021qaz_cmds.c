@@ -79,15 +79,25 @@ static int set_arg_app(struct cmd *, char *, char *, char *, int);
 static int test_arg_app(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable, test_arg_tlvtxenable },
-	{ ARG_WILLING, get_arg_willing, set_arg_willing, test_arg_willing },
-	{ ARG_ETS_NUMTCS, get_arg_numtc, NULL, test_arg_numtc },
-	{ ARG_ETS_UP2TC, get_arg_up2tc, set_arg_up2tc, test_arg_up2tc },
-	{ ARG_ETS_TCBW, get_arg_tcbw, set_arg_tcbw, test_arg_tcbw },
-	{ ARG_ETS_TSA, get_arg_tsa, set_arg_tsa, test_arg_tsa },
-	{ ARG_PFC_ENABLED, get_arg_enabled, set_arg_enabled, test_arg_enabled },
-	{ ARG_PFC_DELAY, get_arg_delay, set_arg_delay, test_arg_delay },
-	{ ARG_APP, get_arg_app, set_arg_app, test_arg_app },
+	{ ARG_TLVTXENABLE, TLV_ARG,
+		get_arg_tlvtxenable, set_arg_tlvtxenable,
+		test_arg_tlvtxenable },
+	{ ARG_WILLING, TLV_ARG,
+		get_arg_willing, set_arg_willing, test_arg_willing },
+	{ ARG_ETS_NUMTCS, TLV_ARG,
+		get_arg_numtc, NULL, test_arg_numtc },
+	{ ARG_ETS_UP2TC, TLV_ARG,
+		get_arg_up2tc, set_arg_up2tc, test_arg_up2tc },
+	{ ARG_ETS_TCBW, TLV_ARG,
+		get_arg_tcbw, set_arg_tcbw, test_arg_tcbw },
+	{ ARG_ETS_TSA, TLV_ARG,
+		get_arg_tsa, set_arg_tsa, test_arg_tsa },
+	{ ARG_PFC_ENABLED, TLV_ARG,
+		get_arg_enabled, set_arg_enabled, test_arg_enabled },
+	{ ARG_PFC_DELAY, TLV_ARG,
+		get_arg_delay, set_arg_delay, test_arg_delay },
+	{ ARG_APP, TLV_ARG,
+		get_arg_app, set_arg_app, test_arg_app },
 	{ NULL }
 };
 
@@ -193,6 +203,7 @@ static int get_arg_numtc(struct cmd *cmd, char *args,
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
 		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
+		return cmd_not_applicable;
 	case INVALID_TLVID:
 		return cmd_invalid;
 	default:

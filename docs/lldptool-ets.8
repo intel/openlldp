@@ -3,19 +3,21 @@
 ETS-{CFG|REC} \- Show / manipulate ETS TLV configuration
 .SH SYNOPSIS
 .B lldptool -t -i ethx -V ETS-CFG
-.RI COMMAND
+.RI <-c " " CONFIG_ARG " " ...>
 .sp
 
 .ti +4
-.IR	COMMAND " := { "
-.BR willing " | " tsa " | " up2tc " | " numtcs " | " tcbw " }"
+.IR	CONFIG_ARG " := { "
+.BR enableTx " | " willing " | " tsa " | " up2tc " | " numtcs " | " tcbw " }"
 .sp
 
 .B	lldptool -T -i ethx -V ETS-CFG
-.RI COMMAND
+.RI CONFIG_ARG=value " " ...
 .sp
 .ti +4
-.IR	COMMAND " :=
+.IR	CONFIG_ARG " := 
+.sp
+.BR		enableTx " = " {yes|no} " | "
 .sp
 .BR		willing " = " {0|1} " | "
 .sp
@@ -23,36 +25,42 @@ ETS-{CFG|REC} \- Show / manipulate ETS TLV configuration
 .sp
 .BR		up2tc " = " priority:tc,... " | "
 .sp
-.BR		tcbw " = " bw1,bw2,...
+.BR		tcbw " = " bw1,bw2,... 
 .sp
 
-.B	lldptool -t -i ethx -V ETS-REC { tsa | up2tc | tcbw }
+.B	lldptool -t -i ethx -V ETS-REC
+.RI <-c " " CONFIG_ARG " " ...>
 .sp
 
 .B	lldptool -T -i ethx -V ETS-REC
-.RI COMMAND
+.RI CONFIG_ARG=value " " ...
 .sp
 .ti +4
-.IR	COMMAND " :=
+.IR	CONFIG_ARG " := 
+.sp
+.BR		enableTx " = " {yes|no} " | "
 .sp
 .BR		tsa " = " tc:{ets|strict|vendor},... " | "
 .sp
 .BR		up2tc " = " priority:tc,... " | "
 .sp
-.BR		tcbw " = " bw1,bw2,...
+.BR		tcbw " = " bw1,bw2,... 
 .sp
 .SH DESCRIPTION
-The Extended Transmission Selection (ETS) TLV is has a recommendation
-TLV and a configuration TLV configured with ETS-REC and ETS-CFG.
+The Extended Transmission Selection (ETS) feature has a recommendation
+TLV and a configuration TLV configured with ETS-REC and ETS-CFG respectively.
 .SH ARGUMENTS
 .TP
-.B willing
-Sets the ETS-CFG willing bit
+.B enableTx
+Enables the ETS TLV to be transmitted
 .TP
-.B tsa
+.B willing
+Sets the ETS-CFG willing bit 
+.TP
+.B tsa 
 Transmission selection algorithm, sets a comma seperated list \
 of traffic classes to the corresponding selection algorithm. Valid algorithms \
-include "ets", "stric" and "vendor".
+include "ets", "strict" and "vendor".
 .sp
 .TP
 .B up2tc
@@ -60,7 +68,7 @@ Comma seperated list mapping user priorities to traffic classes.
 .sp
 .TP
 .B tcbw
-Comma seperated list of bandwiths for each traffic class the first value
+Comma separated list of bandwiths for each traffic class the first value
 being assigned to traffic class 0 and the second to traffic class 1 and so
 on. Undefined bandwidths are presumed to be 0.
 .sp
@@ -82,7 +90,7 @@ To support legacy CEE DCBX the ETS-CFG and ETS-REC TLVs are disabled
 if a CEE TLV is received and there are no valid IEEE 802.1Qaz TLVs
 present. At this time the hardware DCBX mode will be set to CEE and
 IEEE mode is disabled. This allows switches to be configured and
-end nodes will then be configured accordingly without any configuration
+end nodes will then be configured accordingly without any configuration 
 required on the end node.
 
 Mapping applications and protocols to traffic classes is required for
@@ -95,7 +103,7 @@ Additionally, tc qdiscs and filters can be used to map protocols to queues
 see \fItc(8)\fR for more details along these lines. Finally, many drivers
 have support for specific protocols ie Fiber Channel over Ethernet (FCoE).
 
-.B
+.B 
 .SH EXAMPLE & USAGE
 .TP
 Configure willing bit for interface \fIeth2\fR
@@ -108,7 +116,7 @@ Configure 1:1 mapping from priority to traffic classes on \fIeth2\fR
 .B lldptool -T -i eth2 -V ETS-CFG up2tc=0:0,1:1,2:2,3:3,4:4,5:5,6:6,7:7
 .TP
 Display local configured ETS-CFG parameters for tcbw
-.B lldptool -t -i eth2 -V ETS-CFG tcbw
+.B lldptool -t -i eth2 -V ETS-CFG -c tcbw
 .TP
 Display last transmitted ETS-CFG TLV
 .B lldptool -t -i eth2 -V ETS-CFG

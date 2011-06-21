@@ -66,16 +66,18 @@ static int set_arg_capabilities(struct cmd *, char *, char *, char *, int);
 static int test_arg_capabilities(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_EVB_FORWARDING_MODE, get_arg_fmode, set_arg_fmode,
-			test_arg_fmode },
-	{ ARG_EVB_CAPABILITIES, get_arg_capabilities, set_arg_capabilities,
-			test_arg_capabilities },
-	{ ARG_EVB_VSIS, get_arg_vsis, set_arg_vsis,
-			test_arg_vsis },
-	{ ARG_EVB_RTE, get_arg_rte, set_arg_rte,
-			test_arg_rte },
-	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable,
-			test_arg_tlvtxenable },
+	{ ARG_EVB_FORWARDING_MODE, TLV_ARG,
+		get_arg_fmode, set_arg_fmode, test_arg_fmode },
+	{ ARG_EVB_CAPABILITIES, TLV_ARG,
+		get_arg_capabilities, set_arg_capabilities,
+		test_arg_capabilities },
+	{ ARG_EVB_VSIS, TLV_ARG,
+		get_arg_vsis, set_arg_vsis, test_arg_vsis },
+	{ ARG_EVB_RTE, TLV_ARG,
+		get_arg_rte, set_arg_rte, test_arg_rte },
+	{ ARG_TLVTXENABLE, TLV_ARG,
+		get_arg_tlvtxenable, set_arg_tlvtxenable,
+		test_arg_tlvtxenable },
 	{ NULL }
 };
 

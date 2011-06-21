@@ -52,15 +52,12 @@ help output to see the list of supported TLV keywords.
 .B \-n
 "neighbor" option for commands which can use it (e.g. get-tlv)
 .TP
-.B \-a
-"add" option for commands which can use it
-.br
-(not implemented yet)
-.TP
-.B \-d
-"remove" option for commands which can use it
-.br
-(not implemented yet)
+.B \-c <argument list>
+"config" option for TLV queries. Indicates that the query is
+for the configuration elements for the specified TLV.  The
+argument list specifies the specific elements to query.  If
+no arguments are listed, then all configuration elements for
+the TLV are returned.
 .TP
 .B \-r
 show raw client interface messages
@@ -185,9 +182,9 @@ Enable transmit of the Port Description TLV for all interfaces:
 
 .TP
 Query value of the transmit setting for the Port Description TLV for a given interface:
-.B lldptool -t -V portDesc enableTx
+.B lldptool -t -V portDesc -c enableTx
 .br
-.B lldptool get-tlv -V 4 enableTx
+.B lldptool get-tlv -V 4 -c enableTx
 
 .TP
 Set a Management Address TLV on eth3 to carry IPv4 address 192.168.10.10
@@ -199,7 +196,11 @@ Set a Management Address TLV on eth3 to carry IPv6 address ::192.168.10.10
 
 .TP
 Get the configured IPv4 address for the Management Address TLV on eth3
-.B lldptool -t -i eth3 -V mngAddr ipv4
+.B lldptool -t -i eth3 -V mngAddr -c ipv4
+
+.TP
+Get all configured attributes for the Management Address TLV on eth3
+.B lldptool -t -i eth3 -V mngAddr -c
 
 .TP
 Enable transmit of the Edge Virtual Bridging TLV for interface eth4

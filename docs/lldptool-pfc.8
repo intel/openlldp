@@ -5,10 +5,12 @@ PFC \- Show / manipulate PFC TLV configuration
 .B lldptool -t -i ethx -V PFC { willing | enabled | delay | numtcs }
 .sp
 .B lldptool -T -i ethx -V PFC
-.RI COMMAND
+.RI <-c " " CONFIG_ARG " " ...>
 .sp
 .ti +4
-.IR	COMMAND " :=
+.IR	CONFIG_ARG " := 
+.sp
+.BR		enableTx " = " {yes|no} " | "
 .sp
 .BR		willing " = " {0|1} " | "
 .sp
@@ -22,23 +24,23 @@ attributes.
 
 .SH ARGUMENTS
 .TP
+.B enableTx
+Enable the PFC TLV to be transmitted in the LLDP PDU for the
+specified interface.
+.TP
 .B willing
 Display or set willing attribute. If set and peer TLV is received
 the peer PFC attributes will be used. If cleared locally configured
 attributes are used.
 .TP
 .B enabled
-Display or set traffic classes with PFC enabled. The set attribute
-takes a comma separated list of traffic classes to enable.
+Display or set priorities with PFC enabled. The set attribute
+takes a comma separated list of priorities to enable.
 .TP
-.B delay
+.B delay 
 Display or set delay attribute used to configure PFC thresholds in
 hardware buffers. If PFC is enabled and frames continue to be dropped
 due to full hardware buffers increasing this value may help.
-.TP
-.B numtc
-Display number of traffic classes that support enabling PFC. This
-is a read only parameter.
 
 .SH Theory of Operations
 The PFC TLV uses Symmetric attribute passing meaning the attributes
@@ -50,14 +52,14 @@ scheme is used. For more detailed coverage see the specification.
 
 .SH EXAMPLE & USAGE
 .TP
-Enable PFC on traffic classes 1, 2, and 4 for \fIeth2\fR
+Enable PFC for priorities 1, 2, and 4 on \fIeth2\fR
 .B lldptool -T -i eth2 -V PFC enabled=1,2,4
 .TP
-Display number of traffic classes that support PFC for \fIeth2\fR
-.B lldptool -t -i eth2 -V PFC numtcs
+Display priorities enabled for PFC on \fIeth2\fR
+.B lldptool -t -i eth2 -V PFC -c enabled 
 .TP
 Display last transmitted PFC TLV on \fIeth2\fR
-.B lldptool -t -i eth2 -V PFC
+.B lldptool -t -i eth2 -V PFC 
 .SH SOURCE
 .TP
 o

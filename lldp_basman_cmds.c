@@ -52,10 +52,13 @@ static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_IPV4_ADDR,   get_arg_ipv4,        set_arg_ipv4, test_arg_ipv4 },
-	{ ARG_IPV6_ADDR,   get_arg_ipv6,        set_arg_ipv6, test_arg_ipv6 },
-	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable,
-			   test_arg_tlvtxenable},
+	{ ARG_IPV4_ADDR, TLV_ARG,
+		get_arg_ipv4, set_arg_ipv4, test_arg_ipv4 },
+	{ ARG_IPV6_ADDR, TLV_ARG,
+		get_arg_ipv6, set_arg_ipv6, test_arg_ipv6 },
+	{ ARG_TLVTXENABLE, TLV_ARG,
+		get_arg_tlvtxenable, set_arg_tlvtxenable,
+		test_arg_tlvtxenable },
 	{ NULL }
 };
 
@@ -167,8 +170,11 @@ int get_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue,
 	char *p;
 	char arg_path[256];
 
-	if (cmd->cmd != cmd_gettlv || cmd->tlvid != MANAGEMENT_ADDRESS_TLV)
+	if (cmd->cmd != cmd_gettlv)
 		return cmd_bad_params;
+
+	if (cmd->tlvid != MANAGEMENT_ADDRESS_TLV)
+		return cmd_not_applicable;
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 		 TLVID_PREFIX, cmd->tlvid, arg);
@@ -188,8 +194,11 @@ int get_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue,
 	char *p;
 	char arg_path[256];
 
-	if (cmd->cmd != cmd_gettlv || cmd->tlvid != MANAGEMENT_ADDRESS_TLV)
+	if (cmd->cmd != cmd_gettlv)
 		return cmd_bad_params;
+
+	if (cmd->tlvid != MANAGEMENT_ADDRESS_TLV)
+		return cmd_not_applicable;
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 		 TLVID_PREFIX, cmd->tlvid, arg);

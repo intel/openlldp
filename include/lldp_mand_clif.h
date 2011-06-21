@@ -53,6 +53,7 @@ typedef enum {
 	op_neighbor  = 0x0002,
 	op_arg       = 0x0004,
 	op_argval    = 0x0008,
+	op_config    = 0x0010,
 } lldp_op;
 
 struct tlv {

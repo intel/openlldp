@@ -56,10 +56,13 @@ static int set_arg_role(struct cmd *, char *, char *, char *, int);
 static int test_arg_role(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_VDP_MODE, get_arg_mode, set_arg_mode, test_arg_mode },
-	{ ARG_VDP_ROLE, get_arg_role, set_arg_role, test_arg_role },
-	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable,
-			   test_arg_tlvtxenable },
+	{ ARG_VDP_MODE, TLV_ARG,
+		get_arg_mode, set_arg_mode, test_arg_mode },
+	{ ARG_VDP_ROLE, TLV_ARG,
+		get_arg_role, set_arg_role, test_arg_role },
+	{ ARG_TLVTXENABLE, TLV_ARG,
+		get_arg_tlvtxenable, set_arg_tlvtxenable,
+		test_arg_tlvtxenable },
 	{ NULL }
 };
 

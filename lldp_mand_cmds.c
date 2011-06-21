@@ -51,10 +51,12 @@ static int handle_set_arg(struct cmd *, char *, char *, char *, int);
 static int handle_test_arg(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_ADMINSTATUS, get_arg_adminstatus, set_arg_adminstatus,
-			   test_arg_adminstatus},
-	{ ARG_TLVTXENABLE, get_arg_tlvtxenable, set_arg_tlvtxenable,
-			   set_arg_tlvtxenable}, /* test same as set */
+	{ ARG_ADMINSTATUS, LLDP_ARG,
+		get_arg_adminstatus, set_arg_adminstatus,
+		test_arg_adminstatus },
+	{ ARG_TLVTXENABLE, TLV_ARG,
+		get_arg_tlvtxenable, set_arg_tlvtxenable, set_arg_tlvtxenable },
+		/* test same as set */
 	{ NULL }
 };
 
@@ -133,6 +135,41 @@ int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	snprintf(obuf, obuf_len, "%02x%s%04x%s", (unsigned int)strlen(arg), arg,
 		(unsigned int)strlen(s), s);
 
+	return cmd_success;
+}
+
+int handle_get_args(struct cmd *cmd, char *arg, char *argvalue,
+		   char *obuf, int obuf_len)
+{
+	struct lldp_module *np;
+	struct arg_handlers *ah;
+	int rval;
+	char *nbuf;
+	int nbuf_len;
+
+	nbuf = obuf;
+	nbuf_len = obuf_len;
+
+	LIST_FOREACH(np, &lldp_head, lldp) {
+		if (!np->ops->get_arg_handler)
+			continue;
+		if (!(ah = np->ops->get_arg_handler()))
+			continue;
+		while (ah->arg) {
+			if (ah->handle_get && (ah->arg_class == TLV_ARG)) {
+				rval = ah->handle_get(cmd, ah->arg, argvalue,
+						      nbuf, nbuf_len);
+
+				if (rval != cmd_success &&
+				    rval != cmd_not_applicable)
+					return rval;
+				
+				nbuf_len -= strlen(nbuf);
+				nbuf = nbuf + strlen(nbuf);
+			}
+			ah++;
+		}
+	}
 	return cmd_success;
 }
 
@@ -458,11 +495,6 @@ int mand_clif_cmd(void  *data,
 	if (!port)
 		return cmd_device_not_found;
 
-	/* Parse command for invalid TLV counts */
-	for (i = 0; i < numargs; i++) {
-
-	}
-
 	switch (cmd.cmd) {
 	case cmd_getstats:
 		if (numargs)
@@ -472,12 +504,22 @@ int mand_clif_cmd(void  *data,
 	case cmd_gettlv:
 		snprintf(rbuf + roff, rlen - roff, "%08x", cmd.tlvid);
 		roff+=8;
-		if (!numargs)
-			rstatus = get_tlvs(&cmd, rbuf + roff, rlen - roff);
-		for (i = 0; i < numargs; i++)
-			rstatus = handle_get_arg(&cmd, args[i], NULL,
-						 rbuf + strlen(rbuf),
-						 rlen - strlen(rbuf));
+		if (!numargs) {
+			if (cmd.ops & op_config) {
+				if (cmd.ops & op_neighbor)
+					break;
+				rstatus = handle_get_args(&cmd, NULL, NULL,
+							 rbuf + strlen(rbuf),
+							 rlen - strlen(rbuf));
+			} else {
+				rstatus = get_tlvs(&cmd, rbuf+roff, rlen-roff);
+			}
+		} else if ((cmd.ops & op_config) && !(cmd.ops & op_neighbor)) {
+			for (i = 0; i < numargs; i++)
+				rstatus = handle_get_arg(&cmd, args[i], NULL,
+							 rbuf + strlen(rbuf),
+							 rlen - strlen(rbuf));
+		}
 		break;
 	case cmd_settlv:
 		snprintf(rbuf + roff, rlen - roff, "%08x", cmd.tlvid);
