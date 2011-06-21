@@ -414,7 +414,7 @@ static int print_arg_value(char *ibuf)
 
 	for (i = 0; i < numargs; i++) {
 		printf("%s", args[i]);
-		printf(" = %s\n", argvals[i]);
+		printf("=%s\n", argvals[i]);
 	}
 
 	free(args);

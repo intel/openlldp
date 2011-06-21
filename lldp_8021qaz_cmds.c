@@ -127,8 +127,14 @@ static int get_arg_willing(struct cmd *cmd, char *args,
 		return cmd_not_applicable;
 	}
 
-	snprintf(obuf, obuf_len, "%02x%s%04x%i",
-		 (unsigned int) strlen(args), args, 1, !!willing);
+	if (willing)
+		snprintf(obuf, obuf_len, "%02x%s%04x%s",
+			(unsigned int) strlen(args), args,
+			(unsigned int) strlen(VAL_YES), VAL_YES);
+	else
+		snprintf(obuf, obuf_len, "%02x%s%04x%s",
+			(unsigned int) strlen(args), args,
+			(unsigned int) strlen(VAL_NO), VAL_NO);
 
 	return cmd_success;
 }
@@ -253,7 +259,12 @@ static int get_arg_up2tc(struct cmd *cmd, char *args,
 	for (i = 0; i < 8; i++) {
 		char cat[5];
 
-		snprintf(cat, sizeof(cat), "%i:%i ", i, get_prio_map(*pmap, i));
+		if (i)
+			snprintf(cat, sizeof(cat), ",%i:%i", i,
+						get_prio_map(*pmap, i));
+		else
+			snprintf(cat, sizeof(cat), "%i:%i", i,
+						get_prio_map(*pmap, i));
 		strncat(buf, cat, sizeof(buf) - strlen(buf) - 1);
 	}
 
@@ -397,7 +408,10 @@ static int get_arg_tcbw(struct cmd *cmd, char *args,
 
 	for (i = 0; i < 8; i++) {
 		char cat[6];
-		snprintf(cat, sizeof(cat), "%i%% ", bmap[i]);
+		if (i)
+			snprintf(cat, sizeof(cat), ",%i", bmap[i]);
+		else
+			snprintf(cat, sizeof(cat), "%i", bmap[i]);
 		strncat(buf, cat, sizeof(buf) - strlen(buf) - 1);
 	}
 
@@ -520,28 +534,31 @@ static int get_arg_tsa(struct cmd *cmd, char *args, char *arg_value,
 	}
 
 	for (i = 0; i < 8; i++) {
-		char cnt[3];
+		char cnt[4];
 		int space_left;
 
-		snprintf(cnt, sizeof(cnt), "%i:", i);
+		if (i)
+			snprintf(cnt, sizeof(cnt), ",%i:", i);
+		else
+			snprintf(cnt, sizeof(cnt), "%i:", i);
 		strncat(buf, cnt, sizeof(buf) - strlen(buf) - 1);
 
 		space_left = sizeof(buf) - strlen(buf) - 1;
 		switch (tsa[i]) {
 		case IEEE8021Q_TSA_STRICT:
-			strncat(buf, "strict ", space_left);
+			strncat(buf, "strict", space_left);
 			break;
 		case IEEE8021Q_TSA_CBSHAPER:
-			strncat(buf, "cb_shaper ", space_left);
+			strncat(buf, "cb_shaper", space_left);
 			break;
 		case IEEE8021Q_TSA_ETS:
-			strncat(buf, "ets ", space_left);
+			strncat(buf, "ets", space_left);
 			break;
 		case IEEE8021Q_TSA_VENDOR:
-			strncat(buf, "vendor ", space_left);
+			strncat(buf, "vendor", space_left);
 			break;
 		default:
-			strncat(buf, "unknown ", space_left);
+			strncat(buf, "unknown", space_left);
 			break;
 		}
 	}
@@ -686,8 +703,9 @@ static int get_arg_enabled(struct cmd *cmd, char *args,
 			   char *arg_value, char *obuf, int obuf_len)
 {
 	struct ieee8021qaz_tlvs *tlvs;
-	char buf[20] = " ";
+	char buf[20] = "";
 	int i;
+	bool first;
 	u8 pfc;
 
 	if (cmd->cmd != cmd_gettlv)
@@ -708,11 +726,17 @@ static int get_arg_enabled(struct cmd *cmd, char *args,
 
 	pfc = tlvs->pfc->local.pfc_enable;
 
+	first = true;
 	for (i = 0; i < 8; i++) {
 		if (pfc & (1 << i)) {
 			char val[3];
 
-			snprintf(val, sizeof(val), "%i ", i);
+			if (first) {
+				snprintf(val, sizeof(val), "%i", i);
+				first = false;
+			} else {
+				snprintf(val, sizeof(val), ",%i", i);
+			}
 			strncat(buf, val, sizeof(buf) - strlen(buf) - 1);
 		}
 	}
