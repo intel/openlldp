@@ -350,7 +350,7 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 		char *parse;
 		char *app_tuple;
 		u8 prio, sel;
-		u16 pid;
+		long pid;
 
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s%i", TLVID_PREFIX,
 			 TLVID_8021(LLDP_8021QAZ_APP), ARG_APP, i);
@@ -359,6 +359,7 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 		if (res)
 			break;
 
+		/* Parse cfg file input, bounds checking done on set app cmd */
 		parse = strdup(arg);
 		if (!parse)
 			break;
@@ -374,9 +375,14 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 		app_tuple = strtok(NULL, ",");
 		if (!app_tuple)
 			break;
-		pid = atoi(app_tuple);
+
+		/* APP Data can be in hex or integer form */
+		errno = 0;
+		pid = strtol(app_tuple, NULL, 0);
+		if (!errno)
+			ieee8021qaz_add_app(&tlvs->app_head, 0,
+					    prio, sel, (u16) pid);
 		free(parse);
-		ieee8021qaz_add_app(&tlvs->app_head, 0, prio, sel, pid);
 	}
 
 	return 0;
