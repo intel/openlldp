@@ -520,7 +520,7 @@ static int request(struct clif *clif, int argc, char *argv[])
 
 	opterr = 0;
 	for (;;) {
-		c = getopt(argc, argv, "Si:tTlLadhnvrRqV:");
+		c = getopt(argc, argv, "Si:tTlLhnvrRqV:");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -569,14 +569,8 @@ static int request(struct clif *clif, int argc, char *argv[])
 		case 'L':
 			command.cmd = cmd_set_lldp;
 			break;
-		case 'a':
-			command.ops |= op_add;
-			break;
 		case 'n':
 			command.ops |= op_neighbor;
-			break;
-		case 'd':
-			command.ops |= op_remove;
 			break;
 		case 'h':
 			command.cmd = cmd_help;

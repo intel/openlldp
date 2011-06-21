@@ -49,16 +49,10 @@ typedef enum {
 } lldp_cmd;
 
 typedef enum {
-	op_enable    = 0x0001,
-	op_disable   = 0x0002,
-	op_add       = 0x0004,
-	op_remove    = 0x0008,
-	op_rx_enable = 0x0010,
-	op_tx_enable = 0x0020,
-	op_local     = 0x0040,
-	op_neighbor  = 0x0080,
-	op_arg       = 0x0100,
-	op_argval    = 0x0200,
+	op_local     = 0x0001,
+	op_neighbor  = 0x0002,
+	op_arg       = 0x0004,
+	op_argval    = 0x0008,
 } lldp_op;
 
 struct tlv {
