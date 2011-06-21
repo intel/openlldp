@@ -152,7 +152,9 @@ void dont_advertise_dcbx_all(char *ifname, bool ad)
 			put_app(ifname, (u32)i, &app_data);
 			event_flag |= DCB_LOCAL_CHANGE_APPTLV(i);
 		}
+	}
 
+	for (i = 0; i < DCB_MAX_LLKTLV ; i++) {
 		if (get_llink(ifname, (u32)i, &llink_data) == dcb_success) {
 			llink_data.protocol.Advertise = ad;
 			put_llink(ifname, (u32)i, &llink_data);
