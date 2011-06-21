@@ -148,8 +148,16 @@ int cli_cmd_gettlv(struct clif *clif, int argc, char *argv[],
 	if (!(cmd->ops & op_neighbor))
 		cmd->ops |= op_local;
 
-	if (numargs)
+	if (numargs) {
+		/* Commands to get neighbor TLVs cannot have
+		 * arguments.
+		 */
+		if (cmd->ops & op_neighbor) {
+			printf("%s\n", print_status(cmd_invalid));
+			goto out;
+		}
 		cmd->ops |= op_arg;
+	}
 
 	for (i = 0; i < numargs; i++) {
 		if (argvals[i]) {
