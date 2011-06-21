@@ -423,5 +423,7 @@ int main(int argc, char *argv[])
 	closelog();
 	unlink(PID_FILE);
 	eloop_destroy();
+	if (eloop_terminated())
+		exit(0);
 	exit(1);
 }
