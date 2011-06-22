@@ -757,6 +757,88 @@ out1:
 	return app;
 }
 
+static int del_ieee_hw(const char *ifname, struct dcb_app *app_data)
+{
+	int err = 0;
+	struct nlattr *ieee, *app;
+	struct sockaddr_nl dest_addr;
+	static struct nl_handle *nlhandle;
+	struct nl_msg *nlm;
+	struct dcbmsg d = {
+			   .dcb_family = AF_UNSPEC,
+			   .cmd = DCB_CMD_IEEE_DEL,
+			   .dcb_pad = 0
+			  };
+
+	if (!nlhandle) {
+		nlhandle = nl_handle_alloc();
+		if (!nlhandle) {
+			LLDPAD_WARN("%s: %s: nl_handle_alloc failed, %s\n",
+				    __func__, ifname, nl_geterror());
+			return -ENOMEM;
+		}
+		nl_socket_set_local_port(nlhandle, 0);
+	}
+
+	if (nl_connect(nlhandle, NETLINK_ROUTE) < 0) {
+		LLDPAD_WARN("%s: %s nlconnect failed abort hardware set, %s\n",
+			    __func__, ifname, nl_geterror());
+		err = -EIO;
+		goto out1;
+	}
+
+	nlm = nlmsg_alloc_simple(RTM_SETDCB, NLM_F_REQUEST);
+	if (!nlm) {
+		err = -ENOMEM;
+		goto out2;
+	}
+
+	memset(&dest_addr, 0, sizeof(dest_addr));
+	dest_addr.nl_family = AF_NETLINK;
+	nlmsg_set_dst(nlm, &dest_addr);
+
+	err = nlmsg_append(nlm, &d, sizeof(d), NLMSG_ALIGNTO);
+	if (err < 0)
+		goto out;
+
+	err = nla_put(nlm, DCB_ATTR_IFNAME, strlen(ifname)+1, ifname);
+	if (err < 0)
+		goto out;
+
+	ieee = nla_nest_start(nlm, DCB_ATTR_IEEE);
+	if (!ieee) {
+		err = -ENOMEM;
+		goto out;
+	}
+	if (app_data) {
+		app = nla_nest_start(nlm, DCB_ATTR_IEEE_APP_TABLE);
+		if (!app) {
+			err = -ENOMEM;
+			goto out;
+		}
+
+		err = nla_put(nlm, DCB_ATTR_IEEE_APP,
+			      sizeof(*app_data), app_data);
+		if (err < 0)
+			goto out;
+		nla_nest_end(nlm, app);
+	}
+	nla_nest_end(nlm, ieee);
+	err = nl_send_auto_complete(nlhandle, nlm);
+	if (err <= 0)
+		LLDPAD_WARN("%s: %s 802.1Qaz set attributes failed\n",
+			    __func__, ifname);
+
+out:
+	nlmsg_free(nlm);
+out2:
+	nl_close(nlhandle);
+out1:
+	return err;
+
+
+}
+
 static int set_ieee_hw(const char *ifname, struct ieee_ets *ets_data,
 		       struct ieee_pfc *pfc_data, struct dcb_app *app_data)
 {
@@ -1469,44 +1551,37 @@ static void process_ieee8021qaz_pfc_tlv(struct port *port)
 	tlvs->pfc->remote_param = true;
 }
 
+#define IEEE_APP_SET 0
+#define IEEE_APP_DEL 1
+#define IEEE_APP_DONE 2
+
 int ieee8021qaz_add_app(struct app_tlv_head *head, int peer,
 			u8 prio, u8 sel, u16 proto)
 {
 	struct app_obj *np;
-	int matched = 0;
 
+	/* Search list for existing match and abort */
 	LIST_FOREACH(np, head, entry) {
 		if (np->app.selector == sel &&
-		    np->app.protocol == proto) {
-			/* Local configurations are not over
-			 * written by peer settings.
-			 */
-			if (!np->peer && peer)
-				return 1;
-
-			matched = 1;
-			np->app.priority = prio;
-			np->peer = peer;
-			np->hw = 0;
-			break;
-		}
+		    np->app.protocol == proto &&
+		    np->app.priority == prio)
+			return 1;
 	}
 
-	if (!matched) {
-		np = calloc(1, sizeof(*np));
-		if (!np) {
-			LLDPAD_WARN("%s: memory alloc failure.\n", __func__);
-			return -1;
-		}
-
-		np->peer = peer;
-		np->hw = 0;
-		np->app.priority = prio;
-		np->app.selector = sel;
-		np->app.protocol = proto;
-
-		LIST_INSERT_HEAD(head, np, entry);
+	/* Add new entry for APP data */
+	np = calloc(1, sizeof(*np));
+	if (!np) {
+		LLDPAD_WARN("%s: memory alloc failure.\n", __func__);
+		return -1;
 	}
+
+	np->peer = peer;
+	np->hw = IEEE_APP_SET;
+	np->app.priority = prio;
+	np->app.selector = sel;
+	np->app.protocol = proto;
+
+	LIST_INSERT_HEAD(head, np, entry);
 	return 0;
 }
 
@@ -1515,10 +1590,8 @@ static void ieee8021qaz_app_reset(struct app_tlv_head *head)
 	struct app_obj *np;
 
 	LIST_FOREACH(np, head, entry) {
-		if (np->peer) {
-			np->app.priority = 0;
-			np->hw = 0;
-		}
+		if (np->peer)
+			np->hw = IEEE_APP_DEL;
 	}
 }
 
@@ -1528,18 +1601,19 @@ static int __ieee8021qaz_app_sethw(char *ifname, struct app_tlv_head *head)
 	int set = 0;
 
 	LIST_FOREACH(np, head, entry) {
-		if (np->hw)
+		if (np->hw != IEEE_APP_SET)
 			continue;
-		set_ieee_hw(ifname, NULL, NULL, &np->app);
-		set = 1;
+		set = set_ieee_hw(ifname, NULL, NULL, &np->app);
+		np->hw = IEEE_APP_DONE;
 	}
 
 	np = LIST_FIRST(head);
 	while (np) {
-		if (np->app.priority == 0xff) {
+		if (np->hw == IEEE_APP_DEL) {
 			np_tmp = np;
 			np = LIST_NEXT(np, entry);
 			LIST_REMOVE(np_tmp, entry);
+			set = del_ieee_hw(ifname, &np_tmp->app);
 			free(np_tmp);
 		} else {
 			np = LIST_NEXT(np, entry);
@@ -1569,12 +1643,28 @@ static void process_ieee8021qaz_app_tlv(struct port *port)
 	ieee8021qaz_app_reset(&tlvs->app_head);
 
 	while (offset < tlvs->rx->app->length) {
+		struct app_obj *np;
+		int set = 0;
 		u8 prio  = (tlvs->rx->app->info[offset] & 0xE0) >> 5;
 		u8 sel = (tlvs->rx->app->info[offset] & 0x03);
 		u16 proto = (tlvs->rx->app->info[offset + 1] << 8) |
 			     tlvs->rx->app->info[offset + 2];
 
-		ieee8021qaz_add_app(&tlvs->app_head, 1, prio, sel, proto);
+		/* Search list for existing match and mark set */
+		LIST_FOREACH(np, &tlvs->app_head, entry) {
+			if (np->app.selector == sel &&
+			    np->app.protocol == proto &&
+			    np->app.priority == prio) {
+				np->hw = IEEE_APP_SET;
+				set = 1;
+				break;
+			}
+		}
+
+		/* If APP data not found in LIST add APP entry */
+		if (!set)
+			ieee8021qaz_add_app(&tlvs->app_head, 1,
+					    prio, sel, proto);
 		offset += 3;
 	}
 }
@@ -1794,10 +1884,9 @@ static void ieee8021qaz_free_tlv(struct ieee8021qaz_tlvs *tlvs)
 		tlvs->pfc = free_pfc_tlv(tlvs->pfc);
 
 	/* Remove _all_ existing application data */
-	LIST_FOREACH(np, &tlvs->app_head, entry) {
-		np->app.priority = 0;
-		np->hw = 0;
-	}
+	LIST_FOREACH(np, &tlvs->app_head, entry)
+		np->hw = IEEE_APP_DEL;
+
 	__ieee8021qaz_app_sethw(tlvs->ifname, &tlvs->app_head);
 
 	return;

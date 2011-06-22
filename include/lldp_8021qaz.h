@@ -154,7 +154,7 @@ struct pfc_obj {
 struct app_obj {
 	struct dcb_app app;
 	bool peer;
-	bool hw;
+	int hw;
 	LIST_ENTRY(app_obj) entry;
 };
 
