@@ -124,7 +124,6 @@ static void evb_update_tlv(struct evb_data *ed)
 		return;
 	}
 
-	somethingChangedLocal(ed->ifname); /* trigger tx with new values */
 	return;
 }
 
@@ -525,6 +524,7 @@ static int evb_rchange(struct port *port, struct unpacked_tlv *tlv)
 		evb_print_tlvinfo(ed->last);
 
 		evb_update_tlv(ed);
+		somethingChangedLocal(ed->ifname);
 
 		LLDPAD_DBG("%s(%i): new tlv:\n", __func__, __LINE__);
 		evb_print_tlvinfo(ed->tie);
