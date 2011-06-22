@@ -289,8 +289,8 @@ void ecp_tx_create_frame(struct vdp_data *vd)
 		LLDPAD_DBG("%s(%i)-%s: sending REQs\n", __func__, __LINE__, vd->ifname);
 		ret = ecp_build_ECPDU(vd);
 
-		/* ECPDU construction failed no frame to send */
-		if (ret == false) {
+		/* ECPDU construction succesful, send out frame */
+		if (ret == true) {
 			ecp_print_frameout(vd);
 			ecp_txFrame(vd);
 		}
