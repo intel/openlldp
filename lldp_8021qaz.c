@@ -53,6 +53,8 @@ struct config_t lldpad_cfg;
 
 static int ieee8021qaz_check_pending(struct port *port);
 static void run_all_sm(struct port *port);
+static void ieee8021qaz_mibUpdateObjects(struct port *port);
+static void ieee8021qaz_app_reset(struct app_tlv_head *head);
 
 static const struct lldp_mod_ops ieee8021qaz_ops = {
 	.lldp_mod_register	= ieee8021qaz_register,
@@ -81,6 +83,7 @@ static int ieee8021qaz_check_pending(struct port *port)
 				if (tlv->active && tlv->pending &&
 				    port->timers.dormantDelay == 1) {
 					tlv->pending = false;
+					ieee8021qaz_app_reset(&tlv->app_head);
 					run_all_sm(port);
 				}
 				break;
@@ -433,7 +436,7 @@ void ieee8021qaz_ifup(char *ifname)
 	/* If 802.1Qaz is already configured no need to continue */
 	tlvs = ieee8021qaz_data(ifname);
 	if (tlvs)
-		return;
+		goto initialized;
 
 	if (!init_cfg()) {
 		LLDPAD_ERR("%s: 802.1Qaz: fatal init_cfg() faillure\n",
@@ -487,18 +490,6 @@ void ieee8021qaz_ifup(char *ifname)
 	l2_packet_get_own_src_addr(port->l2, tlvs->local_mac);
 	memset(tlvs->remote_mac, 0, ETH_ALEN);
 
-	/* if the dcbx field is filled in by the capabilities
-	 * query, then the kernel is supports
-	 * IEEE mode, so make IEEE DCBX active by default.
-	 */
-	if (!dcb_support.dcbx ||
-	   (dcbx_get_legacy_version() & ~MASK_DCBX_FORCE)) {
-		tlvs->active = false;
-	} else {
-		tlvs->active = true;
-		tlvs->pending = true;
-	}
-
 	/* Initialize all TLVs */
 	tlvs->ets = malloc(sizeof(*tlvs->ets));
 	if (!tlvs->ets)
@@ -533,6 +524,20 @@ void ieee8021qaz_ifup(char *ifname)
 
 	iud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_8021QAZ);
 	LIST_INSERT_HEAD(&iud->head, tlvs, entry);
+
+initialized:
+	/* if the dcbx field is filled in by the capabilities
+	 * query, then the kernel is supports
+	 * IEEE mode, so make IEEE DCBX active by default.
+	 */
+	if (!dcb_support.dcbx ||
+	   (dcbx_get_legacy_version() & ~MASK_DCBX_FORCE)) {
+		tlvs->active = false;
+	} else {
+		tlvs->active = true;
+		tlvs->pending = true;
+	}
+
 	return;
 err_pfc:
 	free(tlvs->ets->recl);
