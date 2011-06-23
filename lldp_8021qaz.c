@@ -1841,7 +1841,6 @@ u8 ieee8021qaz_mibDeleteObject(struct port *port)
 
 	/* Clear peer Application data */
 	ieee8021qaz_app_reset(&tlvs->app_head);
-	ieee8021qaz_app_sethw(port->ifname, &tlvs->app_head);
 
 	/* Kick Tx State Machine */
 	somethingChangedLocal(port->ifname);
