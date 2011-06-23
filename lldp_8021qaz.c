@@ -85,6 +85,7 @@ static int ieee8021qaz_check_pending(struct port *port)
 					tlv->pending = false;
 					ieee8021qaz_app_reset(&tlv->app_head);
 					run_all_sm(port);
+					somethingChangedLocal(port->ifname);
 				}
 				break;
 			}
