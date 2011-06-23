@@ -908,7 +908,7 @@ static int get_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	struct ieee8021qaz_tlvs *tlvs;
 	int  i = 0;
 	struct app_obj *np;
-	char app_buf[1024] = "(prio,sel,proto)\n";
+	char app_buf[2048] = "(prio,sel,proto)\n";
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
@@ -928,30 +928,46 @@ static int get_arg_app(struct cmd *cmd, char *args, char *arg_value,
 
 	LIST_FOREACH(np, &tlvs->app_head, entry) {
 		char new_app[80];
+		char state[15];
 		struct dcb_app *dcb_app = &np->app;
+
+		switch (np->hw) {
+		case IEEE_APP_SET:
+			strcpy(state, "pending set");
+			break;
+		case IEEE_APP_DEL:
+			strcpy(state, "pending delete");
+			break;
+		case IEEE_APP_DONE:
+			strcpy(state, "set");
+			break;
+		default:
+			strcpy(state, "unknown");
+			break;
+		}
 
 		if (dcb_app->selector == 1) {
 			snprintf(new_app, sizeof(new_app),
-				"%i:(%i,%i,0x%04x) %s hw %i\n", i,
+				"%i:(%i,%i,0x%04x) %s (%s)\n", i,
 				dcb_app->priority,
 				dcb_app->selector,
 				dcb_app->protocol,
 				np->peer ? "peer" : "local",
-				np->hw);
+				state);
 		} else {
 			snprintf(new_app, sizeof(new_app),
-				"%i:(%i,%i,%i) %s hw %i\n", i,
+				"%i:(%i,%i,%i) %s hw (%s)\n", i,
 				dcb_app->priority,
 				dcb_app->selector,
 				dcb_app->protocol,
 				np->peer ? "peer" : "local",
-				np->hw);
+				state);
 		}
-		strncat(app_buf, new_app, sizeof(app_buf) - strlen(obuf) - 2);
+		strncat(app_buf, new_app, sizeof(app_buf) - strlen(app_buf) - 2);
 		i++;
 	}
 
-	sprintf(obuf, "%02x%s%04x%s",
+	snprintf(obuf, obuf_len, "%02x%s%04x%s",
 		(unsigned int) strlen(args), args,
 		(unsigned int) strlen(app_buf), app_buf);
 
@@ -1033,24 +1049,40 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	i = 0;
 	LIST_FOREACH(np, &tlvs->app_head, entry) {
 		char new_app[80];
+		char state[15];
 		struct dcb_app *dcb_app = &np->app;
+
+		switch (np->hw) {
+		case IEEE_APP_SET:
+			strcpy(state, "pending set");
+			break;
+		case IEEE_APP_DEL:
+			strcpy(state, "pending delete");
+			break;
+		case IEEE_APP_DONE:
+			strcpy(state, "set");
+			break;
+		default:
+			strcpy(state, "unknown");
+			break;
+		}
 
 		if (dcb_app->selector == 1) {
 			snprintf(new_app, sizeof(new_app),
-				"%i:(%i,%i,0x%04x) %s hw %i\n", i,
+				"%i:(%i,%i,0x%04x) %s (%s)\n", i,
 				dcb_app->priority,
 				dcb_app->selector,
 				dcb_app->protocol,
 				np->peer ? "peer" : "local",
-				np->hw);
+				state);
 		} else {
 			snprintf(new_app, sizeof(new_app),
-				"%i:(%i,%i,%i) %s hw %i\n", i,
+				"%i:(%i,%i,%i) %s (%s)\n", i,
 				dcb_app->priority,
 				dcb_app->selector,
 				dcb_app->protocol,
 				np->peer ? "peer" : "local",
-				np->hw);
+				state);
 		}
 		strncat(obuf, new_app, obuf_len - strlen(obuf) - 2);
 		i++;

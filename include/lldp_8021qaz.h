@@ -76,6 +76,11 @@
 #define IEEE8021QAZ_TEST_FLAGS(_FlagsVar, _Mask, _BitsToCheck)	\
 			(((_FlagsVar) & (_Mask)) == (_BitsToCheck))
 
+/* APP internal state */
+#define IEEE_APP_SET 0
+#define IEEE_APP_DEL 1
+#define IEEE_APP_DONE 2
+
 /* ETSCFG WCRT field's Shift values */
 #define ETS_WILLING_SHIFT	7
 #define ETS_CBS_SHIFT		6

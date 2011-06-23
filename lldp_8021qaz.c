@@ -1556,10 +1556,6 @@ static void process_ieee8021qaz_pfc_tlv(struct port *port)
 	tlvs->pfc->remote_param = true;
 }
 
-#define IEEE_APP_SET 0
-#define IEEE_APP_DEL 1
-#define IEEE_APP_DONE 2
-
 int ieee8021qaz_add_app(struct app_tlv_head *head, int peer,
 			u8 prio, u8 sel, u16 proto)
 {
