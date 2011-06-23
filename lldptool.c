@@ -133,6 +133,9 @@ static const char *commands_options =
 "  -c <argument list>                   used with get TLV command to specify\n"
 "                                       that the list of configuration elements\n"
 "                                       should be retrieved\n"
+"  -d                                   use to delete specified argument from\n"
+"                                       the configuration.  (Currently\n"
+"                                       implemented for DCBX App TLV settings)\n"
 "  -n                                   \"neighbor\" option for command\n"
 "  -r                                   show raw message\n"
 "  -R                                   show only raw messages\n";
@@ -521,7 +524,7 @@ static int request(struct clif *clif, int argc, char *argv[])
 
 	opterr = 0;
 	for (;;) {
-		c = getopt(argc, argv, "Si:tTlLhcnvrRqV:");
+		c = getopt(argc, argv, "Si:tTlLhcdnvrRqV:");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -572,6 +575,9 @@ static int request(struct clif *clif, int argc, char *argv[])
 			break;
 		case 'c':
 			command.ops |= op_config;
+			break;
+		case 'd':
+			command.ops |= op_delete;
 			break;
 		case 'n':
 			command.ops |= op_neighbor;

@@ -51,6 +51,7 @@ int get_cfg(const char *ifname, char *path, void *value, int type);
 int set_cfg(const char *ifname, char *path, void *value, int type);
 int get_config_setting(const char *ifname, char *path, void *value, int type);
 int set_config_setting(const char *ifname, char *path, void *value, int type);
+int remove_config_setting(const char *ifname, char *parent, char *name);
 int get_config_tlvfield(const char *ifname, u32 tlvid, const char *field, void *value, int type);
 int get_config_tlvfield_int(const char *ifname, u32 tlvid, const char *field, int *value);
 int get_config_tlvfield_bool(const char *ifname, u32 tlvid, const char *field, int *value);

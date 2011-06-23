@@ -54,6 +54,7 @@ typedef enum {
 	op_arg       = 0x0004,
 	op_argval    = 0x0008,
 	op_config    = 0x0010,
+	op_delete    = 0x0020,
 } lldp_op;
 
 struct tlv {

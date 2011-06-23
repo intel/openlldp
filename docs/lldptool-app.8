@@ -4,7 +4,7 @@ APP \- Show / manipulate APP TLV configuration
 .SH SYNOPSIS
 .B lldptool -t -i ethx -V APP [-c app]
 .sp
-.B lldptool -T -i ethx -V APP app=prio,sel,pid
+.B lldptool -T -i ethx -V APP [-d] app=prio,sel,pid
 .sp
 .SH DESCRIPTION
 The APP TLV is an informational TLV and will advertise the current configured
@@ -15,9 +15,8 @@ selector and protocol field the local parameter is used.
 .TP
 .B app
 Configures a local application data field using the three parameters
-priority (prio), selector (sel), and protocol (pid).  Setting a
-priority value to the current default priority will remove the APP
-data from the application table.
+priority (prio), selector (sel), and protocol (pid). The -d option
+can be provided to remove an entry which matches the three parameters.
 
 .SH Theory of Operations
 The APP TLV is an informational TLV for most end stations it is not expected
@@ -36,6 +35,9 @@ Configure ISCSI application for priority 4 on \fIeth2\fR
 .TP
 Configure FCoE application for priority 3 on \fIeth2\fR
 .B lldptool -T -i eth2 -V APP app=3,1,35078
+.TP
+Remove FCoE application for priority 3 on \fIeth2\fR
+.B lldptool -T -i eth2 -V APP -d app=3,1,35078
 .TP
 Display locally configured application table on \fIeth2\fR
 .B lldptool -t -i eth2 -V APP -c app

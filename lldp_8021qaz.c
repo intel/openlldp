@@ -349,7 +349,7 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 	tlvs->pfc->local.pfc_cap = numtcs;
 
 	/* Read and add APP data to internal lldpad APP ring */
-	for (i = 0; ; i++) {
+	for (i = 0; i < MAX_APP_ENTRIES; i++) {
 		char *parse;
 		char *app_tuple;
 		u8 prio, sel;
@@ -360,7 +360,7 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 		res = get_config_setting(ifname, arg_path, &arg, CONFIG_TYPE_STRING);
 
 		if (res)
-			break;
+			continue;
 
 		/* Parse cfg file input, bounds checking done on set app cmd */
 		parse = strdup(arg);
@@ -383,8 +383,8 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 		errno = 0;
 		pid = strtol(app_tuple, NULL, 0);
 		if (!errno)
-			ieee8021qaz_add_app(&tlvs->app_head, 0,
-					    prio, sel, (u16) pid);
+			ieee8021qaz_mod_app(&tlvs->app_head, 0,
+					    prio, sel, (u16) pid, 0);
 		free(parse);
 	}
 
@@ -1556,18 +1556,26 @@ static void process_ieee8021qaz_pfc_tlv(struct port *port)
 	tlvs->pfc->remote_param = true;
 }
 
-int ieee8021qaz_add_app(struct app_tlv_head *head, int peer,
-			u8 prio, u8 sel, u16 proto)
+int ieee8021qaz_mod_app(struct app_tlv_head *head, int peer,
+			u8 prio, u8 sel, u16 proto, u32 ops)
 {
 	struct app_obj *np;
 
-	/* Search list for existing match and abort */
+	/* Search list for existing match and abort
+	 * Mark entry for deletion if delete option supplied
+	 */
 	LIST_FOREACH(np, head, entry) {
 		if (np->app.selector == sel &&
 		    np->app.protocol == proto &&
-		    np->app.priority == prio)
+		    np->app.priority == prio) {
+			if (ops & op_delete)
+				np->hw = IEEE_APP_DEL;
 			return 1;
+		}
 	}
+
+	if (ops & op_delete)
+		return 1;
 
 	/* Add new entry for APP data */
 	np = calloc(1, sizeof(*np));
@@ -1664,8 +1672,8 @@ static void process_ieee8021qaz_app_tlv(struct port *port)
 
 		/* If APP data not found in LIST add APP entry */
 		if (!set)
-			ieee8021qaz_add_app(&tlvs->app_head, 1,
-					    prio, sel, proto);
+			ieee8021qaz_mod_app(&tlvs->app_head, 1,
+					    prio, sel, proto, 0);
 		offset += 3;
 	}
 }

@@ -981,10 +981,15 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	struct ieee8021qaz_tlvs *tlvs;
 	char *app_tuple, *parse, *end;
 	char arg_path[256];
+	char arg_parent[256];
+	char arg_name[256];
+	char new_argval[16];
+	char *pp = &new_argval[0];
 	int prio, sel;
 	long pid;
 	struct app_obj *np;
 	int i, res;
+	int unused;
 
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
@@ -1042,8 +1047,46 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	if (test)
 		return cmd_success;
 
+	snprintf(new_argval, sizeof(new_argval),
+		 "%1u,%1u,%5u", (u8) prio, (u8) sel, (u16)pid);
+
+	/* Scan APP entries in config file */
+	unused = -1;
+	for (i = 0; i < MAX_APP_ENTRIES; i++) {
+		char *dummy;
+
+		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s%i", TLVID_PREFIX,
+			 TLVID_8021(LLDP_8021QAZ_APP), ARG_APP, i);
+		res = get_config_setting(cmd->ifname, arg_path, &dummy,
+					 CONFIG_TYPE_STRING);
+
+		if (res) {
+			if (unused < 0)
+				unused = i;
+			continue;
+		}
+
+		/* found an existing entry */
+		if (strcmp(dummy, new_argval) == 0) {
+			if (cmd->ops & op_delete) {
+				unused = 1;
+				snprintf(arg_parent, sizeof(arg_parent),
+					 "%s%08x", TLVID_PREFIX,
+					 TLVID_8021(LLDP_8021QAZ_APP));
+				snprintf(arg_name, sizeof(arg_name), "%s%i",
+					 ARG_APP, i);
+				res = remove_config_setting(cmd->ifname,
+						arg_parent, arg_name);
+			}
+		}
+	}
+
+	if (unused < 0)
+		return cmd_failed;
+
 	/* Build app noting we verified prio, sel, and pid inputs */
-	ieee8021qaz_add_app(&tlvs->app_head, 0, (u8) prio, (u8) sel, (u16) pid);
+	ieee8021qaz_mod_app(&tlvs->app_head, 0, (u8) prio, (u8) sel, (u16) pid,
+		(cmd->ops & op_delete) ? op_delete : 0);
 	ieee8021qaz_app_sethw(cmd->ifname, &tlvs->app_head);
 
 	i = 0;
@@ -1088,29 +1131,17 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 		i++;
 	}
 
-	/* Count APP entries in config file */
-	for (i = 0; ; i++) {
-		char *dummy;
+	somethingChangedLocal(cmd->ifname);
 
-		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s%i", TLVID_PREFIX,
-			 TLVID_8021(LLDP_8021QAZ_APP), ARG_APP, i);
-		res = get_config_setting(cmd->ifname, arg_path, &dummy,
-					 CONFIG_TYPE_STRING);
-
-		if (res)
-			break;
-
-		if (strcmp(dummy, arg_value) == 0)
-			return cmd_success;
-	}
+	if (cmd->ops & op_delete)
+		return cmd_success;
 
 	snprintf(arg_path, sizeof(arg_path),
-		 "%s%08x.%s%i", TLVID_PREFIX, cmd->tlvid, args, i);
+		 "%s%08x.%s%i", TLVID_PREFIX, cmd->tlvid, args, unused);
 
-	set_config_setting(cmd->ifname, arg_path, &arg_value,
+	set_config_setting(cmd->ifname, arg_path, &pp,
 			   CONFIG_TYPE_STRING);
 
-	somethingChangedLocal(cmd->ifname);
 	return cmd_success;
 err:
 	free(parse);

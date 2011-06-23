@@ -38,6 +38,11 @@
 #define MAX_TCS			8
 #define BW_PERCENT		100
 
+/* maximum number of application entries allowed to be
+ * configured in an application TLV.
+ */
+#define MAX_APP_ENTRIES		32
+
 #define DEFAULT_SUBTYPE		0
 #define INIT_IEEE8021QAZ_OUI	{0x00, 0x80, 0xc2}
 
@@ -209,8 +214,8 @@ struct ieee8021qaz_user_data {
 	LIST_HEAD(ieee8021qaz_head, ieee8021qaz_tlvs) head;
 };
 
-int ieee8021qaz_add_app(struct app_tlv_head *head, int peer,
-			u8 prio, u8 sel, u16 proto);
+int ieee8021qaz_mod_app(struct app_tlv_head *head, int peer,
+			u8 prio, u8 sel, u16 proto, u32 ops);
 int ieee8021qaz_app_sethw(char *ifname, struct app_tlv_head *head);
 
 inline int get_prio_map(u32 prio_map, int tc);

@@ -443,6 +443,38 @@ int get_config_setting(const char *ifname, char *path, void *value, int type)
 	return (rval == CONFIG_FALSE) ? cmd_failed : cmd_success;
 }
 
+int remove_config_setting(const char *ifname, char *parent, char *name)
+{
+	char p[1024];
+	int rval = CONFIG_FALSE;
+	config_setting_t *setting = NULL;
+
+	/* look for setting in ifname area first */
+	if (ifname) {
+		snprintf(p, sizeof(p), "%s.%s.%s",
+			 LLDP_SETTING, ifname, parent);
+		setting = config_lookup(&lldpad_cfg, p);
+	}
+
+	/* if not found look for setting in common area */
+	if (setting == NULL) {
+		snprintf(p, sizeof(p), "%s.%s.%s",
+			 LLDP_SETTING, LLDP_COMMON, parent);
+		setting = config_lookup(&lldpad_cfg, p);
+	}
+
+	if (setting != NULL) {
+		rval = config_setting_remove(setting, name);
+		if ((rval == CONFIG_TRUE) &&
+			!config_write_file(&lldpad_cfg, cfg_file_name)) {
+			LLDPAD_DBG("config write failed\n");
+			rval = CONFIG_FALSE;
+		}
+	}
+
+	return (rval == CONFIG_FALSE) ? cmd_failed : cmd_success;
+}
+
 /* calling get_config_setting() w/ init_cfg()/destroy_cfg() */
 int get_cfg(const char *ifname, char *path, void *value, int type)
 {
