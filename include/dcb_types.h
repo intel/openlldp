@@ -135,7 +135,7 @@ typedef struct dcb_traffic_attribs {
 					    * all application sub-types) must
 					    * have the same data length for now
 					    */
-#define APP_ISCSI_DEFAULT_DATA	      0x04 /* user priority 2 */
+#define APP_ISCSI_DEFAULT_DATA	      0x10
 
 #define DCB_MAX_APPTLV		      2  /* max APP TLV supported */
 
