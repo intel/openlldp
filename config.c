@@ -396,7 +396,7 @@ static int lookup_config_value(char *path, void *value, int type)
 {
 	switch (type) {
 	case CONFIG_TYPE_INT:
-		return config_lookup_int(&lldpad_cfg, path, (long *)value);
+		return config_lookup_int(&lldpad_cfg, path, (int *)value);
 	case CONFIG_TYPE_INT64:
 		return config_lookup_int64(&lldpad_cfg, path, (long long *)value);
 	case CONFIG_TYPE_FLOAT:
