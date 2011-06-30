@@ -60,8 +60,9 @@ static int render_cmd(struct cmd *cmd, int argc, char **args, char **argvals)
 
 	/* add any args and argvals to the command message */
 	for (i = 0; i < argc; i++) {
-		snprintf(cmd->obuf+strlen(cmd->obuf), len-strlen(cmd->obuf),
-			"%02x%s", (unsigned int)strlen(args[i]), args[i]);
+		if (args[i])
+			snprintf(cmd->obuf+strlen(cmd->obuf), len-strlen(cmd->obuf),
+				"%02x%s", (unsigned int)strlen(args[i]), args[i]);
 		if (argvals[i])
 			snprintf(cmd->obuf+strlen(cmd->obuf),
 				 len-strlen(cmd->obuf), "%04x%s",
