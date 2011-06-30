@@ -41,10 +41,6 @@
 struct ctrl_dst;
 
 struct clif_data {
-	char iface[IFNAMSIZ+1];
-	char *ctrl_interface;
-	gid_t ctrl_interface_gid;
-	int ctrl_interface_gid_set;
 	int ctrl_sock;
 	struct ctrl_dst *ctrl_dst;
 };

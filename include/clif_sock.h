@@ -20,59 +20,14 @@
   the file called "COPYING".
 
   Contact Information:
-  open-lldp Mailing List <lldp-devel@open-lldp.org>
+  e1000-eedc Mailing List <e1000-eedc@lists.sourceforge.net>
+  Intel Corporation, 5200 N.E. Elam Young Parkway, Hillsboro, OR 97124-6497
 
 *******************************************************************************/
 
-#ifndef _LLDP_MAND_CLIF_H
-#define _LLDP_MAND_CLIF_H
+#ifndef CLIF_SOCK_H
+#define CLIF_SOCK_H
 
-#include "lldp.h"
+#define LLDP_CLIF_SOCK "/com/intel/lldpad"
 
-struct lldp_module *mand_cli_register(void);
-void mand_cli_unregister(struct lldp_module *);
-int mand_print_tlv(u32, u16, char *);
-
-typedef enum {
-	cmd_getstats,
-	cmd_gettlv,
-	cmd_settlv,
-	cmd_get_lldp,
-	cmd_set_lldp,
-	cmd_quit,
-	cmd_license,
-	cmd_version,
-	cmd_help,
-	cmd_ping,
-	cmd_nop,
-} lldp_cmd;
-
-typedef enum {
-	op_local     = 0x0001,
-	op_neighbor  = 0x0002,
-	op_arg       = 0x0004,
-	op_argval    = 0x0008,
-	op_config    = 0x0010,
-	op_delete    = 0x0020,
-} lldp_op;
-
-struct tlv {
-	u32 tlvid;
-	char *infostr;
-};
-
-#define TLVID_PREFIX    "tlvid"
-#define ARG_ADMINSTATUS "adminStatus"
-#define VAL_RXTX        "rxtx"
-#define VAL_RX          "rx"
-#define VAL_TX          "tx"
-#define VAL_DISABLED    "disabled"
-#define VAL_INVALID     "invalid"
-
-#define ARG_TLVTXENABLE "enableTx"
-#define ARG_TLVINFO	"info"
-#define VAL_YES         "yes"
-#define VAL_NO          "no"
-
-
-#endif
+#endif /* CLIF_SOCK_H */

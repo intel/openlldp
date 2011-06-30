@@ -83,6 +83,9 @@ static char *print_status(cmd_status status)
 	case cmd_not_applicable:
 		str = "Command not applicable in IEEE-DCBX modes";
 		break;
+	case cmd_no_access:
+		str = "Access denied";
+		break;
 	default:
 		str = "Unknown status";
 		break;

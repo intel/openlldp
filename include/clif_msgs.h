@@ -28,6 +28,7 @@
 #define _CLIF_MSGS_H
 
 #include <asm/types.h>
+#include "clif_sock.h"
 
 #ifndef IFNAMSIZ
 #define IFNAMSIZ	16
@@ -122,6 +123,7 @@ typedef enum {
     cmd_ctrl_vers_not_compatible,
     cmd_not_capable,
     cmd_not_applicable,
+    cmd_no_access,
 } cmd_status;
 
 #define SHOW_NO_OUTPUT 0x00

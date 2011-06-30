@@ -43,39 +43,42 @@
 #endif /* CONFIG_CLIF_IFACE_UNIX || CONFIG_CLIF_IFACE_UDP */
 
 
-struct clif  *clif_open(const char *clif_path)
+struct clif  *clif_open()
 {
 	struct clif *clif;
-	static int counter = 0;
+	socklen_t addrlen;
 
 	clif = malloc(sizeof(*clif));
 	if (clif == NULL)
 		return NULL;
 	memset(clif, 0, sizeof(*clif));
 
-	clif->s = socket(PF_UNIX, SOCK_DGRAM, 0);
+	clif->s = socket(AF_LOCAL, SOCK_DGRAM, 0);
 	if (clif->s < 0) {
+		perror("socket");
 		free(clif);
 		return NULL;
 	}
 
-	clif->local.sun_family = AF_UNIX;
-	snprintf(clif->local.sun_path, sizeof(clif->local.sun_path),
-		    "/tmp/lldpad_clif_%d-%d", getpid(), counter++);
-	if (bind(clif->s, (struct sockaddr *) &clif->local,
-		    sizeof(clif->local)) < 0) {
+	clif->local.sun_family = AF_LOCAL;
+	clif->local.sun_path[0] = '\0';
+	snprintf(&clif->local.sun_path[1], sizeof(clif->local.sun_path) - 1,
+		    "%s/%d", LLDP_CLIF_SOCK, getpid());
+	addrlen = sizeof(sa_family_t) + strlen(clif->local.sun_path + 1) + 1;
+	if (bind(clif->s, (struct sockaddr *) &clif->local, addrlen) < 0) {
 		close(clif->s);
 		free(clif);
 		return NULL;
 	}
 
-	clif->dest.sun_family = AF_UNIX;
-	snprintf(clif->dest.sun_path, sizeof(clif->dest.sun_path), "%s",
-		    clif_path);
-	if (connect(clif->s, (struct sockaddr *) &clif->dest,
-		    sizeof(clif->dest)) < 0) {
+	clif->dest.sun_family = AF_LOCAL;
+	clif->dest.sun_path[0] = '\0';
+	snprintf(&clif->dest.sun_path[1], sizeof(clif->dest.sun_path) - 1,
+		    "%s", LLDP_CLIF_SOCK);
+	addrlen = sizeof(sa_family_t) + strlen(clif->dest.sun_path + 1) + 1;
+
+	if (connect(clif->s, (struct sockaddr *) &clif->dest, addrlen) < 0) {
 		close(clif->s);
-		unlink(clif->local.sun_path);
 		free(clif);
 		return NULL;
 	}
@@ -85,7 +88,6 @@ struct clif  *clif_open(const char *clif_path)
 
 void clif_close(struct clif *clif)
 {
-	unlink(clif->local.sun_path);
 	close(clif->s);
 	free(clif);
 }

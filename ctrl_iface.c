@@ -29,11 +29,14 @@
 
 *******************************************************************************/
 
+#define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <string.h>
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <sys/queue.h>
+#include <sys/socket.h>
 #include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -309,17 +312,17 @@ static int find_cmd_entry(int cmd)
 static void process_clif_cmd(  struct clif_data *cd,
 			struct sockaddr_un *from,
 			socklen_t fromlen,
-			char *ibuf, int ilen, char *rbuf, int *rlen)
+			char *ibuf, int ilen, char *rbuf, int rsize, int *rlen)
 {
 	int status;
 
 	/* setup minimum command response message
 	 * status will be updated at end */
-	snprintf(rbuf, *rlen, "%c%02x", CMD_RESPONSE, dcb_failed);
+	snprintf(rbuf, rsize, "%c%02x", CMD_RESPONSE, dcb_failed);
 	status = cmd_tbl[find_cmd_entry((int)ibuf[0])].cmd_handler(
 					 cd, from, fromlen, ibuf, ilen,
 					 rbuf + strlen(rbuf),
-					 *rlen - strlen(rbuf) - 1);
+					 rsize - strlen(rbuf) - 1);
 
 	/* update status and compute final length */
 	rbuf[CLIF_STAT_OFF] = hexlist[(status & 0x0f1) >> 4];
@@ -333,55 +336,73 @@ static void ctrl_iface_receive(int sock, void *eloop_ctx,
 {
 	struct clif_data *clifd = eloop_ctx;
 	char buf[MAX_CLIF_MSGBUF];
+	struct msghdr smsg;
+	struct cmsghdr *cmsg;
+	struct iovec iov;
+	struct ucred *cred;
+	char cred_msg[CMSG_SPACE(sizeof(struct ucred))];
 	int res;
 	struct sockaddr_un from;
 	socklen_t fromlen = sizeof(from);
 	char *reply;
-	int reply_size = MAX_CLIF_MSGBUF;
+	const int reply_size = MAX_CLIF_MSGBUF;
+	int reply_len;
 
-	res = recvfrom(sock, buf, sizeof(buf) - 1, MSG_DONTWAIT,
-		       (struct sockaddr *) &from, &fromlen);
-	if (res < 1) {
+	memset(&buf, 0x00, sizeof(buf));
+	iov.iov_base = buf;
+	iov.iov_len = sizeof(buf) - 1;
+
+	memset(&smsg, 0x00, sizeof(struct msghdr));
+	smsg.msg_name = &from;
+	smsg.msg_namelen = fromlen;
+	smsg.msg_iov = &iov;
+	smsg.msg_iovlen = 1;
+	smsg.msg_control = cred_msg;
+	smsg.msg_controllen = sizeof(cred_msg);
+
+	res = recvmsg(sock, &smsg, 0);
+	if (res < 0) {
 		perror("recvfrom(ctrl_iface)");
 		return;
 	}
+	cmsg = CMSG_FIRSTHDR(&smsg);
+	fromlen = smsg.msg_namelen;
+	cred = (struct ucred *)CMSG_DATA(cmsg);
+
+	if (cmsg == NULL || cmsg->cmsg_type != SCM_CREDENTIALS) {
+		LLDPAD_INFO("%s: No sender credentials, ignoring",
+			   __FUNCTION__);
+		sprintf(buf,"R%02x", cmd_bad_params);
+		sendto(sock, buf, 3, 0, (struct sockaddr *) &from, fromlen);
+		return;
+	}
+	if (cred->uid != 0) {
+		LLDPAD_INFO("%s: sender uid=%i, ignoring",
+			   __FUNCTION__, cred->uid);
+		sprintf(buf,"R%02x", cmd_no_access);
+		sendto(sock, buf, 3, 0, (struct sockaddr *) &from,
+			fromlen);
+		return;
+	}
+
 	buf[res] = '\0';
+	/* wpa_hexdump_ascii(MSG_DEBUG, "RX ctrl_iface", (u8 *) buf, res); */
 
 	reply = malloc(reply_size);
 	if (reply == NULL) {
-		sendto(sock, "FAIL", 4, 0, (struct sockaddr *) &from,
+		sendto(sock, "R01", 3, 0, (struct sockaddr *) &from,
 		       fromlen);
 		return;
 	}
 
 	memset(reply, 0, reply_size);
-	process_clif_cmd(clifd, &from, fromlen, buf, res, reply, &reply_size);
+	process_clif_cmd(clifd, &from, fromlen, buf, res,
+			 reply, reply_size, &reply_len);
 
-	sendto(sock, reply, reply_size, 0, (struct sockaddr *) &from, fromlen);
+	/* wpa_hexdump_ascii(MSG_DEBUG, "TX ctrl_iface", (u8 *) reply, reply_len); */
+	sendto(sock, reply, reply_len, 0, (struct sockaddr *) &from, fromlen);
 	free(reply);
 }
-
-
-static char *ctrl_iface_path(struct clif_data *clifd)
-{
-	char *buf;
-	size_t len;
-
-	if (clifd->ctrl_interface == NULL)
-		return NULL;
-
-	len = strlen(clifd->ctrl_interface) + strlen(clifd->iface) +
-		2;
-	buf = malloc(len);
-	if (buf == NULL)
-		return NULL;
-
-	snprintf(buf, len, "%s/%s",
-		 clifd->ctrl_interface, clifd->iface);
-	buf[len - 1] = '\0';
-	return buf;
-}
-
 
 int ctrl_iface_register(struct clif_data *clifd)
 {
@@ -393,76 +414,35 @@ int ctrl_iface_init(struct clif_data *clifd)
 {
 	struct sockaddr_un addr;
 	int s = -1;
-	char *fname = NULL;
-	int retry;
+	socklen_t addrlen;
+	const int feature_on = 1;
 
 	clifd->ctrl_sock = -1;
 	clifd->ctrl_dst = NULL;
 
-	if (clifd->ctrl_interface == NULL)
-		return 0;
-
-	if (mkdir(clifd->ctrl_interface, S_IRWXU | S_IRWXG) < 0) {
-		if (errno == EEXIST) {
-			LLDPAD_DBG("Using existing control "
-				   "interface directory.");
-		} else {
-			perror("mkdir[ctrl_interface]");
-			goto fail;
-		}
-	}
-
-	if (clifd->ctrl_interface_gid_set &&
-	    chown(clifd->ctrl_interface, 0,
-		  clifd->ctrl_interface_gid) < 0) {
-		perror("chown[ctrl_interface]");
-		return -1;
-	}
-
-	if (strlen(clifd->ctrl_interface) + 1 + strlen(clifd->iface)
-	    >= sizeof(addr.sun_path))
-		goto fail;
-
-	s = socket(PF_UNIX, SOCK_DGRAM, 0);
+	s = socket(AF_LOCAL, SOCK_DGRAM, 0);
 	if (s < 0) {
-		perror("socket(PF_UNIX)");
+		perror("socket(AF_LOCAL)");
 		goto fail;
 	}
+	/* enable receiving of the sender credentials */
+	setsockopt(s, SOL_SOCKET, SO_PASSCRED,
+		   &feature_on, sizeof(feature_on));
 
 	memset(&addr, 0, sizeof(addr));
-	addr.sun_family = AF_UNIX;
-	fname = ctrl_iface_path(clifd);
-	if (fname == NULL)
-		goto fail;
-
-	strncpy(addr.sun_path, fname, sizeof(addr.sun_path));
-	for (retry = 0; retry < 2; retry++) {
-		if (bind(s, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
-			if (errno == EADDRINUSE) {
-				unlink(fname);
-			}
-		}
-		else {
-			break;
-		}
-	}
-	if (retry == 2) {
-		perror("bind(PF_UNIX)");
+	addr.sun_family = AF_LOCAL;
+	snprintf(&addr.sun_path[1], sizeof(addr.sun_path) - 1,
+		 "%s", LLDP_CLIF_SOCK);
+	addrlen = sizeof(sa_family_t) + strlen(addr.sun_path + 1) + 1;
+	if (bind(s, (struct sockaddr *) &addr, addrlen) < 0) {
+		perror("bind(AF_LOCAL)");
 		goto fail;
 	}
+	/* enable receiving of the sender credentials */
+	setsockopt(s, SOL_SOCKET, SO_PASSCRED,
+		   &feature_on, sizeof(feature_on));
 
-	if (clifd->ctrl_interface_gid_set &&
-	    chown(fname, 0, clifd->ctrl_interface_gid) < 0) {
-		perror("chown[ctrl_interface/ifname]");
-		goto fail;
-	}
-
-	if (chmod(fname, S_IRWXU | S_IRWXG) < 0) {
-		perror("chmod[ctrl_interface/ifname]");
-		goto fail;
-	}
-	free(fname);
-
+	LLDPAD_INFO("bound ctrl iface to %s", &addr.sun_path[1]);
 	clifd->ctrl_sock = s;
 
 	return 0;
@@ -470,10 +450,6 @@ int ctrl_iface_init(struct clif_data *clifd)
 fail:
 	if (s >= 0)
 		close(s);
-	if (fname) {
-		unlink(fname);
-		free(fname);
-	}
 	return -1;
 }
 
@@ -486,17 +462,6 @@ void ctrl_iface_deinit(struct clif_data *clifd)
 		eloop_unregister_read_sock(clifd->ctrl_sock);
 		close(clifd->ctrl_sock);
 		clifd->ctrl_sock = -1;
-
-		if (clifd->ctrl_interface &&
-		    rmdir(clifd->ctrl_interface) < 0) {
-			if (errno == ENOTEMPTY) {
-				LLDPAD_DBG("Control interface "
-					   "directory not empty - leaving it "
-					   "behind");
-			} else {
-				perror("rmdir[ctrl_interface]");
-			}
-		}
 	}
 
 	dst = clifd->ctrl_dst;

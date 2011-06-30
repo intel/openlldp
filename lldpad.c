@@ -53,7 +53,6 @@
 #include "lldp_8021qaz.h"
 #include "config.h"
 #include "lldpad_shm.h"
-#include "clif.h"
 #include "lldp/agent.h"
 #include "lldp/l2_packet.h"
 
@@ -296,11 +295,6 @@ int main(int argc, char *argv[])
 		LLDPAD_ERR("failed to malloc user data\n");
 		exit(1);
 	}
-
-	clifd->ctrl_interface = (char *) CLIF_IFACE_DIR;
-	strcpy(clifd->iface, CLIF_IFACE_IFNAME);
-	clifd->ctrl_interface_gid_set = 0;
-	clifd->ctrl_interface_gid = 0;
 
 	/* initialize lldpad configuration file */
 	if (!init_cfg()) {

@@ -155,8 +155,6 @@ static const char *commands_help =
 static struct clif *clif_conn;
 static int cli_quit = 0;
 static int cli_attached = 0;
-static const char *clif_iface_dir = CLIF_IFACE_DIR;
-static char *clif_ifname = NULL;
 
 /*
  * insert to head, so first one is last
@@ -270,26 +268,6 @@ int parse_print_message(char *msg, int print)
 	return status;
 }
 
-static struct clif *cli_open_connection(const char *ifname)
-{
-	char *cfile;
-	int flen;
-
-	if (ifname == NULL)
-		return NULL;
-
-	flen = strlen(clif_iface_dir) + strlen(ifname) + 2;
-	cfile = malloc(flen);
-	if (cfile == NULL)
-		return NULL;
-	snprintf(cfile, flen, "%s/%s", clif_iface_dir, ifname);
-
-	clif_conn = clif_open(cfile);
-	free(cfile);
-	return clif_conn;
-}
-
-
 static void cli_close_connection(void)
 {
 	if (clif_conn == NULL)
@@ -401,60 +379,6 @@ static int cli_cmd_quit(struct clif *clif, int argc, char *argv[],
 	return 0;
 }
 
-
-static void cli_list_interfaces(struct clif *clif)
-{
-	struct dirent *dent;
-	DIR *dir;
-
-	dir = opendir(clif_iface_dir);
-	if (dir == NULL) {
-		printf("Control interface directory '%s' could not be "
-		       "opened.\n", clif_iface_dir);
-		return;
-	}
-
-	printf("Available interfaces:\n");
-	while ((dent = readdir(dir))) {
-		if (strcmp(dent->d_name, ".") == 0 ||
-		    strcmp(dent->d_name, "..") == 0)
-			continue;
-		printf("%s\n", dent->d_name);
-	}
-	closedir(dir);
-}
-
-
-static int cli_cmd_interface(struct clif *clif, int argc, char *argv[],
-			     struct cmd *command, int raw)
-{
-	char attach_str[9] = "";
-	u32 mod_id = LLDP_MOD_MAND;
-
-	if (argc < 1) {
-		cli_list_interfaces(clif);
-		return 0;
-	}
-
-	bin2hexstr((u8*)&mod_id, 4, attach_str, 8);
-	cli_close_connection();
-	free(clif_ifname);
-	clif_ifname = strdup(argv[0]);
-
-	if (cli_open_connection(clif_ifname)) {
-		printf("Connected to interface '%s.\n", clif_ifname);
-		if (clif_attach(clif_conn, attach_str) == 0)
-			cli_attached = 1;
-		else
-			printf("Warning: Failed to attach to lldpad.\n");
-	} else {
-		printf("Could not connect to interface '%s' - re-trying\n",
-			clif_ifname);
-	}
-	return 0;
-}
-
-
 struct cli_cmd {
 	lldp_cmd cmdcode;
 	const char *cmdstr;
@@ -465,7 +389,6 @@ struct cli_cmd {
 static struct cli_cmd cli_commands[] = {
 	{ cmd_ping,     "ping",      cli_cmd_ping },
 	{ cmd_help,     "help",      cli_cmd_help },
-	{ cmd_if,       "interface", cli_cmd_interface },
 	{ cmd_license,  "license",   cli_cmd_license },
 	{ cmd_version,  "version",   cli_cmd_version },
 	{ cmd_quit,     "quit",      cli_cmd_quit },
@@ -743,7 +666,7 @@ static void cli_alarm(int sig)
 		cli_close_connection();
 	}
 	if (!clif_conn) {
-		clif_conn = cli_open_connection(clif_ifname);
+		clif_conn = clif_open();
 		if (clif_conn) {
 			char attach_str[9] = "";
 			u32 mod_id = LLDP_MOD_MAND;
@@ -774,21 +697,7 @@ int main(int argc, char *argv[])
 		printf("%s\n\n%s\n\n", cli_version, cli_license);
 
 	for (;;) {
-		if (clif_ifname == NULL) {
-			struct dirent *dent;
-			DIR *dir = opendir(clif_iface_dir);
-			if (dir) {
-				while ((dent = readdir(dir))) {
-					if (strcmp(dent->d_name, ".") == 0 ||
-					    strcmp(dent->d_name, "..") == 0)
-						continue;
-					clif_ifname = strdup(dent->d_name);
-					break;
-				}
-				closedir(dir);
-			}
-		}
-		clif_conn = cli_open_connection(clif_ifname);
+		clif_conn = clif_open();
 		if (clif_conn) {
 			if (warning_displayed)
 				printf("Connection established.\n");
@@ -828,7 +737,6 @@ int main(int argc, char *argv[])
 		ret = !!ret;
 	}
 
-	free(clif_ifname);
 	cli_close_connection();
 
 	deinit_modules();

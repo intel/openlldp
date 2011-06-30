@@ -33,10 +33,7 @@
 #define CLIF_H
 
 #include <sys/un.h>
-
-#define CLIF_IFACE_DIR "/var/run/lldpad"
-#define CLIF_IFACE_IFNAME "clif"
-#define LLDP_CLIF_SOCK CLIF_IFACE_DIR "/" CLIF_IFACE_IFNAME
+#include "clif_sock.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -61,15 +58,11 @@ struct clif {
 
 /**
  * clif_open - Open a client interface to the lldpad
- * @clif_path: Path for UNIX domain sockets; ignored if UDP sockets are used.
  * Returns: Pointer to abstract client interface data or %NULL on failure
  *
  * This function is used to open a client interface to the lldpad.
- * clif_path is usually /var/run/lldpad. This path
- * is configured in lldpad and other programs using the client
- * interface need to use matching path configuration.
  */
-struct clif *clif_open(const char *clif_path);
+struct clif *clif_open(void);
 
 
 /**
