@@ -1,4 +1,4 @@
-AC_INIT([lldpad], [0.9.42])
+AC_INIT([lldpad], [0.9.43])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 AC_PROG_CC
