@@ -1,0 +1,99 @@
+.TH lldptool 8 "February 2010" "open-lldp" "Linux"
+.SH NAME
+vdp \- Show / manipulate VDP TLV configuration
+.SH SYNOPSIS
+.B lldptool -t -i ethx -V vdp -c enableTx
+.sp
+.B lldptool -T -i ethx -V vdp -c enableTx=[yes|no]
+.sp
+.B lldptool -t -i ethx -V vdp -c mode
+.sp
+.B lldptool -T -i ethx -V vdp -c mode=<mode>,<mgrid>,<typeid>,<typeidversion>,<instanceid>,<mac>,<vlan>
+.sp
+.B lldptool -t -i ethx -V vdp -c role
+.sp
+.B lldptool -T -i ethx -V vdp -c role=[station|bridge]
+.sp
+.SH DESCRIPTION
+The VSI discovery protocol (VDP) is \fINOT\fR a TLV in the LLDP sense but
+rather a protocol to manage the association and deassociation of virtual
+station interfaces (VSIs) between the station and an adjacent switch. VDP
+uses ECP as transport for VDP TLVs. An ECP frame may contain multiple VDP
+TLVs. Each VDP TLVs contains a mode, typeid, version, instanceid, mac and
+vlan for a VSI.
+
+.SH ARGUMENTS
+.TP
+.B enableTx
+Enables or disables VDP
+.TP
+.B mode
+shows or sets modes for VSIs with the following parameters:
+.RS
+.IP <mode>
+mode (0=preassociate, 1=preassociate with RR, 2=associate, 3=deassociate)
+.IP <mgrid>
+manager (database) id
+.IP <typeid>
+VSI type id
+.IP <version>
+VSI type id version
+.IP <instanceid>
+VSI instance id
+.IP <mac>
+VSI mac address
+.IP <vlan>
+VSI vlan id
+.RE
+
+.TP
+.B role
+shows or sets the role of the local machine to act as either station
+(default) or bridge.
+
+.SH Theory of Operation
+The VDP protocol is used to pre-associate, associate or deassociate VSIs to
+and adjacent switch. Information about the VSIs is formatted into VDP TLVs
+which are then handed to ECP for lower-level transport. Each ECP frame may
+contain multiple VDP TLVs.
+
+Two ways to receive VSI information exist in llpdad: via netlink or with
+lldptool. netlink is used by libvirt to communicate VSIs to lldpad. lldptool
+can be used to associate/deassociate VSIs from the command line. This is
+especially helpful for testing purposes.
+
+.SH EXAMPLE & USAGE
+.TP
+Display if vdp is enabled on \fIeth8\fR
+.B lldptool -t -i eth8 -V vdp -c enableTx
+.TP
+Enable vdp on \fIeth8\fR
+.B lldptool -T -i eth8 -V vdp -c enableTx=yes
+.TP
+Display the currently configured VSIs for \fIeth8\fR
+.B lldptool -t -i eth8 -V vdp -c mode
+.TP
+Associate a VSI on \fIeth8\fR
+.B lldptool -T -i eth8 -V vdp -c mode=2,12,1193046,1,fa9b7fff-b0a0-4893-8e0e-beef4ff18f8f,52:54:00:C7:3E:CE,3
+.TP
+Display the locally configured role for VDP on \fIeth8\fR
+.B lldptool -t -i eth8 -V vdp -c role
+.TP
+Set the local role for VDP on \fIeth8\fR
+.B lldptool -T -i eth8 -V vdp -c role=bridge
+
+.SH SOURCE
+.TP
+o
+IEEE 802.1Qbg (http://www.ieee802.org/1/pages/802.1bg.html)
+
+.SH NOTES
+Currently the code in lldpad reflects draft 0 of the upcoming standard.
+
+.SH SEE ALSO
+.BR lldptool-evb (8),
+.BR lldptool (8),
+.BR lldpad (8)
+
+.SH AUTHOR
+Jens Osterkamp
