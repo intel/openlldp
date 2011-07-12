@@ -68,7 +68,8 @@ nltest_SOURCES = nltest.c nltest.h
 
 ## man pages
 dist_man_MANS = docs/lldpad.8 docs/dcbtool.8 docs/lldptool.8 \
-		docs/lldptool-ets.8 docs/lldptool-pfc.8 docs/lldptool-app.8
+		docs/lldptool-ets.8 docs/lldptool-pfc.8 docs/lldptool-app.8 \
+		docs/lldptool-evb.8 docs/lldptool-vdp.8
 
 ## force the creation of an empty configuration directory at install time
 lldpadconfigdir = /var/lib/lldpad
