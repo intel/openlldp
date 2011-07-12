@@ -1,0 +1,124 @@
+.TH lldptool 8 "February 2010" "open-lldp" "Linux"
+.SH NAME
+evb \- Show / manipulate EVB TLV configuration
+.SH SYNOPSIS
+.B lldptool -t -i ethx -V evbCfg -c enableTx
+.sp
+.B lldptool -T -i ethx -V evbCfg -c enableTx=[yes|no]
+.sp
+.B lldptool -t -i ethx -V evbCfg -c fmode
+.sp
+.B lldptool -T -i ethx -V evbCfg -c fmode=[bridge|reflectiverelay]
+.sp
+.B lldptool -t -i ethx -V evbCfg -c capabilities
+.sp
+.B lldptool -T -i ethx -V evbCfg -c capabilities=[rte|ecp|vdp|none]
+.sp
+.B lldptool -t -i ethx -V evbCfg -c rte
+.sp
+.B lldptool -T -i ethx -V evbCfg -c rte=[<rte>]
+.sp
+.B lldptool -t -i ethx -V evbCfg -c vsis
+.sp
+.B lldptool -T -i ethx -V evbCfg -c vsis=[<number of vsis>]
+.sp
+.SH DESCRIPTION
+The EVB TLV is a TLV to announce the station and bridge's edge virtual
+bridging (evb) capabilities and request the bridge forwarding mode. If both
+sides have agree on edge control protocol (ECP), VSI discovery protocol (VDP)
+capabilities, both sides can exchange VDP TLV using ECP frames.
+The vsis parameter will set the maximum number of VSIs and show the number
+of currently configured VSIs.
+
+.SH ARGUMENTS
+.TP
+.B enableTx
+Enables the EVB TLV to be transmitted
+.TP
+.B fmode
+shows or sets the forwarding mode between bridge (default) or
+reflectiverelay (RR).
+.TP
+.B capabilities
+shows or sets the local capabilities that are announced to the adjacent
+switch in the TLV. This parameter will accept any combination of rte, vdp or
+ecp, separated by ",". Use the keyword "none" if you do not want to set any
+capabilities.
+.TP
+.B rte
+shows or set the local run time exponent (RTE). The RTE will be used as the
+base for the timing of the ECP and VDP protocols.
+.TP
+.B vsis
+shows or sets the number of virtual station interfaces (VSIs) that are
+announced to the adjacent switch in the TLV. This parameter expects a number
+between 0 and 65535.
+
+.SH Theory of Operation
+The EVB TLV is used to announce and exchange supported parameters between
+the station and an adjacent switch.
+
+If "reflectiverelay" is set as forwarding mode, the switch will allow
+"reflection" of frames coming from different sources at the same port back
+to the port. This will allow communication between virtual machines on the
+same host via the switch.
+
+The capabilities parameter is used to set RTE, ECP and VDP support. VDP TLVs
+in ECP frames can only be exchanged if both sides agree on ECP and VDP as
+capabilities. RTE will be used as the base timing parameter for ECP and VDP.
+
+.SH EXAMPLE & USAGE
+.TP
+Display locally configured values for \fIeth8\fR
+.B lldptool -t -i eth8 -V evbCfg
+.TP
+Display remotely configured values for \fIeth8\fR
+.B lldptool -n -t -i eth8 -V evbCfg
+.TP
+Display wether evb tlv is configured for tx on \fIeth8\fR
+.B lldptool -t -i eth8 -V evbCfg -c enableTx
+.TP
+Display the currently requested forwarding mode for \fIeth8\fR
+.B lldptool -t -i eth8 -V evbCfg -c fmode
+.TP
+Set the forwarding mode to reflective relay
+.B lldptool -T -i eth8 -V evbCfg -c fmode=reflectiverelay
+.TP
+Display the currently configured capabilities
+.B lldptool -t -i ethx -V evbCfg -c capabilities
+.TP
+Set the locally possible capabilities to RTE, ECP and VDP
+.B lldptool -T -i ethx -V evbCfg -c capabilities=rte,ecp,vdp
+.TP
+Resets the locally possible capabilities to "none"
+.B lldptool -T -i ethx -V evbCfg -c capabilities=none
+.TP
+Display the locally configured value for RTE
+.B lldptool -t -i ethx -V evbCfg -c rte
+.TP
+Set the value for RTE
+.B lldptool -T -i ethx -V evbCfg -c rte=[<rte>]
+.TP
+Display the configured maximum number of VSIs
+.B lldptool -t -i ethx -V evbCfg -c vsis
+.TP
+Set the maximum number of VSIs
+.B lldptool -T -i ethx -V evbCfg -c vsis=[<number of vsis>]
+.sp
+
+.SH SOURCE
+.TP
+o
+IEEE 802.1Qbg (http://www.ieee802.org/1/pages/802.1bg.html)
+
+.SH NOTES
+Currently the code in lldpad reflects draft 0 of the upcoming standard. EVB
+TLVs on the wire can be decoded with wireshark > v1.6.
+
+.SH SEE ALSO
+.BR lldptool-vdp (8),
+.BR lldptool (8),
+.BR lldpad (8)
+
+.SH AUTHOR
+Jens Osterkamp
