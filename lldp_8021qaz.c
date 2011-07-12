@@ -1192,17 +1192,14 @@ bld_ieee8021qaz_pfc_tlv(struct ieee8021qaz_tlvs *tlvs)
 	hton24(pfc->oui, OUI_IEEE_8021);
 	pfc->subtype = LLDP_8021QAZ_PFC;
 
-	if (tlvs->pfc->current_state == INIT) {
-		pfc->wmrc = tlvs->pfc->local.willing << 7 |
-			    tlvs->pfc->local.mbc << 6 |
-			    tlvs->pfc->local.pfc_cap;
+	pfc->wmrc = tlvs->pfc->local.willing << 7 |
+		    tlvs->pfc->local.mbc << 6 |
+		    tlvs->pfc->local.pfc_cap;
+
+	if (tlvs->pfc->current_state == INIT)
 		pfc->pfc_enable = tlvs->pfc->local.pfc_enable;
-	} else {
-		pfc->wmrc = tlvs->pfc->remote.willing << 7 |
-			    tlvs->pfc->remote.mbc << 6 |
-			    tlvs->pfc->remote.pfc_cap;
+	else
 		pfc->pfc_enable = tlvs->pfc->remote.pfc_enable;
-	}
 
 	tlv->type = ORG_SPECIFIC_TLV;
 	tlv->length = sizeof(struct ieee8021qaz_tlv_pfc);
