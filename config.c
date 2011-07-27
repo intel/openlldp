@@ -346,28 +346,28 @@ void init_ports(void)
 
 	p = nameidx;
 	while (p->if_index != 0) {
-		if (is_loopback(p->if_name)) {
-			;
-		} else if (is_bond(p->if_name)) {
-			if (add_bond_port(p->if_name) < 0)
-				syslog(LOG_ERR, "failed to register port %s",
-					p->if_name);
-		} else if (is_vlan(p->if_name)) {
-			;
-		} else if (is_macvtap(p->if_name)) {
-			;
-		} else if (is_bridge(p->if_name)) {
-			; /* ignore bridge device */
-		} else {
-			add_port(p->if_name);
+		int valid = is_valid_lldp_device(p->if_name);
+		int err;
 
-			if (check_link_status(p->if_name)) {
-				LIST_FOREACH(np, &lldp_head, lldp) {
-					if (np->ops->lldp_mod_ifup)
-						np->ops->lldp_mod_ifup(p->if_name);
-				}
-				set_lldp_port_enable_state(p->if_name, 1);
+		if (!valid) {
+			p++;
+			continue;
+		}
+
+		if (is_bond(p->if_name))
+			err = add_bond_port(p->if_name);
+		else
+			err = add_port(p->if_name);
+
+		if (err) {
+			LLDPAD_ERR("%s: Error adding device %s\n",
+				     __func__, p->if_name);
+		} else if (check_link_status(p->if_name)) {
+			LIST_FOREACH(np, &lldp_head, lldp) {
+				if (np->ops->lldp_mod_ifup)
+					np->ops->lldp_mod_ifup(p->if_name);
 			}
+			set_lldp_port_enable_state(p->if_name, 1);
 		}
 		p++;
 	}
