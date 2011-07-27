@@ -567,9 +567,9 @@ initialized:
 	 */
 	get_dcb_capabilities(ifname, &dcb_support);
 	if (!dcb_support.dcbx || (gdcbx_subtype & ~MASK_DCBX_FORCE)) {
-		set_hw_state(ifname, 1);
 		set_dcbx_mode(tlvs->ifname,
 			      DCB_CAP_DCBX_HOST | DCB_CAP_DCBX_VER_CEE);
+		set_hw_state(ifname, 1);
 		tlvs->active = true;
 	} else {
 		tlvs->active = false;
