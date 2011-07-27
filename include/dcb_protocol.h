@@ -78,17 +78,11 @@ void remove_dcb_support(void);
 bool add_pg_defaults(void);
 bool add_pfc_defaults(void);
 bool add_app_defaults(u32 subtype);
-bool remove_pg_defaults(void);
-bool remove_pfc_defaults(void);
-bool remove_app_defaults(u32 subtype);
 void mark_pg_sent(char *device_name);
 void mark_pfc_sent(char *device_name);
 void mark_app_sent(char *device_name, u32 subtype);
 bool add_llink_defaults(u32 subtype);
-bool remove_llink_defaults(u32 subtype);
 void mark_llink_sent(char *device_name, u32 subtype);
-
-dcb_result test_device_dstore(char *device_name);
 
 dcb_result get_control(char *device_name,
 	control_protocol_attribs *control_data);

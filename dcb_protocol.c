@@ -1380,21 +1380,6 @@ bool add_pg_defaults()
 	return result;
 }
 
-bool remove_pg_defaults()
-{
-	char   sTmp[MAX_DESCRIPTION_LEN];
-
-	snprintf(sTmp, MAX_DESCRIPTION_LEN, DEF_CFG_STORE);
-	pg_it itpg = pg_find(&pg, sTmp);
-	if (itpg == NULL)
-		return false;
-
-	/* erase and free memory */
-	pg_erase(&itpg);
-
-	return true;
-}
-
 bool add_pfc_defaults()
 {
 	pfc_attribs pfc_data;
@@ -1425,21 +1410,6 @@ bool add_pfc_defaults()
 		result = false;
 
 	return result;
-}
-
-bool remove_pfc_defaults()
-{
-	char   sTmp[MAX_DESCRIPTION_LEN];
-
-	snprintf(sTmp, MAX_DESCRIPTION_LEN, DEF_CFG_STORE);
-	pfc_it itpfc = pfc_find(&pfc, sTmp);
-	if (itpfc == NULL)
-		return false;
-
-	/* erase and free memory */
-	pfc_erase(&itpfc);
-
-	return true;
 }
 
 bool add_app_defaults(u32 subtype)
@@ -1484,22 +1454,6 @@ bool add_app_defaults(u32 subtype)
 	return result;
 }
 
-bool remove_app_defaults(u32 subtype)
-{
-	char   sTmp[MAX_DESCRIPTION_LEN];
-
-	snprintf(sTmp, MAX_DESCRIPTION_LEN, "%s", DEF_CFG_STORE);
-	app_it it = apptlv_find(&apptlv, sTmp, subtype);
-
-	if (it == NULL)
-		return false;
-
-	/* erase and free memory */
-	apptlv_erase(&it);
-
-	return true;
-}
-
 bool add_llink_defaults(u32 subtype)
 {
 	llink_attribs llink_data;
@@ -1529,21 +1483,6 @@ bool add_llink_defaults(u32 subtype)
 	return result;
 }
 
-bool remove_llink_defaults(u32 subtype)
-{
-	char sTmp[MAX_DESCRIPTION_LEN];
-
-	snprintf(sTmp, MAX_DESCRIPTION_LEN, "%s", DEF_CFG_STORE);
-	llink_it itllink = llink_find(&llink, sTmp, subtype);
-	if (itllink == NULL)
-		return false;
-
-	/* erase and free memory */
-	llink_erase(&itllink);
-
-	return true;
-}
-
 dcb_result get_pg(char *device_name,  pg_attribs *pg_data)
 {
 	dcb_result result = dcb_success;
@@ -1564,16 +1503,6 @@ dcb_result get_pg(char *device_name,  pg_attribs *pg_data)
 			result = dcb_device_not_found;
 	}
 	return result;
-}
-
-dcb_result test_device_dstore(char *device_name)
-{
-	pg_it it = pg_find(&pg, device_name);
-	if (it != NULL) {
-		return dcb_success;
-	} else {
-		return dcb_device_not_found;
-	}
 }
 
 dcb_result get_oper_pg(char *device_name,  pg_attribs *pg_data)
