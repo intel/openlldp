@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "clif.h"
 #include "lldp_mand_clif.h"
@@ -437,7 +438,7 @@ static int request(struct clif *clif, int argc, char *argv[])
 	int newraw = 0;
 	int numargs = 0;
 	char **argptr = &argv[0];
-
+	char *end;
 	int c;
 
 	memset((void *)&command, 0, sizeof(command));
@@ -470,8 +471,11 @@ static int request(struct clif *clif, int argc, char *argv[])
 			}
 
 			/* Currently tlvid unset lookup and verify parameter */
-			command.tlvid = strtoul(optarg, (char **) NULL, 0);
-			if (!command.tlvid) {
+			errno = 0;
+			command.tlvid = strtoul(optarg, &end, 0);
+
+			if (!command.tlvid || errno || *end != '\0' ||
+			    end == optarg) {
 				command.tlvid = lookup_tlvid(optarg);
 			}
 
