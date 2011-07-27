@@ -1243,6 +1243,35 @@ dcb_result save_dcbx_state(const char *device_name)
 		return dcb_failed;
 }
 
+static int dcbx_free_app_config(char *device_name)
+{
+	app_it Oper, Local;
+	appgroup_attribs app_data;
+
+	/* Free FCoE APP data */
+	Oper = apptlv_find(&oper_apptlv, device_name, APP_FCOE_STYPE);
+	Local = apptlv_find(&apptlv, device_name, APP_FCOE_STYPE);
+	if (Oper || Local) {
+		app_data.dcb_app_idtype = DCB_APP_IDTYPE_ETHTYPE;
+		app_data.dcb_app_id = APP_FCOE_ETHTYPE;
+		app_data.dcb_app_priority = 0;
+		set_hw_app(device_name, &app_data);
+	}
+
+	/* Free iSCSI APP data */
+	Oper = apptlv_find(&oper_apptlv, device_name, APP_ISCSI_STYPE);
+	Local = apptlv_find(&apptlv, device_name, APP_ISCSI_STYPE);
+	if (Oper || Local) {
+		app_data.dcb_app_idtype = DCB_APP_IDTYPE_PORTNUM;
+		app_data.dcb_app_id = APP_ISCSI_PORT;
+		app_data.dcb_app_priority = 0;
+
+		set_hw_app(device_name, &app_data);
+	}
+
+	return 0;
+}
+
 int dcbx_remove_all(void)
 {
 	pg_it it;
@@ -1257,6 +1286,9 @@ int dcbx_remove_all(void)
 		}
 
 		save_dcbx_state(it->ifname);
+
+		/* Remove kernel APP entries */
+		dcbx_free_app_config(it->ifname);
 
 		/* prepare sTmp in case of error */
 		snprintf(sTmp, MAX_DEVICE_NAME_LEN*2, /* Localization OK */
