@@ -533,14 +533,13 @@ int dcbx_clif_cmd(void *data,
 	if (!port)
 		return dcb_device_not_found;
 
-	/* DCBTOOL is not applicable in IEEE-DCBX modes */
 	dcbx = dcbx_data(port->ifname);
-	if (!dcbx || dcbx->active == 0)
-		return cmd_not_applicable;
-
-	/* check that DCB features is supported and in DCB state */
-	if (feature != FEATURE_DCB && check_port_dcb_mode(port_id) == false)
+	if (!dcbx)
 		return dcb_device_not_found;
+
+	/* OPER and PEER cmd not applicable while in IEEE-DCBX modes */
+	if (dcbx->active == 0 && (cmd == CMD_GET_PEER || cmd == CMD_GET_OPER))
+		return cmd_not_applicable;
 
 	switch(feature) {
 	case FEATURE_DCB:
