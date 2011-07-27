@@ -1,0 +1,129 @@
+.TH lldptool 8 "June 2011" "open-lldp" "Linux"
+.SH NAME
+LLDP-MED \- Show / manipulate MED TLV configurations
+.SH SYNOPSIS
+.B lldptool -t -i ethx -V
+.RI "[ " TLV_TYPE " ]"
+.B enableTx
+.sp
+.B lldptool -T -i ethx -V
+.RI "[ " TLV_TYPE " ]"
+.B enableTx =
+{ yes | no }
+.sp
+.B lldptool -T -i ethx -V
+LLDP-MED
+.B devtype =
+{ class1 | class2 | class3 }
+.sp
+.B lldptool -t -i ethx -V
+LLDP-MED
+.B devtype
+.sp
+.ti -8
+.IR TLV_TYPE " : = {LLDP-MED | medCap | medPolicy | medLoc | medPower | medHwRev | medFwRev | medSwRev | medSerNum | medManuf | medModel | medAssetID }"
+
+.SH DESCRIPTION
+
+The
+.B LLDP-MED
+extensions support the Link Layer Discovery Protocol for
+.B Media Endpoint Devices
+defined in the
+.B ANSI/TIA-1057-2006
+document. Each TLV can be configured as a
+.B class1
+,
+.B class2
+or
+.B class3
+device. Class I devices are the most basic class of Endpoint Device, Class II devices support media stream capabilities and Class III devices directly support end users of the IP communication system. See
+.B ANS-TIA-1057
+for clarification of class types.
+
+
+.SH ARGUMENTS
+.TP
+.B enableTx
+Enables the TLV to be transmitted
+.TP
+.B devtype
+Set or query the class type of the device.
+
+.SH TLV_TYPE
+List of supported TLV specifiers applicable to Media Endpoint Devices.
+
+.TP
+.BR LLDP-MED
+apply arguments to all supported MED TLVs.
+
+.TP
+.BR medCAP
+LLDP-MED Capabilities TLV
+
+.TP
+.BR medPolicy
+LLDP-MED Network Policy TLV
+
+.TP
+.BR medLoc
+LLDP-MED Location TLV
+
+.TP
+.BR medPower
+LLDP-MED Extended Power-via-MDI TLV
+
+.TP
+.BR medHwRev
+LLDP-MED Hardware Revision TLV
+
+.TP
+.BR medFwRev
+LLDP-MED Firmware Revision TLV
+
+.TP
+.BR medSwRev
+LLDP-MED Software Revision TLV
+
+.TP
+.BR medSerNum
+LLDP-MED Serial Number TLV
+
+.TP
+.BR medManuf
+LLDP-MED Manufacturer Name TL
+
+.TP
+.BR medModel
+LLDP-MED Model Name TLV
+
+.TP
+.BR medAssetID
+LLDP-MED Asset ID TLV
+
+.SH EXAMPLE & USAGE
+.TP
+Enable class1 MED device on \fIeth2\fR
+.B lldptool -T -i eth2 -V LLDP-MED enableTx=yes devtype=class1
+.TP
+Query class type of MED on \fIeth2\fR
+.B lldptool -t -i eth2 -V LLDP-MED -c devtype
+.TP
+Query transmit state of medPolicy on device \fIeth2\fR
+.B lldptool -t -i eth2 -V medPolicy -c enableTx
+.TP
+
+.SH SOURCE
+.TP
+o
+Link Layer Discovery Protocol for Media Endpoint Devices (http://www.tiaonline.org/standards/technology/voip/documents/ANSI-TIA-1057_final_for_publication.pdf)
+
+.SH NOTES
+
+.SH SEE ALSO
+.BR lldptool (8),
+.BR lldpad (8)
+
+.SH AUTHOR
+John Fastabend
+
