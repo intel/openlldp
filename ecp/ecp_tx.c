@@ -236,6 +236,11 @@ error:
  */
 void ecp_tx_Initialize(struct vdp_data *vd)
 {
+	struct port *port = port_find_by_name(vd->ifname);
+
+	if (!port)
+		return;
+
 	if (vd->ecp.tx.frameout) {
 		free(vd->ecp.tx.frameout);
 		vd->ecp.tx.frameout = NULL;
@@ -246,7 +251,6 @@ void ecp_tx_Initialize(struct vdp_data *vd)
 	vd->ecp.ackTimer = ECP_ACK_TIMER_STOPPED;
 	vd->ecp.retries = 0;
 
-	struct port *port = port_find_by_name(vd->ifname);
 	l2_packet_get_port_state(vd->ecp.l2, (u8 *)&(port->portEnabled));
 
 	return;

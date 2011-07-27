@@ -211,7 +211,9 @@ void ecp_rx_ReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t 
 	LLDPAD_DBG("%s(%i)-%s: received packet with size %i\n", __func__, __LINE__,
 	       vd->ifname, (int) len);
 
-	if (port->adminStatus == disabled || port->adminStatus == enabledTxOnly)
+	if (!port ||
+	    port->adminStatus == disabled ||
+	    port->adminStatus == enabledTxOnly)
 		return;
 
 	if (vd->ecp.rx.framein &&
@@ -533,6 +535,9 @@ void ecp_rx_change_state(struct vdp_data *vd, u8 newstate)
 bool ecp_set_rx_state(struct vdp_data *vd)
 {
 	struct port *port = port_find_by_name(vd->ifname);
+
+	if (!port)
+		return false;
 
 	if (port->portEnabled == false) {
 		ecp_rx_change_state(vd, ECP_RX_IDLE);

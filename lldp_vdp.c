@@ -1349,6 +1349,10 @@ void vdp_ifup(char *ifname)
 	struct port *port;
 	struct vsi_profile *p;
 
+	/* VDP does not support bonded devices */
+	if (is_bond(ifname))
+		return;
+
 	LLDPAD_DBG("%s(%i): starting VDP for if %s !\n", __func__, __LINE__, ifname);
 
 	vd = vdp_data(ifname);
