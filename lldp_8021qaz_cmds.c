@@ -471,7 +471,7 @@ static int _set_arg_tcbw(struct cmd *cmd, char *args,
 		free(parse);
 		return cmd_success;
 	} else {
-		memcpy(tcbw, percent, sizeof(tcbw));
+		memcpy(tcbw, percent, sizeof(*tcbw) * MAX_TCS);
 	}
 
 	strncat(obuf, "tcbw = ", obuf_len - strlen(obuf) - 1);
