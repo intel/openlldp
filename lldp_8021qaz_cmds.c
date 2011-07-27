@@ -780,7 +780,8 @@ static int _set_arg_enabled(struct cmd *cmd, char *args,
 	char *priority, *parse;
 	char arg_path[256];
 	long mask = 0;
-	int err = cmd_success;
+	bool first;
+	int i, err = cmd_success;
 
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
@@ -822,6 +823,23 @@ static int _set_arg_enabled(struct cmd *cmd, char *args,
 		free(parse);
 		return cmd_success;
 	}
+
+	first = true;
+	strncat(obuf, "prio = ", obuf_len - strlen(obuf) - 1);
+	for (i = 0; i < 8; i++) {
+		if (mask & (1 << i)) {
+			char val[3];
+
+			if (first) {
+				snprintf(val, sizeof(val), "%i", i);
+				first = false;
+			} else {
+				snprintf(val, sizeof(val), ",%i", i);
+			}
+			strncat(obuf, val, obuf_len - strlen(obuf) - 1);
+		}
+	}
+	strncat(obuf, "\n", obuf_len - strlen(obuf) - 1);
 
 	/* Set configuration */
 	snprintf(arg_path, sizeof(arg_path),
