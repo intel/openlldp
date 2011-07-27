@@ -645,12 +645,12 @@ void print_pfc(struct ieee_pfc *pfc)
 
 	printf("\t requests: ");
 	for (i = 0; i < 8; i++)
-		printf("%i ", pfc->requests[i]);
+		printf("%llu ", pfc->requests[i]);
 	printf("\n");
 
 	printf("\t indications: ");
 	for (i = 0; i < 8; i++)
-		printf("%i ", pfc->indications[i]);
+		printf("%llu ", pfc->indications[i]);
 	printf("\n");
 }
 #endif
