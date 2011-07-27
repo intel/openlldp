@@ -142,7 +142,7 @@ static int get_arg_willing(struct cmd *cmd, char *args,
 static int _set_arg_willing(struct cmd *cmd, char *args,
 			   char *arg_value, char *obuf, int obuf_len, bool test)
 {
-	long willing = strtol(arg_value, NULL, 10);
+	long willing;
 	struct ieee8021qaz_tlvs *tlvs;
 	char arg_path[256];
 
@@ -152,6 +152,29 @@ static int _set_arg_willing(struct cmd *cmd, char *args,
 	tlvs = ieee8021qaz_data(cmd->ifname);
 	if (!tlvs)
 		return cmd_device_not_found;
+
+
+
+	/* To remain backward compatible and make it easier
+	 * for everyone use to {0|1} notation we still support
+	 * this but also support english variants as well
+	 */
+	if (!strcasecmp(arg_value, VAL_YES))
+		willing = 1;
+	else if (!strcasecmp(arg_value, VAL_NO))
+		willing = 0;
+	else {
+		char *end;
+
+		errno = 0;
+		willing = strtol(arg_value, &end, 10);
+
+		if (end == arg_value || *end != '\0')
+			return cmd_invalid;
+
+		if (errno || willing < 0)
+			return cmd_invalid;
+	}
 
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
@@ -171,7 +194,8 @@ static int _set_arg_willing(struct cmd *cmd, char *args,
 	if (test)
 		return cmd_success;
 
-	snprintf(obuf, obuf_len, "willing = %i\n", !!willing);
+	snprintf(obuf, obuf_len, "willing = %s\n",
+		 !!willing ? VAL_YES : VAL_NO);
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, args);

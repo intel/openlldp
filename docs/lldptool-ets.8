@@ -19,7 +19,7 @@ ETS-{CFG|REC} \- Show / manipulate ETS TLV configuration
 .sp
 .BR		enableTx " = " {yes|no} " | "
 .sp
-.BR		willing " = " {0|1} " | "
+.BR		willing " = " {yes|no} " | "
 .sp
 .BR		tsa " = " tc:{ets|strict|vendor},... " | "
 .sp
@@ -107,7 +107,7 @@ have support for specific protocols ie Fiber Channel over Ethernet (FCoE).
 .SH EXAMPLE & USAGE
 .TP
 Configure willing bit for interface \fIeth2\fR
-.B lldptool -T -i eth2 -V ETS-CFG willing=1
+.B lldptool -T -i eth2 -V ETS-CFG willing=yes
 .TP
 Configure traffic classes for ETS and strict priority on \fIeth2\fR
 .B lldptool -T -i eth2 -V ETS-CFG tsa=0:ets,1:ets,2:ets,3:ets,4:strict,5:strict
