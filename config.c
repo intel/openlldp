@@ -358,14 +358,16 @@ void init_ports(void)
 			;
 		} else if (is_bridge(p->if_name)) {
 			; /* ignore bridge device */
-		} else if (check_link_status(p->if_name)) {
+		} else {
 			add_port(p->if_name);
 
-			LIST_FOREACH(np, &lldp_head, lldp) {
-				if (np->ops->lldp_mod_ifup)
-					np->ops->lldp_mod_ifup(p->if_name);
+			if (check_link_status(p->if_name)) {
+				LIST_FOREACH(np, &lldp_head, lldp) {
+					if (np->ops->lldp_mod_ifup)
+						np->ops->lldp_mod_ifup(p->if_name);
+				}
+				set_lldp_port_enable_state(p->if_name, 1);
 			}
-			set_lldp_port_enable_state(p->if_name, 1);
 		}
 		p++;
 	}
