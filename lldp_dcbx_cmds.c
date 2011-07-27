@@ -245,7 +245,6 @@ static int get_dcb_state(char *port_id, char *rbuf)
 static dcb_result set_dcb_state(char *port_id, char *ibuf, int ilen)
 {
 	bool state;
-	int tmp;
 	int off;
 	int plen;
 	dcb_result rval = dcb_success;
@@ -255,14 +254,8 @@ static dcb_result set_dcb_state(char *port_id, char *ibuf, int ilen)
 
 	if (ilen == (off + CFG_DCB_DLEN)) {
 		state = (*(ibuf+off+DCB_STATE)) ^ '0';
-		/* if get_hw_state fails, then don't bother
-		 * trying to set the state.
-		 */
-		if (get_hw_state(port_id, &tmp) ||
-			set_hw_state(port_id, state))
-			rval = dcb_failed;
-		else
-			rval = save_dcb_enable_state(port_id, state);
+		set_hw_state(port_id, state);
+		rval = save_dcb_enable_state(port_id, state);
 	} else {
 		printf("error - setcommand has invalid argument length\n");
 		rval = dcb_bad_params;

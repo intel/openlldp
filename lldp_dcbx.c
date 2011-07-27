@@ -563,10 +563,15 @@ initialized:
 
 	/* if the dcbx field is not filled in by the capabilities
 	 * query, then the kernel is older and does not support
-	 * IEEE mode, so make CEE DCBX active by default.
+	 * IEEE mode, so make CEE DCBX active by default. Unless
+	 * the dcb state has been disabled from command line.
 	 */
 	get_dcb_capabilities(ifname, &dcb_support);
-	if (!dcb_support.dcbx || (gdcbx_subtype & ~MASK_DCBX_FORCE)) {
+
+	exists = get_dcb_enable_state(ifname, &dcb_enable);
+
+	if ((exists < 0 || dcb_enable) &&
+	    (!dcb_support.dcbx || (gdcbx_subtype & ~MASK_DCBX_FORCE))) {
 		set_dcbx_mode(tlvs->ifname,
 			      DCB_CAP_DCBX_HOST | DCB_CAP_DCBX_VER_CEE);
 		set_hw_state(ifname, 1);
@@ -719,8 +724,12 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 	}
 
 	if (tlv->type == TYPE_0) {
+		int enabled;
+		int exists = get_dcb_enable_state(dcbx->ifname, &enabled);
+
 		if (!dcbx->active && !ieee8021qaz_tlvs_rxed(dcbx->ifname) &&
-		    dcbx->rxed_tlvs) {
+		    dcbx->rxed_tlvs &&
+		    (exists < 0 || enabled)) {
 			LLDPAD_INFO("CEE DCBX %s going ACTIVE\n", dcbx->ifname);
 			set_dcbx_mode(port->ifname,
 				      DCB_CAP_DCBX_HOST | DCB_CAP_DCBX_VER_CEE);
