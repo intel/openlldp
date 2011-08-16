@@ -781,12 +781,14 @@ static int get_bcn(char *ifname, bcn_cfg *bcn_data)
 
 	if (d->cmd != DCB_CMD_BCN_GCFG) {
 		printf("Hmm, this is not the message we were expecting.\n");
+		free(nlh);
 		return -EIO;
 	}
 	if (rta_parent->rta_type != DCB_ATTR_BCN) {
 		/* Do we really want to code up an attribute parser?? */
 		printf("A full libnetlink (with rtnl and attribute support) "
 		       "would sure be nice.\n");
+		free(nlh);
 		return -EIO;
 	}
 	rta_child = NLA_DATA(rta_parent);
