@@ -612,19 +612,17 @@ int save_dcb_enable_state(char *device_name, int dcb_enable)
 
 int save_dcbx_version(int dcbx_version)
 {
-	config_setting_t *dcbx_setting = NULL;
-	config_setting_t *setting = NULL;
-	int rval = dcb_success;
+	config_setting_t *dcbx_setting;
+	config_setting_t *setting;
 
 	dcbx_setting = config_lookup(&lldpad_cfg, DCBX_SETTING);
 	if (!dcbx_setting)
 		return 1;
 
 	setting = config_setting_get_member(dcbx_setting, "dcbx_version");
-
 	if (!setting || !config_setting_set_int(setting, dcbx_version) ||
 		!config_write_file(&lldpad_cfg, cfg_file_name))
-		rval = dcb_failed;
+		return 1;
 
 	return 0;
 }
