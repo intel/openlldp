@@ -97,7 +97,7 @@ static char * print_profile(char *s, size_t length, struct vsi_profile *p)
 		return r;
 
 	c = snprintf(s, length, "response: %i (%s)\n", p->response,
-		vsi_responses[p->response]);
+		vdp_response2str(p->response));
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
 		return r;

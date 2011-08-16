@@ -51,6 +51,8 @@ const char * const vsi_responses[] = {
 	[VDP_RESPONSE_VTID_VIOLATION] = "VTID violation",
 	[VDP_RESPONSE_VTID_VER_VIOLATION] = "VTID version violation",
 	[VDP_RESPONSE_OUT_OF_SYNC] = "out of sync",
+	[VDP_RESPONSE_UNKNOWN] = "unknown response",
+	[VDP_RESPONSE_NO_RESPONSE] = "no response",
 };
 
 const char * const vsi_states[] = {
@@ -122,6 +124,26 @@ static void vdp_free_data(struct vdp_user_data *ud)
 			free(vd);
 		}
 	}
+}
+
+/* vdp_response2str - map response to string
+ * @response: response received
+ *
+ * no return value
+ *
+ * maps VDP response received for a profile to human readable string for
+ * printing.
+ */
+const char *vdp_response2str(int response)
+{
+	if ((response >= VDP_RESPONSE_SUCCESS) &&
+	    (response <= VDP_RESPONSE_OUT_OF_SYNC))
+		return vsi_responses[response];
+
+	if (response == VDP_RESPONSE_NO_RESPONSE)
+		return vsi_responses[VDP_RESPONSE_NO_RESPONSE];
+
+	return vsi_responses[VDP_RESPONSE_UNKNOWN];
 }
 
 /* vdp_print_profile - print a vsi profile
@@ -990,7 +1012,7 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode)
 				LLDPAD_DBG("%s(%i): profile response: %s (%i) "
 					   "for profile 0x%02x at state %s.\n",
 					   __func__, __LINE__,
-					   vsi_responses[p->response],
+					   vdp_response2str(p->response),
 					   p->response, p->instance[15],
 					   vsi_states[p->state]);
 				free(profile);

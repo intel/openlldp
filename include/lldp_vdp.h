@@ -43,6 +43,7 @@
 #define VDP_RESPONSE_VTID_VIOLATION	0x4
 #define VDP_RESPONSE_VTID_VER_VIOLATION	0x5
 #define VDP_RESPONSE_OUT_OF_SYNC	0x6
+#define VDP_RESPONSE_UNKNOWN		0xfe
 #define VDP_RESPONSE_NO_RESPONSE	0xff
 
 extern const char * const vsi_responses[];
@@ -137,6 +138,7 @@ void vdp_ack_profiles(struct vdp_data *vd, int seqnr);
 int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode);
 int vdp_vsis_pending(struct vdp_data *vd);
 int vdp_vsis(char *ifname);
+const char *vdp_response2str(int);
 void vdp_print_profile(struct vsi_profile *);
 void ecp_somethingChangedLocal(struct vdp_data *vd, bool flag);
 void ecp_rx_send_ack_frame(struct vdp_data *vd);
