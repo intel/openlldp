@@ -116,6 +116,8 @@ enum {
 	IFLA_STATS64,
 	IFLA_VF_PORTS,
 	IFLA_PORT_SELF,
+        IFLA_AF_SPEC,
+        IFLA_GROUP,             /* Group the device belongs to */
 	__IFLA_MAX
 };
 

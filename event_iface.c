@@ -174,6 +174,12 @@ static void event_if_decode_rta(int type, struct rtattr *rta, int *ls, char *d)
 	case IFLA_PORT_SELF:
 		LLDPAD_DBG(" IFLA_PORT_SELF\n");
 		break;
+	case IFLA_AF_SPEC:
+		LLDPAD_DBG(" IFLA_AF_SPEC\n");
+		break;
+	case IFLA_GROUP:
+		LLDPAD_DBG(" IFLA_GROUP\n");
+		break;
 	default:
 		LLDPAD_DBG(" unknown type : 0x%02x\n", type);
 		break;

@@ -201,7 +201,7 @@ int check_cfg_file(void)
 				O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 			if (fd < 0) {
 				retval = errno;
-				LLDPAD_ERR("error creating %s", cfg_file_name);
+				LLDPAD_ERR("error creating %s !\n", cfg_file_name);
 			} else {
 				close(fd);
 				create_default_cfg_file();

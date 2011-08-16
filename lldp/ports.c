@@ -156,16 +156,10 @@ void set_lldp_port_enable_state(const char *ifname, int enable)
 {
 	struct port *port = NULL;
 
-	port = porthead;
-	while (port != NULL) {
-		if (!strncmp(ifname, port->ifname, IFNAMSIZ))
-			break;
-		port = port->next;
-	}
+	port = port_find_by_name(ifname);
 
-	if (port == NULL) {
+	if (port == NULL)
 		return;
-	}
 
 	port->portEnabled = (u8)enable;
 
@@ -178,14 +172,7 @@ void set_lldp_port_enable_state(const char *ifname, int enable)
 
 void set_port_oper_delay(const char *ifname)
 {
-	struct port *port = NULL;
-
-	port = porthead;
-	while (port != NULL) {
-		if (!strncmp(ifname, port->ifname, IFNAMSIZ))
-			break;
-		port = port->next;
-	}
+	struct port *port = port_find_by_name(ifname);
 
 	if (port == NULL)
 		return;
@@ -198,13 +185,7 @@ int set_port_hw_resetting(const char *ifname, int resetting)
 {
 	struct port *port = NULL;
 
-	port = porthead;
-	while (port != NULL) {
-		if (!strncmp(ifname, port->ifname, IFNAMSIZ)) {
-			break;
-		}
-		port = port->next;
-	}
+	port = port_find_by_name(ifname);
 
 	if (port == NULL)
 		return -1;
@@ -218,12 +199,7 @@ int get_port_hw_resetting(const char *ifname)
 {
 	struct port *port = NULL;
 
-	port = porthead;
-	while (port != NULL) {
-		if (!strncmp(ifname, port->ifname, IFNAMSIZ))
-			break;
-		port = port->next;
-	}
+	port = port_find_by_name(ifname);
 
 	if (port)
 		return port->hw_resetting;
@@ -235,12 +211,7 @@ int reinit_port(const char *ifname)
 {
 	struct port *port;
 
-	port = porthead;
-	while (port != NULL) {
-		if (!strncmp(ifname, port->ifname, IFNAMSIZ))
-			break;
-		port = port->next;
-	}
+	port = port_find_by_name(ifname);
 
 	if (!port)
 		return -1;
@@ -347,15 +318,7 @@ int remove_port(const char *ifname)
 	struct port *port = NULL;    /* Pointer to port to remove */
 	struct port *parent = NULL;  /* Pointer to previous on port stack */
 
-	port = porthead;
-	while (port != NULL) {
-		if (!strncmp(ifname, port->ifname, IFNAMSIZ)) {
-			LLDPAD_DBG("In remove_port: Found port %s\n",port->ifname);
-			break;
-		}
-		parent = port;
-		port = port->next;
-	}
+	port = port_find_by_name(ifname);
 
 	if (port == NULL) {
 		LLDPAD_DBG("remove_port: port not present\n");

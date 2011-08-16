@@ -58,8 +58,8 @@ void dcbx_free_tlv(struct dcbx_tlvs *tlvs);
 static int dcbx_check_operstate(struct port *port);
 
 const struct lldp_mod_ops dcbx_ops = {
-	.lldp_mod_register 	= dcbx_register,
-	.lldp_mod_unregister 	= dcbx_unregister,
+	.lldp_mod_register	= dcbx_register,
+	.lldp_mod_unregister	= dcbx_unregister,
 	.lldp_mod_gettlv	= dcbx_gettlv,
 	.lldp_mod_rchange	= dcbx_rchange,
 	.lldp_mod_ifup		= dcbx_ifup,
