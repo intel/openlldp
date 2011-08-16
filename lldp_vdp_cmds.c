@@ -84,43 +84,44 @@ static char *check_and_update(size_t *total, size_t *length, char *s, int c)
 	return s + c;
 }
 
-static void print_profile(char *s, size_t length, struct vsi_profile *p)
+static char * print_profile(char *s, size_t length, struct vsi_profile *p)
 {
 	int c;
 	size_t	total = 0;
+	char *r = s;
 
 	c = snprintf(s, length, "\nmode: %i (%s)\n",
 			p->mode, vsi_modes[p->mode]);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
-		return;
+		return r;
 
 	c = snprintf(s, length, "response: %i (%s)\n", p->response,
 		vsi_responses[p->response]);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
-		return;
+		return r;
 
 	c = snprintf(s, length, "state: %i (%s)\n",
 		p->state, vsi_states[p->state]);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
-		return;
+		return r;
 
 	c = snprintf(s, length, "mgrid: %i\n", p->mgrid);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
-		return;
+		return r;
 
 	c = snprintf(s, length, "id: %i (0x%x)\n", p->id, p->id);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
-		return;
+		return r;
 
 	c = snprintf(s, length, "version: %i\n", p->version);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
-		return;
+		return r;
 
 	{
 		char instance[INSTANCE_STRLEN + 2];
@@ -130,7 +131,7 @@ static void print_profile(char *s, size_t length, struct vsi_profile *p)
 	}
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
-		return;
+		return r;
 
 	{
 		char macbuf[MAC_ADDR_STRLEN + 1];
@@ -140,14 +141,14 @@ static void print_profile(char *s, size_t length, struct vsi_profile *p)
 	}
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
-		return;
+		return r;
 
 	c = snprintf(s, length, "vlan: %i\n\n", p->vlan);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
-		return;
+		return r;
 
-	return;
+	return s;
 }
 
 static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
@@ -271,7 +272,7 @@ static int get_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
 	memset(s, 0, (count+1)*VDP_BUF_SIZE);
 
 	LIST_FOREACH(np, &vd->profile_head, profile) {
-		print_profile(t, (count + 1) * VDP_BUF_SIZE, np);
+		t = print_profile(t, (count + 1) * VDP_BUF_SIZE, np);
 	}
 
 	snprintf(obuf, obuf_len, "%02x%s%04x%s",
