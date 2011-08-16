@@ -648,17 +648,13 @@ struct lldp_module *evb_register(void)
 
 	mod = malloc(sizeof(*mod));
 	if (!mod) {
-		LLDPAD_ERR("failed to malloc module data\n");
-		log_message(MSG_ERR_SERVICE_START_FAILURE,
-			"%s", "failed to malloc module data");
+		LLDPAD_ERR("lldpad failed to start - failed to malloc module data\n");
 		goto out_err;
 	}
 	ud = malloc(sizeof(struct evb_user_data));
 	if (!ud) {
 		free(mod);
-		LLDPAD_ERR("failed to malloc module user data\n");
-		log_message(MSG_ERR_SERVICE_START_FAILURE,
-			"%s", "failed to malloc module user data");
+		LLDPAD_ERR("lldpad failed to start - failed to malloc module user data\n");
 		goto out_err;
 	}
 	LIST_INIT(&ud->head);

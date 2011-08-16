@@ -377,8 +377,8 @@ static void ecp_tx_change_state(struct vdp_data *vd, u8 newstate)
 		assert(vd->ecp.tx.state == ECP_TX_WAIT_FOR_ACK);
 		break;
 	default:
-		LLDPAD_ERR("ERROR: The ECP_TX State Machine is broken!\n");
-		log_message(MSG_ERR_TX_SM_INVALID, "%s", vd->ifname);
+		LLDPAD_ERR("%s: LLDP TX state machine setting invalid state %d\n",
+			   vd->ifname, newstate);
 	}
 
 	LLDPAD_DBG("%s(%i)-%s: state change %s -> %s\n", __func__, __LINE__,
@@ -462,8 +462,8 @@ static bool ecp_set_tx_state(struct vdp_data *vd)
 		}
 		return false;
 	default:
-		LLDPAD_ERR("ERROR: The TX State Machine is broken!\n");
-		log_message(MSG_ERR_TX_SM_INVALID, "%s", vd->ifname);
+		LLDPAD_ERR("%s: LLDP TX state machine in invalid state %d\n",
+			   vd->ifname, vd->ecp.tx.state);
 		return false;
 	}
 }
@@ -506,9 +506,8 @@ void ecp_tx_run_sm(struct vdp_data *vd)
 			       vd->ifname, vd->ecp.lastSequence);
 			break;
 		default:
-			LLDPAD_ERR("%s(%i): ERROR The TX State Machine is broken!\n", __func__,
-			       __LINE__);
-			log_message(MSG_ERR_TX_SM_INVALID, "%s", vd->ifname);
+			LLDPAD_ERR("%s: LLDP TX state machine in invalid state %d\n",
+				   vd->ifname, vd->ecp.tx.state);
 		}
 	} while (ecp_set_tx_state(vd) == true);
 

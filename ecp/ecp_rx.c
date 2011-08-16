@@ -513,8 +513,8 @@ void ecp_rx_change_state(struct vdp_data *vd, u8 newstate)
 		assert(vd->ecp.rx.state == ECP_RX_RECEIVE_ECPDU);
 		break;
 	default:
-		LLDPAD_ERR("ERROR: The ECP_RX State Machine is broken!\n");
-		log_message(MSG_ERR_RX_SM_INVALID, "%s", vd->ifname);
+		LLDPAD_ERR("%s: LLDP rx state machine setting invalid state %d\n",
+			   vd->ifname, newstate);
 	}
 
 	LLDPAD_DBG("%s(%i)-%s: state change %s -> %s\n", __func__, __LINE__,
@@ -585,8 +585,8 @@ bool ecp_set_rx_state(struct vdp_data *vd)
 		ecp_rx_change_state(vd, ECP_RX_RECEIVE_WAIT);
 		return false;
 	default:
-		LLDPAD_ERR("ERROR: The ECP_RX State Machine is broken!\n");
-		log_message(MSG_ERR_RX_SM_INVALID, "%s", vd->ifname);
+		LLDPAD_ERR("%s: LLDP RX state machine in invalid state %d\n",
+			   vd->ifname, vd->ecp.rx.state);
 		return false;
 	}
 }
@@ -628,8 +628,8 @@ void ecp_rx_run_sm(struct vdp_data *vd)
 			}
 			break;
 		default:
-			LLDPAD_ERR("ERROR: The ECP_RX State Machine is broken!\n");
-			log_message(MSG_ERR_TX_SM_INVALID, "%s", vd->ifname);
+			LLDPAD_ERR("%s: LLDP RX state machine in invalid state %d\n",
+				   vd->ifname, vd->ecp.rx.state);
 		}
 	} while (ecp_set_rx_state(vd) == true);
 

@@ -596,8 +596,8 @@ static bool vdp_vsi_set_station_state(struct vsi_profile *profile)
 	case VSI_EXIT:
 		return false;
 	default:
-		LLDPAD_ERR("ERROR: The VSI RX State Machine is broken!\n");
-		log_message(MSG_ERR_RX_SM_INVALID, "");
+		LLDPAD_ERR("%s: VSI state machine in invalid state %d\n",
+			   profile->port->ifname, profile->state);
 		return false;
 	}
 }
@@ -668,8 +668,8 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			vdp_remove_profile(profile);
 			break;
 		default:
-			LLDPAD_ERR("ERROR: The VSI RX station State Machine is broken!\n");
-			log_message(MSG_ERR_TX_SM_INVALID, "");
+			LLDPAD_ERR("%s: VSI state machine in invalid state %d\n",
+				   vd->ifname, profile->state);
 		}
 	} while (vdp_vsi_set_station_state(profile) == true);
 
@@ -792,8 +792,8 @@ static bool vdp_vsi_set_bridge_state(struct vsi_profile *profile)
 	case VSI_EXIT:
 		return false;
 	default:
-		LLDPAD_ERR("ERROR: The VSI RX State Machine (bridge) is broken!\n");
-		log_message(MSG_ERR_RX_SM_INVALID, "");
+		LLDPAD_ERR("%s: VSI state machine (bridge) in invalid state %d\n",
+			   profile->port->ifname, profile->state);
 		return false;
 	}
 }
@@ -850,8 +850,8 @@ static void vdp_vsi_sm_bridge(struct vsi_profile *profile)
 			vdp_remove_profile(profile);
 			break;
 		default:
-			LLDPAD_ERR("ERROR: The VSI RX bridge State Machine is broken!\n");
-			log_message(MSG_ERR_TX_SM_INVALID, "");
+			LLDPAD_ERR("%s: VSI state machine in invalid state %d\n",
+				   vd->ifname, profile->state);
 		}
 	} while (vdp_vsi_set_bridge_state(profile) == true);
 
@@ -1454,17 +1454,13 @@ struct lldp_module *vdp_register(void)
 
 	mod = malloc(sizeof(*mod));
 	if (!mod) {
-		LLDPAD_ERR("failed to malloc module data\n");
-		log_message(MSG_ERR_SERVICE_START_FAILURE,
-			"%s", "failed to malloc module data");
+		LLDPAD_ERR("lldpad failed to start - failed to malloc module data\n");
 		goto out_err;
 	}
 	ud = malloc(sizeof(struct vdp_user_data));
 	if (!ud) {
 		free(mod);
-		LLDPAD_ERR("failed to malloc module user data\n");
-		log_message(MSG_ERR_SERVICE_START_FAILURE,
-			"%s", "failed to malloc module user data");
+		LLDPAD_ERR("lldpad failed to start - failed to malloc module user data\n");
 		goto out_err;
 	}
 	LIST_INIT(&ud->head);

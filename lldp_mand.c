@@ -211,7 +211,7 @@ bld_config:
 
 	/* if invalid subtype, fall back to build */
 	if (!CHASSIS_ID_INVALID(chassis.sub)) {
-		LLDPAD_DBG("%s:%s:from config %d bytes:str=%s\n",
+		LLDPAD_DBG("%s:%s:from config %zd bytes:str=%s\n",
 			__func__, md->ifname, length, chastr);
 		/* TODO: validate the loaded tlv */
 		goto bld_tlv;
@@ -358,7 +358,7 @@ bld_config:
 
 	/* if invalid subtype, fall back to build */
 	if (!PORT_ID_INVALID(portid.sub)) {
-		LLDPAD_DBG("%s:%s:from config %d bytes:str=%s\n",
+		LLDPAD_DBG("%s:%s:from config %zd bytes:str=%s\n",
 			__func__, md->ifname, length, porstr);
 		/* TODO: validate the loaded tlv */
 		goto bld_tlv;

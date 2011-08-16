@@ -370,8 +370,7 @@ int main(int argc, char *argv[])
 	 * pid as netlink address.
 	 */
 	if (event_iface_init_user_space() < 0) {
-		log_message(MSG_ERR_SERVICE_START_FAILURE,
-			"%s", "failed to register user space event interface");
+		LLDPAD_ERR("lldpad failed to start - failed to register user space event interface\n");
 		exit(1);
 	}
 
@@ -398,8 +397,7 @@ int main(int argc, char *argv[])
 	if (ctrl_iface_register(clifd) < 0) {
 		if (!daemonize)
 			fprintf(stderr, "failed to register control interface\n");
-		log_message(MSG_ERR_SERVICE_START_FAILURE,
-			    "%s", "failed to register control interface");
+		LLDPAD_ERR("lldpad failed to start - failed to register control interface\n");
 		exit(1);
 	}
 

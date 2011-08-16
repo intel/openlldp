@@ -375,8 +375,8 @@ void rxProcessFrame(struct port * port)
 		}
 
 		if (!tlv_stored) {
-			LLDPAD_INFO("\nrxProcessFrame: allocated TLV (%lu) "
-				   " was not stored! (%p)\n", tlv->type, tlv);
+			LLDPAD_INFO("%s: allocated TLV %u was not stored! %p\n",
+				   __func__, tlv->type, tlv);
 			tlv = free_unpkd_tlv(tlv);
 			port->stats.statsTLVsUnrecognizedTotal++;
 		}

@@ -118,9 +118,9 @@ void ecp_ack_timeout_handler(void *eloop_data, void *user_ctx)
 			   __func__, __LINE__, vd->ifname, vd->ecp.ackTimer);
 		ecp_tx_run_sm(vd);
 	} else {
-		LLDPAD_DBG("%s(%i)-%s: BUG ! handler called but"
+		LLDPAD_DBG("%s-%s: BUG ! handler called but"
 			   "vdp->ecp.ackTimer not expired (%i) !\n",
-			   __func__, __LINE__, vd->ecp.ackTimer);
+			   __func__, vd->ifname, vd->ecp.ackTimer);
 	}
 }
 
