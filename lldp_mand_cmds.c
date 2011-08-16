@@ -492,8 +492,11 @@ int mand_clif_cmd(void  *data,
 
 	/* Confirm port is a lldpad managed port */
 	port = port_find_by_name(cmd.ifname);
-	if (!port)
+	if (!port) {
+		free(argvals);
+		free(args);
 		return cmd_device_not_found;
+	}
 
 	switch (cmd.cmd) {
 	case cmd_getstats:
