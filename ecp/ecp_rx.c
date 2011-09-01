@@ -211,9 +211,7 @@ void ecp_rx_ReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t 
 	LLDPAD_DBG("%s(%i)-%s: received packet with size %i\n", __func__, __LINE__,
 	       vd->ifname, (int) len);
 
-	if (!port ||
-	    port->adminStatus == disabled ||
-	    port->adminStatus == enabledTxOnly)
+	if (vd->enabletx == false)
 		return;
 
 	if (vd->ecp.rx.framein &&
@@ -551,15 +549,13 @@ bool ecp_set_rx_state(struct vdp_data *vd)
 		}
 		return false;
 	case ECP_RX_INIT_RECEIVE:
-		if ((port->adminStatus == enabledRxTx) ||
-			(port->adminStatus == enabledRxOnly)) {
+		if (vd->enabletx == true) {
 			ecp_rx_change_state(vd, ECP_RX_RECEIVE_WAIT);
 			return true;
 		}
 		return false;
 	case ECP_RX_RECEIVE_WAIT:
-		if ((port->adminStatus == disabled) ||
-			(port->adminStatus == enabledTxOnly)) {
+		if (vd->enabletx == false) {
 			ecp_rx_change_state(vd, ECP_RX_IDLE);
 			return true;
 		}

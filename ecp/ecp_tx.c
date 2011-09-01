@@ -414,15 +414,14 @@ static bool ecp_set_tx_state(struct vdp_data *vd)
 
 	switch (vd->ecp.tx.state) {
 	case ECP_TX_INIT_TRANSMIT:
-		if (port->portEnabled && ((port->adminStatus == enabledRxTx) ||
-			(port->adminStatus == enabledTxOnly)) && vd->ecp.tx.localChange) {
+		if (port->portEnabled && (vd->enabletx == true)
+					  && vd->ecp.tx.localChange) {
 			ecp_tx_change_state(vd, ECP_TX_TRANSMIT_ECPDU);
 			return true;
 		}
 		return false;
 	case ECP_TX_TRANSMIT_ECPDU:
-		if ((port->adminStatus == disabled) ||
-			(port->adminStatus == enabledRxOnly)) {
+		if (vd->enabletx == false) {
 			ecp_tx_change_state(vd, ECP_TX_INIT_TRANSMIT);
 			return true;
 		}

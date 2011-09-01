@@ -42,6 +42,8 @@
 #include "config.h"
 #include "lldp_tlv.h"
 #include "lldp_vdp_cmds.h"
+#include "lldp_vdp_clif.h"
+#include "lldp_mand_clif.h"
 
 const char * const vsi_responses[] = {
 	[VDP_RESPONSE_SUCCESS] = "success",
@@ -1365,10 +1367,11 @@ out_err:
 void vdp_ifup(char *ifname)
 {
 	char *string;
+	char config_path[16];
 	struct vdp_data *vd;
 	struct vdp_user_data *ud;
-	struct port *port;
 	struct vsi_profile *p;
+	int enabletx = false;
 
 	/* VDP does not support bonded devices */
 	if (is_bond(ifname))
@@ -1376,9 +1379,25 @@ void vdp_ifup(char *ifname)
 
 	LLDPAD_DBG("%s(%i): starting VDP for if %s !\n", __func__, __LINE__, ifname);
 
+	snprintf(config_path, sizeof(config_path), "%s.%s",
+		 VDP_PREFIX, ARG_TLVTXENABLE);
+
+	if (get_config_setting(ifname, config_path, (void *)&enabletx,
+		    CONFIG_TYPE_BOOL))
+			enabletx = false;
+
+	if (enabletx == false) {
+		LLDPAD_WARN("%s(%i): port %s not enabled for VDP (%i) !\n",
+			    __func__, __LINE__, ifname, enabletx);
+		return;
+	}
+
 	vd = vdp_data(ifname);
 	if (vd) {
-		LLDPAD_WARN("%s:%s vdp data already exists !\n", __func__, ifname);
+		vd->enabletx = enabletx;
+
+		LLDPAD_WARN("%s:%s vdp data already exists !\n",
+			    __func__, ifname);
 		goto out_start_again;
 	}
 
@@ -1392,6 +1411,7 @@ void vdp_ifup(char *ifname)
 	strncpy(vd->ifname, ifname, IFNAMSIZ);
 
 	vd->role = VDP_ROLE_STATION;
+	vd->enabletx = enabletx;
 
 	if (!get_cfg(ifname, "vdp.role", (void *)&string,
 		    CONFIG_TYPE_STRING)) {
@@ -1407,20 +1427,6 @@ void vdp_ifup(char *ifname)
 
 	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP);
 	LIST_INSERT_HEAD(&ud->head, vd, entry);
-
-	port = port_find_by_name(ifname);
-
-	if (!port) {
-		LLDPAD_ERR("%s(%i): could not find port for %s!\n",
-			   __func__, __LINE__, ifname);
-		goto out_err;
-	}
-
-	if (port->adminStatus != enabledRxTx) {
-		LLDPAD_WARN("%s(%i): port %s not enabled for RxTx (%i) !\n",
-			    __func__, __LINE__, ifname, port->adminStatus);
-		return;
-	}
 
 out_start_again:
 	if (ecp_init(ifname)) {

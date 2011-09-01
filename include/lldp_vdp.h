@@ -112,6 +112,7 @@ struct vsi_profile {
 
 struct vdp_data {
 	char ifname[IFNAMSIZ];
+	u8 enabletx;
 	struct ecp ecp;
 	struct unpacked_tlv *vdp;
 	int role;
