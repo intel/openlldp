@@ -491,6 +491,13 @@ void dcbx_ifup(char *ifname)
 	if (get_hw_state(ifname, &dcb_enable) < 0)
 		return;
 
+	/* Abort initialization on hardware  where DCBX negotiation
+	 * is not performed by the host LLDP agent.
+	 */
+	get_dcb_capabilities(ifname, &dcb_support);
+	if (dcb_support.dcbx && !(dcb_support.dcbx & DCB_CAP_DCBX_HOST))
+		return;
+
 	/* if no adminStatus setting or wrong setting for adminStatus,
 	 * then set adminStatus to enabledRxTx.
 	 */
