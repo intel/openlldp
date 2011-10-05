@@ -66,6 +66,10 @@ void rxReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t len)
 	struct l2_ethhdr example_hdr,*ex;
 	char msg[2] = "";
 
+	/* Drop and ignore zero length frames */
+	if (!len)
+		return;
+
 	port = (struct port *)ctx;
 
 	snprintf(msg, sizeof(msg), "%i", LLDP_RCHANGE);
