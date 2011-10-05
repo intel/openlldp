@@ -91,7 +91,8 @@ dcb_result get_peer_control(char *device_name,
 dcb_result put_peer_control(char *, control_protocol_attribs *);
 
 dcb_result get_pg(char *device_name, pg_attribs *pg_data);
-dcb_result put_pg(char *device_name, pg_attribs *pg_data);
+dcb_result put_pg(char *device_name, pg_attribs *pg_data,
+		  pfc_attribs *pfc_data);
 dcb_result put_peer_pg(char *,  pg_attribs *);
 dcb_result get_oper_pg(char *device_name, pg_attribs *pg_data);
 dcb_result get_peer_pg(char *device_name, pg_attribs *pg_data);

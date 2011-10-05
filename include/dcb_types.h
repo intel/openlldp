@@ -33,6 +33,7 @@
 #define MAX_USER_PRIORITIES       8
 #define MAX_BANDWIDTH_GROUPS      8
 #define MAX_TRAFFIC_CLASSES       8
+#define MIN_TRAFFIC_CLASSES       3
 #define SHORT_STRING              20
 #define MAX_DESCRIPTION_LEN       100
 

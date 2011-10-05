@@ -127,20 +127,22 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 
 void dont_advertise_dcbx_all(char *ifname, bool ad)
 {
-	int i;
+	int i, is_pfc;
 	pfc_attribs pfc_data;
 	pg_attribs pg_data;
 	app_attribs app_data;
 	llink_attribs llink_data;
 	u32 event_flag = 0;
 
+	is_pfc = get_pfc(ifname, &pfc_data);
+
 	if (get_pg(ifname, &pg_data) == dcb_success) {
 		pg_data.protocol.Advertise = ad;
-		put_pg(ifname, &pg_data);
+		put_pg(ifname, &pg_data, &pfc_data);
 		event_flag |= DCB_LOCAL_CHANGE_PG;
 	}
 
-	if (get_pfc(ifname, &pfc_data) == dcb_success) {
+	if (is_pfc == dcb_success) {
 		pfc_data.protocol.Advertise = ad;
 		put_pfc(ifname, &pfc_data);
 		event_flag |= DCB_LOCAL_CHANGE_PFC;
@@ -880,10 +882,11 @@ static int get_llink_data(llink_attribs *llink_data, int cmd, char *port_id,
 static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 	int ilen)
 {
+	pfc_attribs pfc_data;
 	full_dcb_attrib_ptrs dcb_data;
 	u8 flag;
 	dcb_result status = dcb_success;
-	int i;
+	int i, is_pfc;
 	int plen;
 	int off;
 	bool used[MAX_BANDWIDTH_GROUPS];
@@ -1013,7 +1016,12 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 		return status;
 	}
 
-	status = put_pg(port_id, pg_data);
+	is_pfc = get_pfc(port_id, &pfc_data);
+	if (is_pfc == dcb_success)
+		status = put_pg(port_id, pg_data, &pfc_data);
+	else
+		status = put_pg(port_id, pg_data, NULL);
+
 	if (status != dcb_success)
 		printf("error[%d] setting PG data for %s\n", status, port_id);
 	

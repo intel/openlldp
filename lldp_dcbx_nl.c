@@ -533,7 +533,7 @@ int get_dcb_capabilities(char *ifname,
 	return rval;
 }
 
-int get_dcb_numtcs(char *ifname, u8 *pgtcs, u8 *pfctcs)
+int get_dcb_numtcs(const char *ifname, u8 *pgtcs, u8 *pfctcs)
 {
 	struct nlmsghdr *nlh;
 	struct dcbmsg *d;
@@ -543,6 +543,7 @@ int get_dcb_numtcs(char *ifname, u8 *pgtcs, u8 *pfctcs)
 	unsigned int seq;
 	int i;
 	int found;
+	char name[IFNAMSIZ];
 
 	nlh = start_msg(RTM_GETDCB, DCB_CMD_GNUMTCS);
 	if (NULL == nlh)
@@ -550,7 +551,8 @@ int get_dcb_numtcs(char *ifname, u8 *pgtcs, u8 *pfctcs)
 
 	seq = nlh->nlmsg_seq;
 
-	add_rta(nlh, DCB_ATTR_IFNAME, (void *)ifname, strlen(ifname) + 1);
+	strncpy(name, ifname, sizeof(name));
+	add_rta(nlh, DCB_ATTR_IFNAME, (void *)name, strlen(name) + 1);
 	rta_parent = add_rta(nlh, DCB_ATTR_NUMTCS, NULL, 0);
 
 	rta_child = add_rta(nlh, DCB_NUMTCS_ATTR_ALL, NULL, 0);
@@ -646,17 +648,13 @@ int set_hw_state(char *ifname, int dcb_state)
 */
 int set_hw_pg(char *ifname, pgroup_attribs *pg_data, bool oper_mode)
 {
-	int i;
+	int i, j;
 	int rval = 0;
 	struct tc_config tc[MAX_TRAFFIC_CLASSES];
 	__u8 bwg[MAX_BANDWIDTH_GROUPS];
 	pg_attribs        pg_df_store;
 	pgroup_attribs    pg_df_data, *pg_temp;
 
-
-	/*        code assumes 1:1 up2tc - will need to change when that
-	 *        assumption is invalid
-	 */
 	if (!oper_mode) { /* oper mode is false */
 		get_pg(DEF_CFG_STORE, &pg_df_store);
 		memcpy(&pg_df_data.rx, &pg_df_store.rx, sizeof(pg_df_data.rx));
@@ -666,21 +664,55 @@ int set_hw_pg(char *ifname, pgroup_attribs *pg_data, bool oper_mode)
 		pg_temp = pg_data;
 	}
 
+	/* Configure TX PG per TC Settings */
+	for (i = 0; i < MAX_TRAFFIC_CLASSES; i++)
+		tc[i].up_to_tc_bitmap = 0;
+
+	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
+		for (j = 0; j < MAX_TRAFFIC_CLASSES; j++) {
+			if (pg_temp->tx.up[i].tcmap == j)
+				tc[j].up_to_tc_bitmap |= (1 << i);
+		}
+	}
+
 	for (i = 0; i < MAX_TRAFFIC_CLASSES; i++) {
 		tc[i].pgid = pg_temp->tx.up[i].pgid;
-		tc[i].up_to_tc_bitmap = (u8)(1<<pg_temp->tx.up[i].tcmap);
 		tc[i].prio_type = pg_temp->tx.up[i].strict_priority;
 		tc[i].tc_percent = pg_temp->tx.up[i].percent_of_pg_cap;
 		bwg[i] = pg_temp->tx.pg_percent[i];
+		LLDPAD_DBG("%s %s: (%i) TX pgid %i up_to_tc %i "
+			   "prio %i percent %i\n",
+			    __func__, ifname, i,
+			    tc[i].pgid,
+			    tc[i].up_to_tc_bitmap,
+			    tc[i].prio_type,
+			    tc[i].tc_percent);
 	}
 	rval = set_pg_cfg(ifname, &tc[0], &bwg[0], DCB_CMD_PGTX_SCFG);
 
+	/* Configure RX PG per TC Settings */
+	for (i = 0; i < MAX_TRAFFIC_CLASSES; i++)
+		tc[i].up_to_tc_bitmap = 0;
+
+	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
+		for (j = 0; j < MAX_TRAFFIC_CLASSES; j++) {
+			if (pg_temp->tx.up[i].tcmap == j)
+				tc[j].up_to_tc_bitmap |= (1 << i);
+		}
+	}
+
 	for (i = 0; i < MAX_TRAFFIC_CLASSES; i++) {
 		tc[i].pgid = pg_temp->rx.up[i].pgid;
-		tc[i].up_to_tc_bitmap = (u8)(1<<pg_temp->rx.up[i].tcmap);
 		tc[i].prio_type = pg_temp->rx.up[i].strict_priority;
 		tc[i].tc_percent = pg_temp->rx.up[i].percent_of_pg_cap;
 		bwg[i] = pg_temp->rx.pg_percent[i];
+		LLDPAD_DBG("%s %s: (%i) RX pgid %i up_to_tc %i "
+			   "prio %i percent %i\n",
+			   __func__, ifname, i,
+			   tc[i].pgid,
+			   tc[i].up_to_tc_bitmap,
+			   tc[i].prio_type,
+			   tc[i].tc_percent);
 	}
 	rval |= set_pg_cfg(ifname, &tc[0], &bwg[0], DCB_CMD_PGRX_SCFG);
 	return rval;

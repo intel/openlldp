@@ -29,6 +29,213 @@
 #include "dcb_protocol.h"
 #include "dcb_rule_chk.h"
 #include "messages.h"
+#include "dcb_types.h"
+
+/**
+ * dcb_fixup_up2tc - resolves mismatch in number of traffic classes
+ * @fixpg: pg attributes or resolve
+ *
+ * Resolve mismatch in number of traffic classes by
+ * grouping traffic types. Requires a minimum of three
+ * class to create a PFC, Link, and Best Effort class.
+ *
+ * Strategy: This takes two passes over the attribs on
+ * the first pass the pg attribs are packed into a
+ * matrix with row index equal to pgid (per_up_list).
+ * Then on the second pass the rows are collapsed onto
+ * the correct number of pgid values (result). Finally,
+ * the new pgid, bw, and tcmap can be tabulated.
+ *
+ * This _should_ happen infrequently so we use up
+ * arrays and variables freely. Any simpler suggestions
+ * would be welcome.
+ */
+static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
+{
+	dcb_user_priority_attribs_type * per_up_list[8][8] = { {0} };
+	dcb_user_priority_attribs_type * result[8][8] = { {0} };
+	dcb_user_priority_attribs_type *entry;
+	int index, i, j, k, pgid, bw, cnt, r;
+	int be, pfc, strict, cbe, cpfc, cstrict;
+	int tcbw[8] = {0};
+	int totalbw = 0;
+
+	LLDPAD_INFO("%s : fixup\n", __func__);
+
+	/* Calculate number of pgids used by attributes */
+	for (pgid = 0, i = 0; i < MAX_USER_PRIORITIES; i++) {
+		if (fixpg->tx.up[i].pgid > pgid)
+			pgid = fixpg->tx.up[i].pgid;
+	}
+	pgid++;
+
+	/* If the PGIDs can be mapped onto the number of
+	 * existing traffic classes do it and return
+	 */
+	if (pgid <= fixpg->num_tcs) {
+		for (i = 0; i < MAX_USER_PRIORITIES; i++)
+			fixpg->tx.up[i].tcmap = fixpg->tx.up[i].pgid;
+		return 0;
+	}
+
+	/* Require at least three traffic classes */
+	if (fixpg->num_tcs < MIN_TRAFFIC_CLASSES) {
+		LLDPAD_WARN("DCBX: num_tcs %i!!!\n", fixpg->num_tcs);
+		return -1;
+	}
+
+	/* Build matrix to support attrib manipulation
+	 * this puts attribs with like pgid values in
+	 * the same row of the matrix.
+	 */
+	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
+		index = fixpg->tx.up[i].pgid;
+
+		for (j = 0; j < MAX_USER_PRIORITIES; j++) {
+			if (!per_up_list[index][j]) {
+				per_up_list[index][j] = &fixpg->tx.up[i];
+				break;
+			}
+		}
+	}
+
+	/* Divide up available traffic classes by type */
+	strict = pfc = be = 0;
+
+	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
+		entry = per_up_list[i][0];
+
+		if (!entry)
+			continue;
+
+		pgid = entry->pgid;
+
+		if (entry->strict_priority == dcb_link)
+			strict++;
+		else if (fixpfc && fixpfc->admin[pgid] == pfc_enabled)
+			pfc++;
+		else
+			be++;
+	}
+
+	if (pfc >= fixpg->num_tcs - strict) {
+		pfc = fixpg->num_tcs - strict;
+		if (be)
+			pfc--;
+	}
+	be = fixpg->num_tcs - strict - pfc;
+
+	/* cXXX variables immutable type count */
+	cbe = be;
+	cstrict = strict;
+	cpfc = pfc;
+
+	/* Do REMAPPING into result matrix */
+	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
+		entry = per_up_list[i][0];
+		if (!entry)
+			continue;
+
+		pgid = entry->pgid;
+
+		LLDPAD_INFO("%s : ", __func__);
+		/* Find index, subtract one to account for be, scrict, and
+		 * pfc variables being counters instead of indices.
+		 */
+		if (entry->strict_priority == dcb_link) {
+			index = cbe + cpfc + strict - 1;
+			strict--;
+			LLDPAD_INFO("strict");
+		} else if (fixpfc &&
+			   fixpfc->admin[pgid] == pfc_enabled) {
+			index = cbe + pfc - 1;
+			pfc--;
+			LLDPAD_INFO("pfc");
+		} else {
+			index = be - 1;
+			be--;
+			LLDPAD_INFO("be");
+		}
+
+		tcbw[index] += fixpg->tx.pg_percent[i];
+
+		/* Do row move from old pgid to new pgid */
+		LLDPAD_INFO(" : map %i -> %i\n", i, index);
+		for (k = 1; entry && k < MAX_USER_PRIORITIES; k++) {
+			for (j = 0; j < MAX_USER_PRIORITIES; j++) {
+				if (!result[index][j]) {
+					result[index][j] = entry;
+					break;
+				}
+			}
+			entry = per_up_list[i][k];
+		}
+
+		/* Reset zeroed counters */
+		if (!pfc)
+			pfc = cpfc;
+		if (!strict)
+			strict = cstrict;
+		if (!be)
+			be = cbe;
+	}
+
+	/* The peer _may_ give some percentage of pgpct to a user
+	 * priority that has no pgid mapped to it. This seems like
+	 * a poor config by the peer. However add the bandwidth to
+	 * the highest priority traffic class (that is not strict).
+	 */
+	for (i = 0; i < MAX_USER_PRIORITIES; i++)
+		totalbw += tcbw[i];
+
+	if (totalbw != 100) {
+		index = fixpg->num_tcs - cstrict - 1;
+		tcbw[index] += (100 - totalbw);
+	}
+
+	/* Walk results matrix and update objects */
+	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
+		bw = cnt = 0;
+
+		for (j = 0; j < MAX_USER_PRIORITIES; j++) {
+			entry = result[i][j];
+
+			if (!entry)
+				break;
+
+			entry->pgid = i;
+			entry->tcmap = i;
+			bw += entry->percent_of_pg_cap;
+			cnt++;
+		}
+
+		bw = cnt ?  100 / cnt : 0;
+		r = 100 - (bw * cnt);
+
+		for (j = 0; j < MAX_USER_PRIORITIES; j++) {
+			entry = result[i][j];
+
+			if (!entry)
+				break;
+
+			if (entry->strict_priority == dcb_link)
+				entry->percent_of_pg_cap = 0;
+			else
+				entry->percent_of_pg_cap = bw;
+		}
+
+		if (j) {
+			entry = result[i][--j];
+			if (entry)
+				entry->percent_of_pg_cap += r;
+		}
+	}
+
+	for (i = 0; i < MAX_TRAFFIC_CLASS; i++)
+		fixpg->tx.pg_percent[i] = tcbw[i];
+
+	return 0;
+}
 
 /******************************************************************************
  * This function checks DCB rules for DCBs settings.
@@ -56,6 +263,8 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 		return dcb_failed;
 
 	if (attribs->pg) {
+		int err;
+
 		pg = attribs->pg;
 		memset(tx_bw_sum,0,sizeof(tx_bw_sum));
 		memset(rx_bw_sum,0,sizeof(rx_bw_sum));
@@ -63,6 +272,13 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 		memset(rx_link_strict,0,sizeof(rx_link_strict));
 
 		tx_bw = 0, rx_bw = 0;
+
+		err = dcb_fixup_pg(pg, attribs->pfc);
+		if (err) {
+			LLDPAD_WARN("dcb_fixup_pg returned error %i\n", err);
+			return dcb_failed;
+		}
+
 		/* Internally in the pg_attribs structure, a link strict PGID is 
 		 * maintained as a PGID value (0-7) with a corresponding
 		 * strict_priority field value of 'dcb_link'.  Only one link strict

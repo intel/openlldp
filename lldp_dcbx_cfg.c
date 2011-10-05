@@ -35,6 +35,7 @@
 #include "config.h"
 #include "libconfig.h"
 #include "lldp_util.h"
+#include "dcb_driver_interface.h"
 
 #define CFG_VERSION "1.0"
 
@@ -579,7 +580,7 @@ set_error:
 	return dcb_failed;
 }
 
-static int get_default_persistent(full_dcb_attribs *attribs)
+static int get_default_persistent(const char *ifname, full_dcb_attribs *attribs)
 {
 	int i;
 
@@ -589,11 +590,12 @@ static int get_default_persistent(full_dcb_attribs *attribs)
 	if (get_pfc(DEF_CFG_STORE, &attribs->pfc) != dcb_success)
 		return 1;
 
+	get_dcb_numtcs(ifname, &attribs->pg.num_tcs, &attribs->pfc.num_tcs);
+
 	for (i = 0; i < DCB_MAX_APPTLV; i++) {
 		if (get_app(DEF_CFG_STORE, i, &attribs->app[i]) != dcb_success)
 			return 1;
 	}
-
 
 	for (i = 0; i < DCB_MAX_LLKTLV; i++) {
 		if (get_llink(DEF_CFG_STORE, i,
@@ -643,6 +645,7 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 	config_setting_t *setting_array = NULL;
 	config_setting_t *setting_traffic = NULL;
 	config_setting_t *setting_value = NULL;
+	full_dcb_attrib_ptrs attrib_ptrs;
 	int result = dcb_failed, i;
 	int results[MAX_USER_PRIORITIES];
 	int len;
@@ -653,7 +656,7 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 	eth_settings = config_setting_get_member(dcbx_setting, device_name);
 
 	/* init the internal data store for device_name */
-	result = get_default_persistent(attribs);
+	result = get_default_persistent(device_name, attribs);
 	if (NULL == eth_settings) {
 		assert(memcmp(device_name, DEF_CFG_STORE, 
 			strlen(DEF_CFG_STORE)));
@@ -907,12 +910,17 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 			goto set_default;
 	}
 
-
 	return 0;
 
 set_default:
 	LLDPAD_WARN("Error read config file.\n");
-	result = get_default_persistent(attribs);
+	result = get_default_persistent(device_name, attribs);
+
+	if (!result) {
+		attrib_ptrs.pg = &attribs->pg;
+		result = dcb_check_config(&attrib_ptrs);
+	}
+
 	return result;
 }
 

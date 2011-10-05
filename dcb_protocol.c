@@ -927,154 +927,158 @@ int dcbx_add_adapter(char *device_name)
 
 	memset (&attr_ptr, 0, sizeof(attr_ptr));
 	attr_ptr.pg = &(attribs.pg);
-	if ((sResult = dcb_check_config(&attr_ptr)) != dcb_success) {
-		LLDPAD_DBG("Rule checker returned error %d\n", sResult);
-	} else { /* big else */
-		memset(&state, 0, sizeof(state));
-		get_dcbx_state(device_name, &state);
+	attr_ptr.pfc = &(attribs.pfc);
 
-		/* Create data stores for the device. */
-		if (!init_dcb_support(device_name, &attribs)) {
-			sResult = dcb_failed;
-			goto add_adapter_error;
-		}
+	memset(&state, 0, sizeof(state));
+	get_dcbx_state(device_name, &state);
 
-		if (!add_pg(device_name, &attribs.pg)) {
-			LLDPAD_DBG("add_pg error.\n");
-			sResult = dcb_failed;
-			goto add_adapter_error;
-		}
-		if (!add_pfc(device_name, &attribs.pfc)) {
-			LLDPAD_DBG("add_pfc error.\n");
-			sResult = dcb_failed;
-			goto add_adapter_error;
-		}
-		if (!add_bwg_desc(device_name, &attribs.descript)) {
-			LLDPAD_DBG("add_bwg_desc error.\n");
-			sResult = dcb_failed;
-			goto add_adapter_error;
-		}
-		if (!add_control_protocol(device_name, &state)) {
-			LLDPAD_DBG("add_control_protocol error.\n");
-			sResult = dcb_failed;
-			goto add_adapter_error;
-		}
-		if (!add_peer_pg(device_name)) {
-			LLDPAD_DBG("add_peer_pg error.\n");
-			sResult = dcb_failed;
-			goto add_adapter_error;
-		}
-		if (!add_peer_pfc(device_name)) {
-			LLDPAD_DBG("add_peer_pfc error.\n");
-			sResult = dcb_failed;
-			goto add_adapter_error;
-		}
-		if (!add_peer_control_protocol(device_name)) {
-			LLDPAD_DBG("add_peer_control_protocol error.\n");
-			sResult = dcb_failed;
-			goto add_adapter_error;
-		}
-		if (!add_oper_pg(device_name)) {
-			LLDPAD_DBG("add_oper_pg error.\n");
-			sResult = dcb_failed;
-			goto add_adapter_error;
-		}
-		if (!add_oper_pfc(device_name)) {
-			LLDPAD_DBG("add_oper_pfc error.\n");
-			sResult = dcb_failed;
-			goto add_adapter_error;
-		}
-		/* Add APPTLV for supported Subtypes. */
-		for(i = 0; i < DCB_MAX_APPTLV ; i++) {
-			if (!add_apptlv(device_name,
-				&attribs.app[i], i, &state)) {
-				LLDPAD_DBG("add_apptlv error.\n");
-				sResult = dcb_failed;
-				goto add_adapter_error;
-			}
-			if (!add_oper_apptlv(device_name, i)) {
-				LLDPAD_DBG("add_oper_apptlv error.\n");
-				sResult = dcb_failed;
-				goto add_adapter_error;
-			}
-			if (!add_peer_apptlv(device_name, i)) {
-				LLDPAD_DBG("add_peer_apptlv error.\n");
-				sResult = dcb_failed;
-				goto add_adapter_error;
-			}
-		}
-		for(i = 0; i < DCB_MAX_LLKTLV ; i++) {
-			if (!add_llink(device_name, &attribs.llink[i], i)) {
-				LLDPAD_DBG("%s add_llink error.\n",
-					    device_name);
-				sResult = dcb_failed;
-				goto add_adapter_error;
-			}
-			if (!add_oper_llink(device_name, i)) {
-				LLDPAD_DBG("add_oper_llink error.\n");
-				sResult = dcb_failed;
-				goto add_adapter_error;
-			}
-			if (!add_peer_llink(device_name, i)) {
-				LLDPAD_DBG("add_peer_llink error.\n");
-				sResult = dcb_failed;
-				goto add_adapter_error;
-			}
-		}
+	/* Create data stores for the device. */
+	if (!init_dcb_support(device_name, &attribs)) {
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
 
-		if (get_dcb_support(device_name, &dcb_support) != dcb_success) {
+	sResult = dcb_check_config(&attr_ptr);
+	if (sResult != dcb_success)
+		LLDPAD_WARN("Rule checker returned error %d\n", sResult);
+
+	if (!add_pg(device_name, &attribs.pg)) {
+		LLDPAD_DBG("add_pg error.\n");
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
+	if (!add_pfc(device_name, &attribs.pfc)) {
+		LLDPAD_DBG("add_pfc error.\n");
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
+	if (!add_bwg_desc(device_name, &attribs.descript)) {
+		LLDPAD_DBG("add_bwg_desc error.\n");
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
+	if (!add_control_protocol(device_name, &state)) {
+		LLDPAD_DBG("add_control_protocol error.\n");
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
+	if (!add_peer_pg(device_name)) {
+		LLDPAD_DBG("add_peer_pg error.\n");
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
+	if (!add_peer_pfc(device_name)) {
+		LLDPAD_DBG("add_peer_pfc error.\n");
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
+	if (!add_peer_control_protocol(device_name)) {
+		LLDPAD_DBG("add_peer_control_protocol error.\n");
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
+	if (!add_oper_pg(device_name)) {
+		LLDPAD_DBG("add_oper_pg error.\n");
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
+	if (!add_oper_pfc(device_name)) {
+		LLDPAD_DBG("add_oper_pfc error.\n");
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
+	/* Add APPTLV for supported Subtypes. */
+	for (i = 0; i < DCB_MAX_APPTLV; i++) {
+		if (!add_apptlv(device_name,
+			&attribs.app[i], i, &state)) {
+			LLDPAD_DBG("add_apptlv error.\n");
 			sResult = dcb_failed;
 			goto add_adapter_error;
 		}
+		if (!add_oper_apptlv(device_name, i)) {
+			LLDPAD_DBG("add_oper_apptlv error.\n");
+			sResult = dcb_failed;
+			goto add_adapter_error;
+		}
+		if (!add_peer_apptlv(device_name, i)) {
+			LLDPAD_DBG("add_peer_apptlv error.\n");
+			sResult = dcb_failed;
+			goto add_adapter_error;
+		}
+	}
+	for (i = 0; i < DCB_MAX_LLKTLV; i++) {
+		if (!add_llink(device_name, &attribs.llink[i], i)) {
+			LLDPAD_DBG("%s add_llink error.\n",
+				    device_name);
+			sResult = dcb_failed;
+			goto add_adapter_error;
+		}
+		if (!add_oper_llink(device_name, i)) {
+			LLDPAD_DBG("add_oper_llink error.\n");
+			sResult = dcb_failed;
+			goto add_adapter_error;
+		}
+		if (!add_peer_llink(device_name, i)) {
+			LLDPAD_DBG("add_peer_llink error.\n");
+			sResult = dcb_failed;
+			goto add_adapter_error;
+		}
+	}
 
-		/* Initialize features state machines for PG and PFC and
-		 * APPTLVs. */
+	if (get_dcb_support(device_name, &dcb_support) != dcb_success) {
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
+
+
+	/* Initialize features state machines for PG and PFC and
+	 * APPTLVs. */
+	if (run_feature_protocol(device_name,
+		DCB_LOCAL_CHANGE_PG, SUBTYPE_DEFAULT) !=
+		dcb_success) {
+		LLDPAD_DBG("run_feature_protocol error (PG)\n");
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
+	if (run_feature_protocol(device_name,
+		DCB_LOCAL_CHANGE_PFC, SUBTYPE_DEFAULT) != dcb_success) {
+		LLDPAD_DBG("run_feature_protocol error (PFC)\n");
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
+	/* If APPTLV subtypes are supported then run the
+	 * feat_prot for those supported subtypes. */
+	for (i = 0; i < DCB_MAX_APPTLV ; i++) {
 		if (run_feature_protocol(device_name,
-			DCB_LOCAL_CHANGE_PG, SUBTYPE_DEFAULT) !=
+			DCB_LOCAL_CHANGE_APPTLV(i), i) !=
 			dcb_success) {
-			LLDPAD_DBG("run_feature_protocol error (PG)\n");
+			LLDPAD_DBG("run_feature_protocol error (APP)\n");
 			sResult = dcb_failed;
 			goto add_adapter_error;
 		}
+	}
+	for (i = 0; i < DCB_MAX_LLKTLV ; i++) {
 		if (run_feature_protocol(device_name,
-			DCB_LOCAL_CHANGE_PFC, SUBTYPE_DEFAULT) != dcb_success) {
-			LLDPAD_DBG("run_feature_protocol error (PFC)\n");
+			DCB_LOCAL_CHANGE_LLINK, i) != dcb_success) {
+			LLDPAD_DBG("run_feature_protocol error (LLINK)\n");
 			sResult = dcb_failed;
 			goto add_adapter_error;
 		}
-		/* If APPTLV subtypes are supported then run the
-		 * feat_prot for those supported subtypes. */
-		for (i = 0; i < DCB_MAX_APPTLV ; i++) {
-			if (run_feature_protocol(device_name,
-				DCB_LOCAL_CHANGE_APPTLV(i), i) !=
-				dcb_success) {
-				LLDPAD_DBG("run_feature_protocol error (APP)\n");
-				sResult = dcb_failed;
-				goto add_adapter_error;
-			}
-		}
-		for (i = 0; i < DCB_MAX_LLKTLV ; i++) {
-			if (run_feature_protocol(device_name,
-				DCB_LOCAL_CHANGE_LLINK, i) != dcb_success) {
-				LLDPAD_DBG("run_feature_protocol error (LLINK)\n");
-				sResult = dcb_failed;
-				goto add_adapter_error;
-			}
-		}
+	}
 
-		EventFlag = 0;
-		DCB_SET_FLAGS(EventFlag, DCB_LOCAL_CHANGE_PG |
-			DCB_LOCAL_CHANGE_PFC | DCB_LOCAL_CHANGE_LLINK);
-		for (i = 0; i < DCB_MAX_APPTLV; i++)
-			DCB_SET_FLAGS(EventFlag, DCB_LOCAL_CHANGE_APPTLV(i));
-		/* Initialize control state machine */
-		if (run_control_protocol (device_name, EventFlag) !=
-			dcb_success) {
-			LLDPAD_DBG("run_control_protocol error.\n");
-			sResult = dcb_failed;
-			goto add_adapter_error;
-		}
-	}	/* big else on top */
+	EventFlag = 0;
+	DCB_SET_FLAGS(EventFlag, DCB_LOCAL_CHANGE_PG |
+	DCB_LOCAL_CHANGE_PFC | DCB_LOCAL_CHANGE_LLINK);
+	for (i = 0; i < DCB_MAX_APPTLV; i++)
+		DCB_SET_FLAGS(EventFlag, DCB_LOCAL_CHANGE_APPTLV(i));
+	/* Initialize control state machine */
+	if (run_control_protocol(device_name, EventFlag) !=
+		dcb_success) {
+		LLDPAD_DBG("run_control_protocol error.\n");
+		sResult = dcb_failed;
+		goto add_adapter_error;
+	}
+
 
 
 add_adapter_error:
@@ -1566,7 +1570,7 @@ void mark_llink_sent(char *device_name, u32 subtype)
 		it->second->protocol.tlv_sent = true;
 }
 
-dcb_result put_pg(char *device_name,  pg_attribs *pg_data)
+dcb_result put_pg(char *device_name, pg_attribs *pg_data, pfc_attribs *pfc_data)
 {
 	full_dcb_attribs 	attribs;
 	full_dcb_attrib_ptrs	attr_ptr;
@@ -1588,6 +1592,8 @@ dcb_result put_pg(char *device_name,  pg_attribs *pg_data)
 		/* Check the rules */
 		memset(&attr_ptr, 0, sizeof(attr_ptr));
 		attr_ptr.pg = pg_data;
+		attr_ptr.pfc = pfc_data;
+
 		if (dcb_check_config(&attr_ptr) != dcb_success) {
 			LLDPAD_DBG("Rule checking failed in put_pg()\n");
 			result = dcb_bad_params;
@@ -2682,11 +2688,16 @@ int set_configuration(char *device_name, u32 EventFlag)
 		if (Oper == NULL || Local == NULL)
 			return dcb_failed;
 
+		Oper->second->num_tcs = Local->second->num_tcs;
+
 		pgroup_attribs pg_data;
 		if (DCB_TEST_FLAGS(EventFlag, DCB_REMOTE_CHANGE_PG,
 			DCB_REMOTE_CHANGE_PG)) {
+			pfc_it op_pfc = pfc_find(&oper_pfc, device_name);
+
 			memset(&attr_ptr, 0, sizeof(attr_ptr));
 			attr_ptr.pg = (Oper->second);
+			attr_ptr.pfc = (op_pfc->second);
 			if ((sResult = dcb_check_config(&attr_ptr))
 				!= dcb_success) {
 				LLDPAD_DBG("  PG rule check returned error %d\n",
@@ -3943,18 +3954,22 @@ dcb_result run_dcb_protocol(char *device_name, u32 EventFlag, u32 Subtype)
 		SubTypeMin = 0;
 		SubTypeMax = DCB_MAX_APPTLV;
 	}
-	/* Run the feature state machines. */
-	if (DCB_TEST_FLAGS(EventFlag, DCB_LOCAL_CHANGE_PG, DCB_LOCAL_CHANGE_PG)
-		&& (result != dcb_ctrl_vers_not_compatible)) {
-		result = run_feature_protocol(device_name,DCB_LOCAL_CHANGE_PG,
-						SUBTYPE_DEFAULT);
-		LocalChange = true;
-	}
+	/* Run the feature state machines:
+	 *
+	 * Order is important PFC must be run before PG features to
+	 * allow up2tc remappings to account for PFC attributes.
+	 */
 	if (DCB_TEST_FLAGS(EventFlag, DCB_LOCAL_CHANGE_PFC,
 		DCB_LOCAL_CHANGE_PFC)
 		&& (result != dcb_ctrl_vers_not_compatible)) {
 		result = run_feature_protocol(device_name,
 			DCB_LOCAL_CHANGE_PFC, SUBTYPE_DEFAULT);
+		LocalChange = true;
+	}
+	if (DCB_TEST_FLAGS(EventFlag, DCB_LOCAL_CHANGE_PG, DCB_LOCAL_CHANGE_PG)
+		&& (result != dcb_ctrl_vers_not_compatible)) {
+		result = run_feature_protocol(device_name, DCB_LOCAL_CHANGE_PG,
+						SUBTYPE_DEFAULT);
 		LocalChange = true;
 	}
 	mask = 0;
@@ -3975,19 +3990,23 @@ dcb_result run_dcb_protocol(char *device_name, u32 EventFlag, u32 Subtype)
 				DCB_LOCAL_CHANGE_LLINK, i);
 		LocalChange = true;
 	}
-	/* Only allow local or remote change at a time. */
+	/* Only allow local or remote change at a time:
+	 *
+	 * Order is important PFC must be run before PG features to
+	 * allow up2tc remappings to account for PFC attributes.
+	 */
 	if (!LocalChange) {
-		if (DCB_TEST_FLAGS(EventFlag, DCB_REMOTE_CHANGE_PG,
-			DCB_REMOTE_CHANGE_PG)
-			&& (result != dcb_ctrl_vers_not_compatible)) {
-			result = run_feature_protocol(device_name,
-				DCB_REMOTE_CHANGE_PG, SUBTYPE_DEFAULT);
-		}
 		if (DCB_TEST_FLAGS(EventFlag, DCB_REMOTE_CHANGE_PFC,
 			DCB_REMOTE_CHANGE_PFC)
 			&& (result != dcb_ctrl_vers_not_compatible)) {
 			result = run_feature_protocol(device_name,
 				DCB_REMOTE_CHANGE_PFC, SUBTYPE_DEFAULT);
+		}
+		if (DCB_TEST_FLAGS(EventFlag, DCB_REMOTE_CHANGE_PG,
+			DCB_REMOTE_CHANGE_PG)
+			&& (result != dcb_ctrl_vers_not_compatible)) {
+			result = run_feature_protocol(device_name,
+				DCB_REMOTE_CHANGE_PG, SUBTYPE_DEFAULT);
 		}
 		mask = 0;
 		for (i = 0; i < DCB_MAX_APPTLV; i++)

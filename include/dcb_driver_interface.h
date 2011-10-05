@@ -48,6 +48,6 @@ int set_hw_all(char *device_name);
 int get_dcb_capabilities(char *device_name, struct feature_support *dcb_capabilites);
 u32 double_to_fixpt_int(double double_val);
 
-int get_dcb_numtcs(char *device_name, u8 *pgtcs, u8 *pfctcs);
+int get_dcb_numtcs(const char *device_name, u8 *pgtcs, u8 *pfctcs);
 #endif /* _DCB_DRIVER_INTERFACE_H_ */
 
