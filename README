@@ -159,8 +159,14 @@ lldpad Application Install
    will work.
 	
 2. Download the latest version of the lldpad-x.y.z tarball from the e1000
-   project in Sourceforge and untar it. Go into the lldpad-x.y.z directory
-   and run the following commands 
+   project in Sourceforge and untar it.
+
+   Check to see that the following libraries are installed; install them if
+   they are not present.
+
+	 libtool; libconfig-devel; libnl-devel
+
+   Go into the lldpad-x.y.z directory and run the following commands
    
      ./bootstrap.sh; ./configure --prefix=/usr; make; make install
 
@@ -217,7 +223,7 @@ DCBX Operation
 lldpad and dcbtool can be used to configure a DCB capable driver, such as
 the ixgbe driver, which supports the rtnetlink DCB interface.  Once the
 DCB features are configured, the next step is to classify traffic to be
-identified with an 802.1p priority and the associated DCB features.  
+identified with an 802.1p priority and the associated DCB features.
 This can be done using a couple different methods.
 
 1. qdisc and filter method
