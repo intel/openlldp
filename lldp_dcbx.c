@@ -78,6 +78,9 @@ static int dcbx_check_operstate(struct port *port, struct lldp_agent *agent)
 	app_attribs app_data;
 	pfc_attribs pfc_data;
 
+	if (agent->type != NEAREST_BRIDGE)
+		return 0;
+
 	if (!port->portEnabled || !port->dormantDelay)
 		return 0;
 
@@ -131,6 +134,9 @@ int dcbx_tlvs_rxed(const char *ifname, struct lldp_agent *agent)
 	struct dcbd_user_data *dud;
 	struct dcbx_tlvs *tlv = NULL;
 
+	if (agent->type != NEAREST_BRIDGE)
+		return 0;
+
 	dud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_DCBX);
 	if (dud) {
 		LIST_FOREACH(tlv, &dud->head, entry) {
@@ -169,6 +175,9 @@ int dcbx_bld_tlv(struct port *newport, struct lldp_agent *agent)
 	struct dcbx_tlvs *tlvs;
 	int enabletx;
 	long adminstatus = disabled;
+
+	if (agent->type != NEAREST_BRIDGE)
+		return 0;
 
 	tlvs = dcbx_data(newport->ifname);
 
@@ -328,6 +337,9 @@ struct packed_tlv* dcbx_gettlv(struct port *port, struct lldp_agent *agent)
 	struct packed_tlv *ptlv = NULL;
 	struct dcbx_tlvs *tlvs;
 
+	if (agent->type != NEAREST_BRIDGE)
+		return NULL;
+
         if (!check_port_dcb_mode(port->ifname))
 		return NULL;
 
@@ -469,6 +481,9 @@ void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 	if (is_bond(ifname) || is_vlan(ifname))
 		return;
 
+	if (agent->type != NEAREST_BRIDGE)
+		return;
+
 	port = port_find_by_name(ifname);
 
 	dud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_DCBX);
@@ -594,6 +609,9 @@ void dcbx_ifdown(char *device_name, struct lldp_agent *agent)
 	struct port *port = NULL;
 	struct dcbx_tlvs *tlvs;
 
+	if (agent->type != NEAREST_BRIDGE)
+		return;
+
 	/* dcb does not support bonded devices */
 	if (is_bond(device_name))
 		return;
@@ -668,10 +686,10 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 	struct dcbx_manifest *manifest;
 	int res;
 
-	dcbx = dcbx_data(port->ifname);
-
-	if (agent == NULL)
+	if (agent == NULL || agent->type != NEAREST_BRIDGE)
 		return SUBTYPE_INVALID;
+
+	dcbx = dcbx_data(port->ifname);
 
 	if (!dcbx)
 		return SUBTYPE_INVALID;
@@ -736,7 +754,7 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 		if (!dcbx->active && !ieee8021qaz_tlvs_rxed(dcbx->ifname) &&
 		    dcbx->rxed_tlvs &&
 		    (exists < 0 || enabled)) {
-			LLDPAD_INFO("CEE DCBX %s going ACTIVE\n", dcbx->ifname);
+			LLDPAD_DBG("CEE DCBX %s going ACTIVE\n", dcbx->ifname);
 			set_dcbx_mode(port->ifname,
 				      DCB_CAP_DCBX_HOST | DCB_CAP_DCBX_VER_CEE);
 			set_hw_state(port->ifname, 1);
@@ -787,6 +805,9 @@ u8 dcbx_mibDeleteObjects(struct port *port, struct lldp_agent *agent)
 	u32 subtype = 0;
 	u32 EventFlag = 0;
 	int i;
+
+	if (agent->type != NEAREST_BRIDGE)
+		return 0;
 
 	/* Set any stored values for this TLV to !Present */
 	if (get_peer_pg(port->ifname, &peer_pg) == dcb_success) {

@@ -74,6 +74,9 @@ static int ieee8021qaz_check_pending(struct port *port,
 	struct ieee8021qaz_user_data *iud;
 	struct ieee8021qaz_tlvs *tlv = NULL;
 
+	if (agent->type != NEAREST_BRIDGE)
+		return 0;
+
 	if (!port->portEnabled)
 		return 0;
 
@@ -204,6 +207,9 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	char *arg, arg_path[256];
 	int res = 0, i;
 	long willing, pfc_mask, delay, numtcs;
+
+	if (agent->type != NEAREST_BRIDGE)
+		return 0;
 
 	/* Read ETS-CFG willing bit -- default willing enabled */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
@@ -440,6 +446,9 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	struct ieee8021qaz_user_data *iud;
 	long adminstatus;
 	feature_support dcb_support;
+
+	if (agent->type != NEAREST_BRIDGE)
+		return;
 
 	/* 802.1Qaz does not support bonded or vlan devices */
 	if (is_bond(ifname) || is_vlan(ifname))
@@ -1015,6 +1024,8 @@ void run_all_sm(struct port *port, struct lldp_agent *agent)
 	struct ieee_pfc *pfc;
 	struct pfc_obj *pfc_obj;
 
+	if (agent->type != NEAREST_BRIDGE)
+		return;
 
 	tlvs = ieee8021qaz_data(port->ifname);
 	if (!tlvs)
@@ -1305,6 +1316,9 @@ static struct packed_tlv *ieee8021qaz_bld_tlv(struct port *port,
 	struct unpacked_tlv *etscfg_tlv, *etsrec_tlv, *pfc_tlv, *app_tlv;
 	size_t size;
 
+	if (agent->type != NEAREST_BRIDGE)
+		return NULL;
+
 	data = ieee8021qaz_data(port->ifname);
 	if (!data)
 		return ptlv;
@@ -1355,6 +1369,9 @@ struct packed_tlv *ieee8021qaz_gettlv(struct port *port,
 {
 	struct packed_tlv *ptlv = NULL;
 
+	if (agent->type != NEAREST_BRIDGE)
+		return NULL;
+
 	/* Update TLV State Machines */
 	run_all_sm(port, agent);
 	/* Build TLVs */
@@ -1368,6 +1385,9 @@ static bool unpack_ieee8021qaz_tlvs(struct port *port,
 {
 	/* Unpack tlvs and store in rx */
 	struct ieee8021qaz_tlvs *tlvs;
+
+	if (agent->type != NEAREST_BRIDGE)
+		return false;
 
 	tlvs = ieee8021qaz_data(port->ifname);
 
@@ -1728,6 +1748,9 @@ int ieee8021qaz_rchange(struct port *port, struct lldp_agent *agent,
 	struct ieee8021qaz_tlvs *qaz_tlvs;
 	struct ieee8021qaz_unpkd_tlvs *rx;
 
+	if (agent->type != NEAREST_BRIDGE)
+		return 0;
+
 	qaz_tlvs = ieee8021qaz_data(port->ifname);
 	if (!qaz_tlvs)
 		return SUBTYPE_INVALID;
@@ -1845,6 +1868,9 @@ u8 ieee8021qaz_mibDeleteObject(struct port *port, struct lldp_agent *agent)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 
+	if (agent->type != NEAREST_BRIDGE)
+		return 0;
+
 	tlvs = ieee8021qaz_data(port->ifname);
 	if (!tlvs)
 		return 0;
@@ -1956,6 +1982,9 @@ void ieee8021qaz_ifdown(char *device_name, struct lldp_agent *agent)
 {
 	struct port *port = NULL;
 	struct ieee8021qaz_tlvs *tlvs;
+
+	if (agent->type != NEAREST_BRIDGE)
+		return;
 
 	port = porthead;
 	while (port != NULL) {
