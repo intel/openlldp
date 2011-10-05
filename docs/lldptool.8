@@ -52,6 +52,15 @@ help output to see the list of supported TLV keywords.
 .B \-n
 "neighbor" option for commands which can use it (e.g. get-tlv)
 .TP
+.B -g [bridge scope]
+specify the bridge scope this command operates on. Allows to set and query
+all LLDP TLV modules for "nearest_bridge" (short: "nb"),
+"nearest_customer_bridge" ("ncb") and "nearest_nontpmr_bridge" ("nntpmrb")
+group mac addresses. Configurations are saved into independent sections in
+lldpad.conf.
+If no bridge scope is supplied this default to "nearest bridge" to preserve the
+previous behaviour.
+.TP
 .B \-c <argument list>
 "config" option for TLV queries. Indicates that the query is
 for the configuration elements for the specified TLV.  The
