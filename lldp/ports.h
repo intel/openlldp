@@ -27,9 +27,10 @@
 #ifndef PORTS_H
 #define PORTS_H
 
+#include <sys/queue.h>
 #include <string.h>
 #include "lldp.h"
-#include "mibdata.h"
+#include "agent.h"
 
 #ifndef ETH_ALEN
 #define ETH_ALEN    6
@@ -60,70 +61,6 @@
 
 struct porttimers {
 	u16 dormantDelay;
-/* Tx */
-	u16 state;
-	u16 reinitDelay;
-	u16 msgTxHold;
-	u16 msgTxInterval;
-	u16 msgFastTx;
-	u16 txFastInit;
-	u16 txTTR;
-	u16 txShutdownWhile;
-	u16 txCredit;
-	u16 txMaxCredit;
-	bool txTick;
-/* Rx */
-	u16 tooManyNghbrsTimer;
-	u16 rxTTL;
-	u16 lastrxTTL;  /* cache last received */
-};
-
-struct porttx {
-	u8 *frameout;
-	u32 sizeout;
-	u8 state;
-	u8 localChange;
-	u16 txTTL;
-	bool txNow;
-	u16 txFast;
-};
-
-struct portstats {
-/* Tx */
-	u32 statsFramesOutTotal;
-/* Rx */
-	u32 statsAgeoutsTotal;
-	u32 statsFramesDiscardedTotal;
-	u32 statsFramesInErrorsTotal;
-	u32 statsFramesInTotal;
-	u32 statsTLVsDiscardedTotal;
-	u32 statsTLVsUnrecognizedTotal;
-};
-
-typedef struct rxmanifest{
-	struct unpacked_tlv *chassis;
-	struct unpacked_tlv *portid;
-	struct unpacked_tlv *ttl;
-	struct unpacked_tlv *portdesc;
-	struct unpacked_tlv *sysname;
-	struct unpacked_tlv *sysdesc;
-	struct unpacked_tlv *syscap;
-	struct unpacked_tlv *mgmtadd;
-}rxmanifest;
-
-struct portrx {
-	u8 *framein;
-	u16 sizein;
-	u8 state;
-	u8 badFrame;
-	u8 rcvFrame;
-	u8 rxInfoAge;
-	u8 remoteChange;
-	u8 tooManyNghbrs;
-	u8 dupTlvs;
-	u8 dcbx_st;
-	bool newNeighbor;
-	rxmanifest *manifest;
 };
 
 struct eth_hdr {
@@ -132,63 +69,53 @@ struct eth_hdr {
 	u16 ethertype;
 };
 
-enum portAdminStatus {
-	disabled,
-	enabledTxOnly,
-	enabledRxOnly,
-	enabledRxTx,
+enum portEnableStatus {
+	no = 0,
+	yes,
 };
 
+/* lldp port specific structure */
 struct port {
 	char *ifname;
 	u8 hw_resetting;
 	u8 portEnabled;
 	u8 prevPortEnabled;
-	u8 adminStatus;
+	struct porttimers *timers;
 
-	/* protocol specific */
+	u16 dormantDelay;
+
+	LIST_HEAD(agent_head, lldp_agent) agent_head;
 	struct l2_packet_data *l2;
-	struct portrx rx;
-	struct porttx tx;
-	struct portstats stats;
-	struct porttimers timers;
-	u8 rxChanges;
-	u16   lldpdu;
-	struct msap msap;
 
 	struct port *next;
 };
 
 extern struct port *porthead;
-extern struct port *portcurrent;
-extern struct port *porttail;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-int add_port(const char *);
+struct port *add_port(const char *);
 int remove_port(const char *);
 #ifdef __cplusplus
 }
 #endif
 int set_port_hw_resetting(const char *ifname, int resetting);
 int get_port_hw_resetting(const char *ifname);
-void set_lldp_port_enable_state(const char *ifname, int enable);
-void set_lldp_port_admin(const char *ifname, int enable);
-int get_lldp_port_admin(const char *ifname);
+void set_lldp_port_enable(const char *ifname, int enable);
 
-int get_lldp_port_statistics(char *ifname, struct portstats *stats);
-
-int get_local_tlvs(char *ifname, unsigned char *tlvs, int *size);
-int get_neighbor_tlvs(char *ifname, unsigned char *tlvs, int *size);
+int get_local_tlvs(char *ifname, int type, unsigned char *tlvs, int *size);
+int get_neighbor_tlvs(char *ifname, int type, unsigned char *tlvs, int *size);
 
 int port_needs_shutdown(struct port *port);
 
 void set_port_operstate(const char *ifname, int operstate);
 int get_port_operstate(const char *ifname);
 
-int reinit_port(const char *ifname);
 void set_port_oper_delay(const char *ifname);
+
+int reinit_port(const char *ifname);
+void set_agent_oper_delay(const char *ifname, int type);
 
 static inline struct port *port_find_by_name(const char *ifname)
 {
@@ -201,4 +128,5 @@ static inline struct port *port_find_by_name(const char *ifname)
 	}
 	return NULL;
 }
+
 #endif /* PORTS_H */

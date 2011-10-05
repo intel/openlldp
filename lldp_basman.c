@@ -86,7 +86,7 @@ static const struct lldp_mod_ops basman_ops =  {
 	.get_arg_handler	= basman_get_arg_handlers,
 };
 
-static struct basman_data *basman_data(const char *ifname)
+static struct basman_data *basman_data(const char *ifname, enum agent_type type)
 {
 	struct basman_user_data *bud;
 	struct basman_data *bd = NULL;
@@ -94,7 +94,8 @@ static struct basman_data *basman_data(const char *ifname)
 	bud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_BASIC);
 	if (bud) {
 		LIST_FOREACH(bd, &bud->head, entry) {
-			if (!strncmp(ifname, bd->ifname, IFNAMSIZ))
+			if (!strncmp(ifname, bd->ifname, IFNAMSIZ) &&
+			    (type == bd->agenttype))
 				return bd;
 		}
 	}
@@ -573,14 +574,14 @@ static void basman_free_data(struct basman_user_data *bud)
 	}
 }
 
-struct packed_tlv *basman_gettlv(struct port *port)
+struct packed_tlv *basman_gettlv(struct port *port, struct lldp_agent *agent)
 {
 	int i;
 	int size;
 	struct basman_data *bd;
 	struct packed_tlv *ptlv = NULL;
 
-	bd = basman_data(port->ifname);
+	bd = basman_data(port->ifname, agent->type);
 	if (!bd)
 		goto out_err;
 
@@ -630,11 +631,11 @@ out_err:
 	return NULL;
 }
 
-void basman_ifdown(char *ifname)
+void basman_ifdown(char *ifname, struct lldp_agent *agent)
 {
 	struct basman_data *bd;
 
-	bd = basman_data(ifname);
+	bd = basman_data(ifname, agent->type);
 	if (!bd)
 		goto out_err;
 
@@ -648,12 +649,12 @@ out_err:
 	return;
 }
 
-void basman_ifup(char *ifname)
+void basman_ifup(char *ifname, struct lldp_agent *agent)
 {
 	struct basman_data *bd;
 	struct basman_user_data *bud;
 
-	bd = basman_data(ifname);
+	bd = basman_data(ifname, agent->type);
 	if (bd) {
 		LLDPAD_DBG("%s:%s exists\n", __func__, ifname);
 		goto out_err;
@@ -668,6 +669,8 @@ void basman_ifup(char *ifname)
 	}
 	memset(bd, 0, sizeof(struct basman_data));
 	strncpy(bd->ifname, ifname, IFNAMSIZ);
+	bd->agenttype = agent->type;
+
 	if (basman_bld_tlv(bd)) {
 		LLDPAD_DBG("%s:%s mand_bld_tlv failed\n", __func__, ifname);
 		free(bd);

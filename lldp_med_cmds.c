@@ -154,7 +154,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 
 	snprintf(obuf, obuf_len, "enableTx = %s\n", value ? "yes" : "no");
 
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }
@@ -318,7 +318,7 @@ static int _set_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
 
 	snprintf(obuf, obuf_len, "devtype = %li\n", value);
 
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }

@@ -43,6 +43,8 @@
 #include "event_iface.h"
 #include "messages.h"
 #include "version.h"
+#include "lldp/ports.h"
+#include "lldp/l2_packet.h"
 #include "lldp_mand.h"
 #include "lldp_basman.h"
 #include "lldp_dcbx.h"
@@ -55,6 +57,7 @@
 #include "lldpad_shm.h"
 #include "lldp/agent.h"
 #include "lldp/l2_packet.h"
+#include "clif.h"
 
 /*
  * insert to head, so first one is last
@@ -147,7 +150,7 @@ void lldpad_reconfig(int sig, void *eloop_ctx, void *signal_ctx)
 {
 	LLDPAD_WARN("lldpad: SIGHUP received reinit...");
 	/* Send LLDP SHUTDOWN frames and deinit modules */
-	clean_lldp_agent();
+	clean_lldp_agents();
 	deinit_modules();
 	remove_all_adapters();
 	remove_all_bond_ports();
@@ -380,7 +383,7 @@ int main(int argc, char *argv[])
 	eloop_register_signal_reconfig(lldpad_reconfig, NULL); 
 
 	/* setup LLDP agent */
-	if (!start_lldp_agent()) {
+	if (!start_lldp_agents()) {
 		LLDPAD_ERR("failed to initialize LLDP agent\n");
 		exit(1);
 	}
@@ -403,13 +406,13 @@ int main(int argc, char *argv[])
 
 	eloop_run();
 
-	clean_lldp_agent();
+	clean_lldp_agents();
 	deinit_modules();
 	remove_all_adapters();
 	remove_all_bond_ports();
 	ctrl_iface_deinit(clifd);  /* free's clifd */
 	event_iface_deinit();
-	stop_lldp_agent();
+	stop_lldp_agents();
  out:
 	destroy_cfg();
 	closelog();

@@ -52,7 +52,7 @@ enum {
  * The txInitializeLLDP () procedure initializes the LLDP transmit module as
  * defined in 10.1.1.
 */
-void txInitializeLLDP(struct port *port);
+void txInitializeLLDP(struct lldp_agent *agent);
 
 /**
  * The mibConstrInfoLLDPDU () procedure constructs an information LLDPDU as
@@ -66,32 +66,32 @@ void txInitializeLLDP(struct port *port);
  * LLDP MIB management function, the transmit state machine does not include a
  * separate procedure for this purpose (see 10.2.1.1).
 */
-bool mibConstrInfoLLDPDU(struct port *port);
+bool mibConstrInfoLLDPDU(struct port *, struct lldp_agent *);
 
 /**
  * The mibConstrShutdownLLDPDU () procedure constructs a shutdown LLDPDU as
  * defined in 10.2.1.2 and according to the LLDPDU and the associated TLV
  * formats specified in 9.2 and 9.5.
 */ 
-bool mibConstrShutdownLLDPDU(struct port *port);
+bool mibConstrShutdownLLDPDU(struct port *, struct lldp_agent *);
 
 /**
  * The txFrame () procedure prepends the source and destinations addresses
  * and the LLDP Ethertype to each LLDPDU as defined in 10.2.2 before it is
  * sent to the MAC for transmission.
 */ 
-void txFrame(struct port *port);
+u8 txFrame(struct port *port, struct lldp_agent *);
 
-void run_tx_sm(struct port *);
+void run_tx_sm(struct port *, struct lldp_agent *);
 void process_tx_initialize_sm(struct port *);
-void process_tx_idle(struct port *);
-void process_tx_shutdown_frame(struct port *);
-void process_tx_info_frame(struct port *);
-void update_tx_timers(struct port *);
-void run_tx_timers_sm(struct port *);
-bool set_tx_state(struct port *);
-void txInitializeTimers(struct port *);
-void tx_change_state(struct port *, u8 );
+void process_tx_idle(struct lldp_agent *);
+void process_tx_shutdown_frame(struct port *, struct lldp_agent *);
+void process_tx_info_frame(struct port *, struct lldp_agent *);
+void update_tx_timers(struct lldp_agent *);
+void run_tx_timers_sm(struct port *, struct lldp_agent *);
+bool set_tx_state(struct port *, struct lldp_agent *);
+void txInitializeTimers(struct lldp_agent *);
+void tx_change_state(struct port *, struct lldp_agent *, u8 );
 
 /******************************************************************************/
 /* Rx States */
@@ -109,7 +109,7 @@ enum {
  * The rxInitializeLLDP () procedure initializes the LLDP receive module
  * as defined in 10.1.2.
 */
-void rxInitializeLLDP(struct port *port);
+void rxInitializeLLDP(struct port *port, struct lldp_agent *);
 
 /**
  * The rxProcessFrame () procedure:
@@ -136,7 +136,7 @@ void rxInitializeLLDP(struct port *port);
  *    tooManyNghbrsTimer expires.
 */
 void rxReceiveFrame(void *, unsigned int, const u8 *, size_t );
-void rxProcessFrame(struct port *);
+void rxProcessFrame(struct port *, struct lldp_agent *);
 
 /**
  * The mibDeleteObjects () procedure deletes all information in the LLDP
@@ -144,7 +144,7 @@ void rxProcessFrame(struct port *);
  * received with an rxTTL value of zero (see 10.3.2) or the timing counter
  * rxInfoTTL expires. (see 10.3.6).
 */
-u8 mibDeleteObjects(struct port *port);
+u8 mibDeleteObjects(struct port *port, struct lldp_agent *);
 
 /**
  * The mibUpdateObjects () procedure updates the MIB objects corresponding to
@@ -154,19 +154,18 @@ u8 mibDeleteObjects(struct port *port);
  * is not set to TRUE until after the information in the LLDP remote systems
  * MIB has been updated.
 */
-void mibUpdateObjects(struct port *);
+void mibUpdateObjects(struct port *, struct lldp_agent *);
 
-void run_rx_sm(struct port *);
-bool set_rx_state(struct port *);
-void rx_change_state(struct port *, u8 );
+void run_rx_sm(struct port *, struct lldp_agent *);
+bool set_rx_state(struct port *, struct lldp_agent *);
+void rx_change_state(struct lldp_agent *, u8 );
 void process_wait_port_operational(struct port *);
-void process_delete_aged_info(struct port *);
-void process_rx_lldp_initialize(struct port *);
-void process_wait_for_frame(struct port *);
-void process_rx_frame(struct port *);
-void process_delete_info(struct port *);
-void process_update_info(struct port *);
-void update_rx_timers(struct port *);
-void load_peer_tlvs(struct port *,struct unpacked_tlv *, int);
-void clear_manifest(struct port *);
+void process_delete_aged_info(struct port *, struct lldp_agent *);
+void process_rx_lldp_initialize(struct port *, struct lldp_agent *);
+void process_wait_for_frame(struct lldp_agent *);
+void process_rx_frame(struct port *, struct lldp_agent *);
+void process_delete_info(struct port *, struct lldp_agent *);
+void process_update_info(struct lldp_agent *);
+void update_rx_timers(struct lldp_agent *);
+void clear_manifest(struct lldp_agent *);
 #endif /* STATES_H */

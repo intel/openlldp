@@ -241,13 +241,13 @@ struct unpacked_tlv *bld_dcbx2_app_tlv(struct dcbx_tlvs *, u32 sub_type,
 struct unpacked_tlv *bld_dcbx_llink_tlv(struct dcbx_tlvs *, u32 sub_type,
 					bool *success);
 
-bool   unpack_dcbx1_tlvs(struct port *, struct unpacked_tlv *);
-bool   unpack_dcbx2_tlvs(struct port *, struct unpacked_tlv *);
-bool   process_dcbx_ctrl_tlv(struct port *);
-bool   process_dcbx_pg_tlv(struct port *);
-bool   process_dcbx_pfc_tlv(struct port *);
-bool   process_dcbx_app_tlv(struct port *, int);
-bool   process_dcbx_llink_tlv(struct port *);
+bool   unpack_dcbx1_tlvs(struct port *, struct lldp_agent *, struct unpacked_tlv *);
+bool   unpack_dcbx2_tlvs(struct port *, struct lldp_agent *, struct unpacked_tlv *);
+bool   process_dcbx_ctrl_tlv(struct port *, struct lldp_agent *);
+bool   process_dcbx_pg_tlv(struct port *, struct lldp_agent *);
+bool   process_dcbx_pfc_tlv(struct port *, struct lldp_agent *);
+bool   process_dcbx_app_tlv(struct port *, struct lldp_agent *, int);
+bool   process_dcbx_llink_tlv(struct port *, struct lldp_agent *);
 
 #ifdef __cplusplus
 }

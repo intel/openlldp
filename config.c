@@ -38,6 +38,9 @@
 #include "eloop.h"
 #include "lldpad.h"
 #include "lldp.h"
+#include "lldp/ports.h"
+#include "lldp/agent.h"
+#include "lldp/l2_packet.h"
 #include "lldp_util.h"
 #include "lldp_mod.h"
 #include "lldp_mand_clif.h"
@@ -47,7 +50,6 @@
 #include "messages.h"
 #include "config.h"
 #include "clif_msgs.h"
-#include "lldp/l2_packet.h"
 #include "lldp_mod.h"
 #include "event_iface.h"
 
@@ -149,21 +151,28 @@ void scan_port(void *eloop_data, void *user_ctx)
 	 * IF_OPER_UP, IF_OPER_DOWN or IF_OPER_DORMANT. 
 	 */
 	p = nameidx;
+	port = porthead;
 	while (p->if_index != 0) {
 		struct lldp_module *np;
 		const struct lldp_mod_ops *ops;
 		char *ifname = p->if_name;
+		struct lldp_agent *agent;
 
 		if (is_valid_lldp_device(ifname)) {
 			if (check_link_status(ifname))
 				oper_add_device(ifname);
 			else {
-				LIST_FOREACH(np, &lldp_head, lldp) {
-					ops = np->ops;
-					if (ops->lldp_mod_ifdown)
-						ops->lldp_mod_ifdown(ifname);
+
+				LIST_FOREACH(agent, &port->agent_head, entry) {
+					LLDPAD_DBG("%s: calling ifdown for agent %p.\n",
+						   __func__, agent);
+					LIST_FOREACH(np, &lldp_head, lldp) {
+						ops = np->ops;
+						if (ops->lldp_mod_ifdown)
+							ops->lldp_mod_ifdown(ifname, agent);
+					}
 				}
-				set_lldp_port_enable_state(ifname, 0);
+				set_lldp_port_enable(ifname, 0);
 			}
 		}
 		p++;
@@ -337,6 +346,8 @@ void init_ports(void)
 {
 	struct lldp_module *np;
 	struct if_nameindex *nameidx, *p;
+	struct port *port;
+	struct lldp_agent *agent;
 
 	nameidx = if_nameindex();
 	if (nameidx == NULL) {
@@ -347,7 +358,6 @@ void init_ports(void)
 	p = nameidx;
 	while (p->if_index != 0) {
 		int valid = is_valid_lldp_device(p->if_name);
-		int err;
 
 		if (!valid) {
 			p++;
@@ -355,19 +365,27 @@ void init_ports(void)
 		}
 
 		if (is_bond(p->if_name))
-			err = add_bond_port(p->if_name);
+			port = add_bond_port(p->if_name);
 		else
-			err = add_port(p->if_name);
+			port = add_port(p->if_name);
 
-		if (err) {
+		if (port == NULL) {
 			LLDPAD_ERR("%s: Error adding device %s\n",
 				     __func__, p->if_name);
 		} else if (check_link_status(p->if_name)) {
-			LIST_FOREACH(np, &lldp_head, lldp) {
-				if (np->ops->lldp_mod_ifup)
-					np->ops->lldp_mod_ifup(p->if_name);
+			lldp_add_agent(p->if_name, NEAREST_BRIDGE);
+			lldp_add_agent(p->if_name, NEAREST_NONTPMR_BRIDGE);
+			lldp_add_agent(p->if_name, NEAREST_CUSTOMER_BRIDGE);
+
+			LIST_FOREACH(agent, &port->agent_head, entry) {
+				LLDPAD_DBG("%s: calling ifup for agent %p.\n",
+					   __func__, agent);
+				LIST_FOREACH(np, &lldp_head, lldp) {
+					if (np->ops->lldp_mod_ifup)
+						np->ops->lldp_mod_ifup(p->if_name, agent);
+				}
 			}
-			set_lldp_port_enable_state(p->if_name, 1);
+			set_lldp_port_enable(p->if_name, 1);
 		}
 		p++;
 	}
@@ -411,6 +429,76 @@ static int lookup_config_value(char *path, void *value, int type)
 	default:
 		return CONFIG_FALSE;
 	}
+}
+
+
+/*
+ * get_config_setting_by_agent - get the setting from the given config file path by type
+ * @ifname: interface name
+ * @agenttype: type of agent this needs to be retrieved from
+ * @path: relative to LLDP_COMMON or ifname section of LLDP configuration.
+ * @value: pointer to the value to be retrieved
+ * @type: libconfig value types
+ *
+ * Returns cmd_success(0) for success, otherwise for failure.
+ *
+ * This function assumes init_cfg() has been called.
+ */
+int get_config_setting_by_agent(const char *ifname, int agenttype, char *path,
+				void *value, int type)
+{
+	char p[1024];
+	int rval = CONFIG_FALSE;
+
+	/* look for setting in ifname areas first */
+	if (ifname) {
+		switch(agenttype) {
+		case NEAREST_BRIDGE:
+			snprintf(p, sizeof(p), "%s.%s.%s",
+				 LLDP_SETTING, ifname, path);
+			rval = lookup_config_value(p, value, type);
+			if (rval == CONFIG_FALSE) {
+				snprintf(p, sizeof(p), "%s.%s.%s",
+					 LLDP_NB, ifname, path);
+			}
+			break;
+		case NEAREST_CUSTOMER_BRIDGE:
+			snprintf(p, sizeof(p), "%s.%s.%s",
+				 LLDP_NCB, ifname, path);
+			break;
+		case NEAREST_NONTPMR_BRIDGE:
+			snprintf(p, sizeof(p), "%s.%s.%s",
+				 LLDP_NNTPB, ifname, path);
+			break;
+		}
+		rval = lookup_config_value(p, value, type);
+	}
+
+	/* if not found look for setting in common area */
+	if (rval == CONFIG_FALSE) {
+		switch(agenttype) {
+		case NEAREST_BRIDGE:
+			snprintf(p, sizeof(p), "%s.%s.%s",
+				 LLDP_SETTING, LLDP_COMMON, path);
+			rval = lookup_config_value(p, value, type);
+			if (rval == CONFIG_FALSE) {
+				snprintf(p, sizeof(p), "%s.%s.%s",
+					 LLDP_NB, LLDP_COMMON, path);
+			}
+			break;
+		case NEAREST_CUSTOMER_BRIDGE:
+			snprintf(p, sizeof(p), "%s.%s.%s",
+				 LLDP_NCB, LLDP_COMMON, path);
+			break;
+		case NEAREST_NONTPMR_BRIDGE:
+			snprintf(p, sizeof(p), "%s.%s.%s",
+				 LLDP_NNTPB, LLDP_COMMON, path);
+			break;
+		}
+		rval = lookup_config_value(p, value, type);
+	}
+
+	return (rval == CONFIG_FALSE) ? cmd_failed : cmd_success;
 }
 
 /*

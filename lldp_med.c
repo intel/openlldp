@@ -90,7 +90,7 @@ static const struct lldp_mod_ops med_ops =  {
 	.get_arg_handler	= med_get_arg_handlers,
 };
 
-static struct med_data *med_data(const char *ifname)
+static struct med_data *med_data(const char *ifname, enum agent_type type)
 {
 	struct med_user_data *mud;
 	struct med_data *md = NULL;
@@ -98,7 +98,8 @@ static struct med_data *med_data(const char *ifname)
 	mud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_MED);
 	if (mud) {
 		LIST_FOREACH(md, &mud->head, entry) {
-			if (!strncmp(ifname, md->ifname, IFNAMSIZ))
+			if (!strncmp(ifname, md->ifname, IFNAMSIZ) &&
+			    (type == md->agenttype))
 				return md;
 		}
 	}
@@ -797,13 +798,14 @@ static void med_free_data(struct med_user_data *mud)
 	}
 }
 
-struct packed_tlv *med_gettlv(struct port *port)
+struct packed_tlv *med_gettlv(struct port *port,
+			      struct lldp_agent *agent)
 {
 	size_t size;
 	struct med_data *md;
 	struct packed_tlv *ptlv = NULL;
 
-	md = med_data(port->ifname);
+	md = med_data(port->ifname, agent->type);
 	if (!md)
 		goto out_err;
 
@@ -856,11 +858,11 @@ out_err:
 	return NULL;
 }
 
-void med_ifdown(char *ifname)
+void med_ifdown(char *ifname, struct lldp_agent *agent)
 {
 	struct med_data *md;
 
-	md = med_data(ifname);
+	md = med_data(ifname, agent->type);
 	if (!md)
 		goto out_err;
 
@@ -874,12 +876,12 @@ out_err:
 	return;
 }
 
-void med_ifup(char *ifname)
+void med_ifup(char *ifname, struct lldp_agent *agent)
 {
 	struct med_data *md;
 	struct med_user_data *mud;
 
-	md = med_data(ifname);
+	md = med_data(ifname, agent->type);
 	if (md) {
 		LLDPAD_DBG("%s:%s exists\n", __func__, ifname);
 		goto out_err;
@@ -894,6 +896,7 @@ void med_ifup(char *ifname)
 	}
 	memset(md, 0, sizeof(struct med_data));
 	strncpy(md->ifname, ifname, IFNAMSIZ);
+	md->agenttype = agent->type;
 
 	if (med_bld_tlv(md)) {
 		LLDPAD_DBG("%s:%s med_bld_tlv failed\n",

@@ -73,7 +73,7 @@ static int get_llink_data(llink_attribs *llink_data, int cmd, char *port_id,
 static dcb_result get_bwg_desc(char *port_id, char *ibuf, int ilen, char *rbuf);
 static dcb_result set_bwg_desc(char *port_id, char *ibuf, int ilen);
 static void set_protocol_data(feature_protocol_attribs *protocol, char *ifname,
-		char *ibuf, int plen);
+		char *ibuf, int plen, int agenttype);
 static dcb_result get_cmd_protocol_data(feature_protocol_attribs *protocol,
 	u8 cmd, char *rbuf);
 
@@ -207,7 +207,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_failed;
 
 	dont_advertise_dcbx_all(cmd->ifname, value);
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }
@@ -377,7 +377,7 @@ static dcb_result set_bwg_desc(char *port_id, char *ibuf, int ilen)
 }
 
 static void set_protocol_data(feature_protocol_attribs *protocol, char *ifname,
-			      char *ibuf, int plen)
+			      char *ibuf, int plen, int type)
 {
 	u8 flag;
 	int last;
@@ -393,7 +393,7 @@ static void set_protocol_data(feature_protocol_attribs *protocol, char *ifname,
 		if (last != protocol->Advertise && protocol->Advertise) {
 			tlv_enabletx(ifname, (OUI_CEE_DCBX << 8) |
 				     protocol->dcbx_st);
-			somethingChangedLocal(ifname);
+			somethingChangedLocal(ifname, type);
 		}
 	}
 
@@ -563,7 +563,7 @@ int dcbx_clif_cmd(void *data,
 				status = dcb_invalid_cmd;
 			} else {
 				set_protocol_data(&pg_data.protocol, port_id,
-						  ibuf, plen);
+						  ibuf, plen, NEAREST_BRIDGE);
 				status = set_pg_config(&pg_data, port_id, ibuf,
 					ilen);
 			}
@@ -596,7 +596,7 @@ int dcbx_clif_cmd(void *data,
 				status = dcb_failed;
 			} else {
 				set_protocol_data(&pfc_data.protocol, port_id,
-						  ibuf, plen);
+						  ibuf, plen, NEAREST_BRIDGE);
 				status = set_pfc_config(&pfc_data, port_id,
 					ibuf, ilen);
 			}
@@ -630,7 +630,7 @@ int dcbx_clif_cmd(void *data,
 				status = dcb_failed;
 			} else {
 				set_protocol_data(&app_data.protocol, port_id,
-						  ibuf, plen);
+						  ibuf, plen, NEAREST_BRIDGE);
 				status = set_app_config(&app_data, port_id,
 					(u32)subtype, ibuf, ilen);
 			}
@@ -664,7 +664,7 @@ int dcbx_clif_cmd(void *data,
 				status = dcb_failed;
 			} else {
 				set_protocol_data(&llink_data.protocol, port_id,
-						  ibuf, plen);
+						  ibuf, plen, NEAREST_BRIDGE);
 				status = set_llink_config(&llink_data, port_id,
 					(u32)subtype, ibuf, ilen);
 			}

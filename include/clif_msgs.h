@@ -98,6 +98,7 @@ struct cmd {
 	__u32 module_id;
 	__u32 ops;
 	__u32 tlvid;
+	__u8 type;
 	char ifname[IFNAMSIZ+1];
 	char obuf[MAX_CLIF_MSGBUF];
 };
@@ -117,6 +118,7 @@ typedef enum {
     cmd_success = 0,
     cmd_failed,
     cmd_device_not_found,
+    cmd_agent_not_found,
     cmd_invalid,
     cmd_bad_params,
     cmd_peer_not_present,

@@ -1327,7 +1327,7 @@ int vdp_remove_profile(struct vsi_profile *profile)
  * interface function to lldpad. tears down vdp specific structures if
  * interface "ifname" goes down.
  */
-void vdp_ifdown(char *ifname)
+void vdp_ifdown(char *ifname, struct lldp_agent *agent)
 {
 	struct vdp_data *vd;
 	struct vsi_profile *p;
@@ -1364,9 +1364,9 @@ out_err:
  * interface function to lldpad. builds up vdp specific structures if
  * interface "ifname" goes down.
  */
-void vdp_ifup(char *ifname)
+void vdp_ifup(char *ifname, struct lldp_agent *agent)
 {
-	char *string;
+	char *role;
 	char config_path[16];
 	struct vdp_data *vd;
 	struct vdp_user_data *ud;
@@ -1413,9 +1413,9 @@ void vdp_ifup(char *ifname)
 	vd->role = VDP_ROLE_STATION;
 	vd->enabletx = enabletx;
 
-	if (!get_cfg(ifname, "vdp.role", (void *)&string,
+	if (!get_cfg(ifname, "vdp.role", (void *)&role,
 		    CONFIG_TYPE_STRING)) {
-		if (!strcasecmp(string, VAL_BRIDGE)) {
+		if (!strcasecmp(role, VAL_BRIDGE)) {
 			vd->role = VDP_ROLE_BRIDGE;
 		}
 	}
@@ -1431,7 +1431,7 @@ void vdp_ifup(char *ifname)
 out_start_again:
 	if (ecp_init(ifname)) {
 		LLDPAD_ERR("%s:%s unable to init ecp !\n", __func__, ifname);
-		vdp_ifdown(ifname);
+		vdp_ifdown(ifname, agent);
 		goto out_err;
 	}
 

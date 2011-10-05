@@ -64,6 +64,7 @@ struct tlv_info_evb {
 
 struct evb_data {
 	char ifname[IFNAMSIZ];
+	enum agent_type agenttype;
 	struct unpacked_tlv *evb;
 	struct tlv_info_evb *tie;
 	struct tlv_info_evb *last;
@@ -78,10 +79,10 @@ struct evb_user_data {
 
 struct lldp_module *evb_register(void);
 void evb_unregister(struct lldp_module *mod);
-struct packed_tlv *evb_gettlv(struct port *port);
-void evb_ifdown(char *);
-void evb_ifup(char *);
-struct evb_data *evb_data(char *ifname);
+struct packed_tlv *evb_gettlv(struct port *, struct lldp_agent *);
+void evb_ifdown(char *, struct lldp_agent *);
+void evb_ifup(char *, struct lldp_agent *);
+struct evb_data *evb_data(char *ifname, enum agent_type);
 
 int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie);
 

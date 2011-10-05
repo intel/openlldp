@@ -40,6 +40,7 @@
 #include "clif_msgs.h"
 #include "lldp/states.h"
 #include "lldp_util.h"
+#include "messages.h"
 
 static int get_arg_adminstatus(struct cmd *, char *, char *, char *, int);
 static int set_arg_adminstatus(struct cmd *, char *, char *, char *, int);
@@ -230,7 +231,7 @@ int _set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_failed;
 	}
 
-	set_lldp_port_admin(cmd->ifname, value);
+	set_lldp_agent_admin(cmd->ifname, cmd->type, value);
 
 	sprintf(obuf + strlen(obuf), "adminStatus = %s\n", argvalue);
 
@@ -343,11 +344,11 @@ int get_tlvs(struct cmd *cmd, char *rbuf, int rlen)
 	int res;
 
 	if (cmd->ops & op_local) {
-		res = get_local_tlvs(cmd->ifname, &tlvs[0], &size);
+		res = get_local_tlvs(cmd->ifname, cmd->type, &tlvs[0], &size);
 		if (res)
 			return res;
 	} else if (cmd->ops & op_neighbor) {
-		res = get_neighbor_tlvs(cmd->ifname, &tlvs[0], &size);
+		res = get_neighbor_tlvs(cmd->ifname, cmd->type, &tlvs[0], &size);
 		if (res)
 			return res;
 	} else
@@ -381,15 +382,16 @@ int get_tlvs(struct cmd *cmd, char *rbuf, int rlen)
 	for (i = 0; i < size; i++) {
 		snprintf(rbuf + 2*i, rlen - strlen(rbuf), "%02x", tlvs[i]);
 	}
+
 	return cmd_success;
 }
 
-int get_port_stats(struct cmd *cmd, char *rbuf, int rlen)
+int get_agent_stats(struct cmd *cmd, char *rbuf, int rlen)
 {
 	int offset=0;
-	struct portstats stats;
+	struct agentstats stats;
 
-	if (get_lldp_port_statistics(cmd->ifname, &stats))
+	if (get_lldp_agent_statistics(cmd->ifname, &stats, cmd->type))
 		return cmd_device_not_found;
 
 	snprintf(rbuf+offset, rlen - strlen(rbuf),
@@ -447,6 +449,9 @@ int mand_clif_cmd(void  *data,
 	cmd.ifname[len] = '\0';
 	ioff += len;
 
+	hexstr2bin(ibuf+ioff, &cmd.type, sizeof(cmd.type));
+	ioff += 2*sizeof(cmd.type);
+
 	if (cmd.cmd == cmd_gettlv || cmd.cmd == cmd_settlv) {
 		hexstr2bin(ibuf+ioff, (u8 *)&cmd.tlvid, sizeof(cmd.tlvid));
 		cmd.tlvid = ntohl(cmd.tlvid);
@@ -502,7 +507,7 @@ int mand_clif_cmd(void  *data,
 	case cmd_getstats:
 		if (numargs)
 			break;
-		rstatus = get_port_stats(&cmd, rbuf + roff, rlen - roff);
+		rstatus = get_agent_stats(&cmd, rbuf + roff, rlen - roff);
 		break;
 	case cmd_gettlv:
 		snprintf(rbuf + roff, rlen - roff, "%08x", cmd.tlvid);

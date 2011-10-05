@@ -55,13 +55,14 @@
 struct lldp_mod_ops {
 	struct lldp_module * 	(* lldp_mod_register)(void);
 	void 			(* lldp_mod_unregister)(struct lldp_module *);
-	struct packed_tlv * 	(* lldp_mod_gettlv)(struct port *);
+	struct packed_tlv * 	(* lldp_mod_gettlv)(struct port *, struct lldp_agent *);
 	int  			(* lldp_mod_rchange)(struct port *,
+						     struct lldp_agent *,
 						    struct unpacked_tlv *);
 	void  			(* lldp_mod_utlv)(struct port *);
-	void  			(* lldp_mod_ifup)(char *); 
-	void			(* lldp_mod_ifdown)(char *);
-	u8 			(* lldp_mod_mibdelete)(struct port *port);
+	void  			(* lldp_mod_ifup)(char *, struct lldp_agent *);
+	void			(* lldp_mod_ifdown)(char *, struct lldp_agent *);
+	u8 			(* lldp_mod_mibdelete)(struct port *port, struct lldp_agent *);
 	u32			(* client_register)(void);
 	int  			(* client_cmd)(void *data,
 					      struct sockaddr_un *from,
@@ -70,7 +71,7 @@ struct lldp_mod_ops {
 	int  			(* print_tlv)(u32, u16, char *);
 	u32			(* lookup_tlv_name)(char *);
 	int			(* print_help)();
-	int			(* timer)();
+	int			(* timer)(struct port *, struct lldp_agent *);
 	struct arg_handlers *	(* get_arg_handler)(void);
 };
 
@@ -94,7 +95,6 @@ struct lldp_module {
 
 LIST_HEAD(lldp_head, lldp_module);
 struct lldp_head lldp_head;
-
 
 static inline struct lldp_module *find_module_by_id(struct lldp_head *head, int id)
 {

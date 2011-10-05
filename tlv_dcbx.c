@@ -33,13 +33,8 @@
 #include "dcb_protocol.h"
 #include "lldp_dcbx.h"
 #include "lldp/states.h"
+#include "lldp/agent.h"
 #include "messages.h"
-
-bool process_dcbx_ctrl_tlv(struct port *port);
-bool process_dcbx_pg_tlv(struct port *port);
-bool process_dcbx_pfc_tlv(struct port *port);
-bool process_dcbx_app_tlv(struct port *port, int subtype);
-bool process_dcbx_llink_tlv(struct port *port);
 
 /* for the specified remote feature, if the feature is not present in the
  * EventFlag parameter (indicating it was not received in the DCB TLV), then
@@ -799,7 +794,8 @@ struct unpacked_tlv *bld_dcbx_llink_tlv(struct dcbx_tlvs *dcbx, u32 sub_type,
 	return tlv;
 }
 
-bool unpack_dcbx1_tlvs(struct port *port, struct unpacked_tlv *tlv)
+bool unpack_dcbx1_tlvs(struct port *port, struct lldp_agent *agent,
+		       struct unpacked_tlv *tlv)
 {
 	/* unpack the tlvs and store in manifest */
 	u8 *offset = NULL;   /* iterator */
@@ -810,9 +806,12 @@ bool unpack_dcbx1_tlvs(struct port *port, struct unpacked_tlv *tlv)
 
 	tlvs = dcbx_data(port->ifname);
 
+	if (agent == NULL)
+		return false;
+
 	/* store highest dcbx subtype received */
-	if (port->rx.dcbx_st < tlv->info[DCB_OUI_LEN]) {
-		port->rx.dcbx_st = tlv->info[DCB_OUI_LEN];
+	if (agent->rx.dcbx_st < tlv->info[DCB_OUI_LEN]) {
+		agent->rx.dcbx_st = tlv->info[DCB_OUI_LEN];
 	}
 	/* OUI + subtype sizes equal the start of data blob */
 	offset = (u8  *)&tlv->info[OUI_SUBTYPE_LEN + DCB_OUI_LEN];
@@ -854,19 +853,19 @@ bool unpack_dcbx1_tlvs(struct port *port, struct unpacked_tlv *tlv)
 				tlvs->manifest->dcbx_ctrl = dcbtlv;
 			} else {
 				LLDPAD_DBG("** ERROR: DUP Ctrl TLV1 \n");
-				port->rx.dupTlvs |= DUP_DCBX_TLV_CTRL;
+				agent->rx.dupTlvs |= DUP_DCBX_TLV_CTRL;
 				free_unpkd_tlv(dcbtlv);
 			}
 			break;
 		case DCB_PRIORITY_GROUPS_TLV:
 			/* store if subtype 2 is not present */
-			if (port->rx.dcbx_st == dcbx_subtype1) {
+			if (agent->rx.dcbx_st == dcbx_subtype1) {
 				if (tlvs->manifest->dcbx_pg == NULL) {
 					tlvs->dcbdu |= RCVD_DCBX_TLV_PG;
 					tlvs->manifest->dcbx_pg = dcbtlv;
 				} else {
 					LLDPAD_DBG("** ERROR: DUP PG TLV1 \n");
-					port->rx.dupTlvs |= DUP_DCBX_TLV_PG;
+					agent->rx.dupTlvs |= DUP_DCBX_TLV_PG;
 					free_unpkd_tlv(dcbtlv);
 				}
 			} else {
@@ -875,13 +874,13 @@ bool unpack_dcbx1_tlvs(struct port *port, struct unpacked_tlv *tlv)
 			break;
 		case DCB_PRIORITY_FLOW_CONTROL_TLV:
 			/* store if subtype 2 is not present */
-			if (port->rx.dcbx_st == dcbx_subtype1) {
+			if (agent->rx.dcbx_st == dcbx_subtype1) {
 				if (tlvs->manifest->dcbx_pfc == NULL) {
 					tlvs->dcbdu |= RCVD_DCBX_TLV_PFC;
 					tlvs->manifest->dcbx_pfc = dcbtlv;
 				} else {
 					LLDPAD_DBG("** ERROR: DUP PFC TLV1 \n");
-					port->rx.dupTlvs |= DUP_DCBX_TLV_PFC;
+					agent->rx.dupTlvs |= DUP_DCBX_TLV_PFC;
 					free_unpkd_tlv(dcbtlv);
 				}
 			} else {
@@ -890,7 +889,7 @@ bool unpack_dcbx1_tlvs(struct port *port, struct unpacked_tlv *tlv)
 			break;
 		case DCB_APPLICATION_TLV:
 			/* store if subtype 2 is not present */
-			if ((port->rx.dcbx_st == dcbx_subtype1) &&
+			if ((agent->rx.dcbx_st == dcbx_subtype1) &&
 				(dcbtlv->info[DCBX_HDR_SUB_TYPE_OFFSET]
 					== APP_FCOE_STYPE)) {
 				if (tlvs->manifest->dcbx_app == NULL) {
@@ -898,7 +897,7 @@ bool unpack_dcbx1_tlvs(struct port *port, struct unpacked_tlv *tlv)
 					tlvs->manifest->dcbx_app = dcbtlv;
 				} else {
 					LLDPAD_DBG("** ERROR: DUP APP TLV1 \n");
-					port->rx.dupTlvs |= DUP_DCBX_TLV_APP;
+					agent->rx.dupTlvs |= DUP_DCBX_TLV_APP;
 					free_unpkd_tlv(dcbtlv);
 				}
 			} else {
@@ -913,7 +912,7 @@ bool unpack_dcbx1_tlvs(struct port *port, struct unpacked_tlv *tlv)
 					tlvs->manifest->dcbx_llink = dcbtlv;
 				} else {
 					LLDPAD_DBG("** ERROR: DUP LLINK TLV1 \n");
-					port->rx.dupTlvs |= DUP_DCBX_TLV_LLINK;
+					agent->rx.dupTlvs |= DUP_DCBX_TLV_LLINK;
 					free_unpkd_tlv(dcbtlv);
 				}
 			} else {
@@ -930,7 +929,8 @@ bool unpack_dcbx1_tlvs(struct port *port, struct unpacked_tlv *tlv)
 	return true;
 }
 
-bool unpack_dcbx2_tlvs(struct port *port, struct unpacked_tlv *tlv)
+bool unpack_dcbx2_tlvs(struct port *port, struct lldp_agent *agent,
+		       struct unpacked_tlv *tlv)
 {
 	/* unpack the tlvs and store in manifest */
 	u8 *offset = NULL;   /* iterator */
@@ -942,9 +942,12 @@ bool unpack_dcbx2_tlvs(struct port *port, struct unpacked_tlv *tlv)
 
 	tlvs = dcbx_data(port->ifname);
 
+	if (agent == NULL)
+		return false;
+
 	/* store highest dcbx subtype received */
-	if (port->rx.dcbx_st < tlv->info[DCB_OUI_LEN]) {
-		port->rx.dcbx_st = tlv->info[DCB_OUI_LEN];
+	if (agent->rx.dcbx_st < tlv->info[DCB_OUI_LEN]) {
+		agent->rx.dcbx_st = tlv->info[DCB_OUI_LEN];
 	}
 	/* OUI + subtype sizes equal the start of data blob */
 	offset = (u8  *)&tlv->info[OUI_SUBTYPE_LEN + DCB_OUI_LEN];
@@ -987,7 +990,7 @@ bool unpack_dcbx2_tlvs(struct port *port, struct unpacked_tlv *tlv)
 					tlvs->manifest->dcbx_ctrl = dcbtlv;
 				} else if (tlvs->dcbdu & RCVD_DCBX2_TLV_CTRL) {
 					LLDPAD_DBG("** ERROR: DUP CTRL TLV2 \n");
-					port->rx.dupTlvs |= DUP_DCBX_TLV_CTRL;
+					agent->rx.dupTlvs |= DUP_DCBX_TLV_CTRL;
 					free_unpkd_tlv(dcbtlv);
 				}
 			} else {
@@ -1000,7 +1003,7 @@ bool unpack_dcbx2_tlvs(struct port *port, struct unpacked_tlv *tlv)
 				tlvs->manifest->dcbx_pg = dcbtlv;
 			} else {
 				LLDPAD_DBG("** ERROR: DUP PG TLV2 \n");
-				port->rx.dupTlvs |= DUP_DCBX_TLV_PG;
+				agent->rx.dupTlvs |= DUP_DCBX_TLV_PG;
 				free_unpkd_tlv(dcbtlv);
 			}
 			break;
@@ -1010,7 +1013,7 @@ bool unpack_dcbx2_tlvs(struct port *port, struct unpacked_tlv *tlv)
 				tlvs->manifest->dcbx_pfc = dcbtlv;
 			} else {
 				LLDPAD_DBG("** ERROR: DUP PFC TLV2 \n");
-				port->rx.dupTlvs |= DUP_DCBX_TLV_PFC;
+				agent->rx.dupTlvs |= DUP_DCBX_TLV_PFC;
 				free_unpkd_tlv(dcbtlv);
 			}
 			break;
@@ -1022,7 +1025,7 @@ bool unpack_dcbx2_tlvs(struct port *port, struct unpacked_tlv *tlv)
 					tlvs->manifest->dcbx_app = dcbtlv;
 				} else {
 					LLDPAD_DBG("** ERROR: DUP APP TLV2 \n");
-					port->rx.dupTlvs |= DUP_DCBX_TLV_APP;
+					agent->rx.dupTlvs |= DUP_DCBX_TLV_APP;
 					free_unpkd_tlv(dcbtlv);
 				}
 			} else {
@@ -1039,7 +1042,7 @@ bool unpack_dcbx2_tlvs(struct port *port, struct unpacked_tlv *tlv)
 	return true;
 }
 
-void  mibUpdateObjects(struct port *port)
+void  mibUpdateObjects(struct port *port, struct lldp_agent *agent)
 {
 	struct dcbx_tlvs *tlvs;
 	u32 EventFlag = 0;
@@ -1047,8 +1050,11 @@ void  mibUpdateObjects(struct port *port)
 
 	tlvs = dcbx_data(port->ifname);
 
+	if (agent == NULL)
+		return;
+
 	if (tlvs->manifest->dcbx_ctrl) {
-		if (process_dcbx_ctrl_tlv(port) != true) {
+		if (process_dcbx_ctrl_tlv(port, agent) != true) {
 			/* Error Set error condition for all features
 			 * on this port and trash DCB TLV */
 		}
@@ -1057,7 +1063,7 @@ void  mibUpdateObjects(struct port *port)
 		 * on this port and trash DCB TLV */
 	}
 	if (tlvs->manifest->dcbx_pg) {
-		if (process_dcbx_pg_tlv(port) != true) {
+		if (process_dcbx_pg_tlv(port, agent) != true) {
 			 /* mark feature not present */
 			if (check_feature_not_present(port->ifname, 0,
 				EventFlag, DCB_REMOTE_CHANGE_PG)) {
@@ -1073,7 +1079,7 @@ void  mibUpdateObjects(struct port *port)
 		}
 	}
 	if (tlvs->manifest->dcbx_pfc) {
-		if (process_dcbx_pfc_tlv(port) != true) {
+		if (process_dcbx_pfc_tlv(port, agent) != true) {
 			/* mark feature not present */
 			if (check_feature_not_present(port->ifname, 0,
 				EventFlag, DCB_REMOTE_CHANGE_PFC)) {
@@ -1090,7 +1096,7 @@ void  mibUpdateObjects(struct port *port)
 	}
 
 	if (tlvs->manifest->dcbx_app) {
-		if (process_dcbx_app_tlv(port, 0) != true) {
+		if (process_dcbx_app_tlv(port, agent, 0) != true) {
 			/* mark feature not present */
 			if (check_feature_not_present(port->ifname, 0,
 				EventFlag, DCB_REMOTE_CHANGE_APPTLV(0))) {
@@ -1110,7 +1116,7 @@ void  mibUpdateObjects(struct port *port)
 	}
 
 	if (tlvs->manifest->dcbx_llink) {
-		if (process_dcbx_llink_tlv(port) != true) {
+		if (process_dcbx_llink_tlv(port, agent) != true) {
 			/* mark feature not present */
 			if (check_feature_not_present(port->ifname, 0,
 				EventFlag, DCB_REMOTE_CHANGE_LLINK)) {
@@ -1130,16 +1136,19 @@ void  mibUpdateObjects(struct port *port)
 	/* Run the feature & control protocol for all features and subtypes */
 	run_dcb_protocol(port->ifname, EventFlag, DCB_MAX_APPTLV+1);
 	EventFlag = 0;
-	port->rxChanges = true;
+	agent->rxChanges = true;
 	return;
 }
 
-bool process_dcbx_ctrl_tlv(struct port *port)
+bool process_dcbx_ctrl_tlv(struct port *port, struct lldp_agent *agent)
 {
 	struct dcbx_tlvs *tlvs;
 	control_protocol_attribs  peer_control;
 
 	tlvs = dcbx_data(port->ifname);
+
+	if (agent == NULL)
+		return false;
 
 	if (tlvs->manifest->dcbx_ctrl->length != DCBX_CTRL_LEN) {
 		LLDPAD_DBG("process_dcbx_ctrl_tlv: ERROR - len\n");
@@ -1164,11 +1173,11 @@ bool process_dcbx_ctrl_tlv(struct port *port)
 		peer_control.SeqNo, peer_control.AckNo);
 	peer_control.RxDCBTLVState = DCB_PEER_PRESENT;
 
-	if (port->rx.dupTlvs & DUP_DCBX_TLV_CTRL) {
+	if (agent->rx.dupTlvs & DUP_DCBX_TLV_CTRL) {
 		LLDPAD_INFO("** STORE: DUP CTRL TLV \n");
 		peer_control.Error_Flag |= DUP_DCBX_TLV_CTRL;
 	}
-	if (port->rx.tooManyNghbrs) {
+	if (agent->rx.tooManyNghbrs) {
 		LLDPAD_INFO("** STORE: TOO_MANY_NGHBRS\n");
 		peer_control.Error_Flag |= TOO_MANY_NGHBRS;
 	}
@@ -1178,7 +1187,7 @@ bool process_dcbx_ctrl_tlv(struct port *port)
 	return(true);
 }
 
-bool 	process_dcbx_pg_tlv(struct port *port)
+bool process_dcbx_pg_tlv(struct port *port, struct lldp_agent *agent)
 {
 	pg_attribs   peer_pg;
 	struct dcbx_tlvs *tlvs;
@@ -1188,7 +1197,10 @@ bool 	process_dcbx_pg_tlv(struct port *port)
 
 	tlvs = dcbx_data(port->ifname);
 
-	if (port->rx.dcbx_st == dcbx_subtype2) {
+	if (agent == NULL)
+		return false;
+
+	if (agent->rx.dcbx_st == dcbx_subtype2) {
 		if (tlvs->manifest->dcbx_pg->length != DCBX2_PG_LEN) {
 			LLDPAD_DBG("process_dcbx2_pg_tlv: ERROR - len\n");
 			return(false);
@@ -1221,19 +1233,19 @@ bool 	process_dcbx_pg_tlv(struct port *port)
 	} else {
 		peer_pg.protocol.Error = false;
 	}
-	peer_pg.protocol.dcbx_st = port->rx.dcbx_st;
+	peer_pg.protocol.dcbx_st = agent->rx.dcbx_st;
 	peer_pg.protocol.TLVPresent = true;
 
-	if (port->rx.dupTlvs & DUP_DCBX_TLV_CTRL) {
+	if (agent->rx.dupTlvs & DUP_DCBX_TLV_CTRL) {
 		LLDPAD_INFO("** STORE: DUP CTRL TLV \n");
 		peer_pg.protocol.Error_Flag |= DUP_DCBX_TLV_CTRL;
 	}
-	if (port->rx.dupTlvs & DUP_DCBX_TLV_PG) {
+	if (agent->rx.dupTlvs & DUP_DCBX_TLV_PG) {
 		LLDPAD_INFO("** STORE: DUP PG TLV \n");
 		peer_pg.protocol.Error_Flag |= DUP_DCBX_TLV_PG;
 	}
 
-	if (port->rx.dcbx_st == dcbx_subtype2) {
+	if (agent->rx.dcbx_st == dcbx_subtype2) {
 		memset(used, false, sizeof(used));
 		for (j=0,k=0 ; k < MAX_BANDWIDTH_GROUPS; j++, k=k+2) {
 			u8 tmpbyte = tlvs->manifest->dcbx_pg->info
@@ -1319,7 +1331,7 @@ bool 	process_dcbx_pg_tlv(struct port *port)
 	return(true);
 }
 
-bool process_dcbx_pfc_tlv(struct port *port)
+bool process_dcbx_pfc_tlv(struct port *port, struct lldp_agent *agent)
 {
 	pfc_attribs  peer_pfc;
 	struct dcbx_tlvs *tlvs;
@@ -1327,7 +1339,10 @@ bool process_dcbx_pfc_tlv(struct port *port)
 
 	tlvs = dcbx_data(port->ifname);
 
-	if (port->rx.dcbx_st == dcbx_subtype2) {
+	if (agent == NULL)
+		return false;
+
+	if (agent->rx.dcbx_st == dcbx_subtype2) {
 		if (tlvs->manifest->dcbx_pfc->length != DCBX2_PFC_LEN) {
 			LLDPAD_DBG("process_dcbx2_pfc_tlv: ERROR - len\n");
 			return(false);
@@ -1360,14 +1375,14 @@ bool process_dcbx_pfc_tlv(struct port *port)
 	} else {
 		peer_pfc.protocol.Error = false;
 	}
-	peer_pfc.protocol.dcbx_st = port->rx.dcbx_st;
+	peer_pfc.protocol.dcbx_st = agent->rx.dcbx_st;
 	peer_pfc.protocol.TLVPresent = true;
 
-	if (port->rx.dupTlvs & DUP_DCBX_TLV_CTRL) {
+	if (agent->rx.dupTlvs & DUP_DCBX_TLV_CTRL) {
 		LLDPAD_INFO("** STORE: DUP CTRL TLV \n");
 		peer_pfc.protocol.Error_Flag |= DUP_DCBX_TLV_CTRL;
 	}
-	if (port->rx.dupTlvs & DUP_DCBX_TLV_PFC) {
+	if (agent->rx.dupTlvs & DUP_DCBX_TLV_PFC) {
 		LLDPAD_INFO("** STORE: DUP PFC TLV \n");
 		peer_pfc.protocol.Error_Flag |= DUP_DCBX_TLV_PFC;
 	}
@@ -1377,7 +1392,7 @@ bool process_dcbx_pfc_tlv(struct port *port)
 		temp = tlvs->manifest->dcbx_pfc->info[DCBX_PFC_MAP_OFFSET];
 		peer_pfc.admin[i] = (pfc_type)((temp >> i) & BIT0);
 	}
-	if (port->rx.dcbx_st == dcbx_subtype2) {
+	if (agent->rx.dcbx_st == dcbx_subtype2) {
 		peer_pfc.num_tcs = tlvs->manifest->dcbx_pfc->info
 				[DCBX2_PFC__NUM_TC_OFFSET];
 	}
@@ -1386,7 +1401,7 @@ bool process_dcbx_pfc_tlv(struct port *port)
 	return(true);
 }
 
-bool process_dcbx_app_tlv(struct port *port, int stype)
+bool process_dcbx_app_tlv(struct port *port, struct lldp_agent *agent, int stype)
 {
 	app_attribs peer_app;
 	u32         i=0, len=0;
@@ -1398,8 +1413,11 @@ bool process_dcbx_app_tlv(struct port *port, int stype)
 
 	tlvs = dcbx_data(port->ifname);
 
+	if (agent == NULL)
+		return false;
+
 	len = tlvs->manifest->dcbx_app->length;
-	if (port->rx.dcbx_st == dcbx_subtype2) {
+	if (agent->rx.dcbx_st == dcbx_subtype2) {
 		if (len < DCBX2_APP_LEN) {
 			LLDPAD_DBG("process_dcbx2_app_tlv: ERROR - len\n");
 			return(false);
@@ -1432,18 +1450,18 @@ bool process_dcbx_app_tlv(struct port *port, int stype)
 	} else {
 		peer_app.protocol.Error = false;
 	}
-	peer_app.protocol.dcbx_st = port->rx.dcbx_st;
+	peer_app.protocol.dcbx_st = agent->rx.dcbx_st;
 
-	if (port->rx.dupTlvs & DUP_DCBX_TLV_CTRL) {
+	if (agent->rx.dupTlvs & DUP_DCBX_TLV_CTRL) {
 		LLDPAD_INFO("** STORE: DUP CTRL TLV \n");
 		peer_app.protocol.Error_Flag |= DUP_DCBX_TLV_CTRL;
 	}
-	if (port->rx.dupTlvs & DUP_DCBX_TLV_APP) {
+	if (agent->rx.dupTlvs & DUP_DCBX_TLV_APP) {
 		LLDPAD_INFO("** STORE: DUP APP TLV \n");
 		peer_app.protocol.Error_Flag |= DUP_DCBX_TLV_APP;
 	}
 
-	if (port->rx.dcbx_st == dcbx_subtype2) {
+	if (agent->rx.dcbx_st == dcbx_subtype2) {
 		/* processs upper layer protocol IDs until we 
 		 * match Selector Field, FCoE or FIP ID and OUI */
 		len -= DCBX2_APP_DATA_OFFSET;
@@ -1508,12 +1526,15 @@ bool process_dcbx_app_tlv(struct port *port, int stype)
 	return(false);
 }
 
-bool process_dcbx_llink_tlv(struct port *port)
+bool process_dcbx_llink_tlv(struct port *port, struct lldp_agent *agent)
 {
 	llink_attribs   peer_llk;
 	struct dcbx_tlvs *tlvs;
 
 	tlvs = dcbx_data(port->ifname);
+
+	if (agent == NULL)
+		return false;
 
 	if (tlvs->manifest->dcbx_llink->length != DCBX_LLINK_LEN) {
 		LLDPAD_DBG("process_dcbx_llink_tlv: ERROR - len\n");
@@ -1541,14 +1562,14 @@ bool process_dcbx_llink_tlv(struct port *port)
 	} else {
 		peer_llk.protocol.Error = false;
 	}
-	peer_llk.protocol.dcbx_st = port->rx.dcbx_st;
+	peer_llk.protocol.dcbx_st = agent->rx.dcbx_st;
 	peer_llk.protocol.TLVPresent = true;
 
-	if (port->rx.dupTlvs & DUP_DCBX_TLV_CTRL) {
+	if (agent->rx.dupTlvs & DUP_DCBX_TLV_CTRL) {
 		LLDPAD_INFO("** STORE: DUP CTRL TLV \n");
 		peer_llk.protocol.Error_Flag |= DUP_DCBX_TLV_CTRL;
 	}
-	if (port->rx.dupTlvs & DUP_DCBX_TLV_LLINK) {
+	if (agent->rx.dupTlvs & DUP_DCBX_TLV_LLINK) {
 		LLDPAD_INFO("** STORE: DUP LLINK TLV \n");
 		peer_llk.protocol.Error_Flag |= DUP_DCBX_TLV_LLINK;
 	}

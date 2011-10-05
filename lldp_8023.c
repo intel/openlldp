@@ -79,7 +79,7 @@ static const struct lldp_mod_ops ieee8023_ops =  {
 	.get_arg_handler	= ieee8023_get_arg_handlers,
 };
 
-static struct ieee8023_data *ieee8023_data(const char *ifname)
+static struct ieee8023_data *ieee8023_data(const char *ifname, enum agent_type type)
 {
 	struct ieee8023_user_data *ud;
 	struct ieee8023_data *bd = NULL;
@@ -87,7 +87,8 @@ static struct ieee8023_data *ieee8023_data(const char *ifname)
 	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_8023);
 	if (ud) {
 		LIST_FOREACH(bd, &ud->head, entry) {
-			if (!strncmp(ifname, bd->ifname, IFNAMSIZ))
+			if (!strncmp(ifname, bd->ifname, IFNAMSIZ) &&
+			    (type == bd->agenttype))
 				return bd;
 		}
 	}
@@ -350,17 +351,18 @@ static void ieee8023_free_data(struct ieee8023_user_data *ud)
 			LIST_REMOVE(bd, entry);
 			ieee8023_free_tlv(bd);
 			free(bd);
- 		}
+		}
 	}
 }
 
-struct packed_tlv *ieee8023_gettlv(struct port *port)
+struct packed_tlv *ieee8023_gettlv(struct port *port,
+				   struct lldp_agent *agent)
 {
 	int size;
 	struct ieee8023_data *bd;
 	struct packed_tlv *ptlv = NULL;
 
-	bd = ieee8023_data(port->ifname);
+	bd = ieee8023_data(port->ifname, agent->type);
 	if (!bd)
 		goto out_err;
 
@@ -401,11 +403,11 @@ out_err:
 }
 
 
-void ieee8023_ifdown(char *ifname)
+void ieee8023_ifdown(char *ifname, struct lldp_agent *agent)
 {
 	struct ieee8023_data *bd;
 
-	bd = ieee8023_data(ifname);
+	bd = ieee8023_data(ifname, agent->type);
 	if (!bd)
 		goto out_err;
 
@@ -420,12 +422,12 @@ out_err:
 	return;
 }
 
-void ieee8023_ifup(char *ifname)
+void ieee8023_ifup(char *ifname, struct lldp_agent *agent)
 {
 	struct ieee8023_data *bd;
 	struct ieee8023_user_data *ud;
 
-	bd = ieee8023_data(ifname);
+	bd = ieee8023_data(ifname, agent->type);
 	if (bd) {
 		LLDPAD_INFO("%s:%s exists\n", __func__, ifname);
 		goto out_err;
@@ -440,6 +442,8 @@ void ieee8023_ifup(char *ifname)
 	}
 	memset(bd, 0, sizeof(struct ieee8023_data));
 	strncpy(bd->ifname, ifname, IFNAMSIZ);
+	bd->agenttype = agent->type;
+
 	if (ieee8023_bld_tlv(bd)) {
 		LLDPAD_INFO("%s:%s mand_bld_tlv failed\n", __func__, ifname);
 		free(bd);

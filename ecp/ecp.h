@@ -55,9 +55,9 @@ struct ecp {
 	int ackTimer;
 	u16 lastSequence;
 	u16 seqECPDU;
-	struct portrx rx;
-	struct porttx tx;
-	struct portstats stats;
+	struct agentrx rx;
+	struct agenttx tx;
+	struct agentstats stats;
 };
 
 struct ecp_hdr {

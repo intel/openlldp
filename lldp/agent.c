@@ -25,7 +25,6 @@
 *******************************************************************************/
 
 #include <stdlib.h>
-#include "agent.h"
 #include "ports.h"
 #include "eloop.h"
 #include "states.h"
@@ -33,24 +32,156 @@
 #include "messages.h"
 #include "lldp/l2_packet.h"
 #include "lldp_mod.h"
+#include "config.h"
+#include "lldp_mand_clif.h"
+#include "lldp/agent.h"
+
+static const u8 * agent_groupmacs[AGENT_MAX] = {
+	nearest_bridge,
+	nearest_nontpmr_bridge,
+	nearest_customer_bridge,
+};
+
+struct lldp_agent *lldp_agent_find_by_type(const char *ifname, int type)
+{
+	struct port *port;
+	struct lldp_agent *agent;
+
+	port = port_find_by_name(ifname);
+
+	if (port == NULL)
+		return NULL;
+
+	LIST_FOREACH(agent, &port->agent_head, entry) {
+		if (agent->type == type)
+			return agent;
+	}
+
+	return NULL;
+}
+
+void lldp_init_agent(struct port *port, struct lldp_agent *agent, int type)
+{
+	char macstring[30];
+
+	memset(agent, 0, sizeof(struct lldp_agent));
+
+	memcpy(&agent->mac_addr, agent_groupmacs[type], ETH_ALEN);
+
+	mac2str(agent->mac_addr, macstring, 30);
+	LLDPAD_DBG("%s: creating new agent for %s (%s).\n", __func__,
+		   port->ifname, macstring);
+
+	/* Initialize relevant agent variables */
+	agent->tx.state  = TX_LLDP_INITIALIZE;
+	agent->rx.state = LLDP_WAIT_PORT_OPERATIONAL;
+	agent->type = type;
+
+	if (get_config_setting_by_agent(port->ifname, type, ARG_ADMINSTATUS,
+			(void *)&agent->adminStatus, CONFIG_TYPE_INT)) {
+		LLDPAD_DBG("%s: agent->adminStatus = disabled.\n", __func__);
+		agent->adminStatus = disabled;
+	}
+
+	/* init & enable RX path */
+	rxInitializeLLDP(port, agent);
+
+	/* init TX path */
+	txInitializeTimers(agent);
+	txInitializeLLDP(agent);
+}
+
+int lldp_add_agent(const char *ifname, int type)
+{
+	int count;
+	struct port *port;
+	struct lldp_agent *agent, *newagent;
+
+	port = port_find_by_name(ifname);
+
+	if (port == NULL)
+		return -1;
+
+	/* check if lldp_agents for this if already exist */
+	count = 0;
+	LIST_FOREACH(agent, &port->agent_head, entry) {
+		count++;
+		if (agent->type != type)
+			continue;
+		else
+			return -1;
+	}
+
+	/* if not, create one and initialize it */
+	LLDPAD_DBG("%s(%i): creating new agent for port %s.\n", __func__,
+		   __LINE__, ifname);
+	newagent  = (struct lldp_agent *)malloc(sizeof(struct lldp_agent));
+	if (newagent == NULL) {
+		LLDPAD_DBG("%s(%i): creation of new agent failed !.\n",
+			   __func__,  __LINE__);
+		return -1;
+	}
+
+	lldp_init_agent(port, newagent, type);
+
+	if (get_config_setting_by_agent(ifname, newagent->type, ARG_ADMINSTATUS,
+			(void *)&newagent->adminStatus, CONFIG_TYPE_INT))
+			newagent->adminStatus = disabled;
+
+	LLDPAD_DBG("%s(%i): agent->adminStatus = %s (%i).\n", __func__,
+		   __LINE__, (newagent->adminStatus == disabled) ? "disabled" : "enabled",
+		   newagent->adminStatus);
+
+	LIST_INSERT_HEAD(&port->agent_head, newagent, entry);
+
+	LLDPAD_DBG("%s: %i agents on if %s.\n", __func__, count, port->ifname);
+
+	return 0;
+}
+
+int lldp_remove_agent(const char *ifname, int type)
+{
+	struct lldp_agent *agent;
+
+	agent = lldp_agent_find_by_type(ifname, type);
+
+	if (agent == NULL)
+		return 0;
+
+	LIST_REMOVE(agent, entry);
+
+	free(agent);
+
+	return 0;
+}
 
 static void timer(void *eloop_data, void *user_ctx)
 {
-	struct port *port = porthead;
 	struct lldp_module *n;
+	struct lldp_agent *agent;
+	struct port *port = porthead;
 
 	while (port != NULL) {
-		update_tx_timers(port);
-		run_tx_timers_sm(port);
-		run_tx_sm(port);
-		run_rx_sm(port);
-		update_rx_timers(port);
-		LIST_FOREACH(n, &lldp_head, lldp) {
-			if (n->ops && n->ops->timer)
-				n->ops->timer(port);
+		/* execute rx and tx sm for all agents on a port */
+		LIST_FOREACH(agent, &port->agent_head, entry) {
+			char macstring[30];
+			mac2str(&agent->mac_addr[0], macstring, 29);
+
+			update_tx_timers(agent);
+			run_tx_timers_sm(port, agent);
+			run_tx_sm(port, agent);
+			run_rx_sm(port, agent);
+			update_rx_timers(agent);
+
+			LIST_FOREACH(n, &lldp_head, lldp) {
+				if (n->ops && n->ops->timer)
+					n->ops->timer(port, agent);
+			}
 		}
-		if (port->timers.dormantDelay)
-			port->timers.dormantDelay--;
+
+		if (port->dormantDelay)
+			port->dormantDelay--;
+
 		port = port->next;
 	};
 
@@ -58,26 +189,29 @@ static void timer(void *eloop_data, void *user_ctx)
 	eloop_register_timeout(1, 0, timer, NULL, NULL);
 }
 
-int start_lldp_agent(void)
+int start_lldp_agents(void)
 {
 	eloop_register_timeout(1, 0, timer, NULL, NULL);
 	return 1;
 }
 
-void stop_lldp_agent(void)
+void stop_lldp_agents(void)
 {
 	eloop_cancel_timeout(timer, NULL, NULL);
 }
 
-void clean_lldp_agent(void)
+void clean_lldp_agents(void)
 {
 	struct port *port = porthead;
+	struct lldp_agent *agent;
 
 	while (port != NULL) {
 		if (port_needs_shutdown(port)) {
 			LLDPAD_DBG("Send shutdown frame on port %s\n",
 				port->ifname);
-			process_tx_shutdown_frame(port);
+			LIST_FOREACH(agent, &port->agent_head, entry) {
+				process_tx_shutdown_frame(port, agent);
+			}
 		} else {
 			LLDPAD_DBG("No shutdown frame is sent on port %s\n",
 				port->ifname);

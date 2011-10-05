@@ -151,7 +151,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	if (set_cfg(cmd->ifname, arg_path, (void *)&value, CONFIG_TYPE_BOOL))
 		return cmd_failed;
 
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }
@@ -186,7 +186,7 @@ static int get_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_not_applicable;
 	}
 
-	ed = evb_data((char *) &cmd->ifname);
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
 
 	if (!ed)
 		return cmd_invalid;
@@ -221,7 +221,7 @@ static int _set_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_not_applicable;
 	}
 
-	ed = evb_data((char *) &cmd->ifname);
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
 
 	if (!ed)
 		return cmd_invalid;
@@ -253,7 +253,7 @@ static int _set_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_invalid;
 	}
 
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }
@@ -299,7 +299,7 @@ static int get_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_not_applicable;
 	}
 
-	ed = evb_data((char *) &cmd->ifname);
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
 	if (!ed)
 		goto out_free;
 
@@ -354,7 +354,7 @@ static int _set_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_not_applicable;
 	}
 
-	ed = evb_data((char *) &cmd->ifname);
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
 
 	if (!ed)
 		return cmd_invalid;
@@ -385,7 +385,7 @@ static int _set_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_invalid;
 	}
 
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }
@@ -420,7 +420,7 @@ static int get_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_not_applicable;
 	}
 
-	ed = evb_data((char *) &cmd->ifname);
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
 	if (!ed)
 		return cmd_invalid;
 
@@ -452,7 +452,7 @@ static int _set_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_not_applicable;
 	}
 
-	ed = evb_data((char *) &cmd->ifname);
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
 
 	if (!ed)
 		return cmd_invalid;
@@ -479,7 +479,7 @@ static int _set_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
 	if (set_cfg(ed->ifname, arg_path, (void *) &argvalue, CONFIG_TYPE_STRING))
 		goto out_err;
 
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 
@@ -518,7 +518,7 @@ static int get_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_not_applicable;
 	}
 
-	ed = evb_data((char *) &cmd->ifname);
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
 	if (!ed)
 		return cmd_invalid;
 
@@ -540,7 +540,7 @@ static int _set_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
 	char *sv;
 	struct evb_data *ed = NULL;
 
-	ed = evb_data((char *) &cmd->ifname);
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
 
 	if (!ed)
 		return cmd_invalid;
@@ -583,7 +583,7 @@ static int _set_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
 	if (set_cfg(ed->ifname, arg_path, (void *) &sv, CONFIG_TYPE_STRING))
 		goto out_err;
 
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 

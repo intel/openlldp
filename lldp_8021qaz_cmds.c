@@ -200,7 +200,7 @@ static int _set_arg_willing(struct cmd *cmd, char *args,
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, args);
 	set_config_setting(cmd->ifname, arg_path, &willing, CONFIG_TYPE_INT);
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }
@@ -384,7 +384,7 @@ static int _set_arg_up2tc(struct cmd *cmd, char *args,
 		 cmd->tlvid, args);
 	set_config_setting(cmd->ifname, arg_path, &arg_value,
 			   CONFIG_TYPE_STRING);
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 invalid:
 	free(parse);
 	return err;
@@ -511,7 +511,7 @@ static int _set_arg_tcbw(struct cmd *cmd, char *args,
 		 cmd->tlvid, args);
 	set_config_setting(cmd->ifname, arg_path, &arg_value,
 			   CONFIG_TYPE_STRING);
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 invalid:
 	free(parse);
 	return err;
@@ -705,7 +705,7 @@ static int _set_arg_tsa(struct cmd *cmd, char *args, char *arg_value,
 		 TLVID_PREFIX, cmd->tlvid, args);
 	set_config_setting(cmd->ifname, arg_path, &arg_value,
 			   CONFIG_TYPE_STRING);
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 invalid:
 	free(parse);
 	return err;
@@ -846,7 +846,7 @@ static int _set_arg_enabled(struct cmd *cmd, char *args,
 		 "%s%08x.%s", TLVID_PREFIX, cmd->tlvid, args);
 	set_config_setting(cmd->ifname, arg_path, &mask, CONFIG_TYPE_INT);
 	tlvs->pfc->local.pfc_enable = mask;
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 invalid:
 	free(parse);
 	return err;
@@ -927,7 +927,7 @@ static int _set_arg_delay(struct cmd *cmd, char *args,
 		 "%s%08x.%s", TLVID_PREFIX, cmd->tlvid, args);
 	set_config_setting(cmd->ifname, arg_path, &delay, CONFIG_TYPE_INT);
 
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }
@@ -1173,7 +1173,7 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 		i++;
 	}
 
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	if (cmd->ops & op_delete)
 		return cmd_success;
@@ -1299,7 +1299,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_failed;
 
 
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }

@@ -85,10 +85,10 @@ int l2_packet_get_own_src_addr(struct l2_packet_data *l2, u8 *addr)
  * Extracts the remote peer's MAC address from the rx frame  and
  * puts it in the l2_packet_data
  */
-void get_remote_peer_mac_addr(struct port *port)
+void get_remote_peer_mac_addr(struct port *port, struct lldp_agent *agent)
 {
 	int offset = ETH_ALEN;  /* points to remote MAC address in RX frame */
-	memcpy(port->l2->remote_mac_addr, &port->rx.framein[offset], ETH_ALEN);
+	memcpy(port->l2->remote_mac_addr, &agent->rx.framein[offset], ETH_ALEN);
 }
 
 void l2_packet_get_remote_addr(struct l2_packet_data *l2, u8 *addr)
@@ -219,7 +219,7 @@ struct l2_packet_data * l2_packet_init(
 	memset(&mr, 0, sizeof(mr));
 	mr.mr_ifindex = l2->ifindex;
 	mr.mr_alen = ETH_ALEN;
-	memcpy(mr.mr_address, multi_cast_source, ETH_ALEN);
+	memcpy(mr.mr_address, &nearest_bridge, ETH_ALEN);
 	mr.mr_type = PACKET_MR_MULTICAST;
 	if (setsockopt(l2->fd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
 		sizeof(mr)) < 0) {
@@ -296,7 +296,7 @@ void l2_packet_get_port_state(struct l2_packet_data *l2, u8  *portEnabled)
 }
 
 
-int add_bond_port(const char *ifname)
+struct port *add_bond_port(const char *ifname)
 {
 	struct port *bond_newport;
 
@@ -304,14 +304,14 @@ int add_bond_port(const char *ifname)
 	while (bond_newport != NULL) {
 		if(!strncmp(ifname, bond_newport->ifname,
 			MAX_DEVICE_NAME_LEN))
-			return 0;
+			return bond_newport;
 		bond_newport = bond_newport->next;
 	}
 
 	bond_newport  = (struct port *)malloc(sizeof(struct port));
 	if (bond_newport == NULL) {
 		syslog(LOG_ERR, "failed to malloc bond port %s", ifname);
-		return -1;
+		return NULL;
 	}
 	memset(bond_newport,0,sizeof(struct port));	
 	bond_newport->next = NULL;
@@ -334,7 +334,7 @@ int add_bond_port(const char *ifname)
 		bond_newport->next = bond_porthead;
 	bond_porthead = bond_newport;
 
-	return 0;
+	return bond_newport;
 
 fail2:
 	free(bond_newport->ifname);
@@ -342,7 +342,7 @@ fail2:
 fail1:
 	free(bond_newport);
 	bond_newport = NULL;
-	return -1;
+	return NULL;
 }
 
 

@@ -208,6 +208,9 @@ void ecp_rx_ReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t 
 
 	port = port_find_by_name(vd->ifname);
 
+	if (port == NULL)
+		return;
+
 	LLDPAD_DBG("%s(%i)-%s: received packet with size %i\n", __func__, __LINE__,
 	       vd->ifname, (int) len);
 
@@ -234,7 +237,7 @@ void ecp_rx_ReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t 
 
 	vd->ecp.rx.sizein = (u16)len;
 	ex = &example_hdr;
-	memcpy(ex->h_dest, multi_cast_source, ETH_ALEN);
+	memcpy(ex->h_dest, nearest_bridge, ETH_ALEN);
 	ex->h_proto = htons(ETH_P_ECP);
 	hdr = (struct l2_ethhdr *)vd->ecp.rx.framein;
 

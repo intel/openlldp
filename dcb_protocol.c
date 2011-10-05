@@ -358,9 +358,6 @@ void features_erase(features_it *p)
 	*p = NULL;
 }
 
-int add_port(const char *device_name);
-int remove_port(const char *device_name);
-
 /* Add the store pointer to init_pg, i.e. memset store to 0,
  * then copy attribs to store
  */
@@ -3772,7 +3769,7 @@ dcb_result run_control_protocol(char *device_name, u32 EventFlag)
 						ctrl_prot->second->AckNo);
 
 					/* Send new DCB ctrl & feature TLVs */
-					somethingChangedLocal(device_name);
+					somethingChangedLocal(device_name, NEAREST_BRIDGE);
 				}
 			}
 			return dcb_success;
@@ -3887,7 +3884,7 @@ send:
 					ctrl_prot->second->SeqNo,
 					ctrl_prot->second->AckNo);
 				/* Send new DCB control & feature TLVs*/
-				somethingChangedLocal(device_name);
+				somethingChangedLocal(device_name, NEAREST_BRIDGE);
 				return dcb_success;
 			}
 
@@ -3900,7 +3897,7 @@ send:
 					ctrl_prot->second->SeqNo,
 					ctrl_prot->second->AckNo);
 				/* Send new DCB TLVs with old feature TLVs. */
-				somethingChangedLocal(device_name);
+				somethingChangedLocal(device_name, NEAREST_BRIDGE);
 			}
 		}
 	}

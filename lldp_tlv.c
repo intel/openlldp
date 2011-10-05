@@ -34,21 +34,18 @@
 #include "dcb_types.h"
 #include "messages.h"
 
-void somethingChangedLocal(const char *ifname)
+void somethingChangedLocal(const char *ifname, int type)
 {
-	struct port *port = porthead;
+	struct lldp_agent *agent;
 
-	while (port != NULL) {
-		if (!strncmp(ifname, port->ifname, MAX_DEVICE_NAME_LEN))
-			break;
-		port = port->next;
-	}
+	agent = lldp_agent_find_by_type(ifname, type);
 
-	if (!port)
+	if (agent == NULL)
 		return;
 
-	port->tx.localChange = 1;
-	port->tx.txFast = port->timers.txFastInit;
+	agent->tx.localChange = 1;
+	agent->tx.txFast = agent->timers.txFastInit;
+
 	return;
 }
 

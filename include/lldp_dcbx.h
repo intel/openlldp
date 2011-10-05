@@ -80,11 +80,11 @@ int dcbx_tlvs_rxed(const char *ifname);
 int dcbx_check_active(const char *ifname);
 int dcbx_get_legacy_version();
 
-struct packed_tlv *dcbx_gettlv(struct port *port);
-int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv);
-u8 dcbx_mibDeleteObjects(struct port *port);
-void dcbx_ifup(char *device_name);
-void dcbx_ifdown(char *device_name);
+struct packed_tlv *dcbx_gettlv(struct port *, struct lldp_agent *);
+int dcbx_rchange(struct port *, struct lldp_agent *, struct unpacked_tlv *);
+u8 dcbx_mibDeleteObjects(struct port *, struct lldp_agent *);
+void dcbx_ifup(char *, struct lldp_agent *);
+void dcbx_ifdown(char *, struct lldp_agent *);
 struct lldp_module *dcbx_register(void);
 void dcbx_unregister(struct lldp_module *);
 int dcbx_clif_cmd(void *, struct sockaddr_un *,

@@ -231,5 +231,5 @@ enum {
 #define LLDP_EVB_DEFAULT_SVSI				3295
 #define LLDP_EVB_DEFAULT_RTE				15
 
-void somethingChangedLocal(const char *ifname);
+void somethingChangedLocal(const char *ifname, int type);
 #endif /* _LLDP_H */

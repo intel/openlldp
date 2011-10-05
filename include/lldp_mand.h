@@ -34,6 +34,7 @@
 
 struct mand_data {
 	char ifname[IFNAMSIZ];
+	enum agent_type agenttype;
 	struct unpacked_tlv *chassis;
 	struct unpacked_tlv *portid;
 	struct unpacked_tlv *ttl;
@@ -49,7 +50,7 @@ struct mand_user_data {
 
 struct lldp_module *mand_register(void);
 void mand_unregister(struct lldp_module *mod);
-struct packed_tlv *mand_gettlv(struct port *port);
-void mand_ifdown(char *);
-void mand_ifup(char *);
+struct packed_tlv *mand_gettlv(struct port *, struct lldp_agent *);
+void mand_ifdown(char *, struct lldp_agent *);
+void mand_ifup(char *, struct lldp_agent *);
 #endif /* _LLDP_MAND_H */

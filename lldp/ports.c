@@ -28,6 +28,7 @@
 #include <string.h>
 #include "states.h"
 #include "lldp_tlv.h"
+#include "lldp_rtnl.h"
 #include "ports.h"
 #include "l2_packet.h"
 #include "libconfig.h"
@@ -38,87 +39,91 @@
 #include "clif_msgs.h"
 #include "lldp_rtnl.h"
 #include "lldp_dcbx_nl.h"
+#include "agent.h"
 
-struct port *porthead = NULL; /* Head pointer */
-struct port *portcurrent = NULL; /* Working  pointer loaded from ports or
-				  * port->next */
+struct port *porthead = NULL; /* port Head pointer */
 
 void agent_receive(void *, const u8 *, const u8 *, size_t);
 
 /* Port routines used for command processing -- return cmd_xxx codes */
 
-int get_lldp_port_statistics(char *ifname, struct portstats *stats)
+int get_lldp_agent_statistics(const char *ifname, struct agentstats *stats, int type)
 {
-	struct port *port;
+	struct lldp_agent *agent;
 
-	port = port_find_by_name(ifname);
-	if (!port)
-		return cmd_device_not_found;
-	memcpy((void *)stats, (void *)&port->stats, sizeof(struct portstats));
-	return cmd_success;
+	agent = lldp_agent_find_by_type(ifname, type);
+	if (!agent)
+		return cmd_agent_not_found;
+
+	memcpy((void *)stats, (void *)&agent->stats, sizeof(struct agentstats));
+
+	return 0;
 }
 
-int get_local_tlvs(char *ifname, unsigned char *tlvs, int *size)
+int get_local_tlvs(char *ifname, int type, unsigned char *tlvs, int *size)
 {
-	struct port *port;
+	struct lldp_agent *agent;
 
-	port = port_find_by_name(ifname);
-	if (!port)
-		return cmd_device_not_found;
+	agent = lldp_agent_find_by_type(ifname, type);
+	if (!agent)
+		return cmd_agent_not_found;
 
-	if (port->tx.frameout == NULL) {
+	if (agent->tx.frameout == NULL) {
 		*size = 0;
 		return cmd_success;
 	}
 
-	*size = port->tx.sizeout - sizeof(struct l2_ethhdr);
+	*size = agent->tx.sizeout - sizeof(struct l2_ethhdr);
 	if (*size < 0)
 		return cmd_invalid;
 	memcpy((void *)tlvs,
-	       (void *)port->tx.frameout + sizeof(struct l2_ethhdr), *size);
+	       (void *)agent->tx.frameout + sizeof(struct l2_ethhdr), *size);
 
 	return cmd_success;
 }
 
-int get_neighbor_tlvs(char *ifname, unsigned char *tlvs, int *size)
+int get_neighbor_tlvs(char *ifname, int type, unsigned char *tlvs, int *size)
 {
-	struct port *port;
+	struct lldp_agent *agent;
 
-	port = port_find_by_name(ifname);
-	if (!port)
-		return cmd_device_not_found;
+	agent = lldp_agent_find_by_type(ifname, type);
+	if (!agent)
+		return cmd_agent_not_found;
 
-	if (port->rx.framein == NULL) {
+	if (agent->rx.framein == NULL) {
 		*size = 0;
 		return cmd_success;
 	}
 
-	*size = port->rx.sizein - sizeof(struct l2_ethhdr);
+	*size = agent->rx.sizein - sizeof(struct l2_ethhdr);
+
 	if (*size < 0)
 		return cmd_invalid;
+
 	memcpy((void *)tlvs,
-	       (void *)port->rx.framein + sizeof(struct l2_ethhdr), *size);
+	       (void *)agent->rx.framein + sizeof(struct l2_ethhdr), *size);
+
 	return cmd_success;
 }
 
 /* Routines used for managing interfaces -- return std C return values */
 
-int get_lldp_port_admin(const char *ifname)
+int get_lldp_agent_admin(const char *ifname, int type)
 {
-	struct port *port = NULL;
+	struct lldp_agent *agent = NULL;
 
-	port = porthead;
-	while (port != NULL) {
-		if (!strncmp(ifname, port->ifname, IFNAMSIZ))
-			return port->adminStatus;
-		port = port->next;
-	}
-	return disabled;
+	agent = lldp_agent_find_by_type(ifname, type);
+
+	if (agent == NULL)
+		return disabled;
+
+	return agent->adminStatus;
 }
 
-void set_lldp_port_admin(const char *ifname, int admin)
+void set_lldp_agent_admin(const char *ifname, int type, int admin)
 {
 	struct port *port = NULL;
+	struct lldp_agent *agent;
 	int all = 0;
 	int tmp;
 
@@ -138,11 +143,15 @@ void set_lldp_port_admin(const char *ifname, int admin)
 				continue;
 			}
 
-			if (port->adminStatus != admin) {
-				port->adminStatus = admin;
-				somethingChangedLocal(ifname);
-				run_tx_sm(port);
-				run_rx_sm(port);
+			agent = lldp_agent_find_by_type(port->ifname, type);
+			if (agent == NULL)
+				continue;
+
+			if (agent->adminStatus != admin) {
+				agent->adminStatus = admin;
+				somethingChangedLocal(ifname, type);
+				run_tx_sm(port, agent);
+				run_rx_sm(port, agent);
 			}
 
 			if (!all)
@@ -152,9 +161,10 @@ void set_lldp_port_admin(const char *ifname, int admin)
 	}
 }
 
-void set_lldp_port_enable_state(const char *ifname, int enable)
+void set_lldp_port_enable(const char *ifname, int enable)
 {
 	struct port *port = NULL;
+	struct lldp_agent *agent = NULL;
 
 	port = port_find_by_name(ifname);
 
@@ -163,11 +173,16 @@ void set_lldp_port_enable_state(const char *ifname, int enable)
 
 	port->portEnabled = (u8)enable;
 
-	if (!enable) /* port->adminStatus = disabled; */
-		port->rx.rxInfoAge = false;
+	if (!enable) { /* port->adminStatus = disabled; */
+		LIST_FOREACH(agent, &port->agent_head, entry) {
+			agent->rx.rxInfoAge = false;
+		}
+	}
 
-	run_tx_sm(port);
-	run_rx_sm(port);
+	LIST_FOREACH(agent, &port->agent_head, entry) {
+		run_tx_sm(port, agent);
+		run_rx_sm(port, agent);
+	}
 }
 
 void set_port_oper_delay(const char *ifname)
@@ -177,7 +192,8 @@ void set_port_oper_delay(const char *ifname)
 	if (port == NULL)
 		return;
 
-	port->timers.dormantDelay = DORMANT_DELAY;
+	port->dormantDelay = DORMANT_DELAY;
+
 	return;
 }
 
@@ -209,6 +225,7 @@ int get_port_hw_resetting(const char *ifname)
 
 int reinit_port(const char *ifname)
 {
+	struct lldp_agent *agent;
 	struct port *port;
 
 	port = port_find_by_name(ifname);
@@ -217,30 +234,36 @@ int reinit_port(const char *ifname)
 		return -1;
 
 	/* Reset relevant port variables */
-	port->tx.state  = TX_LLDP_INITIALIZE;
-	port->timers.state  = TX_TIMER_BEGIN;
-	port->rx.state = LLDP_WAIT_PORT_OPERATIONAL;
 	port->hw_resetting = false;
 	port->portEnabled = false;
-	port->tx.txTTL = 0;
-	port->msap.length1 = 0;
-	port->msap.msap1 = NULL;
-	port->msap.length2 = 0;
-	port->msap.msap2 = NULL;
-	port->lldpdu = false;
-	port->timers.dormantDelay = DORMANT_DELAY;
+	port->dormantDelay = DORMANT_DELAY;
 
-	/* init & enable RX path */
-	rxInitializeLLDP(port);
+	LIST_FOREACH(agent, &port->agent_head, entry) {
+		/* init TX path */
 
-	/* init TX path */
-	txInitializeTimers(port);
-	txInitializeLLDP(port);
+		/* Reset relevant state variables */
+		agent->tx.state  = TX_LLDP_INITIALIZE;
+		agent->rx.state = LLDP_WAIT_PORT_OPERATIONAL;
+		agent->tx.txTTL = 0;
+		agent->msap.length1 = 0;
+		agent->msap.msap1 = NULL;
+		agent->msap.length2 = 0;
+		agent->msap.msap2 = NULL;
+		agent->lldpdu = false;
+		agent->timers.state  = TX_TIMER_BEGIN;
+
+		/* init & enable RX path */
+		rxInitializeLLDP(port, agent);
+
+		/* init TX path */
+		txInitializeTimers(agent);
+		txInitializeLLDP(agent);
+	}
 
 	return 0;
 }
 
-int add_port(const char *ifname)
+struct port *add_port(const char *ifname)
 {
 	struct port *newport;
 
@@ -265,26 +288,11 @@ int add_port(const char *ifname)
 	}
 
 	/* Initialize relevant port variables */
-	newport->tx.state  = TX_LLDP_INITIALIZE;
-	newport->timers.state = TX_TIMER_BEGIN;
-	newport->rx.state = LLDP_WAIT_PORT_OPERATIONAL;
 	newport->hw_resetting = false;
 	newport->portEnabled = false;
 
-	if (get_config_setting(newport->ifname, ARG_ADMINSTATUS,
-			(void *)&newport->adminStatus, CONFIG_TYPE_INT))
-			newport->adminStatus = disabled;
+	LIST_INIT(&newport->agent_head);
 
-	newport->tx.txTTL = 0;
-	newport->msap.length1 = 0;
-	newport->msap.msap1 = NULL;
-	newport->msap.length2 = 0;
-	newport->msap.msap2 = NULL;
-	newport->lldpdu = false;
-	newport->timers.dormantDelay = DORMANT_DELAY;
-
-	/* init & enable RX path */
-	rxInitializeLLDP(newport);
 	newport->l2 = l2_packet_init(newport->ifname, NULL, ETH_P_LLDP,
 		rxReceiveFrame, newport, 1);
 	if (newport->l2 == NULL) {
@@ -294,15 +302,14 @@ int add_port(const char *ifname)
 	}
 
 	/* init TX path */
-	txInitializeTimers(newport);
-	txInitializeLLDP(newport);
+	newport->dormantDelay = DORMANT_DELAY;
 
 	/* enable TX path */
 	if (porthead)
 		newport->next = porthead;
 
 	porthead = newport;
-	return 0;
+	return newport;
 
 fail:
 	if(newport) {
@@ -310,13 +317,14 @@ fail:
 			free(newport->ifname);
 		free(newport);
 	}
-	return -1;
+	return NULL;
 }
 
 int remove_port(const char *ifname)
 {
 	struct port *port = NULL;    /* Pointer to port to remove */
 	struct port *parent = NULL;  /* Pointer to previous on port stack */
+	struct lldp_agent *agent = NULL;
 
 	port = port_find_by_name(ifname);
 
@@ -325,19 +333,43 @@ int remove_port(const char *ifname)
 		return -1;
 	}
 
+	LLDPAD_DBG("In remove_port: Found port %s\n", port->ifname);
+
 	/* Set linkmode to off */
 	set_linkmode(ifname, 0);
 
 	/* Close down the socket */
 	l2_packet_deinit(port->l2);
 
-	/* Re-initialize relevant port variables */
-	port->tx.state = TX_LLDP_INITIALIZE;
-	port->timers.state = TX_TIMER_BEGIN;
-	port->rx.state = LLDP_WAIT_PORT_OPERATIONAL;
 	port->portEnabled  = false;
-	port->adminStatus  = disabled;
-	port->tx.txTTL = 0;
+
+	LIST_FOREACH(agent, &port->agent_head, entry) {
+		/* Re-initialize relevant port variables */
+		agent->tx.state = TX_LLDP_INITIALIZE;
+		agent->rx.state = LLDP_WAIT_PORT_OPERATIONAL;
+		agent->timers.state = TX_TIMER_BEGIN;
+		agent->adminStatus  = disabled;
+		agent->tx.txTTL = 0;
+
+		/* Remove the tlvs */
+		if (agent->msap.msap1) {
+			free(agent->msap.msap1);
+			agent->msap.msap1 = NULL;
+		}
+
+		if (agent->msap.msap2) {
+			free(agent->msap.msap2);
+			agent->msap.msap2 = NULL;
+		}
+
+		if (agent->rx.framein)
+			free(agent->rx.framein);
+
+		if (agent->tx.frameout)
+			free(agent->tx.frameout);
+
+		lldp_remove_agent(port->ifname, agent->type);
+	}
 
 	/* Take this port out of the chain */
 	if (parent == NULL)
@@ -347,27 +379,11 @@ int remove_port(const char *ifname)
 	else
 		return -1;
 
-	/* Remove the tlvs */
-	if (port->msap.msap1) {
-		free(port->msap.msap1);
-		port->msap.msap1 = NULL;
-	}
-
-	if (port->msap.msap2) {
-		free(port->msap.msap2);
-		port->msap.msap2 = NULL;
-	}
-
-	if (port->rx.framein)
-		free(port->rx.framein);
-
-	if (port->tx.frameout)
-		free(port->tx.frameout);
-
 	if (port->ifname)
 		free(port->ifname);
 
 	free(port);
+
 	return 0;
 }
 

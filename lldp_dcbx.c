@@ -30,6 +30,8 @@
 #include "linux/if.h"
 #include "include/linux/dcbnl.h"
 #include "lldp.h"
+#include "lldp/ports.h"
+#include "lldp/states.h"
 #include "dcb_types.h"
 #include "lldp_dcbx.h"
 #include "dcb_protocol.h"
@@ -41,8 +43,6 @@
 #include "clif_msgs.h"
 #include "lldp_mod.h"
 #include "lldp_mand_clif.h"
-#include "lldp/ports.h"
-#include "lldp/states.h"
 #include "lldp_dcbx_nl.h"
 #include "lldp_dcbx_cfg.h"
 #include "lldp_dcbx_cmds.h"
@@ -55,7 +55,7 @@
 extern u8 gdcbx_subtype;
 
 void dcbx_free_tlv(struct dcbx_tlvs *tlvs);
-static int dcbx_check_operstate(struct port *port);
+static int dcbx_check_operstate(struct port *port, struct lldp_agent *agent);
 
 const struct lldp_mod_ops dcbx_ops = {
 	.lldp_mod_register	= dcbx_register,
@@ -70,7 +70,7 @@ const struct lldp_mod_ops dcbx_ops = {
 	.timer			= dcbx_check_operstate,
 };
 
-static int dcbx_check_operstate(struct port *port)
+static int dcbx_check_operstate(struct port *port, struct lldp_agent *agent)
 {
 	int err;
 	u8 app_good = 0;
@@ -78,7 +78,7 @@ static int dcbx_check_operstate(struct port *port)
 	app_attribs app_data;
 	pfc_attribs pfc_data;
 
-	if (!port->portEnabled || !port->timers.dormantDelay)
+	if (!port->portEnabled || !port->dormantDelay)
 		return 0;
 
 	err = get_app(port->ifname, 0, &app_data);
@@ -95,10 +95,10 @@ static int dcbx_check_operstate(struct port *port)
 	    !app_data.protocol.Enable)
 		app_good = 1;
 
-	if ((pfc_good && app_good) || port->timers.dormantDelay == 1) {
+	if ((pfc_good && app_good) || port->dormantDelay == 1) {
 		LLDPAD_DBG("%s: %s: IF_OPER_UP delay, %u pfc oper %u"
 			   "app oper %u\n",
-			__func__, port->ifname, port->timers.dormantDelay,
+			__func__, port->ifname, port->dormantDelay,
 			pfc_data.protocol.OperMode,
 			app_data.protocol.OperMode);
 		set_operstate(port->ifname, IF_OPER_UP);
@@ -122,7 +122,7 @@ struct dcbx_tlvs *dcbx_data(const char *ifname)
 				return tlv;
 		}
 	}
-	
+
 	return NULL;
 }
 
@@ -258,7 +258,7 @@ void dcbx_free_manifest(struct dcbx_manifest *manifest)
 {
 	if (!manifest)
 		return;
-	
+
 	if (manifest->dcbx1)
 		manifest->dcbx1 = free_unpkd_tlv(manifest->dcbx1);
 	if (manifest->dcbx2)
@@ -323,7 +323,7 @@ void dcbx_free_tlv(struct dcbx_tlvs *tlvs)
 	return;
 }
 
-struct packed_tlv* dcbx_gettlv(struct port *port)
+struct packed_tlv* dcbx_gettlv(struct port *port, struct lldp_agent *agent)
 {
 	struct packed_tlv *ptlv = NULL;
 	struct dcbx_tlvs *tlvs;
@@ -453,7 +453,7 @@ void dcbx_unregister(struct lldp_module *mod)
 	LLDPAD_DBG("%s: unregister dcbx complete.\n", __func__);
 }
 
-void dcbx_ifup(char *ifname)
+void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 {
 	struct port *port = NULL;
 	struct dcbx_tlvs *tlvs;
@@ -469,15 +469,10 @@ void dcbx_ifup(char *ifname)
 	if (is_bond(ifname) || is_vlan(ifname))
 		return;
 
-	port = porthead;
-	while (port != NULL) {
-		if (!strncmp(ifname, port->ifname, MAX_DEVICE_NAME_LEN))
-			break;
-		port = port->next;
-	}
+	port = port_find_by_name(ifname);
 
 	dud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_DCBX);
-	tlvs = dcbx_data(ifname);	
+	tlvs = dcbx_data(ifname);
 
 	if (!port)
 		return;
@@ -529,7 +524,7 @@ void dcbx_ifup(char *ifname)
 		if (set_config_setting(ifname, ARG_ADMINSTATUS,
 			              (void *)&adminstatus, CONFIG_TYPE_INT) ==
 				       cmd_success)
-			set_lldp_port_admin(ifname, (int)adminstatus);
+			set_lldp_agent_admin(ifname, agent->type, (int)adminstatus);
 	}
 
 	tlvs = malloc(sizeof(*tlvs));
@@ -538,7 +533,7 @@ void dcbx_ifup(char *ifname)
 		return;
 	}
 	memset(tlvs, 0, sizeof(*tlvs));
-		
+
 	manifest = malloc(sizeof(*manifest));
 	if (!manifest) {
 		free(tlvs);
@@ -552,7 +547,7 @@ void dcbx_ifup(char *ifname)
 	tlvs->port = port;
 	tlvs->dcbdu = 0;
 	tlvs->dcbx_st = gdcbx_subtype & MASK_DCBX_FORCE;
-	LIST_INSERT_HEAD(&dud->head, tlvs, entry);		
+	LIST_INSERT_HEAD(&dud->head, tlvs, entry);
 
 initialized:
 	dcbx_add_adapter(ifname);
@@ -593,7 +588,7 @@ initialized:
 	return;
 }
 
-void dcbx_ifdown(char *device_name)
+void dcbx_ifdown(char *device_name, struct lldp_agent *agent)
 {
 	struct port *port = NULL;
 	struct dcbx_tlvs *tlvs;
@@ -665,7 +660,7 @@ void clear_dcbx_manifest(struct dcbx_tlvs *dcbx)
  * TLV not consumed on error otherwise it is either free'd or stored
  * internally in the module.
  */
-int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
+int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tlv *tlv)
 {
 	u8 oui[DCB_OUI_LEN] = INIT_DCB_OUI;
 	struct dcbx_tlvs *dcbx;
@@ -674,15 +669,18 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 
 	dcbx = dcbx_data(port->ifname);
 
+	if (agent == NULL)
+		return SUBTYPE_INVALID;
+
 	if (!dcbx)
 		return SUBTYPE_INVALID;
 
-	/* 
- 	 * TYPE_1 is _mandatory_ and will always be before the 
- 	 * DCBX TLV so we can use it to mark the begining of a
- 	 * pdu for dcbx to verify only a single DCBX TLV is 
- 	 * present
- 	 */ 
+	/*
+	 * TYPE_1 is _mandatory_ and will always be before the
+	 * DCBX TLV so we can use it to mark the begining of a
+	 * pdu for dcbx to verify only a single DCBX TLV is
+	 * present
+	 */
 	if (tlv->type == TYPE_1) {
 		manifest = malloc(sizeof(*manifest));
 		memset(manifest, 0, sizeof(*manifest));
@@ -702,25 +700,25 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 
 		if (dcbx->dcbx_st == dcbx_subtype2) {
 			if ((tlv->info[DCB_OUI_LEN] == dcbx_subtype2)
-				&& (port->lldpdu & RCVD_LLDP_DCBX2_TLV)){
+				&& (agent->lldpdu & RCVD_LLDP_DCBX2_TLV)){
 				LLDPAD_INFO("Received duplicate DCBX TLVs\n");
 				return TLV_ERR;
 			}
 		}
 		if ((tlv->info[DCB_OUI_LEN] == dcbx_subtype1)
-			&& (port->lldpdu & RCVD_LLDP_DCBX1_TLV)) {
+			&& (agent->lldpdu & RCVD_LLDP_DCBX1_TLV)) {
 			LLDPAD_INFO("Received duplicate DCBX TLVs\n");
 			return TLV_ERR;
 		}
 
 		if ((dcbx->dcbx_st == dcbx_subtype2) &&
 			(tlv->info[DCB_OUI_LEN] == dcbx_subtype2)) {
-			port->lldpdu |= RCVD_LLDP_DCBX2_TLV;
+			agent->lldpdu |= RCVD_LLDP_DCBX2_TLV;
 			dcbx->manifest->dcbx2 = tlv;
 			dcbx->rxed_tlvs = true;
 			return TLV_OK;
 		} else if (tlv->info[DCB_OUI_LEN] == dcbx_subtype1) {
-			port->lldpdu |= RCVD_LLDP_DCBX1_TLV;
+			agent->lldpdu |= RCVD_LLDP_DCBX1_TLV;
 			dcbx->manifest->dcbx1 = tlv;
 			dcbx->rxed_tlvs = true;
 			return TLV_OK;
@@ -742,7 +740,7 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 				      DCB_CAP_DCBX_HOST | DCB_CAP_DCBX_VER_CEE);
 			set_hw_state(port->ifname, 1);
 			dcbx->active = true;
-			somethingChangedLocal(port->ifname);
+			somethingChangedLocal(port->ifname, agent->type);
 		}
 
 		/* Only process DCBXv2 or DCBXv1 but not both this
@@ -751,21 +749,21 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 		 * not match across versions.
 		 */
 		if (dcbx->manifest->dcbx2) {
-			res = unpack_dcbx2_tlvs(port, dcbx->manifest->dcbx2);
+			res = unpack_dcbx2_tlvs(port, agent, dcbx->manifest->dcbx2);
 			if (!res) {
 				LLDPAD_DBG("Error unpacking the DCBX2"
 					"TLVs - Discarding LLDPDU\n");
 				return TLV_ERR;
 			}
-			mibUpdateObjects(port);
+			mibUpdateObjects(port, agent);
 		} else if (dcbx->manifest->dcbx1) {
-			res = unpack_dcbx1_tlvs(port, dcbx->manifest->dcbx1);
+			res = unpack_dcbx1_tlvs(port, agent, dcbx->manifest->dcbx1);
 			if (!res) {
 				LLDPAD_DBG("Error unpacking the DCBX1"
 					"TLVs - Discarding LLDPDU\n");
 				return TLV_ERR;
 			}
-			mibUpdateObjects(port);
+			mibUpdateObjects(port, agent);
 		}
 
 		clear_dcbx_manifest(dcbx);
@@ -778,7 +776,7 @@ int dcbx_rchange(struct port *port,  struct unpacked_tlv *tlv)
 	return SUBTYPE_INVALID;
 }
 
-u8 dcbx_mibDeleteObjects(struct port *port)
+u8 dcbx_mibDeleteObjects(struct port *port, struct lldp_agent *agent)
 {
 	control_protocol_attribs  peer_control;
 	pg_attribs  peer_pg;
@@ -821,7 +819,7 @@ u8 dcbx_mibDeleteObjects(struct port *port)
 			}
 		} else {
 			return (u8)-1;
-  		}
+		}
 	}
 
 	if (get_peer_llink(port->ifname, subtype, &peer_llink) == dcb_success) {

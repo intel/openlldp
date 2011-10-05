@@ -189,8 +189,8 @@ static void event_if_decode_rta(int type, struct rtattr *rta, int *ls, char *d)
 int oper_add_device(char *device_name)
 {
 	struct lldp_module *np;
-	const struct lldp_mod_ops *ops;
-	struct port *port;
+	struct port *port, *newport;
+	struct lldp_agent *agent;
 	int err;
 
 	port = porthead;
@@ -202,27 +202,35 @@ int oper_add_device(char *device_name)
 
 	if (!port) {
 		if (is_bond(device_name))
-			err = add_bond_port(device_name);
+			newport = add_bond_port(device_name);
 		else
-			err = add_port(device_name);
+			newport = add_port(device_name);
 
-		if (err) {
+		if (newport == NULL) {
 			LLDPAD_INFO("%s: Error adding device %s\n",
 				__func__, device_name);
 			return err;
-		} else
-			LLDPAD_INFO("%s: Adding device %s\n",
-				__func__, device_name);
+		}
+
+		LLDPAD_INFO("%s: Adding device %s\n", __func__, device_name);
+		port = newport;
 	} else if (!port->portEnabled)
 		reinit_port(device_name);
 
-	LIST_FOREACH(np, &lldp_head, lldp) {
-		ops = np->ops;
-		if (ops->lldp_mod_ifup)
-			ops->lldp_mod_ifup(device_name);
+	lldp_add_agent(device_name, NEAREST_BRIDGE);
+	lldp_add_agent(device_name, NEAREST_NONTPMR_BRIDGE);
+	lldp_add_agent(device_name, NEAREST_CUSTOMER_BRIDGE);
+
+	LIST_FOREACH(agent, &port->agent_head, entry) {
+		LLDPAD_DBG("%s: calling ifup for agent %p.\n",
+			   __func__, agent);
+		LIST_FOREACH(np, &lldp_head, lldp) {
+			if (np->ops->lldp_mod_ifup)
+				np->ops->lldp_mod_ifup(device_name, agent);
+		}
 	}
 
-	set_lldp_port_enable_state(device_name, 1);
+	set_lldp_port_enable(device_name, 1);
 	return 0;
 }
 
@@ -232,6 +240,7 @@ static void event_if_decode_nlmsg(int route_type, void *data, int len)
 	const struct lldp_mod_ops *ops;
 	struct rtattr *rta;
 	char device_name[IFNAMSIZ];
+	struct lldp_agent *agent;
 	int attrlen;
 	int valid;
 	int link_status = IF_OPER_UNKNOWN;
@@ -274,14 +283,23 @@ static void event_if_decode_nlmsg(int route_type, void *data, int len)
 			if (!valid)
 				break;
 
-			LIST_FOREACH(np, &lldp_head, lldp) {
-				ops = np->ops;
-				if (ops->lldp_mod_ifdown)
-					ops->lldp_mod_ifdown(device_name);
+			struct port *port = port_find_by_name(device_name);
+			if (!port)
+				break;
+
+			LIST_FOREACH(agent, &port->agent_head, entry) {
+				LLDPAD_DBG("%s: calling ifdown for agent %p.\n",
+					   __func__, agent);
+				LIST_FOREACH(np, &lldp_head, lldp) {
+					ops = np->ops;
+					if (ops->lldp_mod_ifdown)
+						ops->lldp_mod_ifdown(device_name,
+								     agent);
+				}
 			}
 
 			/* Disable Port */
-			set_lldp_port_enable_state(device_name, 0);
+			set_lldp_port_enable(device_name, 0);
 
 			if (route_type == RTM_DELLINK) {
 				LLDPAD_INFO("%s: %s: device removed!\n",

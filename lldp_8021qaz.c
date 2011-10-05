@@ -51,8 +51,8 @@
 struct lldp_head lldp_head;
 struct config_t lldpad_cfg;
 
-static int ieee8021qaz_check_pending(struct port *port);
-static void run_all_sm(struct port *port);
+static int ieee8021qaz_check_pending(struct port *port, struct lldp_agent *);
+static void run_all_sm(struct port *port, struct lldp_agent *agent);
 static void ieee8021qaz_mibUpdateObjects(struct port *port);
 static void ieee8021qaz_app_reset(struct app_tlv_head *head);
 
@@ -68,7 +68,8 @@ static const struct lldp_mod_ops ieee8021qaz_ops = {
 	.timer			= ieee8021qaz_check_pending,
 };
 
-static int ieee8021qaz_check_pending(struct port *port)
+static int ieee8021qaz_check_pending(struct port *port,
+				     struct lldp_agent *agent)
 {
 	struct ieee8021qaz_user_data *iud;
 	struct ieee8021qaz_tlvs *tlv = NULL;
@@ -81,11 +82,12 @@ static int ieee8021qaz_check_pending(struct port *port)
 		LIST_FOREACH(tlv, &iud->head, entry) {
 			if (!strncmp(port->ifname, tlv->ifname, IFNAMSIZ)) {
 				if (tlv->active && tlv->pending &&
-				    port->timers.dormantDelay == 1) {
+				    port->dormantDelay == 1) {
 					tlv->pending = false;
 					ieee8021qaz_app_reset(&tlv->app_head);
-					run_all_sm(port);
-					somethingChangedLocal(port->ifname);
+					run_all_sm(port, agent);
+					somethingChangedLocal(port->ifname,
+							      agent->type);
 				}
 				break;
 			}
@@ -195,8 +197,9 @@ static void set_ets_tsa_map(char *arg, u8 *tsa_map)
 	free(argcpy);
 }
 
-static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
-		  feature_support *dcb_support)
+static int read_cfg_file(char *ifname, struct lldp_agent *agent,
+			 struct ieee8021qaz_tlvs *tlvs,
+			 feature_support *dcb_support)
 {
 	char *arg, arg_path[256];
 	int res = 0, i;
@@ -205,7 +208,8 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 	/* Read ETS-CFG willing bit -- default willing enabled */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSCFG), ARG_WILLING);
-	res = get_config_setting(ifname, arg_path, &willing, CONFIG_TYPE_INT);
+	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &willing,
+				 CONFIG_TYPE_INT);
 	if (!res)
 		tlvs->ets->cfgl->willing = !!willing;
 	else
@@ -214,7 +218,8 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 	/* Read PFC willing bit -- default willing enabled */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_PFC), ARG_WILLING);
-	res = get_config_setting(ifname, arg_path, &willing, CONFIG_TYPE_INT);
+	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &willing,
+				 CONFIG_TYPE_INT);
 	if (!res)
 		tlvs->pfc->local.willing = !!willing;
 	else
@@ -225,7 +230,8 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 	 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSCFG), ARG_ETS_UP2TC);
-	res = get_config_setting(ifname, arg_path, &arg, CONFIG_TYPE_STRING);
+	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+				 CONFIG_TYPE_STRING);
 	if (!res)
 		set_ets_prio_map(arg, &tlvs->ets->cfgl->prio_map);
 	else
@@ -237,7 +243,8 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 	 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSREC), ARG_ETS_UP2TC);
-	res = get_config_setting(ifname, arg_path, &arg, CONFIG_TYPE_STRING);
+	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+				 CONFIG_TYPE_STRING);
 	if (!res)
 		set_ets_prio_map(arg, &tlvs->ets->recl->prio_map);
 	else
@@ -248,7 +255,8 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 	 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSCFG), ARG_ETS_TCBW);
-	res = get_config_setting(ifname, arg_path, &arg, CONFIG_TYPE_STRING);
+	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+				 CONFIG_TYPE_STRING);
 	if (!res) {
 		char *argcpy = strdup(arg);
 		char *tokens;
@@ -269,7 +277,8 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 	 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSREC), ARG_ETS_TCBW);
-	res = get_config_setting(ifname, arg_path, &arg, CONFIG_TYPE_STRING);
+	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+				 CONFIG_TYPE_STRING);
 	if (!res) {
 		char *argcpy = strdup(arg);
 		char *tokens;
@@ -294,7 +303,8 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 	for (i = 0x80, numtcs = 8; i > 0; i = i>>1, numtcs--)
 		if (i & dcb_support->traffic_classes)
 			break;
-	res = get_config_setting(ifname, arg_path, &numtcs, CONFIG_TYPE_INT);
+	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &numtcs,
+				 CONFIG_TYPE_INT);
 	tlvs->ets->cfgl->max_tcs = numtcs;
 
 	/* Read and parse ETS-CFG tc transmission selction algorithm map
@@ -302,7 +312,8 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 	 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSCFG), ARG_ETS_TSA);
-	res = get_config_setting(ifname, arg_path, &arg, CONFIG_TYPE_STRING);
+	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+				 CONFIG_TYPE_STRING);
 	if (!res) {
 		set_ets_tsa_map(arg, tlvs->ets->cfgl->tsa_map);
 	} else {
@@ -315,7 +326,8 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 	 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSREC), ARG_ETS_TSA);
-	res = get_config_setting(ifname, arg_path, &arg, CONFIG_TYPE_STRING);
+	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+				 CONFIG_TYPE_STRING);
 	if (!res) {
 		set_ets_tsa_map(arg, tlvs->ets->recl->tsa_map);
 	} else {
@@ -326,14 +338,16 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 	/* Read and parse PFC enable bitmask -- default 0x00 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_PFC), ARG_PFC_ENABLED);
-	res = get_config_setting(ifname, arg_path, &pfc_mask, CONFIG_TYPE_INT);
+	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &pfc_mask,
+				 CONFIG_TYPE_INT);
 	if (!res)
 		tlvs->pfc->local.pfc_enable = pfc_mask;
 
 	/* Read and parse PFC delay -- default 0x00 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_PFC), ARG_PFC_DELAY);
-	res = get_config_setting(ifname, arg_path, &delay, CONFIG_TYPE_INT);
+	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &delay,
+				 CONFIG_TYPE_INT);
 	if (!res)
 		tlvs->pfc->local.delay = delay;
 
@@ -346,7 +360,8 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 	for (i = 0x80, numtcs = 8; i > 0; i = i>>1, numtcs--)
 		if (i & dcb_support->pfc_traffic_classes)
 			break;
-	res = get_config_setting(ifname, arg_path, &numtcs, CONFIG_TYPE_INT);
+	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &numtcs,
+				 CONFIG_TYPE_INT);
 	tlvs->pfc->local.pfc_cap = numtcs;
 
 	/* Read and add APP data to internal lldpad APP ring */
@@ -358,7 +373,8 @@ static int read_cfg_file(char *ifname, struct ieee8021qaz_tlvs *tlvs,
 
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s%i", TLVID_PREFIX,
 			 TLVID_8021(LLDP_8021QAZ_APP), ARG_APP, i);
-		res = get_config_setting(ifname, arg_path, &arg, CONFIG_TYPE_STRING);
+		res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+					 CONFIG_TYPE_STRING);
 
 		if (res)
 			continue;
@@ -417,7 +433,7 @@ inline void set_prio_map(u32 *prio_map, u8 prio, int tc)
  * as new defaults. If NO, load defaults. Also, check for TLV values via cmd
  * prompt. Then initialize FSMs for each tlv and finally build the tlvs
  */
-void ieee8021qaz_ifup(char *ifname)
+void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 {
 	struct port *port = NULL;
 	struct ieee8021qaz_tlvs *tlvs;
@@ -448,9 +464,9 @@ void ieee8021qaz_ifup(char *ifname)
 	/* if there is no persistent adminStatus setting then set to enabledRx
 	 * but do not persist that as a setting.
 	 */
-	if (get_config_setting(ifname, ARG_ADMINSTATUS, (void *)&adminstatus,
-				CONFIG_TYPE_INT)) {
-		set_lldp_port_admin(ifname, enabledRxOnly);
+	if (get_config_setting_by_agent(ifname, agent->type, ARG_ADMINSTATUS,
+			       (void *)&adminstatus, CONFIG_TYPE_INT)) {
+		set_lldp_agent_admin(ifname, agent->type, enabledRxOnly);
 	}
 
 	/* lookup port data */
@@ -521,7 +537,7 @@ void ieee8021qaz_ifup(char *ifname)
 	tlvs->pfc->remote_param = 0;
 
 	LIST_INIT(&tlvs->app_head);
-	read_cfg_file(port->ifname, tlvs, &dcb_support);
+	read_cfg_file(port->ifname, agent, tlvs, &dcb_support);
 
 	iud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_8021QAZ);
 	LIST_INSERT_HEAD(&iud->head, tlvs, entry);
@@ -992,7 +1008,7 @@ static void ets_rec_to_ieee(struct ieee_ets *ieee, struct etsrec_obj *rec)
 	return;
 }
 
-void run_all_sm(struct port *port)
+void run_all_sm(struct port *port, struct lldp_agent *agent)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 	struct ieee_ets *ets;
@@ -1281,7 +1297,8 @@ error:
  * ieee8021qaz_bld_tlv - builds all IEEE8021QAZ TLVs
  * Returns 1 on success, NULL if any of the TLVs fail to build correctly.
  */
-static struct packed_tlv *ieee8021qaz_bld_tlv(struct port *port)
+static struct packed_tlv *ieee8021qaz_bld_tlv(struct port *port,
+					      struct lldp_agent *agent)
 {
 	struct ieee8021qaz_tlvs *data;
 	struct packed_tlv *ptlv = NULL;
@@ -1333,18 +1350,21 @@ err:
 }
 
 /* LLDP_8021QAZ_MOD_OPS - GETTLV */
-struct packed_tlv *ieee8021qaz_gettlv(struct port *port)
+struct packed_tlv *ieee8021qaz_gettlv(struct port *port,
+				      struct lldp_agent *agent)
 {
 	struct packed_tlv *ptlv = NULL;
 
 	/* Update TLV State Machines */
-	run_all_sm(port);
+	run_all_sm(port, agent);
 	/* Build TLVs */
-	ptlv = ieee8021qaz_bld_tlv(port);
+	ptlv = ieee8021qaz_bld_tlv(port, agent);
 	return ptlv;
 }
 
-static bool unpack_ieee8021qaz_tlvs(struct port *port, struct unpacked_tlv *tlv)
+static bool unpack_ieee8021qaz_tlvs(struct port *port,
+				    struct lldp_agent *agent,
+				    struct unpacked_tlv *tlv)
 {
 	/* Unpack tlvs and store in rx */
 	struct ieee8021qaz_tlvs *tlvs;
@@ -1360,7 +1380,7 @@ static bool unpack_ieee8021qaz_tlvs(struct port *port, struct unpacked_tlv *tlv)
 		} else {
 			LLDPAD_WARN("%s: %s: 802.1Qaz Duplicate ETSCFG TLV\n",
 				__func__, port->ifname);
-			port->rx.dupTlvs |= DUP_IEEE8021QAZ_TLV_ETSCFG;
+			agent->rx.dupTlvs |= DUP_IEEE8021QAZ_TLV_ETSCFG;
 			return false;
 		}
 		break;
@@ -1371,7 +1391,7 @@ static bool unpack_ieee8021qaz_tlvs(struct port *port, struct unpacked_tlv *tlv)
 		} else {
 			LLDPAD_WARN("%s: %s: 802.1Qaz Duplicate ETSREC TLV\n",
 				__func__, port->ifname);
-			port->rx.dupTlvs |= DUP_IEEE8021QAZ_TLV_ETSREC;
+			agent->rx.dupTlvs |= DUP_IEEE8021QAZ_TLV_ETSREC;
 			return false;
 		}
 		break;
@@ -1383,7 +1403,7 @@ static bool unpack_ieee8021qaz_tlvs(struct port *port, struct unpacked_tlv *tlv)
 		} else {
 			LLDPAD_WARN("%s: %s: 802.1Qaz Duplicate PFC TLV\n",
 				__func__, port->ifname);
-			port->rx.dupTlvs |= DUP_IEEE8021QAZ_TLV_PFC;
+			agent->rx.dupTlvs |= DUP_IEEE8021QAZ_TLV_PFC;
 			return false;
 		}
 		break;
@@ -1394,7 +1414,7 @@ static bool unpack_ieee8021qaz_tlvs(struct port *port, struct unpacked_tlv *tlv)
 		} else {
 			LLDPAD_WARN("%s: %s: 802.1Qaz Duplicate APP TLV\n",
 				    __func__, port->ifname);
-			port->rx.dupTlvs |= DUP_IEEE8021QAZ_TLV_APP;
+			agent->rx.dupTlvs |= DUP_IEEE8021QAZ_TLV_APP;
 			return false;
 		}
 		break;
@@ -1701,7 +1721,8 @@ static void ieee8021qaz_mibUpdateObjects(struct port *port)
  * TLVs not consumed on error otherwise it is either free'd or stored
  * internally in the module.
  */
-int ieee8021qaz_rchange(struct port *port, struct unpacked_tlv *tlv)
+int ieee8021qaz_rchange(struct port *port, struct lldp_agent *agent,
+			struct unpacked_tlv *tlv)
 {
 	u8 oui[OUI_SIZE] = INIT_IEEE8021QAZ_OUI;
 	struct ieee8021qaz_tlvs *qaz_tlvs;
@@ -1738,7 +1759,7 @@ int ieee8021qaz_rchange(struct port *port, struct unpacked_tlv *tlv)
 			return SUBTYPE_INVALID;
 
 		l2_packet_get_remote_addr(port->l2, qaz_tlvs->remote_mac);
-		res = unpack_ieee8021qaz_tlvs(port, tlv);
+		res = unpack_ieee8021qaz_tlvs(port, agent, tlv);
 		if (!res)
 			LLDPAD_WARN("Error unpacking 8021 tlvs");
 		else
@@ -1761,11 +1782,13 @@ int ieee8021qaz_rchange(struct port *port, struct unpacked_tlv *tlv)
 			 */
 			long adminstatus;
 			if (qaz_tlvs->ieee8021qazdu &&
-				get_config_setting(qaz_tlvs->ifname,
+				get_config_setting_by_agent(qaz_tlvs->ifname,
+						   agent->type,
 						   ARG_ADMINSTATUS,
 						   (void *)&adminstatus,
 						   CONFIG_TYPE_INT) &&
-				get_lldp_port_admin(qaz_tlvs->ifname) ==
+				get_lldp_agent_admin(qaz_tlvs->ifname,
+						     agent->type) ==
 						    enabledRxOnly) {
 				adminstatus = enabledRxTx;
 				if (set_config_setting(qaz_tlvs->ifname,
@@ -1773,7 +1796,8 @@ int ieee8021qaz_rchange(struct port *port, struct unpacked_tlv *tlv)
 						      (void *)&adminstatus,
 						       CONFIG_TYPE_INT) ==
 						       cmd_success)
-					set_lldp_port_admin(qaz_tlvs->ifname,
+					set_lldp_agent_admin(qaz_tlvs->ifname,
+							     agent->type,
 							    (int)adminstatus);
 			}
 			if (qaz_tlvs->ieee8021qazdu)
@@ -1781,9 +1805,9 @@ int ieee8021qaz_rchange(struct port *port, struct unpacked_tlv *tlv)
 
 			/* Update TLV State Machines */
 			ieee8021qaz_mibUpdateObjects(port);
-			run_all_sm(port);
+			run_all_sm(port, agent);
 			clear_ieee8021qaz_rx(qaz_tlvs);
-			somethingChangedLocal(port->ifname);
+			somethingChangedLocal(port->ifname, agent->type);
 		}
 	}
 
@@ -1816,7 +1840,7 @@ static void ieee8021qaz_free_rx(struct ieee8021qaz_unpkd_tlvs *rx)
  *     - If yes, set it as absent (delete it?)
  * Same for PFC and APP.
  */
-u8 ieee8021qaz_mibDeleteObject(struct port *port)
+u8 ieee8021qaz_mibDeleteObject(struct port *port, struct lldp_agent *agent)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 
@@ -1849,7 +1873,7 @@ u8 ieee8021qaz_mibDeleteObject(struct port *port)
 	ieee8021qaz_app_reset(&tlvs->app_head);
 
 	/* Kick Tx State Machine */
-	somethingChangedLocal(port->ifname);
+	somethingChangedLocal(port->ifname, agent->type);
 	return 0;
 }
 
@@ -1927,7 +1951,7 @@ void ieee8021qaz_unregister(struct lldp_module *mod)
 /*
  * LLDP_8021QAZ_MOD_OPS - IFDOWN
  */
-void ieee8021qaz_ifdown(char *device_name)
+void ieee8021qaz_ifdown(char *device_name, struct lldp_agent *agent)
 {
 	struct port *port = NULL;
 	struct ieee8021qaz_tlvs *tlvs;

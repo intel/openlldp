@@ -39,27 +39,28 @@
 #include "clif_msgs.h"
 #include "lldp_mand.h"
 #include "lldp_tlv.h"
+#include "agent.h"
 
-void rxInitializeLLDP(struct port *port)
+void rxInitializeLLDP(struct port *port, struct lldp_agent *agent)
 {
-
-	port->rx.rcvFrame = false;
-	port->rx.badFrame = false;
-	port->rx.tooManyNghbrs = false;
-	port->rx.rxInfoAge = false;
-	if (port->rx.framein) {
-		free(port->rx.framein);
-		port->rx.framein = NULL;
+	agent->rx.rcvFrame = false;
+	agent->rx.badFrame = false;
+	agent->rx.tooManyNghbrs = false;
+	agent->rx.rxInfoAge = false;
+	if (agent->rx.framein) {
+		free(agent->rx.framein);
+		agent->rx.framein = NULL;
 	}
-	port->rx.sizein = 0;
+	agent->rx.sizein = 0;
 
-	mibDeleteObjects(port);
+	mibDeleteObjects(port, agent);
 	return;
 }
 
 void rxReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t len)
 {
 	struct port * port;
+	struct lldp_agent *agent;
 	u8  frame_error = 0;
 	struct l2_ethhdr *hdr;
 	struct l2_ethhdr example_hdr,*ex;
@@ -67,64 +68,63 @@ void rxReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t len)
 
 	port = (struct port *)ctx;
 
-	if (port->adminStatus == disabled || port->adminStatus == enabledTxOnly)
-		return;
-
-	if (port->rx.framein &&
-	    port->rx.sizein == len &&
-	    (memcmp(buf, port->rx.framein, len) == 0)) {
-		port->timers.rxTTL = port->timers.lastrxTTL;
-		port->stats.statsFramesInTotal++;
-		return;
-	}
-
 	snprintf(msg, sizeof(msg), "%i", LLDP_RCHANGE);
 	send_event(MSG_EVENT, LLDP_MOD_MAND, msg);
 
-	if (port->rx.framein)
-		free(port->rx.framein);
+	/* walk through the list of agents for this interface and see if we
+	 * can find a matching agent */
+	LIST_FOREACH(agent, &port->agent_head, entry) {
+		if (agent->rx.framein &&
+		    agent->rx.sizein == len &&
+		    (memcmp(buf, agent->rx.framein, len) == 0)) {
+			agent->timers.rxTTL = agent->timers.lastrxTTL;
+			agent->stats.statsFramesInTotal++;
+			return;
+		}
 
-	port->rx.framein = (u8 *)malloc(len);
-	if (port->rx.framein == NULL) {
+		ex = &example_hdr;
+		memcpy(ex->h_dest, agent->mac_addr, ETH_ALEN);
+		ex->h_proto = htons(ETH_P_LLDP);
+		hdr = (struct l2_ethhdr *)buf;
+
+		if (hdr->h_proto != example_hdr.h_proto) {
+			LLDPAD_INFO("ERROR Ethertype not LLDP ethertype but ethertype "
+				"'%x' in incoming frame.\n", htons(hdr->h_proto));
+			frame_error++;
+			return;
+		}
+
+		if ((!memcmp(hdr->h_dest,ex->h_dest, ETH_ALEN)))
+			break;
+	}
+
+	if (agent == NULL)
+		return;
+
+	if (agent->adminStatus == disabled || agent->adminStatus == enabledTxOnly)
+		return;
+
+	if (agent->rx.framein)
+		free(agent->rx.framein);
+
+	agent->rx.sizein = (u16)len;
+	agent->rx.framein = (u8 *)malloc(len);
+
+	if (agent->rx.framein == NULL) {
 		LLDPAD_DBG("ERROR - could not allocate memory for rx'ed frame\n");
 		return;
 	}
-	memcpy(port->rx.framein, buf, len);
-
-	port->rx.sizein = (u16)len;
-	ex = &example_hdr;
-	memcpy(ex->h_dest, multi_cast_source, ETH_ALEN);
-	ex->h_proto = htons(ETH_P_LLDP);
-	hdr = (struct l2_ethhdr *)port->rx.framein;
-
-	if ((memcmp(hdr->h_dest,ex->h_dest, ETH_ALEN) != 0)) {
-		LLDPAD_INFO("ERROR LLDP multicast address error in incoming frame. "
-			"Dropping frame.\n");
-		frame_error++;
-		free(port->rx.framein);
-		port->rx.framein = NULL;
-		port->rx.sizein = 0;
-		return;
-	}
-
-	if (hdr->h_proto != example_hdr.h_proto) {
-		LLDPAD_INFO("ERROR Ethertype not LLDP ethertype but ethertype "
-			"'%x' in incoming frame.\n", htons(hdr->h_proto));
-		frame_error++;
-		free(port->rx.framein);
-		port->rx.framein = NULL;
-		port->rx.sizein = 0;
-		return;
-	}
+	memcpy(agent->rx.framein, buf, len);
 
 	if (!frame_error) {
-		port->stats.statsFramesInTotal++;
-		port->rx.rcvFrame = 1;
+		agent->stats.statsFramesInTotal++;
+		agent->rx.rcvFrame = 1;
 	}
-	run_rx_sm(port);
+
+	run_rx_sm(port, agent);
 }
 
-void rxProcessFrame(struct port * port)
+void rxProcessFrame(struct port *port, struct lldp_agent *agent)
 {
 	u16 tlv_cnt = 0;
 	u8  tlv_type = 0;
@@ -139,30 +139,30 @@ void rxProcessFrame(struct port * port)
 	int err;
 	struct lldp_module *np;
 
-	assert(port->rx.framein && port->rx.sizein);
-	port->lldpdu = 0;
-	port->rx.dupTlvs = 0;
+	assert(agent->rx.framein && agent->rx.sizein);
+	agent->lldpdu = 0;
+	agent->rx.dupTlvs = 0;
 
-	port->rx.dcbx_st = 0;
-	port->rx.manifest = (rxmanifest *)malloc(sizeof(rxmanifest));
-	if (port->rx.manifest == NULL) {
+	agent->rx.dcbx_st = 0;
+	agent->rx.manifest = (rxmanifest *)malloc(sizeof(rxmanifest));
+	if (agent->rx.manifest == NULL) {
 		LLDPAD_DBG("ERROR - could not allocate memory for receive "
 			"manifest\n");
 		return;
 	}
-	memset(port->rx.manifest,0, sizeof(rxmanifest));
-	get_remote_peer_mac_addr(port);
+	memset(agent->rx.manifest, 0, sizeof(rxmanifest));
+	get_remote_peer_mac_addr(port, agent);
 	tlv_offset = sizeof(struct l2_ethhdr);  /* Points to 1st TLV */
 
 	do {
 		tlv_cnt++;
-		if (tlv_offset > port->rx.sizein) {
+		if (tlv_offset > agent->rx.sizein) {
 			LLDPAD_INFO("ERROR: Frame overrun!\n");
 			frame_error++;
 			goto out;
 		}
 
-		tlv_head_ptr = (u16 *)&port->rx.framein[tlv_offset];
+		tlv_head_ptr = (u16 *)&agent->rx.framein[tlv_offset];
 		tlv_length = htons(*tlv_head_ptr) & 0x01FF;
 		tlv_type = (u8)(htons(*tlv_head_ptr) >> 9);
 
@@ -192,14 +192,14 @@ void rxProcessFrame(struct port * port)
 		}
 
 		u16 tmp_offset = tlv_offset + tlv_length;
-		if (tmp_offset > port->rx.sizein) {
+		if (tmp_offset > agent->rx.sizein) {
 			LLDPAD_INFO("ERROR: Frame overflow error: offset=%d, "
-				"rx.size=%d \n", tmp_offset, port->rx.sizein);
+				"rx.size=%d \n", tmp_offset, agent->rx.sizein);
 			frame_error++;
 			goto out;
 		}
 
-		u8 *info = (u8 *)&port->rx.framein[tlv_offset +
+		u8 *info = (u8 *)&agent->rx.framein[tlv_offset +
 					sizeof(*tlv_head_ptr)];
 
 		struct unpacked_tlv *tlv = create_tlv();
@@ -209,7 +209,7 @@ void rxProcessFrame(struct port * port)
 				"incoming TLV. \n");
 			goto out;
 		}
-	
+
 		if ((tlv_length == 0) && (tlv->type != TYPE_0)) {
 				LLDPAD_INFO("ERROR: tlv_length == 0\n");
 				free_unpkd_tlv(tlv);
@@ -232,64 +232,64 @@ void rxProcessFrame(struct port * port)
 		tlv_offset += sizeof(*tlv_head_ptr) + tlv_length;
 		/* Get MSAP info */
 		if (tlv->type == TYPE_1) { /* chassis ID */
-			if (port->lldpdu & RCVD_LLDP_TLV_TYPE1) {
+			if (agent->lldpdu & RCVD_LLDP_TLV_TYPE1) {
 				LLDPAD_INFO("Received multiple Chassis ID"
 					    "TLVs in this LLDPDU\n");
 				frame_error++;
 				free_unpkd_tlv(tlv);
 				goto out;
 			} else {
-				port->lldpdu |= RCVD_LLDP_TLV_TYPE1;
-				port->rx.manifest->chassis = tlv;
+				agent->lldpdu |= RCVD_LLDP_TLV_TYPE1;
+				agent->rx.manifest->chassis = tlv;
 				tlv_stored = true;
 			}
 
-			if (port->msap.msap1 == NULL) {
-				port->msap.length1 = tlv->length;
-				port->msap.msap1 = (u8 *)malloc(tlv->length);
-				if (!(port->msap.msap1)) {
+			if (agent->msap.msap1 == NULL) {
+				agent->msap.length1 = tlv->length;
+				agent->msap.msap1 = (u8 *)malloc(tlv->length);
+				if (!(agent->msap.msap1)) {
 					LLDPAD_DBG("ERROR: Failed to malloc "
 						"space for msap1\n");
 					free_unpkd_tlv(tlv);
 					goto out;
 				}
-				memcpy(port->msap.msap1, tlv->info,
+				memcpy(agent->msap.msap1, tlv->info,
 					tlv->length);
 			} else {
-				if (tlv->length == port->msap.length1) {
-					if ((memcmp(tlv->info,port->msap.msap1,
+				if (tlv->length == agent->msap.length1) {
+					if ((memcmp(tlv->info,agent->msap.msap1,
 						tlv->length) == 0))
 						msap_compare_1 = true;
 				}
 			}
 		}
 		if (tlv->type == TYPE_2) { /* port ID */
-			if (port->lldpdu & RCVD_LLDP_TLV_TYPE2) {
+			if (agent->lldpdu & RCVD_LLDP_TLV_TYPE2) {
 				LLDPAD_INFO("Received multiple Port ID "
 					"TLVs in this LLDPDU\n");
 				frame_error++;
 				free_unpkd_tlv(tlv);
 				goto out;
 			} else {
-				port->lldpdu |= RCVD_LLDP_TLV_TYPE2;
-				port->rx.manifest->portid = tlv;
+				agent->lldpdu |= RCVD_LLDP_TLV_TYPE2;
+				agent->rx.manifest->portid = tlv;
 				tlv_stored = true;
 			}
 
-			if (port->msap.msap2 == NULL) {
-				port->msap.length2 = tlv->length;
-				port->msap.msap2 = (u8 *)malloc(tlv->length);
-				if (!(port->msap.msap2)) {
+			if (agent->msap.msap2 == NULL) {
+				agent->msap.length2 = tlv->length;
+				agent->msap.msap2 = (u8 *)malloc(tlv->length);
+				if (!(agent->msap.msap2)) {
 					LLDPAD_DBG("ERROR: Failed to malloc "
 						"space for msap2\n");
 					free_unpkd_tlv(tlv);
 					goto out;
 				}
-				memcpy(port->msap.msap2, tlv->info, tlv->length);
-				port->rx.newNeighbor = true;
+				memcpy(agent->msap.msap2, tlv->info, tlv->length);
+				agent->rx.newNeighbor = true;
 			} else {
-				if (tlv->length == port->msap.length2) {
-					if ((memcmp(tlv->info,port->msap.msap2,
+				if (tlv->length == agent->msap.length2) {
+					if ((memcmp(tlv->info,agent->msap.msap2,
 						tlv->length) == 0))
 						msap_compare_2 = true;
 				}
@@ -300,61 +300,61 @@ void rxProcessFrame(struct port * port)
 					good_neighbor = true;
 				} else {
 					/* New neighbor */
-					port->rx.tooManyNghbrs = true;
-					port->rx.newNeighbor = true;
+					agent->rx.tooManyNghbrs = true;
+					agent->rx.newNeighbor = true;
 					LLDPAD_INFO("** TOO_MANY_NGHBRS\n");
 				}
 			}
 		}
 		if (tlv->type == TYPE_3) { /* time to live */
-			if (port->lldpdu & RCVD_LLDP_TLV_TYPE3) {
+			if (agent->lldpdu & RCVD_LLDP_TLV_TYPE3) {
 				LLDPAD_INFO("Received multiple TTL TLVs in this"
 					" LLDPDU\n");
 				frame_error++;
 				free_unpkd_tlv(tlv);
 				goto out;
 			} else {
-				port->lldpdu |= RCVD_LLDP_TLV_TYPE3;
-				port->rx.manifest->ttl = tlv;
+				agent->lldpdu |= RCVD_LLDP_TLV_TYPE3;
+				agent->rx.manifest->ttl = tlv;
 				tlv_stored = true;
 			}
-			if ((port->rx.tooManyNghbrs == true) &&
+			if ((agent->rx.tooManyNghbrs == true) &&
 				(good_neighbor == false)) {
 				LLDPAD_INFO("** set tooManyNghbrsTimer\n");
-				port->timers.tooManyNghbrsTimer =
-					max(ntohs(*(u16 *)tlv->info), 
-					port->timers.tooManyNghbrsTimer);
+				agent->timers.tooManyNghbrsTimer =
+					max(ntohs(*(u16 *)tlv->info),
+					agent->timers.tooManyNghbrsTimer);
 				msap_compare_1 = false;
 				msap_compare_2 = false;
 			} else {
-				port->timers.rxTTL = ntohs(*(u16 *)tlv->info);
-				port->timers.lastrxTTL = port->timers.rxTTL;
+				agent->timers.rxTTL = ntohs(*(u16 *)tlv->info);
+				agent->timers.lastrxTTL = agent->timers.rxTTL;
 				good_neighbor = false;
 			}
 		}
 		if (tlv->type == TYPE_4) { /* port description */
-			port->lldpdu |= RCVD_LLDP_TLV_TYPE4;
-			port->rx.manifest->portdesc = tlv;
+			agent->lldpdu |= RCVD_LLDP_TLV_TYPE4;
+			agent->rx.manifest->portdesc = tlv;
 			tlv_stored = true;
 		}
 		if (tlv->type == TYPE_5) { /* system name */
-			port->lldpdu |= RCVD_LLDP_TLV_TYPE5;
-			port->rx.manifest->sysname = tlv;
+			agent->lldpdu |= RCVD_LLDP_TLV_TYPE5;
+			agent->rx.manifest->sysname = tlv;
 			tlv_stored = true;
 		}
 		if (tlv->type == TYPE_6) { /* system description */
-			port->lldpdu |= RCVD_LLDP_TLV_TYPE6;
-			port->rx.manifest->sysdesc = tlv;
+			agent->lldpdu |= RCVD_LLDP_TLV_TYPE6;
+			agent->rx.manifest->sysdesc = tlv;
 			tlv_stored = true;
 		}
 		if (tlv->type == TYPE_7) { /* system capabilities */
-			port->lldpdu |= RCVD_LLDP_TLV_TYPE7;
-			port->rx.manifest->syscap = tlv;
+			agent->lldpdu |= RCVD_LLDP_TLV_TYPE7;
+			agent->rx.manifest->syscap = tlv;
 			tlv_stored = true;
 		}
 		if (tlv->type == TYPE_8) { /* mgmt address */
-			port->lldpdu |= RCVD_LLDP_TLV_TYPE8;
-			port->rx.manifest->mgmtadd = tlv;
+			agent->lldpdu |= RCVD_LLDP_TLV_TYPE8;
+			agent->rx.manifest->mgmtadd = tlv;
 			tlv_stored = true;
 		}
 
@@ -363,7 +363,7 @@ void rxProcessFrame(struct port * port)
 			if (!np->ops || !np->ops->lldp_mod_rchange)
 				continue;
 
-			err = np->ops->lldp_mod_rchange(port, tlv);
+			err = np->ops->lldp_mod_rchange(port, agent, tlv);
 
 			if (!err)
 				tlv_stored = true;
@@ -371,14 +371,14 @@ void rxProcessFrame(struct port * port)
 				frame_error++;
 				free_unpkd_tlv(tlv);
 				goto out;
-			} 
+			}
 		}
 
 		if (!tlv_stored) {
 			LLDPAD_INFO("%s: allocated TLV %u was not stored! %p\n",
 				   __func__, tlv->type, tlv);
 			tlv = free_unpkd_tlv(tlv);
-			port->stats.statsTLVsUnrecognizedTotal++;
+			agent->stats.statsTLVsUnrecognizedTotal++;
 		}
 		tlv = NULL;
 		tlv_stored = false;
@@ -387,130 +387,130 @@ void rxProcessFrame(struct port * port)
 out:
 	if (frame_error) {
 		/* discard the frame because of errors. */
-		port->stats.statsFramesDiscardedTotal++;
-		port->stats.statsFramesInErrorsTotal++;
-		port->rx.badFrame = true;
+		agent->stats.statsFramesDiscardedTotal++;
+		agent->stats.statsFramesInErrorsTotal++;
+		agent->rx.badFrame = true;
 	}
 
-	port->lldpdu = 0;
-	clear_manifest(port);
+	agent->lldpdu = 0;
+	clear_manifest(agent);
 
 	return;
 }
 
-u8 mibDeleteObjects(struct port *port)
+u8 mibDeleteObjects(struct port *port, struct lldp_agent *agent)
 {
 	struct lldp_module *np;
 
 	LIST_FOREACH(np, &lldp_head, lldp) {
 		if (!np->ops || !np->ops->lldp_mod_mibdelete)
 			continue;
-		np->ops->lldp_mod_mibdelete(port);
+		np->ops->lldp_mod_mibdelete(port, agent);
 	}
 
 	/* Clear history */
-	port->msap.length1 = 0;
-	if (port->msap.msap1) {
-		free(port->msap.msap1);
-		port->msap.msap1 = NULL;
+	agent->msap.length1 = 0;
+	if (agent->msap.msap1) {
+		free(agent->msap.msap1);
+		agent->msap.msap1 = NULL;
 	}
 
-	port->msap.length2 = 0;
-	if (port->msap.msap2) {
-		free(port->msap.msap2);
-		port->msap.msap2 = NULL;
+	agent->msap.length2 = 0;
+	if (agent->msap.msap2) {
+		free(agent->msap.msap2);
+		agent->msap.msap2 = NULL;
 	}
 	return 0;
 }
 
-void run_rx_sm(struct port *port)
+void run_rx_sm(struct port *port, struct lldp_agent *agent)
 {
-	set_rx_state(port);
+	set_rx_state(port, agent);
 	do {
-		switch(port->rx.state) {
+		switch(agent->rx.state) {
 		case LLDP_WAIT_PORT_OPERATIONAL:
 			process_wait_port_operational(port);
 			break;
 		case DELETE_AGED_INFO:
-			process_delete_aged_info(port);
+			process_delete_aged_info(port, agent);
 			break;
 		case RX_LLDP_INITIALIZE:
-			process_rx_lldp_initialize(port);
+			process_rx_lldp_initialize(port, agent);
 			break;
 		case RX_WAIT_FOR_FRAME:
-			process_wait_for_frame(port);
+			process_wait_for_frame(agent);
 			break;
 		case RX_FRAME:
-			process_rx_frame(port);
+			process_rx_frame(port, agent);
 			break;
 		case DELETE_INFO:
-			process_delete_info(port);
+			process_delete_info(port, agent);
 			break;
 		case UPDATE_INFO:
-			process_update_info(port);
+			process_update_info(agent);
 			break;
 		default:
 			LLDPAD_DBG("ERROR: The RX State Machine is broken!\n");
 		}
-	} while (set_rx_state(port) == true);
+	} while (set_rx_state(port, agent) == true);
 }
 
-bool set_rx_state(struct port *port)
+bool set_rx_state(struct port *port, struct lldp_agent *agent)
 {
-	if ((port->rx.rxInfoAge == false) && (port->portEnabled == false)) {
-		rx_change_state(port, LLDP_WAIT_PORT_OPERATIONAL);
+	if ((agent->rx.rxInfoAge == false) && (port->portEnabled == false)) {
+		rx_change_state(agent, LLDP_WAIT_PORT_OPERATIONAL);
 	}
 
-	switch(port->rx.state) {
+	switch(agent->rx.state) {
 	case LLDP_WAIT_PORT_OPERATIONAL:
-		if (port->rx.rxInfoAge == true) {
-			rx_change_state(port, DELETE_AGED_INFO);
+		if (agent->rx.rxInfoAge == true) {
+			rx_change_state(agent, DELETE_AGED_INFO);
 			return true;
 		} else if (port->portEnabled == true) {
-			rx_change_state(port, RX_LLDP_INITIALIZE);
+			rx_change_state(agent, RX_LLDP_INITIALIZE);
 			return true;
 		}
 		return false;
 	case DELETE_AGED_INFO:
-		rx_change_state(port, LLDP_WAIT_PORT_OPERATIONAL);
+		rx_change_state(agent, LLDP_WAIT_PORT_OPERATIONAL);
 		return true;
 	case RX_LLDP_INITIALIZE:
-		if ((port->adminStatus == enabledRxTx) ||
-			(port->adminStatus == enabledRxOnly)) {
-			rx_change_state(port, RX_WAIT_FOR_FRAME);
+		if ((agent->adminStatus == enabledRxTx) ||
+			(agent->adminStatus == enabledRxOnly)) {
+			rx_change_state(agent, RX_WAIT_FOR_FRAME);
 			return true;
 		}
 		return false;
 	case RX_WAIT_FOR_FRAME:
-		if ((port->adminStatus == disabled) ||
-			(port->adminStatus == enabledTxOnly)) {
-			rx_change_state(port, RX_LLDP_INITIALIZE);
+		if ((agent->adminStatus == disabled) ||
+			(agent->adminStatus == enabledTxOnly)) {
+			rx_change_state(agent, RX_LLDP_INITIALIZE);
 			return true;
 		}
-		if (port->rx.rxInfoAge == true) {
-			rx_change_state(port, DELETE_INFO);
+		if (agent->rx.rxInfoAge == true) {
+			rx_change_state(agent, DELETE_INFO);
 			return true;
-		} else if (port->rx.rcvFrame == true) {
-			rx_change_state(port, RX_FRAME);
+		} else if (agent->rx.rcvFrame == true) {
+			rx_change_state(agent, RX_FRAME);
 			return true;
 		}
 		return false;
 	case DELETE_INFO:
-		rx_change_state(port, RX_WAIT_FOR_FRAME);
+		rx_change_state(agent, RX_WAIT_FOR_FRAME);
 		return true;
 	case RX_FRAME:
-		if (port->timers.rxTTL == 0) {
-			rx_change_state(port, DELETE_INFO);
+		if (agent->timers.rxTTL == 0) {
+			rx_change_state(agent, DELETE_INFO);
 			return true;
-		} else if ((port->timers.rxTTL != 0) &&
-			(port->rxChanges == true)) {
-			rx_change_state(port, UPDATE_INFO);
+		} else if ((agent->timers.rxTTL != 0) &&
+			(agent->rxChanges == true)) {
+			rx_change_state(agent, UPDATE_INFO);
 			return true;
 		}
-		rx_change_state(port, RX_WAIT_FOR_FRAME);
+		rx_change_state(agent, RX_WAIT_FOR_FRAME);
 		return true;
 	case UPDATE_INFO:
-		rx_change_state(port, RX_WAIT_FOR_FRAME);
+		rx_change_state(agent, RX_WAIT_FOR_FRAME);
 		return true;
 	default:
 		LLDPAD_DBG("ERROR: The RX State Machine is broken!\n");
@@ -523,148 +523,150 @@ void process_wait_port_operational(struct port *port)
 	return;
 }
 
-void process_delete_aged_info(struct port *port)
+void process_delete_aged_info(struct port *port, struct lldp_agent *agent)
 {
-	mibDeleteObjects(port);
-	port->rx.rxInfoAge = false;
-	port->rx.remoteChange = true;
+	mibDeleteObjects(port, agent);
+	agent->rx.rxInfoAge = false;
+	agent->rx.remoteChange = true;
 	return;
 }
 
-void process_rx_lldp_initialize(struct port *port)
+void process_rx_lldp_initialize(struct port *port, struct lldp_agent *agent)
 {
-	rxInitializeLLDP(port);
-	port->rx.rcvFrame = false;
+	rxInitializeLLDP(port, agent);
+	agent->rx.rcvFrame = false;
 	return;
 }
 
-void process_wait_for_frame(struct port *port)
+void process_wait_for_frame(struct lldp_agent *agent)
 {
-	port->rx.badFrame  = false;
-	port->rx.rxInfoAge = false;
+	agent->rx.badFrame  = false;
+	agent->rx.rxInfoAge = false;
 	return;
 }
 
-void process_rx_frame(struct port *port)
+void process_rx_frame(struct port *port, struct lldp_agent *agent)
 {
-	port->rx.remoteChange = false;
-	port->rxChanges = false;
-	port->rx.rcvFrame = false;
-	rxProcessFrame(port);
+	agent->rx.remoteChange = false;
+	agent->rxChanges = false;
+	agent->rx.rcvFrame = false;
+	rxProcessFrame(port, agent);
 	return;
 }
 
-void process_delete_info(struct port *port)
+void process_delete_info(struct port *port, struct lldp_agent *agent)
 {
-	mibDeleteObjects(port);
+	mibDeleteObjects(port, agent);
 
-	if (port->rx.framein) {
-		free(port->rx.framein);
-		port->rx.framein = NULL;
+	if (agent->rx.framein) {
+		free(agent->rx.framein);
+		agent->rx.framein = NULL;
 	}
 
-	port->rx.sizein = 0;
-	port->rx.remoteChange = true;
+	agent->rx.sizein = 0;
+	agent->rx.remoteChange = true;
 	return;
 }
 
-void process_update_info(struct port *port)
+void process_update_info(struct lldp_agent *agent)
 {
-	port->rx.remoteChange = true;
+	agent->rx.remoteChange = true;
 	return;
 }
 
-void update_rx_timers(struct port *port)
+void update_rx_timers(struct lldp_agent *agent)
 {
 
-	if (port->timers.rxTTL) {
-		port->timers.rxTTL--;
-		if (port->timers.rxTTL == 0) {
-			port->rx.rxInfoAge = true;
-			if (port->timers.tooManyNghbrsTimer != 0) {
+	if (agent->timers.rxTTL) {
+		agent->timers.rxTTL--;
+		if (agent->timers.rxTTL == 0) {
+			agent->rx.rxInfoAge = true;
+			if (agent->timers.tooManyNghbrsTimer != 0) {
 				LLDPAD_DBG("** clear tooManyNghbrsTimer\n");
-				port->timers.tooManyNghbrsTimer = 0;
-				port->rx.tooManyNghbrs = false;
+				agent->timers.tooManyNghbrsTimer = 0;
+				agent->rx.tooManyNghbrs = false;
 			}
 		}
 	}
-	if (port->timers.tooManyNghbrsTimer) {
-		port->timers.tooManyNghbrsTimer--;
-		if (port->timers.tooManyNghbrsTimer == 0) {
+	if (agent->timers.tooManyNghbrsTimer) {
+		agent->timers.tooManyNghbrsTimer--;
+		if (agent->timers.tooManyNghbrsTimer == 0) {
 			LLDPAD_DBG("** tooManyNghbrsTimer timeout\n");
-			port->rx.tooManyNghbrs = false;
+			agent->rx.tooManyNghbrs = false;
 		}
 	}
 }
 
-void rx_change_state(struct port *port, u8 newstate) {
+void rx_change_state(struct lldp_agent *agent, u8 newstate)
+{
 	switch(newstate) {
 		case LLDP_WAIT_PORT_OPERATIONAL:
 			break;
 		case RX_LLDP_INITIALIZE:
-			assert((port->rx.state == LLDP_WAIT_PORT_OPERATIONAL) ||
-			       (port->rx.state == RX_WAIT_FOR_FRAME));
+			assert((agent->rx.state == LLDP_WAIT_PORT_OPERATIONAL) ||
+			       (agent->rx.state == RX_WAIT_FOR_FRAME));
 			break;
 		case DELETE_AGED_INFO:
-			assert(port->rx.state ==
+			assert(agent->rx.state ==
 				LLDP_WAIT_PORT_OPERATIONAL);
 			break;
 		case RX_WAIT_FOR_FRAME:
-			if (!(port->rx.state == RX_LLDP_INITIALIZE ||
-				port->rx.state == DELETE_INFO ||
-				port->rx.state == UPDATE_INFO ||
-				port->rx.state == RX_FRAME)) {
-				assert(port->rx.state !=
+			if (!(agent->rx.state == RX_LLDP_INITIALIZE ||
+				agent->rx.state == DELETE_INFO ||
+				agent->rx.state == UPDATE_INFO ||
+				agent->rx.state == RX_FRAME)) {
+				assert(agent->rx.state !=
 					RX_LLDP_INITIALIZE);
-				assert(port->rx.state != DELETE_INFO);
-				assert(port->rx.state != UPDATE_INFO);
-				assert(port->rx.state != RX_FRAME);
+				assert(agent->rx.state != DELETE_INFO);
+				assert(agent->rx.state != UPDATE_INFO);
+				assert(agent->rx.state != RX_FRAME);
 			}
 			break;
 		case RX_FRAME:
-			assert(port->rx.state == RX_WAIT_FOR_FRAME);
+			assert(agent->rx.state == RX_WAIT_FOR_FRAME);
 			break;
 		case DELETE_INFO:
-			if (!(port->rx.state == RX_WAIT_FOR_FRAME ||
-				port->rx.state == RX_FRAME)) {
-				assert(port->rx.state == RX_WAIT_FOR_FRAME);
-				assert(port->rx.state == RX_FRAME);
+			if (!(agent->rx.state == RX_WAIT_FOR_FRAME ||
+				agent->rx.state == RX_FRAME)) {
+				assert(agent->rx.state == RX_WAIT_FOR_FRAME);
+				assert(agent->rx.state == RX_FRAME);
 			}
 			break;
 		case UPDATE_INFO:
-			assert(port->rx.state == RX_FRAME);
+			assert(agent->rx.state == RX_FRAME);
 			break;
 		default:
 			LLDPAD_DBG("ERROR: The RX State Machine is broken!\n");
 	}
-	port->rx.state = newstate;
+	agent->rx.state = newstate;
 }
 
-void clear_manifest(struct port *port) {
-	if (port->rx.manifest->mgmtadd)
-		port->rx.manifest->mgmtadd =
-			free_unpkd_tlv(port->rx.manifest->mgmtadd);
-	if (port->rx.manifest->syscap)
-		port->rx.manifest->syscap =
-			free_unpkd_tlv(port->rx.manifest->syscap);
-	if (port->rx.manifest->sysdesc)
-		port->rx.manifest->sysdesc =
-			free_unpkd_tlv(port->rx.manifest->sysdesc);
-	if (port->rx.manifest->sysname)
-		port->rx.manifest->sysname =
-			free_unpkd_tlv(port->rx.manifest->sysname);
-	if (port->rx.manifest->portdesc)
-		port->rx.manifest->portdesc =
-			free_unpkd_tlv(port->rx.manifest->portdesc);
-	if (port->rx.manifest->ttl)
-		port->rx.manifest->ttl =
-			free_unpkd_tlv(port->rx.manifest->ttl);
-	if (port->rx.manifest->portid)
-		port->rx.manifest->portid =
-			free_unpkd_tlv(port->rx.manifest->portid);
-	if (port->rx.manifest->chassis)
-		port->rx.manifest->chassis =
-			free_unpkd_tlv(port->rx.manifest->chassis);
-	free(port->rx.manifest);
-	port->rx.manifest = NULL;
+void clear_manifest(struct lldp_agent *agent)
+{
+	if (agent->rx.manifest->mgmtadd)
+		agent->rx.manifest->mgmtadd =
+			free_unpkd_tlv(agent->rx.manifest->mgmtadd);
+	if (agent->rx.manifest->syscap)
+		agent->rx.manifest->syscap =
+			free_unpkd_tlv(agent->rx.manifest->syscap);
+	if (agent->rx.manifest->sysdesc)
+		agent->rx.manifest->sysdesc =
+			free_unpkd_tlv(agent->rx.manifest->sysdesc);
+	if (agent->rx.manifest->sysname)
+		agent->rx.manifest->sysname =
+			free_unpkd_tlv(agent->rx.manifest->sysname);
+	if (agent->rx.manifest->portdesc)
+		agent->rx.manifest->portdesc =
+			free_unpkd_tlv(agent->rx.manifest->portdesc);
+	if (agent->rx.manifest->ttl)
+		agent->rx.manifest->ttl =
+			free_unpkd_tlv(agent->rx.manifest->ttl);
+	if (agent->rx.manifest->portid)
+		agent->rx.manifest->portid =
+			free_unpkd_tlv(agent->rx.manifest->portid);
+	if (agent->rx.manifest->chassis)
+		agent->rx.manifest->chassis =
+			free_unpkd_tlv(agent->rx.manifest->chassis);
+	free(agent->rx.manifest);
+	agent->rx.manifest = NULL;
 }

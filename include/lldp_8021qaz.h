@@ -228,11 +228,12 @@ int ieee8021qaz_check_active(const char *ifname);
 
 struct lldp_module *ieee8021qaz_register(void);
 void ieee8021qaz_unregister(struct lldp_module *mod);
-struct packed_tlv *ieee8021qaz_gettlv(struct port *port);
-int ieee8021qaz_rchange(struct port *port, struct unpacked_tlv *tlv);
-void ieee8021qaz_ifup(char *ifname);
-void ieee8021qaz_ifdown(char *ifname);
-u8 ieee8021qaz_mibDeleteObject(struct port *port);
+struct packed_tlv *ieee8021qaz_gettlv(struct port *port, struct lldp_agent *);
+int ieee8021qaz_rchange(struct port *port, struct lldp_agent *,
+			struct unpacked_tlv *tlv);
+void ieee8021qaz_ifup(char *ifname, struct lldp_agent *);
+void ieee8021qaz_ifdown(char *ifname, struct lldp_agent *);
+u8 ieee8021qaz_mibDeleteObject(struct port *port, struct lldp_agent *);
 inline int ieee8021qaz_clif_cmd(void *data, struct sockaddr_un *from,
 				socklen_t fromlen, char *ibuf, int ilen,
 				char *rbuf);

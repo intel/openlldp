@@ -60,11 +60,6 @@
 #define ETH_MIN_PKT_LEN     (ETH_MIN_DATA_LEN + ETH_HDR_LEN)
 #endif
 
-#define LLDP_MULTICAST_MAC 0x0180c200000e
-
-
-static const u8 multi_cast_source[ETH_ALEN] = {0x01,0x80,0xc2,0x00,0x00,0x0e};
-
 /**
  * struct l2_packet_data - Internal l2_packet data structure
  *
@@ -129,7 +124,7 @@ int l2_packet_get_own_src_addr(struct l2_packet_data *l2, u8 *addr);
  */
 int l2_packet_get_own_addr(struct l2_packet_data *l2, u8 *addr);
 
-void get_remote_peer_mac_addr(struct port *port);
+void get_remote_peer_mac_addr(struct port *port, struct lldp_agent *);
 void l2_packet_get_remote_addr(struct l2_packet_data *l2, u8 *addr);
 
 /**
@@ -149,7 +144,7 @@ int l2_packet_send(struct l2_packet_data *l2, const u8 *dst_addr, u16 proto,
 
 void l2_packet_get_port_state(struct l2_packet_data *, u8 *);
 
-int add_bond_port(const char *ifname);
+struct port * add_bond_port(const char *ifname);
 int remove_bond_port(const char *ifname);
 void recv_on_bond(void *ctx, unsigned int ifindex, const u8 *buf, size_t len);
 void remove_all_bond_ports(void);

@@ -32,8 +32,11 @@
 
 #define DEFAULT_CFG_FILE "/var/lib/lldpad/lldpad.conf"
 
-#define LLDP_SETTING "lldp"
-#define LLDP_COMMON  "common"
+#define LLDP_SETTING	"lldp"
+#define LLDP_NB		"nearest_bridge"
+#define LLDP_NCB	"nearest_customer_bridge"
+#define LLDP_NNTPB	"nearest_nontpmr_bridge"
+#define LLDP_COMMON	"common"
 
 #define INI_TIMER	5
 
@@ -50,6 +53,7 @@ void scan_port(void *eloop_data, void *user_ctx);
 int get_cfg(const char *ifname, char *path, void *value, int type);
 int set_cfg(const char *ifname, char *path, void *value, int type);
 int get_config_setting(const char *ifname, char *path, void *value, int type);
+int get_config_setting_by_agent(const char *ifname, int agenttype, char *path, void *value, int type);
 int set_config_setting(const char *ifname, char *path, void *value, int type);
 int remove_config_setting(const char *ifname, char *parent, char *name);
 int get_config_tlvfield(const char *ifname, u32 tlvid, const char *field, void *value, int type);

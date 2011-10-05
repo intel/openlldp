@@ -47,7 +47,7 @@
 
 extern struct lldp_head lldp_head;
 
-struct evb_data *evb_data(char *ifname)
+struct evb_data *evb_data(char *ifname, enum agent_type type)
 {
 	struct evb_user_data *ud;
 	struct evb_data *ed = NULL;
@@ -55,7 +55,8 @@ struct evb_data *evb_data(char *ifname)
 	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_EVB);
 	if (ud) {
 		LIST_FOREACH(ed, &ud->head, entry) {
-			if (!strncmp(ifname, ed->ifname, IFNAMSIZ))
+			if (!strncmp(ifname, ed->ifname, IFNAMSIZ) &&
+			    (type == ed->agenttype))
 				return ed;
 		}
 	}
@@ -99,7 +100,7 @@ static void evb_dump_tlv(struct unpacked_tlv *tlv)
 
 unsigned int evb_get_rte(char *ifname)
 {
-	struct evb_data *ed = evb_data(ifname);
+	struct evb_data *ed = evb_data(ifname, NEAREST_CUSTOMER_BRIDGE);
 
 	return (unsigned int) ed->tie->rte;
 }
@@ -356,13 +357,13 @@ static void evb_free_data(struct evb_user_data *ud)
 	}
 }
 
-struct packed_tlv *evb_gettlv(struct port *port)
+struct packed_tlv *evb_gettlv(struct port *port, struct lldp_agent *agent)
 {
 	int size;
 	struct evb_data *ed;
 	struct packed_tlv *ptlv = NULL;
 
-	ed = evb_data(port->ifname);
+	ed = evb_data(port->ifname, agent->type);
 	if (!ed)
 		goto out_err;
 
@@ -490,12 +491,13 @@ int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie)
  *
  * TLV not consumed on error
  */
-static int evb_rchange(struct port *port, struct unpacked_tlv *tlv)
+static int evb_rchange(struct port *port, struct lldp_agent *agent,
+		       struct unpacked_tlv *tlv)
 {
 	struct evb_data *ed;
 	u8 oui_subtype[OUI_SUB_SIZE] = LLDP_OUI_SUBTYPE;
 
-	ed = evb_data(port->ifname);
+	ed = evb_data(port->ifname, agent->type);
 
 	if (!ed)
 		return SUBTYPE_INVALID;
@@ -524,7 +526,7 @@ static int evb_rchange(struct port *port, struct unpacked_tlv *tlv)
 		evb_print_tlvinfo(ed->last);
 
 		evb_update_tlv(ed);
-		somethingChangedLocal(ed->ifname);
+		somethingChangedLocal(ed->ifname, agent->type);
 
 		LLDPAD_DBG("%s(%i): new tlv:\n", __func__, __LINE__);
 		evb_print_tlvinfo(ed->tie);
@@ -533,13 +535,13 @@ static int evb_rchange(struct port *port, struct unpacked_tlv *tlv)
 	return TLV_OK;
 }
 
-void evb_ifdown(char *ifname)
+void evb_ifdown(char *ifname, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
 
 	LLDPAD_DBG("%s called !\n", __func__);
 
-	ed = evb_data(ifname);
+	ed = evb_data(ifname, agent->type);
 	if (!ed)
 		goto out_err;
 
@@ -556,14 +558,14 @@ out_err:
 	return;
 }
 
-void evb_ifup(char *ifname)
+void evb_ifup(char *ifname, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
 	struct evb_user_data *ud;
 
-	ed = evb_data(ifname);
+	ed = evb_data(ifname, agent->type);
 	if (ed) {
-		LLDPAD_DBG("%s:%s exists\n", __func__, ifname);
+		LLDPAD_DBG("%s:%s already exists\n", __func__, ifname);
 		goto out_err;
 	}
 
@@ -575,6 +577,7 @@ void evb_ifup(char *ifname)
 		goto out_err;
 	}
 	strncpy(ed->ifname, ifname, IFNAMSIZ);
+	ed->agenttype = agent->type;
 
 	if (evb_init_cfg_tlv(ed)) {
 		LLDPAD_ERR("%s:%s evb_init_cfg_tlv failed\n", __func__, ifname);
@@ -598,7 +601,7 @@ out_err:
 	return;
 }
 
-u8 evb_mibdelete(struct port *port)
+u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
 
@@ -606,10 +609,7 @@ u8 evb_mibdelete(struct port *port)
 		goto out_err;
 	}
 
-	LLDPAD_DBG("%s(%i): mibdelete triggered for port %s.\n", __func__,
-		   __LINE__, port->ifname);
-
-	ed = evb_data(port->ifname);
+	ed = evb_data(port->ifname, agent->type);
 	if (!ed) {
 		LLDPAD_DBG("%s:%s does not exist.\n", __func__, port->ifname);
 		goto out_err;

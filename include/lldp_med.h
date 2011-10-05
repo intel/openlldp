@@ -35,6 +35,7 @@
 
 struct med_data {
 	char ifname[IFNAMSIZ];
+	enum agent_type agenttype;
 	struct unpacked_tlv *medcaps;
 	struct unpacked_tlv *netpoli;
 	struct unpacked_tlv *locid;
@@ -55,8 +56,8 @@ struct med_user_data {
 
 struct lldp_module *med_register(void);
 void med_unregister(struct lldp_module *mod);
-struct packed_tlv *med_gettlv(struct port *port);
-void med_ifdown(char *);
-void med_ifup(char *);
+struct packed_tlv *med_gettlv(struct port *, struct lldp_agent *);
+void med_ifdown(char *, struct lldp_agent *);
+void med_ifup(char *, struct lldp_agent *);
 
 #endif /* _LLDP_MED_H */

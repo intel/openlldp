@@ -34,6 +34,7 @@
 
 struct ieee8023_data {
 	char ifname[IFNAMSIZ];
+	enum agent_type agenttype;
 	struct unpacked_tlv *maccfg;
 	struct unpacked_tlv *powvmdi;
 	struct unpacked_tlv *linkagg;
@@ -47,8 +48,8 @@ struct ieee8023_user_data {
 
 struct lldp_module *ieee8023_register(void);
 void ieee8023_unregister(struct lldp_module *mod);
-struct packed_tlv *ieee8023_gettlv(struct port *port);
-void ieee8023_ifdown(char *);
-void ieee8023_ifup(char *);
+struct packed_tlv *ieee8023_gettlv(struct port *, struct lldp_agent *);
+void ieee8023_ifdown(char *, struct lldp_agent *);
+void ieee8023_ifup(char *, struct lldp_agent *);
 
 #endif /* _LLDP_8023_H */

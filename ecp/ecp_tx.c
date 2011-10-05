@@ -133,9 +133,8 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 	struct packed_tlv *ptlv =  NULL;
 	struct vsi_profile *p;
 
-	/* TODO: different multicast address for sending ECP over S-channel (multi_cast_source_s)
-	 * S-channels to implement later */
-	memcpy(eth.h_dest, multi_cast_source, ETH_ALEN);
+	/* TODO: use LLDP group MAC addresses to support S-channels/multichannel*/
+	memcpy(eth.h_dest, nearest_bridge, ETH_ALEN);
 	l2_packet_get_own_src_addr(vd->ecp.l2,(u8 *)&own_addr);
 	memcpy(eth.h_source, &own_addr, ETH_ALEN);
 	eth.h_proto = htons(ETH_P_ECP);
@@ -267,7 +266,7 @@ u8 ecp_txFrame(struct vdp_data *vd)
 {
 	int status = 0;
 
-	status = l2_packet_send(vd->ecp.l2, (u8 *)&multi_cast_source,
+	status = l2_packet_send(vd->ecp.l2, (u8 *)&nearest_bridge,
 		htons(ETH_P_ECP),vd->ecp.tx.frameout,vd->ecp.tx.sizeout);
 	vd->ecp.stats.statsFramesOutTotal++;
 

@@ -91,7 +91,7 @@ static const struct lldp_mod_ops mand_ops = {
 	.get_arg_handler	= mand_get_arg_handlers,
 };
 
-static struct mand_data *mand_data(const char *ifname)
+static struct mand_data *mand_data(const char *ifname, enum agent_type type)
 {
 	struct mand_user_data *mud;
 	struct mand_data *md = NULL;
@@ -99,7 +99,8 @@ static struct mand_data *mand_data(const char *ifname)
 	mud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_MAND);
 	if (mud) {
 		LIST_FOREACH(md, &mud->head, entry) {
-			if (!strncmp(ifname, md->ifname, IFNAMSIZ))
+			if (!strncmp(ifname, md->ifname, IFNAMSIZ) &&
+			    (type == md->agenttype))
 				return md;
 		}
 	}
@@ -425,12 +426,11 @@ out_err:
 	return rc;
 }
 
-static int mand_bld_ttl_tlv(struct mand_data *md)
+static int mand_bld_ttl_tlv(struct mand_data *md, struct lldp_agent *agent)
 {
 	int rc = EINVAL;
 	u16 ttl;
 	struct unpacked_tlv *tlv;
-	struct port *port;
 
 	tlv = create_tlv();
 	if (!tlv)
@@ -445,9 +445,8 @@ static int mand_bld_ttl_tlv(struct mand_data *md)
 	}
 	memset(tlv->info, 0, tlv->length);
 
-	port = port_find_by_name(md->ifname);
-	if (port->tx.txTTL)
-		ttl = htons(port->tx.txTTL);
+	if (agent->tx.txTTL)
+		ttl = htons(agent->tx.txTTL);
 	else
 		ttl = htons(DEFAULT_TX_HOLD * DEFAULT_TX_INTERVAL);
 
@@ -460,13 +459,13 @@ out_err:
 	return rc;
 }
 
-struct packed_tlv *mand_gettlv(struct port *port)
+struct packed_tlv *mand_gettlv(struct port *port, struct lldp_agent *agent)
 {
 	struct mand_data *md;
 	struct packed_tlv *ptlv = NULL;
 	size_t size;
 
-	md = mand_data(port->ifname);
+	md = mand_data(port->ifname, agent->type);
 	if (!md) {
 		LLDPAD_DBG("%s:%s: not found port\n", __func__, port->ifname);
 		goto out_err;
@@ -510,7 +509,7 @@ static void mand_free_tlv(struct mand_data *md)
 }
 
 /* build unpacked tlvs */
-static int mand_bld_tlv(struct mand_data *md)
+static int mand_bld_tlv(struct mand_data *md, struct lldp_agent *agent)
 {
 	int rc = EPERM;
 
@@ -529,7 +528,7 @@ static int mand_bld_tlv(struct mand_data *md)
 				__func__, md->ifname);
 		goto out_err;
 	}
-	if (mand_bld_ttl_tlv(md)) {
+	if (mand_bld_ttl_tlv(md, agent)) {
 		LLDPAD_DBG("%s:%s:mand_bld_ttl_tlv() failed\n",
 				__func__, md->ifname);
 		goto out_err;
@@ -559,11 +558,11 @@ static void mand_free_data(struct mand_user_data *mud)
 	}
 }
 
-void mand_ifdown(char *ifname)
+void mand_ifdown(char *ifname, struct lldp_agent *agent)
 {
 	struct mand_data *md;
 
-	md = mand_data(ifname);
+	md = mand_data(ifname, agent->type);
 	if (!md)
 		goto out_err;
 
@@ -577,12 +576,12 @@ out_err:
 	return;
 }
 
-void mand_ifup(char *ifname)
+void mand_ifup(char *ifname, struct lldp_agent *agent)
 {
 	struct mand_data *md;
 	struct mand_user_data *mud;
 
-	md = mand_data(ifname);
+	md = mand_data(ifname, agent->type);
 	if (md) {
 		LLDPAD_INFO("%s:%s exists\n", __func__, ifname); 
 		goto out_err;
@@ -595,7 +594,9 @@ void mand_ifup(char *ifname)
 	}
 	memset(md, 0, sizeof(struct mand_data));
 	strncpy(md->ifname, ifname, IFNAMSIZ);
-	if (mand_bld_tlv(md)) {
+	md->agenttype = agent->type;
+
+	if (mand_bld_tlv(md, agent)) {
 		LLDPAD_INFO("%s:%s mand_bld_tlv failed\n", __func__, ifname); 
 		free(md);
 		goto out_err;

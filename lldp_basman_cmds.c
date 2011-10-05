@@ -142,7 +142,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 
 	sprintf(obuf + strlen(obuf), "enableTx = %s\n", value ? "yes" : "no");
 
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }
@@ -239,7 +239,7 @@ int _set_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue,
 
 	sprintf(obuf + strlen(obuf), "ipv4 = %s", argvalue);
 
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }
@@ -281,7 +281,7 @@ int _set_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_failed;
 
 	sprintf(obuf + strlen(obuf), "ipv6 = %s", argvalue);
-	somethingChangedLocal(cmd->ifname);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }
