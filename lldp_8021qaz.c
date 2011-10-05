@@ -1439,7 +1439,7 @@ static bool unpack_ieee8021qaz_tlvs(struct port *port,
 		}
 		break;
 	default:
-		LLDPAD_WARN("%s: %s: Unknown TLV 0x%04x\n", __func__,
+		LLDPAD_INFO("%s: %s: Unknown TLV 0x%04x\n", __func__,
 			    port->ifname, tlv->info[OUI_SIZE]);
 		return false;
 	}
