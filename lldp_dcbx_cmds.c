@@ -897,6 +897,10 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 			flag = *(ibuf+off+PG_UP2TC(i));
 			if (flag == CLIF_NOT_SUPPLIED)
 				continue;
+
+			if ((flag & 0x07) >= pg_data->num_tcs)
+				return dcb_bad_params;
+
 			pg_data->tx.up[i].tcmap = flag & 0x07;
 			pg_data->rx.up[i].tcmap = flag & 0x07;
 		}

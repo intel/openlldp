@@ -55,6 +55,9 @@ static int ieee8021qaz_check_pending(struct port *port, struct lldp_agent *);
 static void run_all_sm(struct port *port, struct lldp_agent *agent);
 static void ieee8021qaz_mibUpdateObjects(struct port *port);
 static void ieee8021qaz_app_reset(struct app_tlv_head *head);
+static int get_ieee_hw(const char *ifname, struct ieee_ets **ets,
+		       struct ieee_pfc **pfc, struct app_prio **app,
+		       int *cnt);
 
 static const struct lldp_mod_ops ieee8021qaz_ops = {
 	.lldp_mod_register	= ieee8021qaz_register,
@@ -201,12 +204,11 @@ static void set_ets_tsa_map(char *arg, u8 *tsa_map)
 }
 
 static int read_cfg_file(char *ifname, struct lldp_agent *agent,
-			 struct ieee8021qaz_tlvs *tlvs,
-			 feature_support *dcb_support)
+			 struct ieee8021qaz_tlvs *tlvs)
 {
 	char *arg, arg_path[256];
 	int res = 0, i;
-	long willing, pfc_mask, delay, numtcs;
+	long willing, pfc_mask, delay;
 
 	if (agent->type != NEAREST_BRIDGE)
 		return 0;
@@ -243,6 +245,8 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	else
 		tlvs->ets->cfgl->prio_map = 0x00000000;
 
+	/* Default ETS-CFG num_tc to MAX */
+	tlvs->ets->cfgl->max_tcs = MAX_TCS;
 
 	/* Read and parse ETS-REC priority map --
 	 * default all priorities TC0
@@ -300,19 +304,6 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 		}
 	}
 
-	/* Read and parse ETS-CFG number of TCs supported.
-	 * This defaults to value from interface capabilities query.
-	 */
-	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
-		 TLVID_8021(LLDP_8021QAZ_ETSCFG), ARG_ETS_NUMTCS);
-
-	for (i = 0x80, numtcs = 8; i > 0; i = i>>1, numtcs--)
-		if (i & dcb_support->traffic_classes)
-			break;
-	res = get_config_setting(ifname, agent->type, arg_path, &numtcs,
-				 CONFIG_TYPE_INT);
-	tlvs->ets->cfgl->max_tcs = numtcs;
-
 	/* Read and parse ETS-CFG tc transmission selction algorithm map
 	 * This defaults to all traffic classes using strict priority
 	 */
@@ -357,18 +348,8 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	if (!res)
 		tlvs->pfc->local.delay = delay;
 
-	/* Read and parse PFC number of TCs supported.
-	 * This defaults to value from interface capabilities query.
-	 */
-	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
-		 TLVID_8021(LLDP_8021QAZ_PFC), ARG_PFC_NUMTCS);
-
-	for (i = 0x80, numtcs = 8; i > 0; i = i>>1, numtcs--)
-		if (i & dcb_support->pfc_traffic_classes)
-			break;
-	res = get_config_setting(ifname, agent->type, arg_path, &numtcs,
-				 CONFIG_TYPE_INT);
-	tlvs->pfc->local.pfc_cap = numtcs;
+	/* Default PFC capabilities to MAX */
+	tlvs->pfc->local.pfc_cap = MAX_TCS;
 
 	/* Read and add APP data to internal lldpad APP ring */
 	for (i = 0; i < MAX_APP_ENTRIES; i++) {
@@ -446,6 +427,10 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	struct ieee8021qaz_user_data *iud;
 	long adminstatus;
 	feature_support dcb_support;
+	struct ieee_ets *ets = NULL;
+	struct ieee_pfc *pfc = NULL;
+	struct app_prio *data = NULL;
+	int cnt, err;
 
 	if (agent->type != NEAREST_BRIDGE)
 		return;
@@ -546,12 +531,25 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	tlvs->pfc->remote_param = 0;
 
 	LIST_INIT(&tlvs->app_head);
-	read_cfg_file(port->ifname, agent, tlvs, &dcb_support);
+	read_cfg_file(port->ifname, agent, tlvs);
 
 	iud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_8021QAZ);
 	LIST_INSERT_HEAD(&iud->head, tlvs, entry);
 
 initialized:
+	/* Query hardware and set maximum number of TCs with hardware values */
+	err = get_ieee_hw(ifname, &ets, &pfc, &data, &cnt);
+	if (err > 0) {
+		if (ets->ets_cap)
+			tlvs->ets->cfgl->max_tcs = ets->ets_cap;
+		if (pfc->pfc_cap)
+			tlvs->pfc->local.pfc_cap = pfc->pfc_cap;
+
+		free(ets);
+		free(pfc);
+		free(data);
+	}
+
 	/* if the dcbx field is filled in by the capabilities
 	 * query, then the kernel is supports
 	 * IEEE mode, so make IEEE DCBX active by default.
@@ -680,12 +678,24 @@ void print_pfc(struct ieee_pfc *pfc)
 }
 #endif
 
-static struct app_prio *get_ieee_app(const char *ifname, int *cnt)
+/*
+ * get_ieee_hw - Populates IEEE data structures with hardware DCB attributes.
+ *
+ * @ifname: interface name to query
+ * @ets: pointer to copy returned ETS struct
+ * @pfc: pointer to copy returned PFC struct
+ * @app: pointer to copy concatenated APP entries
+ * @cnt: number of app entries returned
+ *
+ * Returns nlmsg bytes size on success otherwise negative error code.
+ */
+static int get_ieee_hw(const char *ifname, struct ieee_ets **ets,
+			struct ieee_pfc **pfc, struct app_prio **app,
+			int *cnt)
 {
 	int err = 0;
 	int rem;
 	int itr = 0;
-	struct app_prio *app = NULL;
 	struct sockaddr_nl dest_addr;
 	static struct nl_handle *nlhandle;
 	struct nl_msg *nlm;
@@ -704,7 +714,7 @@ static struct app_prio *get_ieee_app(const char *ifname, int *cnt)
 			LLDPAD_WARN("%s: %s: nl_handle_alloc failed, %s\n",
 				    __func__, ifname, nl_geterror());
 			*cnt = 0;
-			return NULL;
+			return -ENOMEM;
 		}
 		nl_socket_set_local_port(nlhandle, 0);
 	}
@@ -716,8 +726,10 @@ static struct app_prio *get_ieee_app(const char *ifname, int *cnt)
 	}
 
 	nlm = nlmsg_alloc_simple(RTM_GETDCB, NLM_F_REQUEST);
-	if (!nlm)
+	if (!nlm) {
+		err = -ENOMEM;
 		goto out1;
+	}
 
 	memset(&dest_addr, 0, sizeof(dest_addr));
 	dest_addr.nl_family = AF_NETLINK;
@@ -754,28 +766,81 @@ static struct app_prio *get_ieee_app(const char *ifname, int *cnt)
 		goto out;
 	}
 
-	app = malloc(sizeof(struct app_prio));
-	nla_for_each_nested(nattr, attr, rem) {
-		if (nla_type(nattr) != DCB_ATTR_IEEE_APP_TABLE)
-			continue;
+	*app = malloc(sizeof(struct app_prio));
+	if (*app == NULL) {
+		err = -ENOMEM;
+		goto out;
+	}
 
-		nla_for_each_nested(app_attr, nattr, rem) {
-			struct dcb_app *data = nla_data(app_attr);
-			LLDPAD_DBG("app %i %i %i\n",
-				data->selector,
-				data->protocol,
-				data->priority);
-			app = realloc(app,
-				      sizeof(struct app_prio) * itr +
-				      sizeof(struct app_prio));
-			if (!app) {
-				LLDPAD_WARN("%s: %s: realloc failed\n",
-					    __func__, ifname);
-				goto out;
+	*ets = malloc(sizeof(struct ieee_ets));
+	if (*ets == NULL) {
+		err = -ENOMEM;
+		free(*app);
+		goto out;
+	}
+
+	*pfc = malloc(sizeof(struct ieee_pfc));
+	if (*pfc == NULL) {
+		err = -ENOMEM;
+		free(*app);
+		free(*ets);
+		goto out;
+	}
+
+	memset(*pfc, 0, sizeof(*pfc));
+	memset(*ets, 0, sizeof(*ets));
+	memset(*app, 0, sizeof(*app));
+
+	nla_for_each_nested(nattr, attr, rem) {
+		if (nla_type(nattr) == DCB_ATTR_IEEE_APP_TABLE) {
+			struct app_prio *this_app = *app;
+
+			nla_for_each_nested(app_attr, nattr, rem) {
+				struct dcb_app *data = nla_data(app_attr);
+
+				LLDPAD_DBG("app %i %i %i\n",
+					   data->selector,
+					   data->protocol,
+					   data->priority);
+
+				this_app = realloc(this_app,
+					      sizeof(struct app_prio) * itr +
+					      sizeof(struct app_prio));
+				if (!this_app) {
+					free(this_app);
+					free(*ets);
+					free(*pfc);
+					err = -ENOMEM;
+					LLDPAD_WARN("%s: %s: realloc failed\n",
+						    __func__, ifname);
+					goto out;
+				}
+				this_app[itr].prs =
+					(data->priority << 5) | data->selector;
+				this_app[itr].pid = htons(data->protocol);
+				itr++;
 			}
-			app[itr].prs = (data->priority << 5) | data->selector;
-			app[itr].pid = htons(data->protocol);
-			itr++;
+
+			/* realloc may have moved app so reset it */
+			*app = this_app;
+		}
+
+		if (nla_type(nattr) == DCB_ATTR_IEEE_ETS) {
+			struct ieee_ets *nl_ets = nla_data(nattr);
+
+			memcpy(*ets, nl_ets, sizeof(struct ieee_ets));
+#ifdef LLDPAD_8021QAZ_DEBUG
+			print_ets(nl_ets);
+#endif
+		}
+
+		if (nla_type(nattr) == DCB_ATTR_IEEE_PFC) {
+			struct ieee_pfc *nl_pfc = nla_data(nattr);
+
+			memcpy(*pfc, nl_pfc, sizeof(struct ieee_pfc));
+#ifdef LLDPAD_8021QAZ_DEBUG
+			print_pfc(nl_pfc);
+#endif
 		}
 	}
 
@@ -785,7 +850,7 @@ out:
 	nl_close(nlhandle);
 out1:
 	*cnt = itr;
-	return app;
+	return err;
 }
 
 static int del_ieee_hw(const char *ifname, struct dcb_app *app_data)
@@ -1255,17 +1320,19 @@ bld_ieee8021qaz_app_tlv(char *ifname)
 {
 	struct ieee8021qaz_tlv_app *app = NULL;
 	struct unpacked_tlv *tlv;
+	struct ieee_ets *ets = NULL;
+	struct ieee_pfc *pfc = NULL;
 	struct app_prio *data = NULL;
 	__u8 *ptr;
-	int cnt;
+	int cnt, err;
 
 	tlv = create_tlv();
 	if (!tlv)
 		return NULL;
 
-	data = get_ieee_app(ifname, &cnt);
-	if (!data) {
-		LLDPAD_WARN("%s: %s: get_ieee_app failed\n", __func__, ifname);
+	err = get_ieee_hw(ifname, &ets, &pfc, &data, &cnt);
+	if (!err) {
+		LLDPAD_WARN("%s: %s: get_ieee_hw failed\n", __func__, ifname);
 		goto error;
 	}
 
@@ -1292,12 +1359,16 @@ bld_ieee8021qaz_app_tlv(char *ifname)
 		goto error;
 	}
 
+	free(ets);
+	free(pfc);
 	free(data);
 
 	return tlv;
 
 error:
 	free(tlv);
+	free(ets);
+	free(pfc);
 	free(app);
 	free(data);
 	LLDPAD_WARN("%s: Failed\n", __func__);

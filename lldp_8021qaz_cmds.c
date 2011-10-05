@@ -342,6 +342,7 @@ static int _set_arg_up2tc(struct cmd *cmd, char *args,
 		while (toked_maps) {
 			int tc, prio;
 			u32 mask;
+			u8 max = tlvs->ets->cfgl->max_tcs;
 
 			if (toked_maps[1] != ':') {
 				err = cmd_invalid;
@@ -350,7 +351,7 @@ static int _set_arg_up2tc(struct cmd *cmd, char *args,
 
 			prio = 0x7 & atoi(toked_maps);
 			tc = 0x7 & atoi(&toked_maps[2]);
-			if (tc > 7) {
+			if (tc > (max - 1)) {
 				err = cmd_invalid;
 				goto invalid;
 			}
