@@ -504,10 +504,10 @@ int dcbx_clif_cmd(void *data,
 	if (ilen < DCB_PORT_OFF)
 		return dcb_invalid_cmd;
 	
-	if (ibuf[DCB_VER_OFF] != (CLIF_MSG_VERSION | 0x30)) {
-		printf("unsupported client interface message version %x\n",
-			ibuf[DCB_VER_OFF]);
-		return dcb_invalid_cmd;
+	if (ibuf[DCB_VER_OFF] < (CLIF_DCBMSG_VERSION | 0x30)) {
+		printf("unsupported client interface message version %x %x\n",
+			ibuf[DCB_VER_OFF], CLIF_DCBMSG_VERSION | 0x30);
+		return dcb_ctrl_vers_not_compatible;
 	}
 
 	if (ilen < DCB_PORT_OFF+plen) {

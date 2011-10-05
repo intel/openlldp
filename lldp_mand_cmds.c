@@ -426,7 +426,7 @@ int mand_clif_cmd(void  *data,
 {
 	struct cmd cmd;
 	struct port *port;
-	u8 len;
+	u8 len, version;
 	int ioff, roff;
 	int rstatus = cmd_invalid;
 	char **args;
@@ -436,6 +436,8 @@ int mand_clif_cmd(void  *data,
 	int i, offset;
 
 	/* pull out the command elements of the command message */
+	hexstr2bin(ibuf+MSG_VER, (u8 *)&version, sizeof(u8));
+	version = version >> 4;
 	hexstr2bin(ibuf+CMD_CODE, (u8 *)&cmd.cmd, sizeof(cmd.cmd));
 	hexstr2bin(ibuf+CMD_OPS, (u8 *)&cmd.ops, sizeof(cmd.ops));
 	cmd.ops = ntohl(cmd.ops);
@@ -449,8 +451,14 @@ int mand_clif_cmd(void  *data,
 	cmd.ifname[len] = '\0';
 	ioff += len;
 
-	hexstr2bin(ibuf+ioff, &cmd.type, sizeof(cmd.type));
-	ioff += 2*sizeof(cmd.type);
+	if (version == CLIF_MSG_VERSION) {
+		hexstr2bin(ibuf+ioff, &cmd.type, sizeof(cmd.type));
+		ioff += 2*sizeof(cmd.type);
+	} else {
+		cmd.type = NEAREST_BRIDGE;
+		LLDPAD_WARN("deprecated client interface message version %x\n",
+			     version);
+	}
 
 	if (cmd.cmd == cmd_gettlv || cmd.cmd == cmd_settlv) {
 		hexstr2bin(ibuf+ioff, (u8 *)&cmd.tlvid, sizeof(cmd.tlvid));

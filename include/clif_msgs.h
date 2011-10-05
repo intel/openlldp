@@ -41,8 +41,11 @@
  *   Priority Flow Control feature adds 'number of TC's supported'
 */
 #define CLIF_EV_VERSION 2
-#define CLIF_MSG_VERSION 2
+#define CLIF_MSG_VERSION 3
 #define CLIF_RSP_VERSION CLIF_MSG_VERSION
+
+/* Minimum DCB CLIF MSG version we can resolve */
+#define CLIF_DCBMSG_VERSION 2
 
 /* Client interface global command codes */
 #define UNKNOWN_CMD  '.'
