@@ -208,7 +208,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	/* Read ETS-CFG willing bit -- default willing enabled */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSCFG), ARG_WILLING);
-	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &willing,
+	res = get_config_setting(ifname, agent->type, arg_path, &willing,
 				 CONFIG_TYPE_INT);
 	if (!res)
 		tlvs->ets->cfgl->willing = !!willing;
@@ -218,7 +218,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	/* Read PFC willing bit -- default willing enabled */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_PFC), ARG_WILLING);
-	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &willing,
+	res = get_config_setting(ifname, agent->type, arg_path, &willing,
 				 CONFIG_TYPE_INT);
 	if (!res)
 		tlvs->pfc->local.willing = !!willing;
@@ -230,7 +230,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSCFG), ARG_ETS_UP2TC);
-	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+	res = get_config_setting(ifname, agent->type, arg_path, &arg,
 				 CONFIG_TYPE_STRING);
 	if (!res)
 		set_ets_prio_map(arg, &tlvs->ets->cfgl->prio_map);
@@ -243,7 +243,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSREC), ARG_ETS_UP2TC);
-	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+	res = get_config_setting(ifname, agent->type, arg_path, &arg,
 				 CONFIG_TYPE_STRING);
 	if (!res)
 		set_ets_prio_map(arg, &tlvs->ets->recl->prio_map);
@@ -255,7 +255,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSCFG), ARG_ETS_TCBW);
-	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+	res = get_config_setting(ifname, agent->type, arg_path, &arg,
 				 CONFIG_TYPE_STRING);
 	if (!res) {
 		char *argcpy = strdup(arg);
@@ -277,7 +277,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSREC), ARG_ETS_TCBW);
-	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+	res = get_config_setting(ifname, agent->type, arg_path, &arg,
 				 CONFIG_TYPE_STRING);
 	if (!res) {
 		char *argcpy = strdup(arg);
@@ -303,7 +303,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	for (i = 0x80, numtcs = 8; i > 0; i = i>>1, numtcs--)
 		if (i & dcb_support->traffic_classes)
 			break;
-	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &numtcs,
+	res = get_config_setting(ifname, agent->type, arg_path, &numtcs,
 				 CONFIG_TYPE_INT);
 	tlvs->ets->cfgl->max_tcs = numtcs;
 
@@ -312,7 +312,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSCFG), ARG_ETS_TSA);
-	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+	res = get_config_setting(ifname, agent->type, arg_path, &arg,
 				 CONFIG_TYPE_STRING);
 	if (!res) {
 		set_ets_tsa_map(arg, tlvs->ets->cfgl->tsa_map);
@@ -326,7 +326,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_ETSREC), ARG_ETS_TSA);
-	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+	res = get_config_setting(ifname, agent->type, arg_path, &arg,
 				 CONFIG_TYPE_STRING);
 	if (!res) {
 		set_ets_tsa_map(arg, tlvs->ets->recl->tsa_map);
@@ -338,7 +338,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	/* Read and parse PFC enable bitmask -- default 0x00 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_PFC), ARG_PFC_ENABLED);
-	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &pfc_mask,
+	res = get_config_setting(ifname, agent->type, arg_path, &pfc_mask,
 				 CONFIG_TYPE_INT);
 	if (!res)
 		tlvs->pfc->local.pfc_enable = pfc_mask;
@@ -346,7 +346,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	/* Read and parse PFC delay -- default 0x00 */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 TLVID_8021(LLDP_8021QAZ_PFC), ARG_PFC_DELAY);
-	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &delay,
+	res = get_config_setting(ifname, agent->type, arg_path, &delay,
 				 CONFIG_TYPE_INT);
 	if (!res)
 		tlvs->pfc->local.delay = delay;
@@ -360,7 +360,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	for (i = 0x80, numtcs = 8; i > 0; i = i>>1, numtcs--)
 		if (i & dcb_support->pfc_traffic_classes)
 			break;
-	res = get_config_setting_by_agent(ifname, agent->type, arg_path, &numtcs,
+	res = get_config_setting(ifname, agent->type, arg_path, &numtcs,
 				 CONFIG_TYPE_INT);
 	tlvs->pfc->local.pfc_cap = numtcs;
 
@@ -373,7 +373,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s%i", TLVID_PREFIX,
 			 TLVID_8021(LLDP_8021QAZ_APP), ARG_APP, i);
-		res = get_config_setting_by_agent(ifname, agent->type, arg_path, &arg,
+		res = get_config_setting(ifname, agent->type, arg_path, &arg,
 					 CONFIG_TYPE_STRING);
 
 		if (res)
@@ -464,7 +464,7 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	/* if there is no persistent adminStatus setting then set to enabledRx
 	 * but do not persist that as a setting.
 	 */
-	if (get_config_setting_by_agent(ifname, agent->type, ARG_ADMINSTATUS,
+	if (get_config_setting(ifname, agent->type, ARG_ADMINSTATUS,
 			       (void *)&adminstatus, CONFIG_TYPE_INT)) {
 		set_lldp_agent_admin(ifname, agent->type, enabledRxOnly);
 	}
@@ -1020,7 +1020,7 @@ void run_all_sm(struct port *port, struct lldp_agent *agent)
 	if (!tlvs)
 		return;
 
-	if (!is_tlv_txdisabled(port->ifname, TLVID_8021(LLDP_8021QAZ_ETSCFG))) {
+	if (!is_tlv_txdisabled(port->ifname, agent->type, TLVID_8021(LLDP_8021QAZ_ETSCFG))) {
 		ets_sm(tlvs->ets->cfgl, tlvs->ets->recr,
 		       &tlvs->ets->current_state);
 	}
@@ -1039,7 +1039,7 @@ void run_all_sm(struct port *port, struct lldp_agent *agent)
 	else
 		ets_cfg_to_ieee(ets, tlvs->ets->cfgl);
 
-	if (!is_tlv_txdisabled(port->ifname, TLVID_8021(LLDP_8021QAZ_PFC)))
+	if (!is_tlv_txdisabled(port->ifname, agent->type, TLVID_8021(LLDP_8021QAZ_PFC)))
 		pfc_sm(tlvs);
 
 	if (tlvs->pfc->current_state == RX_RECOMMEND)
@@ -1314,13 +1314,13 @@ static struct packed_tlv *ieee8021qaz_bld_tlv(struct port *port,
 	if (!data->active)
 		return ptlv;
 
-	if (!is_tlv_txdisabled(port->ifname, TLVID_8021(LLDP_8021QAZ_ETSCFG)))
+	if (!is_tlv_txdisabled(port->ifname, agent->type, TLVID_8021(LLDP_8021QAZ_ETSCFG)))
 		etscfg_tlv = bld_ieee8021qaz_etscfg_tlv(data);
-	if (is_tlv_txenabled(port->ifname, TLVID_8021(LLDP_8021QAZ_ETSREC)))
+	if (is_tlv_txenabled(port->ifname, agent->type, TLVID_8021(LLDP_8021QAZ_ETSREC)))
 		etsrec_tlv = bld_ieee8021qaz_etsrec_tlv(data);
-	if (!is_tlv_txdisabled(port->ifname, TLVID_8021(LLDP_8021QAZ_PFC)))
+	if (!is_tlv_txdisabled(port->ifname, agent->type, TLVID_8021(LLDP_8021QAZ_PFC)))
 		pfc_tlv = bld_ieee8021qaz_pfc_tlv(data);
-	if (is_tlv_txenabled(port->ifname, TLVID_8021(LLDP_8021QAZ_APP)))
+	if (is_tlv_txenabled(port->ifname, agent->type, TLVID_8021(LLDP_8021QAZ_APP)))
 		app_tlv = bld_ieee8021qaz_app_tlv(port->ifname);
 
 	size = TLVSIZE(etscfg_tlv)
@@ -1768,7 +1768,7 @@ int ieee8021qaz_rchange(struct port *port, struct lldp_agent *agent,
 
 	if (tlv->type == TYPE_0) {
 		if (qaz_tlvs->active &&
-		    dcbx_tlvs_rxed(qaz_tlvs->ifname) &&
+		    dcbx_tlvs_rxed(qaz_tlvs->ifname, agent) &&
 		   !qaz_tlvs->ieee8021qazdu) {
 			qaz_tlvs->active = false;
 			LLDPAD_INFO("IEEE DCBX on %s going INACTIVE\n",
@@ -1782,7 +1782,7 @@ int ieee8021qaz_rchange(struct port *port, struct lldp_agent *agent,
 			 */
 			long adminstatus;
 			if (qaz_tlvs->ieee8021qazdu &&
-				get_config_setting_by_agent(qaz_tlvs->ifname,
+				get_config_setting(qaz_tlvs->ifname,
 						   agent->type,
 						   ARG_ADMINSTATUS,
 						   (void *)&adminstatus,
@@ -1792,6 +1792,7 @@ int ieee8021qaz_rchange(struct port *port, struct lldp_agent *agent,
 						    enabledRxOnly) {
 				adminstatus = enabledRxTx;
 				if (set_config_setting(qaz_tlvs->ifname,
+						       agent->type,
 						       ARG_ADMINSTATUS,
 						      (void *)&adminstatus,
 						       CONFIG_TYPE_INT) ==

@@ -44,6 +44,7 @@
 #include "config.h"
 #include "clif_msgs.h"
 #include "lldp/states.h"
+#include "messages.h"
 
 static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
@@ -88,6 +89,8 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	char *s;
 	char arg_path[EVB_BUF_SIZE];
 
+	LLDPAD_DBG("%s(%i): \n", __func__, __LINE__);
+
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
 
@@ -96,7 +99,7 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 			 TLVID_PREFIX, cmd->tlvid, arg);
 
-		if (get_cfg(cmd->ifname, arg_path, (void *)&value,
+		if (get_cfg(cmd->ifname, cmd->type, arg_path, (void *)&value,
 					CONFIG_TYPE_BOOL))
 			value = false;
 		break;
@@ -123,6 +126,8 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	int value;
 	char arg_path[EVB_BUF_SIZE];
 
+	LLDPAD_DBG("%s(%i): \n", __func__, __LINE__);
+
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
 
@@ -148,7 +153,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 		 TLVID_PREFIX, cmd->tlvid, arg);
 
-	if (set_cfg(cmd->ifname, arg_path, (void *)&value, CONFIG_TYPE_BOOL))
+	if (set_cfg(cmd->ifname, cmd->type, arg_path, (void *)&value, CONFIG_TYPE_BOOL))
 		return cmd_failed;
 
 	somethingChangedLocal(cmd->ifname, cmd->type);
@@ -247,7 +252,8 @@ static int _set_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.fmode",
 		 TLVID_PREFIX, cmd->tlvid);
 
-	if (set_cfg(ed->ifname, arg_path, (void *) &argvalue, CONFIG_TYPE_STRING)) {
+	if (set_cfg(ed->ifname, cmd->type, arg_path, (void *) &argvalue,
+		    CONFIG_TYPE_STRING)) {
 		printf("%s:%s: saving EVB forwarding mode failed.\n",
 			__func__, ed->ifname);
 		return cmd_invalid;
@@ -359,16 +365,16 @@ static int _set_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
 	if (!ed)
 		return cmd_invalid;
 
-	if (strcasestr(argvalue, VAL_EVB_CAPA_RTE))
+	if (strstr(argvalue, VAL_EVB_CAPA_RTE))
 		scap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
 
-	if (strcasestr(argvalue, VAL_EVB_CAPA_ECP))
+	if (strstr(argvalue, VAL_EVB_CAPA_ECP))
 		scap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
 
-	if (strcasestr(argvalue, VAL_EVB_CAPA_VDP))
+	if (strstr(argvalue, VAL_EVB_CAPA_VDP))
 		scap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
 
-	if (strcasestr(argvalue, VAL_EVB_CAPA_NONE))
+	if (strstr(argvalue, VAL_EVB_CAPA_NONE))
 		scap = 0;
 
 	if (test)
@@ -379,7 +385,8 @@ static int _set_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.capabilities",
 		 TLVID_PREFIX, cmd->tlvid);
 
-	if (set_cfg(ed->ifname, arg_path, (void *) &argvalue, CONFIG_TYPE_STRING)) {
+	if (set_cfg(ed->ifname, cmd->type, arg_path, (void *) &argvalue,
+		    CONFIG_TYPE_STRING)) {
 		printf("%s:%s: saving EVB capabilities failed.\n",
 			__func__, ed->ifname);
 		return cmd_invalid;
@@ -476,7 +483,8 @@ static int _set_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
 	if (err < 0)
 		goto out_err;
 
-	if (set_cfg(ed->ifname, arg_path, (void *) &argvalue, CONFIG_TYPE_STRING))
+	if (set_cfg(ed->ifname, cmd->type, arg_path, (void *) &argvalue,
+		    CONFIG_TYPE_STRING))
 		goto out_err;
 
 	somethingChangedLocal(cmd->ifname, cmd->type);
@@ -580,7 +588,8 @@ static int _set_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
 
 	sv = &svalue[0];
 
-	if (set_cfg(ed->ifname, arg_path, (void *) &sv, CONFIG_TYPE_STRING))
+	if (set_cfg(ed->ifname, cmd->type, arg_path, (void *) &sv,
+		    CONFIG_TYPE_STRING))
 		goto out_err;
 
 	somethingChangedLocal(cmd->ifname, cmd->type);

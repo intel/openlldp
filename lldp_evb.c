@@ -46,6 +46,7 @@
 
 
 extern struct lldp_head lldp_head;
+extern int vdp_vsis(char *ifname);
 
 struct evb_data *evb_data(char *ifname, enum agent_type type)
 {
@@ -100,9 +101,88 @@ static void evb_dump_tlv(struct unpacked_tlv *tlv)
 
 unsigned int evb_get_rte(char *ifname)
 {
+	/* TODO: fixed to ncb for now */
 	struct evb_data *ed = evb_data(ifname, NEAREST_CUSTOMER_BRIDGE);
 
 	return (unsigned int) ed->tie->rte;
+}
+
+/* evb_check_and_fill
+ *
+ * checks values received in TLV and takes over some values
+ */
+int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie)
+{
+	/* sanity check of received data in tie */
+	if ((tie->smode & (LLDP_EVB_CAPABILITY_FORWARD_STANDARD |
+			  LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY)) == 0) {
+		LLDPAD_ERR("Neither standard nor rr set as forwarding mode !");
+		return TLV_ERR;
+	}
+
+	if ((tie->svsi < 0) || (tie->svsi > LLDP_EVB_DEFAULT_MAX_VSI)) {
+		LLDPAD_ERR("nr of supported vsis (%i) exceeds allow value range !", ntohs(tie->svsi));
+		return TLV_ERR;
+	}
+
+	if ((tie->cvsi < 0) || (tie->cvsi > LLDP_EVB_DEFAULT_MAX_VSI)) {
+		LLDPAD_ERR("nr of configured vsis (%i) exceeds allow value range !", ntohs(tie->cvsi));
+		return TLV_ERR;
+	}
+
+	/* check bridge capabilities against local policy*/
+	/* if bridge supports RR and we support it as well, request it
+	 * by setting smode in tlv to be sent out (ed->tie->smode) */
+	if ((tie->smode & LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY) &&
+	     (ed->policy->smode & LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY)) {
+		ed->tie->smode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
+	} else {
+		ed->tie->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
+	}
+
+	/* maybe switch has already set the mode based on the saved info sent
+	 * out on ifup */
+	if (tie->cmode == ed->tie->smode)
+		ed->tie->cmode = tie->cmode;
+
+	ed->tie->scap = ed->policy->scap;
+
+	/* If both sides support RTE, support and configure it */
+	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_RTE) {
+		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
+	} else {
+		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
+	}
+
+	/* If both sides support ECP, set it */
+	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_ECP) {
+		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
+	} else {
+		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
+	}
+
+	/* If both sides support VDP, set it */
+	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_VDP) {
+		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+	} else {
+		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+	}
+
+	/* If supported caps include VDP take over min value of both */
+	if (ed->tie->scap & LLDP_EVB_CAPABILITY_PROTOCOL_VDP) {
+		ed->tie->svsi = tie->svsi;
+		ed->tie->cvsi = htons(vdp_vsis(ed->ifname));
+	} else {
+		ed->tie->svsi = 0;
+		ed->tie->cvsi = 0;
+	}
+
+	/* If both sides support RTE and value offer is > 0, set it */
+	if ((ed->tie->scap & LLDP_EVB_CAPABILITY_PROTOCOL_RTE) &&
+		(tie->rte > 0) && (ed->policy->rte > 0))
+		ed->tie->rte = MAX(ed->policy->rte, tie->rte);
+
+	return TLV_OK;
 }
 
 /* evb_process_tlv - processes the tlv
@@ -134,7 +214,7 @@ static void evb_update_tlv(struct evb_data *ed)
  *
  * Returns 0 on success
  */
-static int evb_bld_cfg_tlv(struct evb_data *ed)
+static int evb_bld_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
 {
 	int rc = 0;
 	struct unpacked_tlv *tlv = NULL;
@@ -142,7 +222,8 @@ static int evb_bld_cfg_tlv(struct evb_data *ed)
 	/* free ed->evb if it exists */
 	FREE_UNPKD_TLV(ed, evb);
 
-	if (!is_tlv_txenabled(ed->ifname, TLVID_8021Qbg(LLDP_EVB_SUBTYPE))) {
+	if (!is_tlv_txenabled(ed->ifname, agent->type,
+			      TLVID_8021Qbg(LLDP_EVB_SUBTYPE))) {
 		LLDPAD_DBG("%s:%s:EVB tx is currently disabled !\n",
 			__func__, ed->ifname);
 		rc = EINVAL;
@@ -188,7 +269,7 @@ static void evb_free_tlv(struct evb_data *ed)
  *
  * fill up tlv_info_evb structure with reasonable info
  */
-static int evb_init_cfg_tlv(struct evb_data *ed)
+static int evb_init_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
 {
 	char arg_path[EVB_BUF_SIZE];
 	char *param;
@@ -213,15 +294,16 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.fmode",
 		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
 
-	if (get_cfg(ed->ifname, arg_path, (void *) &param, CONFIG_TYPE_STRING)) {
+	if (get_cfg(ed->ifname, agent->type, arg_path,
+		    (void *) &param, CONFIG_TYPE_STRING)) {
 		LLDPAD_INFO("%s:%s: loading EVB policy for forwarding mode failed, using default.\n",
 			__func__, ed->ifname);
 	} else {
-		if (strcasestr(param, VAL_EVB_FMODE_BRIDGE)) {
+		if (strstr(param, VAL_EVB_FMODE_BRIDGE)) {
 			ed->policy->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
 		}
 
-		if (strcasestr(param, VAL_EVB_FMODE_REFLECTIVE_RELAY)) {
+		if (strstr(param, VAL_EVB_FMODE_REFLECTIVE_RELAY)) {
 			ed->policy->smode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
 		}
 
@@ -233,23 +315,24 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.capabilities",
 		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
 
-	if (get_cfg(ed->ifname, arg_path, (void *) &param, CONFIG_TYPE_STRING)) {
+	if (get_cfg(ed->ifname, agent->type, arg_path,
+		    (void *) &param, CONFIG_TYPE_STRING)) {
 		LLDPAD_INFO("%s:%s: loading EVB policy for capabilities failed, using default.\n",
 			__func__, ed->ifname);
 	} else {
-		if (strcasestr(param, VAL_EVB_CAPA_RTE)) {
+		if (strstr(param, VAL_EVB_CAPA_RTE)) {
 			ed->policy->scap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
 		}
 
-		if (strcasestr(param, VAL_EVB_CAPA_ECP)) {
+		if (strstr(param, VAL_EVB_CAPA_ECP)) {
 			ed->policy->scap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
 		}
 
-		if (strcasestr(param, VAL_EVB_CAPA_VDP)) {
+		if (strstr(param, VAL_EVB_CAPA_VDP)) {
 			ed->policy->scap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
 		}
 
-		if (strcasestr(param, VAL_EVB_CAPA_NONE)) {
+		if (strstr(param, VAL_EVB_CAPA_NONE)) {
 			ed->policy->scap = 0;
 		}
 
@@ -261,7 +344,8 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.rte",
 		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
 
-	if (get_cfg(ed->ifname, arg_path, (void *) &param, CONFIG_TYPE_STRING)) {
+	if (get_cfg(ed->ifname, NEAREST_CUSTOMER_BRIDGE, arg_path,
+		    (void *) &param, CONFIG_TYPE_STRING)) {
 		LLDPAD_INFO("%s:%s: loading EVB policy for rte failed, using default.\n",
 			__func__, ed->ifname);
 	} else {
@@ -275,7 +359,8 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.vsis",
 		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
 
-	if (get_cfg(ed->ifname, arg_path, (void *) &param, CONFIG_TYPE_STRING)) {
+	if (get_cfg(ed->ifname, agent->type, arg_path,
+		    (void *) &param, CONFIG_TYPE_STRING)) {
 		LLDPAD_INFO("%s:%s: loading EVB policy for vsis failed, using default.\n",
 			__func__, ed->ifname);
 	} else {
@@ -285,7 +370,6 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 		LLDPAD_DBG("%s:%s: policy param vsis = %i.\n", __func__, ed->ifname, ntohs(ed->policy->svsi));
 	}
 
-	/* load last used EVB TLV ... */
 	ed->tie = (struct tlv_info_evb *) calloc(1, sizeof(struct tlv_info_evb));
 
 	if (!ed->tie) {
@@ -294,22 +378,17 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 		return ENOMEM;
 	}
 
-	if (get_config_tlvinfo_bin(ed->ifname, TLVID_8021Qbg(LLDP_EVB_SUBTYPE),
-			       (void *)ed->tie, sizeof(struct tlv_info_evb))) {
-		LLDPAD_INFO("%s:%s: loading last used EVB TLV failed, using default.\n",
-			__func__, ed->ifname);
-		hton24(ed->tie->oui, LLDP_MOD_EVB);
-		ed->tie->smode = ed->policy->smode;
-		ed->tie->cmode = 0x0;
-		ed->tie->scap  = ed->policy->scap;
-		ed->tie->ccap = 0x0;
-		ed->tie->svsi = htons(LLDP_EVB_DEFAULT_SVSI);
-		ed->tie->cvsi = htons(0x0);
-		ed->tie->rte = LLDP_EVB_DEFAULT_RTE;
-	} else {
-		LLDPAD_INFO("%s(%i): loaded last used EVB TLV from file.\n", __FILE__, __LINE__);
-	}
+	hton24(ed->tie->oui, LLDP_MOD_EVB);
+	ed->tie->smode = ed->policy->smode;
+	ed->tie->cmode = 0x0;
+	ed->tie->scap  = ed->policy->scap;
+	ed->tie->ccap = 0x0;
+	ed->tie->svsi = htons(LLDP_EVB_DEFAULT_SVSI);
+	ed->tie->cvsi = htons(0x0);
+	ed->tie->rte = LLDP_EVB_DEFAULT_RTE;
 
+	LLDPAD_INFO("%s:%s: filling last used EVB TLV, using default.\n",
+		__func__, ed->ifname);
 	ed->last = (struct tlv_info_evb *) calloc(1, sizeof(struct tlv_info_evb));
 
 	if (!ed->last) {
@@ -320,12 +399,13 @@ static int evb_init_cfg_tlv(struct evb_data *ed)
 		return ENOMEM;
 	}
 
-	ed->last->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
+	ed->last->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD | \
+			  LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
 
 	return 0;
 }
 
-static int evb_bld_tlv(struct evb_data *ed)
+static int evb_bld_tlv(struct evb_data *ed, struct lldp_agent *agent)
 {
 	int rc = 0;
 
@@ -334,7 +414,7 @@ static int evb_bld_tlv(struct evb_data *ed)
 		goto out_err;
 	}
 
-	if (evb_bld_cfg_tlv(ed)) {
+	if (evb_bld_cfg_tlv(ed, agent)) {
 		LLDPAD_DBG("%s:%s:evb_bld_cfg_tlv() failed\n",
 				__func__, ed->ifname);
 		rc = EINVAL;
@@ -369,7 +449,7 @@ struct packed_tlv *evb_gettlv(struct port *port, struct lldp_agent *agent)
 
 	evb_free_tlv(ed);
 
-	if (evb_bld_tlv(ed)) {
+	if (evb_bld_tlv(ed, agent)) {
 		LLDPAD_DBG("%s:%s evb_bld_tlv failed\n",
 			__func__, port->ifname);
 		goto disabled;
@@ -400,92 +480,6 @@ out_err:
 	return NULL;
 }
 
-/* evb_check_and_fill
- *
- * checks values received in TLV and takes over some values
- */
-int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie)
-{
-	/* sanity check of received data in tie */
-	if ((tie->smode & (LLDP_EVB_CAPABILITY_FORWARD_STANDARD |
-			  LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY)) == 0) {
-		LLDPAD_ERR("Neither standard nor rr set as forwarding mode !");
-		return TLV_ERR;
-	}
-
-	if ((tie->svsi < 0) || (tie->svsi > LLDP_EVB_DEFAULT_MAX_VSI)) {
-		LLDPAD_ERR("nr of supported vsis (%i) exceeds allow value range !", ntohs(tie->svsi));
-		return TLV_ERR;
-	}
-
-	if ((tie->cvsi < 0) || (tie->cvsi > LLDP_EVB_DEFAULT_MAX_VSI)) {
-		LLDPAD_ERR("nr of configured vsis (%i) exceeds allow value range !", ntohs(tie->cvsi));
-		return TLV_ERR;
-	}
-
-	/* check bridge capabilities against local policy*/
-	/* if bridge supports RR and we support it as well, request it
-	 * by setting smode in tlv to be sent out (ed->tie->smode) */
-	if ((tie->smode & LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY) &&
-	     (ed->policy->smode & LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY)) {
-		ed->tie->smode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
-	} else {
-		ed->tie->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
-	}
-
-	/* maybe switch has already set the mode based on the saved info sent
-	 * out on ifup */
-
-	if (tie->cmode == ed->tie->smode)
-		ed->tie->cmode = tie->cmode;
-
-	ed->tie->scap = ed->policy->scap;
-
-	/* If both sides support RTE, support and configure it */
-	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_RTE) {
-		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
-	} else {
-		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
-	}
-
-	/* If both sides support ECP, set it */
-	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_ECP) {
-		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
-	} else {
-		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
-	}
-
-	/* If both sides support VDP, set it */
-	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_VDP) {
-		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
-	} else {
-		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
-	}
-
-	/* If supported caps include VDP take over min value of both */
-	if (ed->tie->scap & LLDP_EVB_CAPABILITY_PROTOCOL_VDP) {
-		ed->tie->svsi = tie->svsi;
-		ed->tie->cvsi = htons(vdp_vsis(ed->ifname));
-	} else {
-		ed->tie->svsi = 0;
-		ed->tie->cvsi = 0;
-	}
-
-	/* If both sides support RTE and value offer is > 0, set it */
-	if ((ed->tie->scap & LLDP_EVB_CAPABILITY_PROTOCOL_RTE) &&
-		(tie->rte > 0) && (ed->policy->rte > 0))
-		ed->tie->rte = MAX(ed->policy->rte,tie->rte);
-
-	if (set_config_tlvinfo_bin(ed->ifname, TLVID_8021Qbg(LLDP_EVB_SUBTYPE),
-			       (void *)ed->tie, sizeof(struct tlv_info_evb))) {
-		LLDPAD_ERR("%s(%i): error saving tlv_info_evb !\n", __FILE__, __LINE__);
-	} else {
-		LLDPAD_INFO("%s(%i): saved tlv_info_evb to config !\n", __FILE__, __LINE__);
-	}
-
-	return TLV_OK;
-}
-
 /*
  * evb_rchange: process RX TLV LLDPDU
  *
@@ -514,7 +508,8 @@ static int evb_rchange(struct port *port, struct lldp_agent *agent,
 		}
 
 		/* disable rx if tx has been disabled by administrator */
-		if (!is_tlv_txenabled(ed->ifname, TLVID_8021Qbg(LLDP_EVB_SUBTYPE))) {
+		if (!is_tlv_txenabled(ed->ifname, agent->type,
+				      TLVID_8021Qbg(LLDP_EVB_SUBTYPE))) {
 			LLDPAD_WARN("%s:%s:EVB Config disabled\n",
 				__func__, ed->ifname);
 			return TLV_OK;
@@ -579,12 +574,12 @@ void evb_ifup(char *ifname, struct lldp_agent *agent)
 	strncpy(ed->ifname, ifname, IFNAMSIZ);
 	ed->agenttype = agent->type;
 
-	if (evb_init_cfg_tlv(ed)) {
+	if (evb_init_cfg_tlv(ed, agent)) {
 		LLDPAD_ERR("%s:%s evb_init_cfg_tlv failed\n", __func__, ifname);
 		goto out_free;
 	}
 
-	evb_bld_tlv(ed);
+	evb_bld_tlv(ed, agent);
 
 	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_EVB);
 	LIST_INSERT_HEAD(&ud->head, ed, entry);
@@ -605,7 +600,8 @@ u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
 
-	if (!is_tlv_txenabled(port->ifname, TLVID_8021Qbg(LLDP_EVB_SUBTYPE))) {
+	if (!is_tlv_txenabled(port->ifname, agent->type,
+			      TLVID_8021Qbg(LLDP_EVB_SUBTYPE))) {
 		goto out_err;
 	}
 
@@ -619,12 +615,12 @@ u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 	free(ed->last);
 	free(ed->policy);
 
-	if (evb_init_cfg_tlv(ed)) {
+	if (evb_init_cfg_tlv(ed, agent)) {
 		LLDPAD_ERR("%s:%s evb_init_cfg_tlv failed\n", __func__, port->ifname);
 		goto out_err;
 	}
 
-	evb_bld_tlv(ed);
+	evb_bld_tlv(ed, agent);
 
 out_err:
 	return 0;

@@ -139,7 +139,11 @@ static const char *commands_options =
 "                                       implemented for DCBX App TLV settings)\n"
 "  -n                                   \"neighbor\" option for command\n"
 "  -r                                   show raw message\n"
-"  -R                                   show only raw messages\n";
+"  -R                                   show only raw messages\n"
+"  -g					destination agent (may be one of):\n"
+"						- nearestbridge (nb) (default)\n"
+"						- nearestcustomerbridge (ncb)\n"
+"						- nearestnontpmrbridge (nntpmrb)\n";
 
 static const char *commands_help =
 "Commands:\n"
@@ -214,7 +218,7 @@ int hex2int(char *b)
 	int i;
 	int n=0;
 	int m;
-	
+
 	for (i=0,m=1; i<2; i++,m--) {
 		if (isxdigit(*(b+i))) {
 			if (*(b+i) <= '9')
@@ -443,12 +447,13 @@ static int request(struct clif *clif, int argc, char *argv[])
 
 	memset((void *)&command, 0, sizeof(command));
 	command.cmd = cmd_nop;
+	command.type = NEAREST_BRIDGE;
 	command.module_id = LLDP_MOD_MAND;
 	command.tlvid = INVALID_TLVID;
 
 	opterr = 0;
 	for (;;) {
-		c = getopt(argc, argv, "Si:tTlLhcdnvrRqV:");
+		c = getopt(argc, argv, "Si:tTlLhcdnvrRqV:g:");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -462,6 +467,21 @@ static int request(struct clif *clif, int argc, char *argv[])
 		case 'i':
 			strncpy(command.ifname, optarg, IFNAMSIZ);
 			command.ifname[IFNAMSIZ] ='\0';
+			break;
+		case 'g':
+			if (!strcasecmp(optarg, "nearestbridge") ||
+			    !strcasecmp(optarg, "nb"))
+				command.type = NEAREST_BRIDGE;
+			else if (!strcasecmp(optarg, "nearestcustomerbridge") ||
+				 !strcasecmp(optarg, "ncb"))
+				command.type = NEAREST_CUSTOMER_BRIDGE;
+			else if (!strcasecmp(optarg, "nearestnontmprbridge") ||
+				 !strcasecmp(optarg, "nntpmrb"))
+				command.type = NEAREST_NONTPMR_BRIDGE;
+			else {
+				printf("Invalid agent specified !\n\n");
+				return -1;
+			}
 			break;
 		case 'V':
 			if (command.tlvid != INVALID_TLVID) {

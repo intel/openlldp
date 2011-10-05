@@ -33,9 +33,6 @@
 #define DEFAULT_CFG_FILE "/var/lib/lldpad/lldpad.conf"
 
 #define LLDP_SETTING	"lldp"
-#define LLDP_NB		"nearest_bridge"
-#define LLDP_NCB	"nearest_customer_bridge"
-#define LLDP_NNTPB	"nearest_nontpmr_bridge"
 #define LLDP_COMMON	"common"
 
 #define INI_TIMER	5
@@ -50,32 +47,31 @@
 extern char *cfg_file_name;
 
 void scan_port(void *eloop_data, void *user_ctx);
-int get_cfg(const char *ifname, char *path, void *value, int type);
-int set_cfg(const char *ifname, char *path, void *value, int type);
-int get_config_setting(const char *ifname, char *path, void *value, int type);
-int get_config_setting_by_agent(const char *ifname, int agenttype, char *path, void *value, int type);
-int set_config_setting(const char *ifname, char *path, void *value, int type);
-int remove_config_setting(const char *ifname, char *parent, char *name);
-int get_config_tlvfield(const char *ifname, u32 tlvid, const char *field, void *value, int type);
-int get_config_tlvfield_int(const char *ifname, u32 tlvid, const char *field, int *value);
-int get_config_tlvfield_bool(const char *ifname, u32 tlvid, const char *field, int *value);
-int get_config_tlvfield_bin(const char *ifname, u32 tlvid, const char *field, void *value, size_t size);
-int get_config_tlvfield_str(const char *ifname, u32 tlvid, const char *field, void *value, size_t size);
-int get_config_tlvinfo_bin(const char *ifname, u32 tlvid, void *value, size_t size);
-int get_config_tlvinfo_str(const char *ifname, u32 tlvid, void *value, size_t size);
-int set_config_tlvfield(const char *ifname, u32 tlvid, const char *field, void *value, int type);
-int set_config_tlvfield_int(const char *ifname, u32 tlvid, const char *field, int *value);
-int set_config_tlvfield_bool(const char *ifname, u32 tlvid, const char *field, int *value);
-int set_config_tlvfield_bin(const char *ifname, u32 tlvid, const char *field, void *value, size_t size);
-int set_config_tlvfield_str(const char *ifname, u32 tlvid, const char *field, void *value, size_t size);
-int set_config_tlvinfo_bin(const char *ifname, u32 tlvid, void *value, size_t size);
-int set_config_tlvinfo_str(const char *ifname, u32 tlvid, void *value, size_t size);
-int is_tlv_txdisabled(const char *ifname, u32 tlvid);
-int is_tlv_txenabled(const char *ifname, u32 tlvid);
-int tlv_enabletx(const char *ifname, u32 tlvid);
-int tlv_disabletx(const char *ifname, u32 tlvid);
-int get_med_devtype(const char *ifname);
-void set_med_devtype(const char *ifname, int devtype);
+int get_cfg(const char *ifname, int agenttype, char *path, void *value, int type);
+int set_cfg(const char *ifname, int agenttype, char *path, void *value, int type);
+int get_config_setting(const char *ifname, int agenttype, char *path, void *value, int type);
+int set_config_setting(const char *ifname, int agenttype, char *path, void *value, int type);
+int remove_config_setting(const char *ifname, int agenttype, char *parent, char *name);
+int get_config_tlvfield(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, int type);
+int get_config_tlvfield_int(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value);
+int get_config_tlvfield_bool(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value);
+int get_config_tlvfield_bin(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, size_t size);
+int get_config_tlvfield_str(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, size_t size);
+int get_config_tlvinfo_bin(const char *ifname, int agenttype, u32 tlvid, void *value, size_t size);
+int get_config_tlvinfo_str(const char *ifname, int agenttype, u32 tlvid, void *value, size_t size);
+int set_config_tlvfield(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, int type);
+int set_config_tlvfield_int(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value);
+int set_config_tlvfield_bool(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value);
+int set_config_tlvfield_bin(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, size_t size);
+int set_config_tlvfield_str(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, size_t size);
+int set_config_tlvinfo_bin(const char *ifname, int agenttype, u32 tlvid, void *value, size_t size);
+int set_config_tlvinfo_str(const char *ifname, int agenttype, u32 tlvid, void *value, size_t size);
+int is_tlv_txdisabled(const char *ifname, int agenttype, u32 tlvid);
+int is_tlv_txenabled(const char *ifname, int agenttype, u32 tlvid);
+int tlv_enabletx(const char *ifname, int agenttype, u32 tlvid);
+int tlv_disabletx(const char *ifname, int agenttype, u32 tlvid);
+int get_med_devtype(const char *ifname, int agenttype);
+void set_med_devtype(const char *ifname, int agenttype, int devtype);
 
 void create_default_cfg_file(void);
 int get_int_config(config_setting_t *s, char *attr, int int_type, int *result);

@@ -40,6 +40,7 @@
 #include "lldp_rtnl.h"
 #include "lldp_dcbx_nl.h"
 #include "agent.h"
+#include "lldp_dcbx_nl.h"
 
 struct port *porthead = NULL; /* port Head pointer */
 
@@ -136,9 +137,10 @@ void set_lldp_agent_admin(const char *ifname, int type, int admin)
 			 * on a global setting change
 			 */
 			if (all && (!get_config_setting(port->ifname,
-						      ARG_ADMINSTATUS,
-			                             (void *)&tmp,
-						      CONFIG_TYPE_INT))) {
+							type,
+							ARG_ADMINSTATUS,
+							(void *)&tmp,
+							CONFIG_TYPE_INT))) {
 				port = port->next;
 				continue;
 			}
@@ -320,7 +322,7 @@ fail:
 	return NULL;
 }
 
-int remove_port(const char *ifname)
+int remove_port(char *ifname)
 {
 	struct port *port = NULL;    /* Pointer to port to remove */
 	struct port *parent = NULL;  /* Pointer to previous on port stack */

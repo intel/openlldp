@@ -76,7 +76,7 @@ struct dcbx_tlvs *dcbx_data(const char *);
 }
 #endif
 
-int dcbx_tlvs_rxed(const char *ifname);
+int dcbx_tlvs_rxed(const char *ifname, struct lldp_agent *);
 int dcbx_check_active(const char *ifname);
 int dcbx_get_legacy_version();
 

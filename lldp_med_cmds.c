@@ -85,8 +85,9 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 			 TLVID_PREFIX, cmd->tlvid, arg);
 
-		if (get_config_setting(cmd->ifname, arg_path, (void *)&value,
-					CONFIG_TYPE_BOOL))
+		if (get_config_setting(cmd->ifname, cmd->type, arg_path,
+				       (void *)&value,
+				       CONFIG_TYPE_BOOL))
 			value = false;
 		break;
 	case INVALID_TLVID:
@@ -148,8 +149,8 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, arg);
 
-	if (set_config_setting(cmd->ifname, arg_path, (void *)&value,
-			       CONFIG_TYPE_BOOL))
+	if (set_config_setting(cmd->ifname, cmd->type, arg_path,
+			       (void *)&value, CONFIG_TYPE_BOOL))
 		return cmd_failed;
 
 	snprintf(obuf, obuf_len, "enableTx = %s\n", value ? "yes" : "no");
@@ -182,7 +183,7 @@ static int get_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
 
 	switch (cmd->tlvid) {
 	case (OUI_TIA_TR41 << 8):
-		value = get_med_devtype(cmd->ifname);
+		value = get_med_devtype(cmd->ifname, cmd->type);
 		break;
 	case (OUI_TIA_TR41 << 8) | LLDP_MED_CAPABILITIES:
 	case (OUI_TIA_TR41 << 8) | LLDP_MED_NETWORK_POLICY:
@@ -276,41 +277,41 @@ static int _set_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
 	if (test)
 		return cmd_success;
 
-	set_med_devtype(cmd->ifname, value);
+	set_med_devtype(cmd->ifname, cmd->type, value);
 
 	/* set up default enabletx values based on class type */
 	switch (value) {
 	case LLDP_MED_DEVTYPE_NOT_DEFINED:
-		tlv_disabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_RESERVED);
-		tlv_disabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_CAPABILITIES);
-		tlv_disabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_NETWORK_POLICY);
-		tlv_disabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_LOCATION_ID);
-		tlv_disabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_EXTENDED_PVMDI);
-		tlv_disabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_HWREV);
-		tlv_disabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_FWREV);
-		tlv_disabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_SWREV);
-		tlv_disabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_SERIAL);
-		tlv_disabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_MANUFACTURER);
-		tlv_disabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_MODELNAME);
-		tlv_disabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_ASSETID);
+		tlv_disabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_RESERVED);
+		tlv_disabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_CAPABILITIES);
+		tlv_disabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_NETWORK_POLICY);
+		tlv_disabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_LOCATION_ID);
+		tlv_disabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_EXTENDED_PVMDI);
+		tlv_disabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_HWREV);
+		tlv_disabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_FWREV);
+		tlv_disabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_SWREV);
+		tlv_disabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_SERIAL);
+		tlv_disabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_MANUFACTURER);
+		tlv_disabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_MODELNAME);
+		tlv_disabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_ASSETID);
 		break;
 
 	case LLDP_MED_DEVTYPE_ENDPOINT_CLASS_III:
 	case LLDP_MED_DEVTYPE_ENDPOINT_CLASS_II:
-		tlv_enabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_NETWORK_POLICY);
+		tlv_enabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_NETWORK_POLICY);
 	case LLDP_MED_DEVTYPE_ENDPOINT_CLASS_I:
 	case LLDP_MED_DEVTYPE_NETWORK_CONNECTIVITY:
-		tlv_enabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_RESERVED);
-		tlv_enabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_CAPABILITIES);
-		tlv_enabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_HWREV);
-		tlv_enabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_FWREV);
-		tlv_enabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_SWREV);
-		tlv_enabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_SERIAL);
-		tlv_enabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_MANUFACTURER);
-		tlv_enabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_MODELNAME);
-		tlv_enabletx(cmd->ifname, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_ASSETID);
-		tlv_enabletx(cmd->ifname, SYSTEM_CAPABILITIES_TLV);
-		tlv_enabletx(cmd->ifname, (LLDP_MOD_8023 << 8) | LLDP_8023_MACPHY_CONFIG_STATUS);
+		tlv_enabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_RESERVED);
+		tlv_enabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_CAPABILITIES);
+		tlv_enabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_HWREV);
+		tlv_enabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_FWREV);
+		tlv_enabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_SWREV);
+		tlv_enabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_SERIAL);
+		tlv_enabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_MANUFACTURER);
+		tlv_enabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_MODELNAME);
+		tlv_enabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_INV_ASSETID);
+		tlv_enabletx(cmd->ifname, cmd->type, SYSTEM_CAPABILITIES_TLV);
+		tlv_enabletx(cmd->ifname, cmd->type, (LLDP_MOD_8023 << 8) | LLDP_8023_MACPHY_CONFIG_STATUS);
 		break;
 	default:
 		return cmd_failed;

@@ -77,9 +77,9 @@ int get_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_bad_params;
 
 	if (cmd->tlvid != INVALID_TLVID)
-    		return cmd_bad_params;
+		return cmd_bad_params;
 
-	if (get_config_setting(cmd->ifname, arg, (void *)&value,
+	if (get_config_setting(cmd->ifname, cmd->type, arg, (void *)&value,
 				CONFIG_TYPE_INT))
 		value = disabled;
 
@@ -226,7 +226,7 @@ int _set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue,
 	if (test)
 		return cmd_success;
 
-	if (set_config_setting(cmd->ifname, arg, (void *)&value,
+	if (set_config_setting(cmd->ifname, cmd->type, arg, (void *)&value,
 			       CONFIG_TYPE_INT)) {
 		return cmd_failed;
 	}

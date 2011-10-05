@@ -160,7 +160,7 @@ static int mand_bld_end_tlv(struct mand_data *md)
  * - No validation on data loaded from config other than the subtype
  *
  */
-static int mand_bld_chassis_tlv(struct mand_data *md)
+static int mand_bld_chassis_tlv(struct mand_data *md, struct lldp_agent *agent)
 {
 	int rc = EINVAL;
 	int devtype;
@@ -185,10 +185,10 @@ static int mand_bld_chassis_tlv(struct mand_data *md)
 		goto bld_tlv;
 	
 	/* subtype may differ when LLDP-MED is enabled */
-	if (!is_tlv_txenabled(md->ifname, TLVID_MED(LLDP_MED_RESERVED)))
+	if (!is_tlv_txenabled(md->ifname, agent->type, TLVID_MED(LLDP_MED_RESERVED)))
 		goto bld_config;
 
-	devtype = get_med_devtype(md->ifname);
+	devtype = get_med_devtype(md->ifname, agent->type);
 	LLDPAD_DBG("%s:%s:MED enabled w/ devtype=%d)\n",
 			__func__, md->ifname, devtype);
 	if (devtype == LLDP_MED_DEVTYPE_NETWORK_CONNECTIVITY)
@@ -203,7 +203,7 @@ bld_config:
 	memset(chastr, 0, sizeof(chastr));
 
 	/* load from config */
-	if (get_config_tlvinfo_str(md->ifname, TLVID_NOUI(CHASSIS_ID_TLV),
+	if (get_config_tlvinfo_str(md->ifname, agent->type, TLVID_NOUI(CHASSIS_ID_TLV),
 		 		   chastr, sizeof(chastr)))
 		goto bld_macaddr;
 	length = strlen(chastr) / 2;
@@ -273,8 +273,9 @@ bld_tlv:
 	lldpad_shm_set_msap(md->ifname, CHASSIS_ID_TLV, (char *)tlv->info,
 			    tlv->length);
 
-	set_config_tlvinfo_bin(md->ifname, TLVID_NOUI(CHASSIS_ID_TLV),
-		 	       tlv->info, tlv->length);
+	set_config_tlvinfo_bin(md->ifname, agent->type,
+			       TLVID_NOUI(CHASSIS_ID_TLV),
+			       tlv->info, tlv->length);
 
 	rc = 0;
 out_err:
@@ -310,7 +311,7 @@ out_err:
  * - No validation on data loaded from config other than the subtype
  *
  */
-static int mand_bld_portid_tlv(struct mand_data *md)
+static int mand_bld_portid_tlv(struct mand_data *md, struct lldp_agent *agent)
 {
 	int rc = EINVAL;
 	int devtype;
@@ -336,10 +337,11 @@ static int mand_bld_portid_tlv(struct mand_data *md)
 		goto bld_tlv;
 
 	/* subtype may differ when LLDP-MED is enabled */
-	if (!is_tlv_txenabled(md->ifname, TLVID_MED(LLDP_MED_RESERVED)))
+	if (!is_tlv_txenabled(md->ifname, agent->type,
+			      TLVID_MED(LLDP_MED_RESERVED)))
 		goto bld_config;
 
-	devtype = get_med_devtype(md->ifname);
+	devtype = get_med_devtype(md->ifname, agent->type);
 	LLDPAD_DBG("%s:%s:MED enabled w/ devtype=%d)\n",
 			__func__, md->ifname, devtype);
 
@@ -350,8 +352,9 @@ bld_config:
 	/* load from config */
 
 	memset(porstr, 0, sizeof(porstr));
-	if (get_config_tlvinfo_str(md->ifname, TLVID_NOUI(PORT_ID_TLV),
-		 		   porstr, sizeof(porstr)))
+	if (get_config_tlvinfo_str(md->ifname, agent->type,
+				   TLVID_NOUI(PORT_ID_TLV),
+				   porstr, sizeof(porstr)))
 		goto bld_macaddr;
 	length = strlen(porstr) / 2;
 	if (hexstr2bin(porstr, (u8 *)&portid, length))
@@ -419,8 +422,9 @@ bld_tlv:
 	lldpad_shm_set_msap(md->ifname, PORT_ID_TLV, (char *)tlv->info,
 			    tlv->length);
 
-	set_config_tlvinfo_bin(md->ifname, TLVID_NOUI(PORT_ID_TLV),
-		 	       tlv->info, tlv->length);
+	set_config_tlvinfo_bin(md->ifname, agent->type,
+			       TLVID_NOUI(PORT_ID_TLV),
+			       tlv->info, tlv->length);
 	rc = 0;
 out_err:
 	return rc;
@@ -518,12 +522,12 @@ static int mand_bld_tlv(struct mand_data *md, struct lldp_agent *agent)
 		goto out_err;
 	}
 
-	if (mand_bld_chassis_tlv(md)) {
+	if (mand_bld_chassis_tlv(md, agent)) {
 		LLDPAD_DBG("%s:%s:mand_bld_chassis_tlv() failed\n",
 				__func__, md->ifname);
 		goto out_err;
 	}
-	if (mand_bld_portid_tlv(md)) {
+	if (mand_bld_portid_tlv(md, agent)) {
 		LLDPAD_DBG("%s:%s:mand_bld_portid_tlv() failed\n",
 				__func__, md->ifname);
 		goto out_err;

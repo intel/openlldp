@@ -158,6 +158,8 @@ void set_lldp_agent_admin(const char *ifname, int type, int enable);
 int get_lldp_agent_admin(const char *ifname, int type);
 int get_lldp_agent_statistics(const char *ifname, struct agentstats *, int);
 
+const char *agent_type2section(int agenttype);
+
 int start_lldp_agents(void);
 void stop_lldp_agents(void);
 void clean_lldp_agents(void);

@@ -199,7 +199,8 @@ static int _set_arg_willing(struct cmd *cmd, char *args,
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, args);
-	set_config_setting(cmd->ifname, arg_path, &willing, CONFIG_TYPE_INT);
+	set_config_setting(cmd->ifname, cmd->type, arg_path, &willing,
+			   CONFIG_TYPE_INT);
 	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
@@ -382,7 +383,7 @@ static int _set_arg_up2tc(struct cmd *cmd, char *args,
 	/* Update configuration file with new attribute */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, args);
-	set_config_setting(cmd->ifname, arg_path, &arg_value,
+	set_config_setting(cmd->ifname, cmd->type, arg_path, &arg_value,
 			   CONFIG_TYPE_STRING);
 	somethingChangedLocal(cmd->ifname, cmd->type);
 invalid:
@@ -509,7 +510,7 @@ static int _set_arg_tcbw(struct cmd *cmd, char *args,
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, args);
-	set_config_setting(cmd->ifname, arg_path, &arg_value,
+	set_config_setting(cmd->ifname, cmd->type, arg_path, &arg_value,
 			   CONFIG_TYPE_STRING);
 	somethingChangedLocal(cmd->ifname, cmd->type);
 invalid:
@@ -703,7 +704,7 @@ static int _set_arg_tsa(struct cmd *cmd, char *args, char *arg_value,
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 		 TLVID_PREFIX, cmd->tlvid, args);
-	set_config_setting(cmd->ifname, arg_path, &arg_value,
+	set_config_setting(cmd->ifname, cmd->type, arg_path, &arg_value,
 			   CONFIG_TYPE_STRING);
 	somethingChangedLocal(cmd->ifname, cmd->type);
 invalid:
@@ -844,7 +845,8 @@ static int _set_arg_enabled(struct cmd *cmd, char *args,
 	/* Set configuration */
 	snprintf(arg_path, sizeof(arg_path),
 		 "%s%08x.%s", TLVID_PREFIX, cmd->tlvid, args);
-	set_config_setting(cmd->ifname, arg_path, &mask, CONFIG_TYPE_INT);
+	set_config_setting(cmd->ifname, cmd->type, arg_path, &mask,
+			   CONFIG_TYPE_INT);
 	tlvs->pfc->local.pfc_enable = mask;
 	somethingChangedLocal(cmd->ifname, cmd->type);
 invalid:
@@ -925,7 +927,8 @@ static int _set_arg_delay(struct cmd *cmd, char *args,
 	/* Set configuration */
 	snprintf(arg_path, sizeof(arg_path),
 		 "%s%08x.%s", TLVID_PREFIX, cmd->tlvid, args);
-	set_config_setting(cmd->ifname, arg_path, &delay, CONFIG_TYPE_INT);
+	set_config_setting(cmd->ifname, cmd->type, arg_path, &delay,
+			   CONFIG_TYPE_INT);
 
 	somethingChangedLocal(cmd->ifname, cmd->type);
 
@@ -1099,8 +1102,8 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s%i", TLVID_PREFIX,
 			 TLVID_8021(LLDP_8021QAZ_APP), ARG_APP, i);
-		res = get_config_setting(cmd->ifname, arg_path, &dummy,
-					 CONFIG_TYPE_STRING);
+		res = get_config_setting(cmd->ifname, cmd->type, arg_path,
+					 &dummy, CONFIG_TYPE_STRING);
 
 		if (res) {
 			if (unused < 0)
@@ -1118,7 +1121,8 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 				snprintf(arg_name, sizeof(arg_name), "%s%i",
 					 ARG_APP, i);
 				res = remove_config_setting(cmd->ifname,
-						arg_parent, arg_name);
+						cmd->type, arg_parent,
+						arg_name);
 			}
 		}
 	}
@@ -1181,7 +1185,7 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	snprintf(arg_path, sizeof(arg_path),
 		 "%s%08x.%s%i", TLVID_PREFIX, cmd->tlvid, args, unused);
 
-	set_config_setting(cmd->ifname, arg_path, &pp,
+	set_config_setting(cmd->ifname, cmd->type, arg_path, &pp,
 			   CONFIG_TYPE_STRING);
 
 	return cmd_success;
@@ -1218,7 +1222,7 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 			 TLVID_PREFIX, cmd->tlvid, arg);
 
-		if (!is_tlv_txdisabled(cmd->ifname, cmd->tlvid))
+		if (!is_tlv_txdisabled(cmd->ifname, cmd->type, cmd->tlvid))
 			value = true;
 		else
 			value = false;
@@ -1228,7 +1232,7 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 			 TLVID_PREFIX, cmd->tlvid, arg);
 
-		if (is_tlv_txenabled(cmd->ifname, cmd->tlvid))
+		if (is_tlv_txenabled(cmd->ifname, cmd->type, cmd->tlvid))
 			value = true;
 		else
 			value = false;
@@ -1281,7 +1285,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, ARG_TLVTXENABLE);
-	err = get_config_setting(cmd->ifname, arg_path,
+	err = get_config_setting(cmd->ifname, cmd->type, arg_path,
 				(void *)&curr, CONFIG_TYPE_BOOL);
 
 	if (test)
@@ -1295,7 +1299,8 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, arg);
 
-	if (set_cfg(cmd->ifname, arg_path, (void *)&value, CONFIG_TYPE_BOOL))
+	if (set_cfg(cmd->ifname, cmd->type, arg_path, (void *)&value,
+		    CONFIG_TYPE_BOOL))
 		return cmd_failed;
 
 

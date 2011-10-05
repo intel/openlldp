@@ -80,9 +80,10 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	case MANAGEMENT_ADDRESS_TLV:
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 			 TLVID_PREFIX, cmd->tlvid, arg);
-		
-		if (get_config_setting(cmd->ifname, arg_path, (void *)&value,
-					CONFIG_TYPE_BOOL))
+
+		if (get_config_setting(cmd->ifname, cmd->type, arg_path,
+				       (void *)&value,
+				       CONFIG_TYPE_BOOL))
 			value = false;
 		break;
 	case INVALID_TLVID:
@@ -95,7 +96,6 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		s = VAL_YES;
 	else
 		s = VAL_NO;
-	
 	snprintf(obuf, obuf_len, "%02x%s%04x%s",
 		 (unsigned int)strlen(arg), arg, (unsigned int)strlen(s), s);
 
@@ -137,7 +137,8 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, arg);
 
-	if (set_cfg(cmd->ifname, arg_path, (void *)&value, CONFIG_TYPE_BOOL))
+	if (set_cfg(cmd->ifname, cmd->type, arg_path, (void *)&value,
+		    CONFIG_TYPE_BOOL))
 		return cmd_failed;
 
 	sprintf(obuf + strlen(obuf), "enableTx = %s\n", value ? "yes" : "no");
@@ -179,7 +180,7 @@ int get_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue,
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 		 TLVID_PREFIX, cmd->tlvid, arg);
 
-	if (get_config_setting(cmd->ifname, arg_path, (void *)&p,
+	if (get_config_setting(cmd->ifname, cmd->type, arg_path, (void *)&p,
 				CONFIG_TYPE_STRING))
 		return cmd_failed;
 
@@ -202,8 +203,8 @@ int get_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue,
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 		 TLVID_PREFIX, cmd->tlvid, arg);
-		
-	if (get_config_setting(cmd->ifname, arg_path, (void *)&p,
+
+	if (get_config_setting(cmd->ifname, cmd->type, arg_path, (void *)&p,
 					CONFIG_TYPE_STRING))
 		return cmd_failed;
 
@@ -233,7 +234,7 @@ int _set_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue,
 		 cmd->tlvid, arg);
 
 	p = &argvalue[0];
-	if (set_config_setting(cmd->ifname, arg_path, (void *)&p,
+	if (set_config_setting(cmd->ifname, cmd->type, arg_path, (void *)&p,
 		    CONFIG_TYPE_STRING))
 		return cmd_failed;
 
@@ -276,7 +277,7 @@ int _set_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue,
 		 cmd->tlvid, arg);
 
 	p = &argvalue[0];
-	if (set_config_setting(cmd->ifname, arg_path, (void *)&p,
+	if (set_config_setting(cmd->ifname, cmd->type, arg_path, (void *)&p,
 		    CONFIG_TYPE_STRING))
 		return cmd_failed;
 

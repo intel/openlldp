@@ -1382,8 +1382,8 @@ void vdp_ifup(char *ifname, struct lldp_agent *agent)
 	snprintf(config_path, sizeof(config_path), "%s.%s",
 		 VDP_PREFIX, ARG_TLVTXENABLE);
 
-	if (get_config_setting(ifname, config_path, (void *)&enabletx,
-		    CONFIG_TYPE_BOOL))
+	if (get_config_setting(ifname, NEAREST_BRIDGE, config_path,
+			       (void *)&enabletx, CONFIG_TYPE_BOOL))
 			enabletx = false;
 
 	if (enabletx == false) {
@@ -1413,7 +1413,7 @@ void vdp_ifup(char *ifname, struct lldp_agent *agent)
 	vd->role = VDP_ROLE_STATION;
 	vd->enabletx = enabletx;
 
-	if (!get_cfg(ifname, "vdp.role", (void *)&role,
+	if (!get_cfg(ifname, NEAREST_BRIDGE, "vdp.role", (void *)&role,
 		    CONFIG_TYPE_STRING)) {
 		if (!strcasecmp(role, VAL_BRIDGE)) {
 			vd->role = VDP_ROLE_BRIDGE;

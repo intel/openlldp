@@ -42,6 +42,12 @@ static const u8 * agent_groupmacs[AGENT_MAX] = {
 	nearest_customer_bridge,
 };
 
+static const char *agent_sections[AGENT_MAX] = {
+	[NEAREST_BRIDGE] = "nearest_bridge",
+	[NEAREST_NONTPMR_BRIDGE] = "nearest_nontpmr_bridge",
+	[NEAREST_CUSTOMER_BRIDGE] = "nearest_customer_bridge",
+};
+
 struct lldp_agent *lldp_agent_find_by_type(const char *ifname, int type)
 {
 	struct port *port;
@@ -58,6 +64,14 @@ struct lldp_agent *lldp_agent_find_by_type(const char *ifname, int type)
 	}
 
 	return NULL;
+}
+
+const char *agent_type2section(int agenttype)
+{
+	if ((agenttype > NEAREST_BRIDGE) && (agenttype < AGENT_MAX))
+		return agent_sections[agenttype];
+	else
+		return LLDP_SETTING;
 }
 
 void lldp_init_agent(struct port *port, struct lldp_agent *agent, int type)
@@ -77,7 +91,7 @@ void lldp_init_agent(struct port *port, struct lldp_agent *agent, int type)
 	agent->rx.state = LLDP_WAIT_PORT_OPERATIONAL;
 	agent->type = type;
 
-	if (get_config_setting_by_agent(port->ifname, type, ARG_ADMINSTATUS,
+	if (get_config_setting(port->ifname, type, ARG_ADMINSTATUS,
 			(void *)&agent->adminStatus, CONFIG_TYPE_INT)) {
 		LLDPAD_DBG("%s: agent->adminStatus = disabled.\n", __func__);
 		agent->adminStatus = disabled;
@@ -124,7 +138,7 @@ int lldp_add_agent(const char *ifname, int type)
 
 	lldp_init_agent(port, newagent, type);
 
-	if (get_config_setting_by_agent(ifname, newagent->type, ARG_ADMINSTATUS,
+	if (get_config_setting(ifname, newagent->type, ARG_ADMINSTATUS,
 			(void *)&newagent->adminStatus, CONFIG_TYPE_INT))
 			newagent->adminStatus = disabled;
 

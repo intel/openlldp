@@ -48,10 +48,10 @@ static int render_cmd(struct cmd *cmd, int argc, char **args, char **argvals)
 	len = sizeof(cmd->obuf);
 
 	/* all command messages begin this way */
-	snprintf(cmd->obuf, len, "%c%08x%c%1x%02x%08x%02x%s",
+	snprintf(cmd->obuf, len, "%c%08x%c%1x%02x%08x%02x%s%02x",
 		MOD_CMD, cmd->module_id, CMD_REQUEST, CLIF_MSG_VERSION,
 		cmd->cmd, cmd->ops, (unsigned int) strlen(cmd->ifname),
-		cmd->ifname);
+		cmd->ifname, cmd->type);
 
 	/* if the command is a tlv command, add the tlvid to the message */
 	if (cmd->cmd == cmd_gettlv || cmd->cmd == cmd_settlv)
@@ -338,6 +338,9 @@ static char *print_status(cmd_status status)
 		break;
 	case cmd_device_not_found:
 		str = "Device not found or inactive";
+		break;
+	case cmd_agent_not_found:
+		str = "Agent instance for device not found";
 		break;
 	case cmd_invalid:
 		str = "Invalid command";

@@ -103,8 +103,8 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	case (OUI_CEE_DCBX << 8) | 2:
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 			 TLVID_PREFIX, cmd->tlvid, arg);
-		
-		if (get_config_setting(cmd->ifname, arg_path, (void *)&value,
+
+		if (get_config_setting(cmd->ifname, cmd->type, arg_path, (void *)&value,
 					CONFIG_TYPE_BOOL))
 			value = false;
 		break;
@@ -193,7 +193,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	if (test)
 		return cmd_success;
 
-	current_value = is_tlv_txenabled(cmd->ifname, cmd->tlvid);
+	current_value = is_tlv_txenabled(cmd->ifname, cmd->type, cmd->tlvid);
 
 	snprintf(obuf, obuf_len, "enabled = %s\n", value ? "yes" : "no");
 
@@ -203,7 +203,8 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, arg);
 
-	if (set_cfg(cmd->ifname, arg_path, (void *)&value, CONFIG_TYPE_BOOL))
+	if (set_cfg(cmd->ifname, cmd->type, arg_path, (void *)&value,
+		    CONFIG_TYPE_BOOL))
 		return cmd_failed;
 
 	dont_advertise_dcbx_all(cmd->ifname, value);
@@ -377,7 +378,7 @@ static dcb_result set_bwg_desc(char *port_id, char *ibuf, int ilen)
 }
 
 static void set_protocol_data(feature_protocol_attribs *protocol, char *ifname,
-			      char *ibuf, int plen, int type)
+			      char *ibuf, int plen, int agenttype)
 {
 	u8 flag;
 	int last;
@@ -391,9 +392,9 @@ static void set_protocol_data(feature_protocol_attribs *protocol, char *ifname,
 		last = protocol->Advertise;
 		protocol->Advertise = flag & 0x01;
 		if (last != protocol->Advertise && protocol->Advertise) {
-			tlv_enabletx(ifname, (OUI_CEE_DCBX << 8) |
+			tlv_enabletx(ifname, agenttype, (OUI_CEE_DCBX << 8) |
 				     protocol->dcbx_st);
-			somethingChangedLocal(ifname, type);
+			somethingChangedLocal(ifname, agenttype);
 		}
 	}
 

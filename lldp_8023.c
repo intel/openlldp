@@ -71,8 +71,8 @@ struct tlv_info_8023_powvmdi {
 } __attribute__ ((__packed__));
 
 static const struct lldp_mod_ops ieee8023_ops =  {
-	.lldp_mod_register 	= ieee8023_register,
-	.lldp_mod_unregister 	= ieee8023_unregister,
+	.lldp_mod_register	= ieee8023_register,
+	.lldp_mod_unregister	= ieee8023_unregister,
 	.lldp_mod_gettlv	= ieee8023_gettlv,
 	.lldp_mod_ifup		= ieee8023_ifup,
 	.lldp_mod_ifdown	= ieee8023_ifdown,
@@ -101,7 +101,8 @@ static struct ieee8023_data *ieee8023_data(const char *ifname, enum agent_type t
  *
  * Returns 0 on success
  */
-static int ieee8023_bld_maccfg_tlv(struct ieee8023_data *bd)
+static int ieee8023_bld_maccfg_tlv(struct ieee8023_data *bd,
+				   struct lldp_agent *agent)
 {
 	int rc = 0;
 	struct unpacked_tlv *tlv = NULL;
@@ -111,14 +112,16 @@ static int ieee8023_bld_maccfg_tlv(struct ieee8023_data *bd)
 	FREE_UNPKD_TLV(bd, maccfg);
 
 	/* mandatory for LLDP-MED */
-	if (!is_tlv_txenabled(bd->ifname, TLVID_8023(LLDP_8023_MACPHY_CONFIG_STATUS))) {
+	if (!is_tlv_txenabled(bd->ifname, agent->type,
+			      TLVID_8023(LLDP_8023_MACPHY_CONFIG_STATUS))) {
 		goto out_err;
 	}
 
 	/* load from config */
 	memset(&maccfg, 0, sizeof(maccfg));
-	if (get_config_tlvinfo_bin(bd->ifname, TLVID_8023(LLDP_8023_MACPHY_CONFIG_STATUS),
-			       (void *)&maccfg, sizeof(maccfg))) {
+	if (get_config_tlvinfo_bin(bd->ifname, agent->type,
+				   TLVID_8023(LLDP_8023_MACPHY_CONFIG_STATUS),
+				   (void *)&maccfg, sizeof(maccfg))) {
 		hton24(maccfg.oui, OUI_IEEE_8023);
 		maccfg.sub = LLDP_8023_MACPHY_CONFIG_STATUS;
 		if (is_autoneg_supported(bd->ifname))
@@ -154,7 +157,8 @@ out_err:
  *
  * Returns 0 on success
  */
-static int ieee8023_bld_maxfs_tlv(struct ieee8023_data *bd)
+static int ieee8023_bld_maxfs_tlv(struct ieee8023_data *bd,
+				  struct lldp_agent *agent)
 {
 	int rc = 0;
 	struct unpacked_tlv *tlv = NULL;
@@ -163,13 +167,15 @@ static int ieee8023_bld_maxfs_tlv(struct ieee8023_data *bd)
 	/* free old one if it exists */
 	FREE_UNPKD_TLV(bd, maxfs);
 
-	if (!is_tlv_txenabled(bd->ifname, TLVID_8023(LLDP_8023_MAXIMUM_FRAME_SIZE))) {
+	if (!is_tlv_txenabled(bd->ifname, agent->type,
+			      TLVID_8023(LLDP_8023_MAXIMUM_FRAME_SIZE))) {
 		goto out_err;
 	}
 
 	/* load from config */
 	memset(&maxfs, 0, sizeof(maxfs));
-	if (get_config_tlvinfo_bin(bd->ifname, TLVID_8023(LLDP_8023_MAXIMUM_FRAME_SIZE),
+	if (get_config_tlvinfo_bin(bd->ifname, agent->type,
+				   TLVID_8023(LLDP_8023_MAXIMUM_FRAME_SIZE),
 			       (void *)&maxfs, sizeof(maxfs))) {
 		hton24(maxfs.oui, OUI_IEEE_8023);
 		maxfs.sub = LLDP_8023_MAXIMUM_FRAME_SIZE;
@@ -201,7 +207,8 @@ out_err:
  *
  * Returns 0 on success
  */
-static int ieee8023_bld_linkagg_tlv(struct ieee8023_data *bd)
+static int ieee8023_bld_linkagg_tlv(struct ieee8023_data *bd,
+				    struct lldp_agent *agent)
 {
 	int rc = 0;
 	struct unpacked_tlv *tlv = NULL;
@@ -210,14 +217,16 @@ static int ieee8023_bld_linkagg_tlv(struct ieee8023_data *bd)
 	/* free old one if it exists */
 	FREE_UNPKD_TLV(bd, linkagg);
 
-	if (!is_tlv_txenabled(bd->ifname, TLVID_8023(LLDP_8023_LINK_AGGREGATION))) {
+	if (!is_tlv_txenabled(bd->ifname, agent->type,
+			      TLVID_8023(LLDP_8023_LINK_AGGREGATION))) {
 		goto out_err;
 	}
 
 	/* load from config */
 	memset(&linkagg, 0, sizeof(linkagg));
-	if (get_config_tlvinfo_bin(bd->ifname, TLVID_8023(LLDP_8023_LINK_AGGREGATION),
-			       (void *)&linkagg, sizeof(linkagg))) {
+	if (get_config_tlvinfo_bin(bd->ifname, agent->type,
+				   TLVID_8023(LLDP_8023_LINK_AGGREGATION),
+				   (void *)&linkagg, sizeof(linkagg))) {
 		hton24(linkagg.oui, OUI_IEEE_8023);
 		linkagg.sub = LLDP_8023_LINK_AGGREGATION;
 		if (is_bond(bd->ifname)) {
@@ -252,7 +261,8 @@ out_err:
  *
  * Returns 0 on success
  */
-static int ieee8023_bld_powvmdi_tlv(struct ieee8023_data *bd)
+static int ieee8023_bld_powvmdi_tlv(struct ieee8023_data *bd,
+				    struct lldp_agent *agent)
 {
 	int rc = 0;
 	struct unpacked_tlv *tlv = NULL;
@@ -261,20 +271,23 @@ static int ieee8023_bld_powvmdi_tlv(struct ieee8023_data *bd)
 	/* free old one if it exists */
 	FREE_UNPKD_TLV(bd, powvmdi);
 
-	if (!is_tlv_txenabled(bd->ifname, TLVID_8023(LLDP_8023_POWER_VIA_MDI))) {
+	if (!is_tlv_txenabled(bd->ifname, agent->type,
+			      TLVID_8023(LLDP_8023_POWER_VIA_MDI))) {
 		goto out_err;
 	}
 
 	/* not recommended for LLDP-MED */
-	if (is_tlv_txenabled(bd->ifname, TLVID_MED(LLDP_MED_RESERVED))) {
+	if (is_tlv_txenabled(bd->ifname, agent->type,
+			     TLVID_MED(LLDP_MED_RESERVED))) {
 		/* do not fail */
 		goto out_err;
 	}
 
 	/* TODO: currently only supports config */
 	memset(&powvmdi, 0, sizeof(powvmdi));
-	if (get_config_tlvinfo_bin(bd->ifname, TLVID_8023(LLDP_8023_POWER_VIA_MDI),
-			       (void *)&powvmdi, sizeof(powvmdi))) {
+	if (get_config_tlvinfo_bin(bd->ifname, agent->type,
+				   TLVID_8023(LLDP_8023_POWER_VIA_MDI),
+				   (void *)&powvmdi, sizeof(powvmdi))) {
 		goto out_err;
 	}
 
@@ -307,7 +320,8 @@ static void ieee8023_free_tlv(struct ieee8023_data *bd)
 	}
 }
 
-static int ieee8023_bld_tlv(struct ieee8023_data *bd)
+static int ieee8023_bld_tlv(struct ieee8023_data *bd,
+			    struct lldp_agent *agent)
 {
 	int rc = 0;
 
@@ -316,22 +330,22 @@ static int ieee8023_bld_tlv(struct ieee8023_data *bd)
 		goto out_err;
 	}
 
-	if (ieee8023_bld_maccfg_tlv(bd)) {
+	if (ieee8023_bld_maccfg_tlv(bd, agent)) {
 		LLDPAD_DBG("%s:%s:ieee8023_bld_macfg_tlv() failed\n",
 				__func__, bd->ifname);
 		goto out_err;
 	}
-	if (ieee8023_bld_powvmdi_tlv(bd)) {
+	if (ieee8023_bld_powvmdi_tlv(bd, agent)) {
 		LLDPAD_DBG("%s:%s:ieee8023_bld_powvmdi_tlv() failed\n",
 				__func__, bd->ifname);
 		goto out_err;
 	}
-	if (ieee8023_bld_linkagg_tlv(bd)) {
+	if (ieee8023_bld_linkagg_tlv(bd, agent)) {
 		LLDPAD_DBG("%s:%s:ieee8023_bld_linkagg_tlv() failed\n",
 				__func__, bd->ifname);
 		goto out_err;
 	}
-	if (ieee8023_bld_maxfs_tlv(bd)) {
+	if (ieee8023_bld_maxfs_tlv(bd, agent)) {
 		LLDPAD_DBG("%s:%s:ieee8023_bld_maxfs_tlv() failed\n",
 				__func__, bd->ifname);
 		goto out_err;
@@ -367,7 +381,7 @@ struct packed_tlv *ieee8023_gettlv(struct port *port,
 		goto out_err;
 
 	ieee8023_free_tlv(bd);
-	if (ieee8023_bld_tlv(bd)) {
+	if (ieee8023_bld_tlv(bd, agent)) {
 		LLDPAD_DBG("%s:%s ieee8023_bld_tlv failed\n",
 			__func__, port->ifname);
 		goto out_err;
@@ -444,7 +458,7 @@ void ieee8023_ifup(char *ifname, struct lldp_agent *agent)
 	strncpy(bd->ifname, ifname, IFNAMSIZ);
 	bd->agenttype = agent->type;
 
-	if (ieee8023_bld_tlv(bd)) {
+	if (ieee8023_bld_tlv(bd, agent)) {
 		LLDPAD_INFO("%s:%s mand_bld_tlv failed\n", __func__, ifname);
 		free(bd);
 		goto out_err;

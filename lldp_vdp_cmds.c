@@ -166,7 +166,7 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		snprintf(arg_path, sizeof(arg_path), "%s.%s",
 			 VDP_PREFIX, arg);
 
-		if (get_cfg(cmd->ifname, arg_path, (void *)&value,
+		if (get_cfg(cmd->ifname, cmd->type, arg_path, (void *)&value,
 		    CONFIG_TYPE_BOOL))
 			value = false;
 		break;
@@ -190,7 +190,7 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 				char *obuf, bool test)
 {
-	int value;
+	int value, err;
 	char arg_path[VDP_BUF_SIZE];
 
 	if (cmd->cmd != cmd_settlv)
@@ -217,10 +217,13 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 
 	snprintf(arg_path, sizeof(arg_path), "%s.%s", VDP_PREFIX, arg);
 
-	if (set_cfg(cmd->ifname, arg_path, (void *)&value, CONFIG_TYPE_BOOL))
+	err = set_cfg(cmd->ifname, cmd->type, arg_path,
+		      (void *)&value, CONFIG_TYPE_BOOL);
+	if (err)
 		return cmd_failed;
 
 	return cmd_success;
+
 }
 
 static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
@@ -527,7 +530,8 @@ static int _set_arg_role(struct cmd *cmd, char *arg, char *argvalue,
 	snprintf(arg_path, sizeof(arg_path), "%s.%s", VDP_PREFIX, arg);
 
 	char *p = &argvalue[0];
-	if (set_cfg(cmd->ifname, arg_path, (void *)&p, CONFIG_TYPE_STRING))
+	if (set_cfg(cmd->ifname, cmd->type, arg_path, (void *)&p,
+		    CONFIG_TYPE_STRING))
 		return cmd_failed;
 
 	return cmd_success;

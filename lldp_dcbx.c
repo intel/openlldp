@@ -126,7 +126,7 @@ struct dcbx_tlvs *dcbx_data(const char *ifname)
 	return NULL;
 }
 
-int dcbx_tlvs_rxed(const char *ifname)
+int dcbx_tlvs_rxed(const char *ifname, struct lldp_agent *agent)
 {
 	struct dcbd_user_data *dud;
 	struct dcbx_tlvs *tlv = NULL;
@@ -163,7 +163,7 @@ int dcbx_check_active(const char *ifname)
 	return 0;
 }
 
-int dcbx_bld_tlv(struct port *newport)
+int dcbx_bld_tlv(struct port *newport, struct lldp_agent *agent)
 {
 	bool success;
 	struct dcbx_tlvs *tlvs;
@@ -172,11 +172,11 @@ int dcbx_bld_tlv(struct port *newport)
 
 	tlvs = dcbx_data(newport->ifname);
 
-	get_config_setting(newport->ifname, ARG_ADMINSTATUS,
+	get_config_setting(newport->ifname, agent->type, ARG_ADMINSTATUS,
 			  (void *)&adminstatus, CONFIG_TYPE_INT);
 
-	enabletx = is_tlv_txenabled(newport->ifname, (OUI_CEE_DCBX << 8) |
-				  tlvs->dcbx_st);
+	enabletx = is_tlv_txenabled(newport->ifname, agent->type,
+				    (OUI_CEE_DCBX << 8) | tlvs->dcbx_st);
 
 	if (!tlvs->active || !enabletx || adminstatus != enabledRxTx)
 		return 0;
@@ -337,7 +337,7 @@ struct packed_tlv* dcbx_gettlv(struct port *port, struct lldp_agent *agent)
 
 	dcbx_free_tlv(tlvs);
 
-	dcbx_bld_tlv(port);
+	dcbx_bld_tlv(port, agent);
 	if (tlvs->dcbx_st == dcbx_subtype2) {
 		/* Load Type127 - dcbx subtype 2*/
 		if (tlv_ok(tlvs->dcbx2))
@@ -496,7 +496,8 @@ void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 	/* if no adminStatus setting or wrong setting for adminStatus,
 	 * then set adminStatus to enabledRxTx.
 	 */
-	if (get_config_setting(ifname, ARG_ADMINSTATUS, (void *)&adminstatus,
+	if (get_config_setting(ifname, agent->type, ARG_ADMINSTATUS,
+			       (void *)&adminstatus,
 				CONFIG_TYPE_INT) ||
 				adminstatus == enabledTxOnly ||
 				adminstatus == enabledRxOnly) {
@@ -504,24 +505,24 @@ void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 		/* set enableTx to true if it is not already set */
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 			(OUI_CEE_DCBX << 8) | 1, ARG_TLVTXENABLE);
-		if (get_config_setting(ifname, arg_path,
+		if (get_config_setting(ifname, agent->type, arg_path,
 				(void *)&enabletx, CONFIG_TYPE_BOOL)) {
 			enabletx = true;
-			set_config_setting(ifname, arg_path,
+			set_config_setting(ifname, agent->type, arg_path,
 			              (void *)&enabletx, CONFIG_TYPE_BOOL);
 		}
 
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 			(OUI_CEE_DCBX << 8) | 2, ARG_TLVTXENABLE);
-		if (get_config_setting(ifname, arg_path,
+		if (get_config_setting(ifname, agent->type, arg_path,
 				(void *)&enabletx, CONFIG_TYPE_BOOL)) {
 			enabletx = true;
-			set_config_setting(ifname, arg_path,
+			set_config_setting(ifname, agent->type, arg_path,
 			              (void *)&enabletx, CONFIG_TYPE_BOOL);
 		}
 
 		adminstatus = enabledRxTx;
-		if (set_config_setting(ifname, ARG_ADMINSTATUS,
+		if (set_config_setting(ifname, agent->type, ARG_ADMINSTATUS,
 			              (void *)&adminstatus, CONFIG_TYPE_INT) ==
 				       cmd_success)
 			set_lldp_agent_admin(ifname, agent->type, (int)adminstatus);
@@ -555,13 +556,13 @@ initialized:
 	/* ensure advertise bits are set consistently with enabletx */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 (OUI_CEE_DCBX << 8) | tlvs->dcbx_st, ARG_TLVTXENABLE);
-	exists = get_config_setting(ifname, arg_path,
+	exists = get_config_setting(ifname, agent->type, arg_path,
 				    &enabletx, CONFIG_TYPE_BOOL);
 
 	if (!exists || enabletx)
 		dont_advertise_dcbx_all(ifname, 1);
 
-	dcbx_bld_tlv(port);
+	dcbx_bld_tlv(port, agent);
 
 	/* if the dcbx field is not filled in by the capabilities
 	 * query, then the kernel is older and does not support
