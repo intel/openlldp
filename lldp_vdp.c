@@ -1351,7 +1351,7 @@ void vdp_ifdown(char *ifname, struct lldp_agent *agent)
 	LLDPAD_INFO("%s:%s vdp data removed\n", __func__, ifname);
 	return;
 out_err:
-	LLDPAD_ERR("%s:%s vdp data remove failed\n", __func__, ifname);
+	LLDPAD_INFO("%s:%s vdp data remove failed\n", __func__, ifname);
 
 	return;
 }
@@ -1387,7 +1387,7 @@ void vdp_ifup(char *ifname, struct lldp_agent *agent)
 			enabletx = false;
 
 	if (enabletx == false) {
-		LLDPAD_WARN("%s(%i): port %s not enabled for VDP (%i) !\n",
+		LLDPAD_INFO("%s(%i): port %s not enabled for VDP (%i) !\n",
 			    __func__, __LINE__, ifname, enabletx);
 		return;
 	}
