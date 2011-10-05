@@ -418,6 +418,7 @@ static void cli_interactive(int raw)
 	char cmd[256], *res, *argv[max_args], *pos;
 	int argc;
 
+	setlinebuf(stdout);
 	printf("\nInteractive mode\n\n");
 
 	do {
