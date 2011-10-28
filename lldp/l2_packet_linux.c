@@ -223,11 +223,22 @@ struct l2_packet_data * l2_packet_init(
 	mr.mr_type = PACKET_MR_MULTICAST;
 	if (setsockopt(l2->fd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
 		sizeof(mr)) < 0) {
-		perror("setsockopt");
+		perror("setsockopt nearest_bridge");
 		close(l2->fd);
 		free(l2);
 		return NULL;
 	}
+
+	memcpy(mr.mr_address, &nearest_customer_bridge, ETH_ALEN);
+	if (setsockopt(l2->fd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
+		       sizeof(mr)) < 0)
+		perror("setsockopt nearest_customer_bridge");
+
+	memcpy(mr.mr_address, &nearest_nontpmr_bridge, ETH_ALEN);
+	if (setsockopt(l2->fd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
+		       sizeof(mr)) < 0)
+		perror("setsockopt nearest_customer_bridge");
+
 	int option = 1;
 	int option_size = sizeof(option);
 	if (setsockopt(l2->fd, SOL_PACKET, PACKET_ORIGDEV,
