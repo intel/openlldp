@@ -40,8 +40,13 @@
 #include "lldp/states.h"
 #include "lldp_8021qaz.h"
 #include "lldp_rtnl.h"
+#include "lldpad_shm.h"
 #include "messages.h"
 #include "lldp_util.h"
+
+static int get_arg_dcbx_mode(struct cmd *, char *, char *, char *, int);
+static int set_arg_dcbx_mode(struct cmd *, char *, char *, char *, int);
+static int test_arg_dcbx_mode(struct cmd *, char *, char *, char *, int);
 
 static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
@@ -79,6 +84,9 @@ static int set_arg_app(struct cmd *, char *, char *, char *, int);
 static int test_arg_app(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
+	{ ARG_DCBX_MODE, TLV_ARG,
+		get_arg_dcbx_mode, set_arg_dcbx_mode,
+		test_arg_dcbx_mode },
 	{ ARG_TLVTXENABLE, TLV_ARG,
 		get_arg_tlvtxenable, set_arg_tlvtxenable,
 		test_arg_tlvtxenable },
@@ -100,6 +108,86 @@ static struct arg_handlers arg_handlers[] = {
 		get_arg_app, set_arg_app, test_arg_app },
 	{ NULL }
 };
+
+static int get_arg_dcbx_mode(struct cmd *cmd, char *args,
+			 char *arg_value, char *obuf, int obuf_len)
+{
+	struct ieee8021qaz_tlvs *tlvs;
+	char buf[250] = "";
+
+	if (cmd->cmd != cmd_gettlv)
+		return cmd_invalid;
+
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (!tlvs)
+		return cmd_device_not_found;
+
+	switch (cmd->tlvid) {
+	case (OUI_IEEE_8021 << 8):
+		break;
+	case INVALID_TLVID:
+		return cmd_invalid;
+	default:
+		return cmd_not_applicable;
+	}
+
+	switch (lldpad_shm_get_dcbx(cmd->ifname)) {
+	case dcbx_subtype0:
+		snprintf(buf, sizeof(buf), "auto");
+		break;
+	case dcbx_subtype1:
+		snprintf(buf, sizeof(buf), "CIN");
+		break;
+	case dcbx_subtype2:
+		snprintf(buf, sizeof(buf), "CEE");
+		break;
+	default:
+		snprintf(buf, sizeof(buf), "unknown");
+		break;
+	}
+
+	snprintf(obuf, obuf_len, "%02x%s%04x%s",
+		(unsigned int) strlen(args), args,
+		(unsigned int) strlen(buf), buf);
+
+	return cmd_success;
+}
+
+static int set_arg_dcbx_mode(struct cmd *cmd, char *args,
+			 char *arg_value, char *obuf, int obuf_len)
+{
+	struct ieee8021qaz_tlvs *tlvs;
+
+	if (cmd->cmd != cmd_settlv)
+		return cmd_invalid;
+
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (!tlvs)
+		return cmd_device_not_found;
+
+	switch (cmd->tlvid) {
+	case (OUI_IEEE_8021 << 8):
+		break;
+	case INVALID_TLVID:
+		return cmd_invalid;
+	default:
+		return cmd_not_applicable;
+	}
+
+	if (strcmp(arg_value, "reset"))
+		return cmd_invalid;
+
+	lldpad_shm_set_dcbx(cmd->ifname, dcbx_subtype0);
+	snprintf(obuf, obuf_len, "mode = %s\n", arg_value);
+
+	return cmd_success;
+}
+
+static int test_arg_dcbx_mode(struct cmd *cmd, char *args,
+			 char *arg_value, char *obuf, int obuf_len)
+{
+	return cmd_success;
+}
 
 static int get_arg_willing(struct cmd *cmd, char *args,
 			   char *arg_value, char *obuf, int obuf_len)
@@ -293,7 +381,7 @@ static int get_arg_up2tc(struct cmd *cmd, char *args,
 		strncat(buf, cat, sizeof(buf) - strlen(buf) - 1);
 	}
 
-	sprintf(obuf, "%02x%s%04x%s",
+	snprintf(obuf, obuf_len, "%02x%s%04x%s",
 		(unsigned int) strlen(args), args,
 		(unsigned int) strlen(buf), buf);
 

@@ -37,7 +37,6 @@
 #include "lldpad_shm.h"
 #include "lldp.h"
 
-/* return: 1 = success, 0 = failed */
 void mark_lldpad_shm_for_removal()
 {
 	int shmid;
@@ -53,6 +52,45 @@ void mark_lldpad_shm_for_removal()
 }
 
 /* return: 1 = success, 0 = failed */
+void lldpad_shm_ver0_to_ver1(struct lldpad_shm_tbl_ver0 *shmold,
+			    int num_old_entries)
+{
+	int i;
+	int num_entries;
+	struct lldpad_shm_entry new_ent[MAX_LLDPAD_SHM_ENTRIES];
+
+	num_entries = num_old_entries;
+	if (num_entries > MAX_LLDPAD_SHM_ENTRIES)
+		num_entries = MAX_LLDPAD_SHM_ENTRIES;
+
+	shmold->num_entries = (num_entries & SHM_NUM_ENT_MASK) |
+				(1 << SHM_VER_SHIFT);
+
+	for (i = 0; i < num_entries; i++) {
+		memcpy(new_ent[i].ifname,
+		       shmold->ent[i].ifname,
+		       sizeof(new_ent[i].ifname));
+		memcpy(&new_ent[i].chassisid[0],
+		       &shmold->ent[i].chassisid[0],
+		       SHM_CHASSISID_LEN);
+
+		new_ent[i].chassisid_len = shmold->ent[i].chassisid_len;
+
+		memcpy(&new_ent[i].portid[0],
+		       &shmold->ent[i].portid[0],
+		       SHM_PORTID_LEN);
+
+		new_ent[i].portid_len = shmold->ent[i].portid_len;
+		memcpy((void *)&new_ent[i].st, (void *)&shmold->ent[i].st,
+			sizeof(dcbx_state));
+		new_ent[i].dcbx_mode = 0;
+	}
+
+	memcpy((void *)&shmold->ent[0], (void *)&new_ent[0],
+		sizeof(struct lldpad_shm_entry) * num_entries);
+}
+
+/* return: 1 = success, 0 = failed */
 int lldpad_shm_get_msap(const char *device_name, int type, char *info, size_t *len)
 {
 	char *p;
@@ -60,6 +98,8 @@ int lldpad_shm_get_msap(const char *device_name, int type, char *info, size_t *l
 	struct lldpad_shm_tbl *shmaddr=NULL;
 	pid_t rval = 0;
 	int i;
+	int num_entries;
+	int version;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
 	if (shmid < 0 && errno == ENOENT)
@@ -73,13 +113,20 @@ int lldpad_shm_get_msap(const char *device_name, int type, char *info, size_t *l
 	if ((long) shmaddr == -1)
 		return rval;
 
+	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
+
+	if (version == 0)
+		lldpad_shm_ver0_to_ver1((struct lldpad_shm_tbl_ver0 *) shmaddr,
+				shmaddr->num_entries & SHM_NUM_ENT_MASK);
+
+	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
+
 	/* check for invalid number of shm table entries */
-	if (shmaddr->num_entries < 0 ||
-		shmaddr->num_entries > MAX_LLDPAD_SHM_ENTRIES)
+	if (num_entries < 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
 		goto done;
 
 	/* search for existing entry */
-	for (i = 0; i < shmaddr->num_entries; i++)
+	for (i = 0; i < num_entries; i++)
 		if (strcmp(shmaddr->ent[i].ifname, device_name) == 0)
 			break;
 
@@ -112,6 +159,8 @@ int lldpad_shm_set_msap(const char *device_name, int type, char *info, size_t le
 	struct lldpad_shm_tbl *shmaddr=NULL;
 	pid_t rval = 0;
 	int i;
+	int version;
+	int num_entries;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
 	if (shmid < 0 && errno == ENOENT)
@@ -125,13 +174,19 @@ int lldpad_shm_set_msap(const char *device_name, int type, char *info, size_t le
 	if ((long) shmaddr == -1)
 		return rval;
 
+	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
+
+	if (version == 0)
+		lldpad_shm_ver0_to_ver1((struct lldpad_shm_tbl_ver0 *) shmaddr,
+				shmaddr->num_entries & SHM_NUM_ENT_MASK);
+	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
+
 	/* check for invalid number of shm table entries */
-	if (shmaddr->num_entries < 0 ||
-		shmaddr->num_entries > MAX_LLDPAD_SHM_ENTRIES)
+	if (num_entries < 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
 		goto done;
 
 	/* search for existing entry */
-	for (i = 0; i < shmaddr->num_entries; i++)
+	for (i = 0; i < num_entries; i++)
 		if (strcmp(shmaddr->ent[i].ifname, device_name) == 0)
 			break;
 
@@ -147,12 +202,130 @@ int lldpad_shm_set_msap(const char *device_name, int type, char *info, size_t le
 		} else
 			goto done;
 
-		if (i == shmaddr->num_entries) {
+		if (i == num_entries) {
 			shmaddr->num_entries++;
 			sprintf(shmaddr->ent[i].ifname, "%.*s",
 				IFNAMSIZ, device_name);
 		}
 
+		rval = 1;
+	}
+
+done:
+	shmdt(shmaddr);
+
+	return rval;
+}
+
+int lldpad_shm_get_dcbx(const char *device_name)
+{
+	int shmid;
+	struct lldpad_shm_tbl *shmaddr = NULL;
+	pid_t rval = 0;  /* zero is default DCBX auto mode */
+	int i;
+	int num_entries;
+	int version;
+
+	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
+	if (shmid < 0 && errno == ENOENT)
+		shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE,
+			IPC_CREAT | IPC_EXCL | 0x180);
+
+	if (shmid < 0)
+		return rval;
+
+	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
+	if ((long) shmaddr == -1)
+		return rval;
+
+	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
+
+	if (version == 0)
+		goto done;
+
+	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
+
+	/* check for invalid number of shm table entries */
+	if (num_entries < 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
+		goto done;
+
+	/* search for existing entry */
+	for (i = 0; i < num_entries; i++) {
+		if (strcmp(shmaddr->ent[i].ifname, device_name) == 0) {
+			switch (shmaddr->ent[i].dcbx_mode) {
+			case dcbx_subtype1:
+			case dcbx_subtype2:
+				rval = shmaddr->ent[i].dcbx_mode;
+				break;
+			default:
+				;
+			}
+		}
+	}
+
+done:
+	shmdt(shmaddr);
+
+	return rval;
+}
+
+/* return: 1 = success, 0 = failed */
+int lldpad_shm_set_dcbx(const char *device_name, int dcbx_mode)
+{
+	int shmid;
+	struct lldpad_shm_tbl *shmaddr = NULL;
+	pid_t rval = 0;
+	int i;
+	int num_entries;
+	int version;
+
+	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
+	if (shmid < 0 && errno == ENOENT)
+		shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE,
+			IPC_CREAT | IPC_EXCL | 0x180);
+
+	if (shmid < 0)
+		return rval;
+
+	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
+	if ((long) shmaddr == -1)
+		return rval;
+
+	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
+
+	if (version == 0)
+		lldpad_shm_ver0_to_ver1((struct lldpad_shm_tbl_ver0 *) shmaddr,
+				shmaddr->num_entries & SHM_NUM_ENT_MASK);
+
+	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
+
+	/* check for invalid number of shm table entries */
+	if (num_entries < 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
+		goto done;
+
+	if ((dcbx_mode != dcbx_subtype0) && (dcbx_mode != dcbx_subtype1) &&
+	    (dcbx_mode != dcbx_subtype2))
+		goto done;
+
+	/* search for existing entry */
+	for (i = 0; i < num_entries; i++) {
+		if (strcmp(shmaddr->ent[i].ifname, device_name) == 0) {
+			shmaddr->ent[i].dcbx_mode = dcbx_mode;
+			rval = 1;
+			break;
+		}
+	}
+
+	/* make a new entry if no existing entry */
+	if ((i == num_entries) && (i < MAX_LLDPAD_SHM_ENTRIES)) {
+		shmaddr->num_entries++;
+		sprintf(shmaddr->ent[i].ifname, "%.*s", IFNAMSIZ, device_name);
+		memset(&shmaddr->ent[i].chassisid[0], 0, SHM_CHASSISID_LEN);
+		shmaddr->ent[i].chassisid_len = 0;
+		memset(&shmaddr->ent[i].portid[0], 0, SHM_PORTID_LEN);
+		shmaddr->ent[i].portid_len = 0;
+		memset((void *)&shmaddr->ent[i].st, 0, sizeof(dcbx_state));
+		shmaddr->ent[i].dcbx_mode = dcbx_mode;
 		rval = 1;
 	}
 
@@ -171,6 +344,7 @@ pid_t lldpad_shm_getpid()
 	int shmid;
 	struct lldpad_shm_tbl *shmaddr=NULL;
 	pid_t rval = -1;
+	int version;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
 	if (shmid < 0 && errno == ENOENT)
@@ -183,6 +357,12 @@ pid_t lldpad_shm_getpid()
 	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
 	if ((long) shmaddr == -1)
 		return rval;
+
+	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
+
+	if (version == 0)
+		lldpad_shm_ver0_to_ver1((struct lldpad_shm_tbl_ver0 *) shmaddr,
+				shmaddr->num_entries & SHM_NUM_ENT_MASK);
 
 	rval = shmaddr->pid;
 
@@ -197,6 +377,7 @@ int lldpad_shm_setpid(pid_t pid)
 	int shmid;
 	struct lldpad_shm_tbl *shmaddr=NULL;
 	pid_t rval = 0;
+	int version;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
 
@@ -206,6 +387,12 @@ int lldpad_shm_setpid(pid_t pid)
 	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
 	if ((long) shmaddr == -1)
 		return rval;
+
+	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
+
+	if (version == 0)
+		lldpad_shm_ver0_to_ver1((struct lldpad_shm_tbl_ver0 *) shmaddr,
+				shmaddr->num_entries & SHM_NUM_ENT_MASK);
 
 	shmaddr->pid = pid;
 
@@ -220,6 +407,8 @@ int clear_dcbx_state()
 	int shmid;
 	struct lldpad_shm_tbl *shmaddr=NULL;
 	int i;
+	int version;
+	int num_entries;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
 
@@ -230,13 +419,19 @@ int clear_dcbx_state()
 	if ((long) shmaddr == -1)
 		return 0;
 
+	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
+
+	if (version == 0)
+		lldpad_shm_ver0_to_ver1((struct lldpad_shm_tbl_ver0 *) shmaddr,
+				shmaddr->num_entries & SHM_NUM_ENT_MASK);
+	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
+
 	/* check for invalid number of shm table entries */
-	if (shmaddr->num_entries < 0 ||
-		shmaddr->num_entries > MAX_LLDPAD_SHM_ENTRIES)
+	if (num_entries < 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
 		goto done;
 
 	/* clear out dcbx_state for all entries */
-	for (i = 0; i < shmaddr->num_entries; i++)
+	for (i = 0; i < num_entries; i++)
 		if (strlen(shmaddr->ent[i].ifname))
 			memset((void *)&shmaddr->ent[i].st, 0,
 				sizeof(dcbx_state));
@@ -253,6 +448,8 @@ int set_dcbx_state(const char *device_name, dcbx_state *state)
 	struct lldpad_shm_tbl *shmaddr=NULL;
 	int i;
 	int rval = 0;
+	int version;
+	int num_entries;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
 
@@ -263,18 +460,24 @@ int set_dcbx_state(const char *device_name, dcbx_state *state)
 	if ((long) shmaddr == -1)
 		return rval;
 
+	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
+
+	if (version == 0)
+		lldpad_shm_ver0_to_ver1((struct lldpad_shm_tbl_ver0 *) shmaddr,
+				shmaddr->num_entries & SHM_NUM_ENT_MASK);
+	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
+
 	/* check for invalid number of shm table entries */
-	if (shmaddr->num_entries < 0 ||
-		shmaddr->num_entries > MAX_LLDPAD_SHM_ENTRIES)
+	if (num_entries < 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
 		goto done;
 
 	/* search for existing entry */
-	for (i = 0; i < shmaddr->num_entries; i++)
+	for (i = 0; i < num_entries; i++)
 		if (strcmp(shmaddr->ent[i].ifname, device_name) == 0)
 			break;
 
 	if (i < MAX_LLDPAD_SHM_ENTRIES) {
-		if (i == shmaddr->num_entries) {
+		if (i == num_entries) {
 			shmaddr->num_entries++;
 			sprintf(shmaddr->ent[i].ifname, "%.*s",
 				IFNAMSIZ, device_name);
@@ -299,6 +502,8 @@ int get_dcbx_state(const char *device_name, dcbx_state *state)
 	struct lldpad_shm_tbl *shmaddr=NULL;
 	int i;
 	int rval = 0;
+	int version;
+	int num_entries;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
 
@@ -309,13 +514,19 @@ int get_dcbx_state(const char *device_name, dcbx_state *state)
 	if ((long) shmaddr == -1)
 		return rval;
 
+	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
+
+	if (version == 0)
+		lldpad_shm_ver0_to_ver1((struct lldpad_shm_tbl_ver0 *) shmaddr,
+				shmaddr->num_entries & SHM_NUM_ENT_MASK);
+	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
+
 	/* check for invalid number of shm table entries */
-	if (shmaddr->num_entries <= 0 ||
-		shmaddr->num_entries > MAX_LLDPAD_SHM_ENTRIES)
+	if (num_entries <= 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
 		goto done;
 
 	/* search for existing entry */
-	for (i = 0; i < shmaddr->num_entries; i++)
+	for (i = 0; i < num_entries; i++)
 		if (strcmp(shmaddr->ent[i].ifname, device_name) == 0) {
 			memcpy(state, (void *)&shmaddr->ent[i].st,
 				sizeof(dcbx_state));
@@ -340,10 +551,16 @@ done:
 int print_lldpad_shm()
 {
 	int shmid;
+	struct lldpad_shm_tbl_ver0 *shmaddr_ver0 = NULL;
 	struct lldpad_shm_tbl *shmaddr=NULL;
 	int i;
 	int j;
 	int rval = 0;
+	int version;
+	int num_entries;
+	int max_entries;
+	int ent_size;
+	struct lldpad_shm_entry *entry_ptr = NULL;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
 
@@ -353,34 +570,65 @@ int print_lldpad_shm()
 	}
 
 	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
+	shmaddr_ver0 = (struct lldpad_shm_tbl_ver0 *)shmaddr;
 	if ((long) shmaddr == -1) {
 		printf("failed to shmat\n");
 		return rval;
 	}
 
+	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
+	if (version == 0) {
+		max_entries = MAX_LLDPAD_SHM_ENTRIES_VER0;
+		ent_size = sizeof(struct lldpad_shm_entry_ver0);
+	} else {
+		max_entries = MAX_LLDPAD_SHM_ENTRIES;
+		ent_size = sizeof(struct lldpad_shm_entry);
+	}
+	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
 	printf("pid = %d\n", shmaddr->pid);
-	printf("num_entries = %d\n", shmaddr->num_entries);
-	printf("max num_entries = %d\n", MAX_LLDPAD_SHM_ENTRIES);
+	printf("version = %d\n", version);
+	printf("num_entries = %d\n", num_entries);
+	printf("max num_entries = %d\n", max_entries);
 
 	/* check for invalid number of shm table entries */
-	if (shmaddr->num_entries <= 0 ||
-		shmaddr->num_entries > MAX_LLDPAD_SHM_ENTRIES)
+	if (num_entries <= 0 || num_entries > max_entries)
 		goto done;
 
-	for (i = 0; i < shmaddr->num_entries; i++) {
-		printf("ifname:     %s\n", shmaddr->ent[i].ifname);
+	for (i = 0; i < num_entries; i++) {
+		if (version == 0)
+			entry_ptr = (struct lldpad_shm_entry *)&shmaddr_ver0->ent[i];
+		else
+			entry_ptr = &shmaddr->ent[i];
+
+		printf("ifname:     %s\n", entry_ptr->ifname);
 		printf("chassisid:  ");
-		for (j = 0; j < shmaddr->ent[i].chassisid_len; j++)
-			printf("%02x", (unsigned char)shmaddr->ent[i].chassisid[j]);
+		for (j = 0; j < entry_ptr->chassisid_len; j++)
+			printf("%02x", (unsigned char)entry_ptr->chassisid[j]);
 		printf("\n");
 		printf("portid:     ");
-		for (j = 0; j < shmaddr->ent[i].portid_len; j++)
-			printf("%02x", (unsigned char)shmaddr->ent[i].portid[j]);
+		for (j = 0; j < entry_ptr->portid_len; j++)
+			printf("%02x", (unsigned char)entry_ptr->portid[j]);
 		printf("\n");
-		printf("SeqNo:       %d\n", shmaddr->ent[i].st.SeqNo);
-		printf("AckNo:       %d\n", shmaddr->ent[i].st.AckNo);
-		printf("FCoEenable:  %d\n", shmaddr->ent[i].st.FCoEenable);
-		printf("iSCSIenable: %d\n", shmaddr->ent[i].st.iSCSIenable);
+		printf("SeqNo:       %d\n", entry_ptr->st.SeqNo);
+		printf("AckNo:       %d\n", entry_ptr->st.AckNo);
+		printf("FCoEenable:  %d\n", entry_ptr->st.FCoEenable);
+		printf("iSCSIenable: %d\n", entry_ptr->st.iSCSIenable);
+		if (version) {
+			printf("DCBX mode: ");
+			switch (entry_ptr->dcbx_mode) {
+			case dcbx_subtype0:
+				printf("Auto (IEEE)\n");
+				break;
+			case dcbx_subtype1:
+				printf("CIN\n");
+				break;
+			case dcbx_subtype2:
+				printf("CEE\n");
+				break;
+			default:
+				printf("unknown\n");
+			}
+		}
 	}
 	rval = 1;
 

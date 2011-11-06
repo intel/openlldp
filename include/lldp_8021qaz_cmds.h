@@ -31,6 +31,7 @@
 #include "clif_msgs.h"
 
 #define ARG_WILLING	"willing"
+#define ARG_DCBX_MODE	"mode"
 
 /* ETS */
 #define ARG_ETS_NUMTCS	"numtcs"

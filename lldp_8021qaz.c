@@ -555,7 +555,7 @@ initialized:
 	 * IEEE mode, so make IEEE DCBX active by default.
 	 */
 	if (!dcb_support.dcbx ||
-	   (dcbx_get_legacy_version() & ~MASK_DCBX_FORCE)) {
+	   (dcbx_get_legacy_version(ifname) & ~MASK_DCBX_FORCE)) {
 		tlvs->active = false;
 	} else {
 		tlvs->active = true;

@@ -41,13 +41,16 @@
 
 /* DCBX subtypes */
 typedef enum {
-	dcbx_subtype1 = 1,
-	dcbx_subtype2 = 2,
-	dcbx_force_subtype1 = 5,
-	dcbx_force_subtype2 = 6,
+	dcbx_subtype0 = 0,	/* auto IEEE */
+	dcbx_subtype1 = 1,	/* CIN */
+	dcbx_subtype2 = 2,	/* CEE */
+	dcbx_force_subtype1 = 5,/* FORCE CIN */
+	dcbx_force_subtype2 = 6,/* FORCE CEE */
 } dcbx_subtype;
 
+
 #define MASK_DCBX_FORCE 0x03
+#define DCBX_FORCE_BIT  0x04
 
 /* PFC configuration */
 typedef enum {

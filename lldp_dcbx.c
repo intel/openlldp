@@ -50,6 +50,7 @@
 #include "lldp_rtnl.h"
 #include "lldp_tlv.h"
 #include "lldp_rtnl.h"
+#include "lldpad_shm.h"
 #include "dcb_driver_interface.h"
 
 extern u8 gdcbx_subtype;
@@ -148,9 +149,12 @@ int dcbx_tlvs_rxed(const char *ifname, struct lldp_agent *agent)
 	return 0;
 }
 
-int dcbx_get_legacy_version()
+int dcbx_get_legacy_version(const char *ifname)
 {
-	return gdcbx_subtype;
+	if (lldpad_shm_get_dcbx(ifname))
+		return gdcbx_subtype | DCBX_FORCE_BIT;
+	else
+		return gdcbx_subtype;
 }
 
 int dcbx_check_active(const char *ifname)
@@ -589,10 +593,12 @@ initialized:
 	exists = get_dcb_enable_state(ifname, &dcb_enable);
 
 	if ((exists < 0 || dcb_enable) &&
-	    (!dcb_support.dcbx || (gdcbx_subtype & ~MASK_DCBX_FORCE))) {
+	    (!dcb_support.dcbx || (gdcbx_subtype & ~MASK_DCBX_FORCE) ||
+	    (lldpad_shm_get_dcbx(ifname)))) {
 		set_dcbx_mode(tlvs->ifname,
 			      DCB_CAP_DCBX_HOST | DCB_CAP_DCBX_VER_CEE);
 		set_hw_state(ifname, 1);
+		lldpad_shm_set_dcbx(ifname, gdcbx_subtype);
 		tlvs->active = true;
 	} else {
 		tlvs->active = false;
@@ -758,6 +764,7 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 			set_dcbx_mode(port->ifname,
 				      DCB_CAP_DCBX_HOST | DCB_CAP_DCBX_VER_CEE);
 			set_hw_state(port->ifname, 1);
+			lldpad_shm_set_dcbx(dcbx->ifname, gdcbx_subtype);
 			dcbx->active = true;
 			somethingChangedLocal(port->ifname, agent->type);
 		}

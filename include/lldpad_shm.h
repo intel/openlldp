@@ -45,9 +45,14 @@ pid_t lldpad_shm_getpid();
 int lldpad_shm_setpid(pid_t pid);
 int lldpad_shm_get_msap(const char *device_name, int type, char *info, size_t *len);
 int lldpad_shm_set_msap(const char *device_name, int type, char *info, size_t len);
+int lldpad_shm_get_dcbx(const char *device_name);
+int lldpad_shm_set_dcbx(const char *device_name, int dcbx_mode);
 
 #define SHM_CHASSISID_LEN 32
 #define SHM_PORTID_LEN 32
+
+#define DCBX_AUTO 0	/* start DCBX in IEEE DCBX mode */
+#define DCBX_LEGACY 1	/* start DCBX in legacy DCBX mode */
 
 struct lldpad_shm_entry {
 	char ifname[IFNAMSIZ+1];
@@ -56,14 +61,39 @@ struct lldpad_shm_entry {
 	char portid[SHM_PORTID_LEN];
 	int portid_len;
 	dcbx_state st;
+	u8 dcbx_mode; /* added to version 1 */
 };
 
-#define MAX_LLDPAD_SHM_ENTRIES (LLDPAD_SHM_SIZE/sizeof(struct lldpad_shm_entry) - 1)
+/* Version 0 of the SHM entry structure */
+struct lldpad_shm_entry_ver0 {
+	char ifname[IFNAMSIZ+1];
+	char chassisid[SHM_CHASSISID_LEN];
+	int chassisid_len;
+	char portid[SHM_PORTID_LEN];
+	int portid_len;
+	dcbx_state st;
+};
+
+#define MAX_LLDPAD_SHM_ENTRIES_VER0 \
+	(LLDPAD_SHM_SIZE/sizeof(struct lldpad_shm_entry_ver0) - 1)
+
+#define MAX_LLDPAD_SHM_ENTRIES \
+	(LLDPAD_SHM_SIZE/sizeof(struct lldpad_shm_entry) - 1)
+
+#define SHM_NUM_ENT_MASK 0x0ffff
+#define SHM_VER_MASK 0x0ffff0000
+#define SHM_VER_SHIFT 16
 
 struct lldpad_shm_tbl {
 	pid_t pid;
-	u32 num_entries;
+	u32 num_entries;	/* High order 16 bits used as a version # */
 	struct lldpad_shm_entry ent[MAX_LLDPAD_SHM_ENTRIES];
+};
+
+struct lldpad_shm_tbl_ver0 {
+	pid_t pid;
+	u32 num_entries;	/* High order 16 bits used as a version # */
+	struct lldpad_shm_entry_ver0 ent[MAX_LLDPAD_SHM_ENTRIES];
 };
 
 #endif

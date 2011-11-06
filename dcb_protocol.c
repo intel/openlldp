@@ -40,6 +40,7 @@
 #include "lldp.h"
 #include "tlv_dcbx.h"
 #include "lldp_rtnl.h"
+#include "lldpad_shm.h"
 #include "linux/if.h"
 #include "linux/dcbnl.h"
 
@@ -1212,6 +1213,8 @@ int dcbx_remove_adapter(char *device_name)
 		else if (not_default)
 			LLDPAD_DBG("remove_adapter: oper llink not found\n");
 	}
+
+	lldpad_shm_set_dcbx(device_name, dcbx_subtype0);
 	return true;
 }
 
