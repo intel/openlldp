@@ -396,9 +396,8 @@ void ecp_rx_ProcessFrame(struct vdp_data *vd)
 		}
 
 		if (tlv_offset + 2 > vd->ecp.rx.sizein) {
-			LLDPAD_WARN("%s: tlv end of frame problem, size=%d, "
-				    "offset=%d\n",
-				    __func__, vd->ecp.rx.sizein, tlv_offset);
+			LLDPAD_DBG("%s: tlv end of frame problem, size=%d, offset=%d\n",
+				   __func__, vd->ecp.rx.sizein, tlv_offset);
 			frame_error++;
 			goto out;
 		}

@@ -1387,8 +1387,8 @@ void vdp_ifup(char *ifname, struct lldp_agent *agent)
 			enabletx = false;
 
 	if (enabletx == false) {
-		LLDPAD_INFO("%s(%i): port %s not enabled for VDP (%i) !\n",
-			    __func__, __LINE__, ifname, enabletx);
+		LLDPAD_DBG("%s: port %s not enabled for VDP\n",
+			   __func__, ifname);
 		return;
 	}
 
