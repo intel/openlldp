@@ -787,9 +787,9 @@ static int get_ieee_hw(const char *ifname, struct ieee_ets **ets,
 		goto out;
 	}
 
-	memset(*pfc, 0, sizeof(*pfc));
-	memset(*ets, 0, sizeof(*ets));
-	memset(*app, 0, sizeof(*app));
+	memset(*pfc, 0, sizeof(struct ieee_pfc));
+	memset(*ets, 0, sizeof(struct ieee_ets));
+	memset(*app, 0, sizeof(struct app_prio));
 
 	nla_for_each_nested(nattr, attr, rem) {
 		if (nla_type(nattr) == DCB_ATTR_IEEE_APP_TABLE) {
