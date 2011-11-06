@@ -4,7 +4,7 @@
 .\"
 .\" * Other names and brands may be claimed as the property of others.
 .\"
-.TH lldptool 8 "February 23, 2010"
+.TH lldptool 8 "November 2, 2011"
 .SH NAME
 lldptool \- manage the LLDP settings and status of lldpad
 .SH SYNOPSIS
@@ -210,6 +210,14 @@ Get the configured IPv4 address for the Management Address TLV on eth3
 .TP
 Get all configured attributes for the Management Address TLV on eth3
 .B lldptool -t -i eth3 -V mngAddr -c
+
+.TP
+Query the current DCBX mode that will be used if lldpad is restarted. (this is not a persistent setting)
+.B lldptool -t -i eth3 -V IEEE-DCBX -c mode
+
+.TP
+Reset the DCBX mode to be 'auto' (start in IEEE DCBX mode) after the next lldpad restart
+.B lldptool -T -i eth3 -V IEEE-DCBX mode=reset
 
 .TP
 Enable transmit of the Edge Virtual Bridging TLV for interface eth4

@@ -4,7 +4,7 @@
 .\"
 .\" * Other names and brands may be claimed as the property of others.
 .\"
-.TH lldpad 8 "February 23, 2010"
+.TH lldpad 8 "November 2, 2011"
 .SH NAME
 lldpad \- Link Layer Discovery Protocol (LLDP) agent daemon
 .SH SYNOPSIS
@@ -68,21 +68,40 @@ dcbtool for DCB management.
 .PP
 
 .B lldpad
-supports the versions of the DCB capabilities exchange (DCBX) protocol described here:
+supports the versions of the DCB capabilities exchange (DCBX) protocol listed as follows:
 .TP
-version 1
+version 1 - also known as CIN DCBX
 <http://download.intel.com/technology/eedc/dcb_cep_spec.pdf>
 .PP
-and here:
 .TP
 version 2 - also known as CEE DCBX
 <http://www.ieee802.org/1/files/public/docs2008/az-wadekar-dcbx-capability-exchange-discovery-protocol-1108-v1.01.pdf>
 .PP
+.TP
+IEEE DCBX
+See the IEEE 802.1Qaz-2011 specification for details.
+.PP
+IEEE DCBX is the default DCBX mode for a DCB capable interface so the default and configured IEEE DCBX TLV's will be
+transmitted when the interface comes up.  If the remote LLDP agent does not transmit any IEEE DCBX TLV's and does
+transmit a legacy DCBX
+(CEE or CIN) TLV, then the DCBX mode will drop back to the locally configured legacy DCBX mode.  It will not transition
+back to IEEE DCBX mode until the next link reset.  If 
+.B lldpad
+has dropped back to legacy DCBX mode for a given interface and the daemon is stopped and restarted, the
+legacy DCBX mode for that interface will be used instead of starting out in IEEE DCBX mode.  This behavior only applies to the 
+case where
+.B lldpad
+is restarted and is not persistent across a system reboot.  
+.PP
 See
 .B dcbtool
-for information on how to configure which version of DCBX
+for information on how to globally configure which legacy version of DCBX
 .B lldpad
 executes.
+.PP
+See
+.B lldptool
+for information on how to reset the DCBX mode of an interface back to default (starts out in IEEE DCBX mode).
 
 .B lldpad
 also supports edge virtual bridging as currently under specification in the
@@ -128,7 +147,7 @@ remove lldpad state records from shared memory
 .SH COPYRIGHT
 lldpad - LLDP agent daemon with DCBX support
 .br
-Copyright(c) 2007-2010 Intel Corporation.
+Copyright(c) 2007-2011 Intel Corporation.
 .BR
 Portions of lldpad  are based on:
 .IP hostapd-0.5.7
