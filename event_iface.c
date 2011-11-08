@@ -35,6 +35,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <linux/sockios.h>
 #include <netlink/attr.h>
@@ -374,6 +375,7 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 		      *tb_vfinfo[IFLA_VF_MAX+1],
 		      *tb_vfinfo_list;
 	struct vsi_profile *profile, *p;
+	struct mac_vlan *mac_vlan;
 	struct ifinfomsg *ifinfo;
 	struct vdp_data *vd;
 	char *ifname;
@@ -428,24 +430,39 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 		}
 	}
 
+	/* TODO: vdp_create_profile */
 	profile = malloc(sizeof(struct vsi_profile));
 	if (!profile)
 		return -ENOMEM;
 	memset(profile, 0, sizeof(struct vsi_profile));
+	LIST_INIT(&profile->macvid_head);
 
 	if (tb_vfinfo[IFLA_VF_MAC]) {
 		struct ifla_vf_mac *mac = RTA_DATA(tb_vfinfo[IFLA_VF_MAC]);
 		u8 *m = mac->mac;
 		LLDPAD_DBG("IFLA_VF_MAC=%2x:%2x:%2x:%2x:%2x:%2x\n",
 			m[0], m[1], m[2], m[3], m[4], m[5]);
-		memcpy(&profile->mac, m, ETH_ALEN);
+		mac_vlan = malloc(sizeof(struct mac_vlan));
+		if (!mac_vlan) {
+			ret = -ENOMEM;
+			goto out_err;
+		}
+		memset(mac_vlan, 0, sizeof(struct mac_vlan));
+		memcpy(&mac_vlan->mac, m, ETH_ALEN);
 	}
 
 	if (tb_vfinfo[IFLA_VF_VLAN]) {
 		struct ifla_vf_vlan *vlan = RTA_DATA(tb_vfinfo[IFLA_VF_VLAN]);
 		LLDPAD_DBG("IFLA_VF_VLAN=%d\n", vlan->vlan);
-		profile->vlan = (u16) vlan->vlan;
+		if (!mac_vlan) {
+			ret = -ENOMEM;
+			goto out_err;
+		}
+		mac_vlan->vlan = (u16) vlan->vlan;
 	}
+
+	LIST_INSERT_HEAD(&profile->macvid_head, mac_vlan, entry);
+	profile->entries++;
 
 	if (tb[IFLA_VF_PORTS]) {
 		struct nlattr *tb_vf_ports;
@@ -541,10 +558,13 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 
 	p = vdp_add_profile(profile);
 
-	if (!p) {
-		ret = -EINVAL;
+	if (!p)
 		goto out_err;
-	}
+
+	vdp_print_profile(p);
+
+	if (p != profile)
+		goto out_err;
 
 	return ret;
 

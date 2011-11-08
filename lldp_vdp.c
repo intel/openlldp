@@ -69,7 +69,7 @@ const char * const vsi_states[] = {
 
 int vdp_start_localchange_timer(struct vsi_profile *p);
 int vdp_remove_profile(struct vsi_profile *profile);
-int vdp_profile_equal(struct vsi_profile *p1, struct vsi_profile *p2);
+static bool vdp_profile_equal(struct vsi_profile *p1, struct vsi_profile *p2);
 
 /* vdp_data - searches vdp_data in the list of modules for this port
  * @ifname: interface name to search for
@@ -158,23 +158,19 @@ const char *vdp_response2str(int response)
  */
 void vdp_print_profile(struct vsi_profile *profile)
 {
-	LLDPAD_DBG("profile:\n");
+	char *buf;
 
-	LLDPAD_DBG("mode: %i\n", profile->mode);
-	LLDPAD_DBG("response: %i\n", profile->response);
-	LLDPAD_DBG("state: %i\n", profile->state);
-	LLDPAD_DBG("mgrid: %i\n", profile->mgrid);
-	LLDPAD_DBG("id: %x\n", profile->id);
-	LLDPAD_DBG("version: %i\n", profile->version);
+	buf = malloc(VDP_BUF_SIZE);
+	if (!buf)
+		return;
+	memset(buf, 0, VDP_BUF_SIZE);
 
-	char macbuf[MAC_ADDR_STRLEN+1];
-	char instance[INSTANCE_STRLEN+2];
-	instance2str(profile->instance, instance, sizeof(instance));
-	LLDPAD_DBG("instance: %s\n", &instance[0]);
-	mac2str(profile->mac, macbuf, MAC_ADDR_STRLEN);
-	LLDPAD_DBG("mac: %s\n", macbuf);
+	print_profile(buf, VDP_BUF_SIZE, profile);
 
-	LLDPAD_DBG("vlan: %i\n", profile->vlan);
+	LLDPAD_DBG("profile %p:\n", profile);
+	LLDPAD_DBG("%s\n", buf);
+
+	free(buf);
 }
 
 /* vdp_ack_profiles - set ackReceived for all profiles with seqnr
@@ -912,13 +908,14 @@ static int vdp_validate_tlv(struct tlv_info_vdp *vdp)
 		goto out_err;
 	}
 
-	if (vdp->format != VDP_MACVLAN_FORMAT_1) {
+	if (vdp->format != VDP_FILTER_INFO_FORMAT_MACVID) {
 		LLDPAD_DBG("Unknown format %02x in vsi tlv !\n", vdp->format);
 		goto out_err;
 	}
 
-	if (ntohs(vdp->entries) != 1) {
-		LLDPAD_DBG("Multiple entries %02x in vsi tlv !\n", vdp->entries);
+	if (ntohs(vdp->entries) < 1) {
+		LLDPAD_DBG("Invalid # of entries %02x in vsi tlv !\n",
+			    ntohs(vdp->entries));
 		goto out_err;
 	}
 
@@ -945,7 +942,9 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode)
 	struct vsi_profile *p, *profile;
 	struct port *port = port_find_by_name(vd->ifname);
 
-	LLDPAD_DBG("%s(%i): indicating vdp for %s !\n", __func__, __LINE__, vd->ifname);
+	LLDPAD_DBG("%s(%i): indicating vdp of length %u (%lu) for %s !\n",
+		   __func__, __LINE__, tlv->length, sizeof(struct tlv_info_vdp),
+		   vd->ifname);
 
 	if (!port) {
 		LLDPAD_ERR("%s(%i): port not found for %s !\n", __func__, __LINE__, vd->ifname);
@@ -960,7 +959,8 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode)
 	}
 
 	memset(vdp, 0, sizeof(struct tlv_info_vdp));
-	memcpy(vdp, tlv->info, tlv->length);
+	/* copy only vdp header w/o list of mac/vlan/groupid pairs */
+	memcpy(vdp, tlv->info, sizeof(struct tlv_info_vdp));
 
 	if (vdp_validate_tlv(vdp)) {
 		LLDPAD_ERR("%s(%i): Invalid TLV received !\n", __func__, __LINE__);
@@ -983,8 +983,11 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode)
 	profile->id = ntoh24(vdp->id);
 	profile->version = vdp->version;
 	memcpy(&profile->instance, &vdp->instance, 16);
-	memcpy(&profile->mac, &vdp->mac_vlan.mac, MAC_ADDR_LEN);
-	profile->vlan = ntohs(vdp->mac_vlan.vlan);
+	profile->format = vdp->format;
+	profile->entries = ntohs(vdp->entries);
+
+	LLDPAD_DBG("%s: MAC/VLAN filter info format %u, # of entries %u\n",
+		   __func__, profile->format, profile->entries);
 
 	profile->port = port;
 
@@ -1066,46 +1069,70 @@ out_err:
  */
 static int vdp_bld_vsi_tlv(struct vdp_data *vd, struct vsi_profile *profile)
 {
+	struct mac_vlan *mv;
+	struct mac_vlan_p *mv_p;
+	struct tlv_info_vdp *vdp;
 	int rc = 0;
 	struct unpacked_tlv *tlv = NULL;
-	struct tlv_info_vdp vdp;
+	int size = sizeof(struct tlv_info_vdp) +
+		profile->entries*sizeof(struct mac_vlan_p);
 
-	FREE_UNPKD_TLV(vd, vdp);
+	vdp = malloc(size);
 
-	memset(&vdp, 0, sizeof(vdp));
+	if (!vdp) {
+		LLDPAD_DBG("%s: Unable to allocate memory for VDP TLV !\n",
+			   __func__);
+		rc = ENOMEM;
+		goto out_err;
+	}
 
-	hton24(vdp.oui, OUI_IEEE_8021Qbg);
-	vdp.sub = LLDP_VDP_SUBTYPE;
-	vdp.mode = profile->mode;
-	vdp.response = 0;
-	vdp.mgrid = profile->mgrid;
-	hton24(vdp.id, profile->id);
-	vdp.version = profile->version;
-	memcpy(&vdp.instance,&profile->instance, 16);
-	vdp.format = VDP_MACVLAN_FORMAT_1;
-	vdp.entries = htons(1);
-	memcpy(&vdp.mac_vlan.mac,&profile->mac, MAC_ADDR_LEN);
-	vdp.mac_vlan.vlan = htons(profile->vlan);
+	memset(vdp, 0, size);
+
+	hton24(vdp->oui, OUI_IEEE_8021Qbg);
+	vdp->sub = LLDP_VDP_SUBTYPE;
+	vdp->mode = profile->mode;
+	vdp->response = 0;
+	vdp->mgrid = profile->mgrid;
+	hton24(vdp->id, profile->id);
+	vdp->version = profile->version;
+	memcpy(&vdp->instance, &profile->instance, 16);
+	vdp->format = VDP_FILTER_INFO_FORMAT_MACVID;
+	vdp->entries = htons(profile->entries);
+
+	mv_p = (struct mac_vlan_p *)(vdp + 1);
+
+	LIST_FOREACH(mv, &profile->macvid_head, entry) {
+		memcpy(mv_p->mac, mv->mac, MAC_ADDR_LEN);
+		mv_p->vlan = htons(mv->vlan);
+		mv_p++;
+	}
 
 	tlv = create_tlv();
 	if (!tlv)
-		goto out_err;
+		goto out_free;
 
 	tlv->type = ORG_SPECIFIC_TLV;
-	tlv->length = sizeof(vdp);
+	tlv->length = size;
 	tlv->info = (u8 *)malloc(tlv->length);
 	if(!tlv->info) {
 		free(tlv);
 		tlv = NULL;
 		rc = ENOMEM;
-		goto out_err;
+		goto out_free;
 	}
-	memcpy(tlv->info, &vdp, tlv->length);
+
+	FREE_UNPKD_TLV(vd, vdp);
+
+	memcpy(tlv->info, vdp, tlv->length);
 
 	vd->vdp = tlv;
 
+out_free:
+	free(vdp);
+
 out_err:
 	return rc;
+
 }
 
 /* vdp_bld_tlv - builds a tlv from a profile
@@ -1194,32 +1221,79 @@ out_err:
  * @p1: profile 1
  * @p2: profile 2
  *
- * returns 1 on success, 0 on error
+ * returns true if equal, false if not
  *
- * compares mgrid, id, version, instance, mac and vlan of 2 profiles to find
+ * compares mgrid, id, version, instance 2 vsi profiles to find
  * out if they are equal.
  */
-int vdp_profile_equal(struct vsi_profile *p1, struct vsi_profile *p2)
+static bool vdp_profile_equal(struct vsi_profile *p1, struct vsi_profile *p2)
 {
 	if (p1->mgrid != p2->mgrid)
-		return 0;
+		return false;
 
 	if (p1->id != p2->id)
-		return 0;
+		return false;
 
 	if (p1->version != p2->version)
-		return 0;
+		return false;
 
 	if (memcmp(p1->instance, p2->instance, 16))
-		return 0;
+		return false;
 
-	if (memcmp(p1->mac, p2->mac, MAC_ADDR_LEN))
-		return 0;
+	return true;
+}
 
-	if (p1->vlan != p2->vlan)
-		return 0;
+/* vdp_macvlan_equal - checks for equality of 2 mac/vlan pairs
+ * @mv1: mac/vlan pair 1
+ * @mv2: mac/vlan pair 2
+ *
+ * returns true if equal, false if not
+ *
+ * compares mac address and vlan if they are equal.
+ */
+bool vdp_macvlan_equal(struct mac_vlan *mv1, struct mac_vlan *mv2)
+{
+	if (memcmp(mv1->mac, mv2->mac, MAC_ADDR_LEN))
+		return false;
 
-	return 1;
+	if (mv1->vlan != mv2->vlan)
+		return false;
+
+	return true;
+}
+
+/* vdp_takeover_macvlans - take over macvlan pairs from p2 into p1
+ * @p1: profile 1
+ * @p2: profile 2
+ *
+ * returns number of mac/vlan pairs taken over
+ *
+ * loops over all mac/vlan pairs in profile 2 and looks for them in profile 1.
+ * If the mac/vlan pair does not yet exist in profile 1, it adds the new pair to
+ * the list in profile 1.
+ */
+void vdp_takeover_macvlans(struct vsi_profile *p1, struct vsi_profile *p2)
+{
+	struct mac_vlan *mv1, *mv2;
+	int count = 0;
+
+	LLDPAD_DBG("%s: taking over mac/vlan pairs !\n", __func__);
+
+	LIST_FOREACH(mv2, &p2->macvid_head, entry) {
+		LIST_FOREACH(mv1, &p1->macvid_head, entry) {
+			if (vdp_macvlan_equal(mv1, mv2) == false) {
+				struct mac_vlan *new;
+				new = malloc(sizeof(struct mac_vlan));
+				memcpy(new->mac, mv2->mac, ETH_ALEN);
+				new->vlan = mv2->vlan;
+				LIST_INSERT_HEAD(&p1->macvid_head, new, entry);
+				count++;
+				p1->entries++;
+			}
+		}
+	}
+
+	LLDPAD_DBG("%s: %u mac/vlan pairs taken over !\n", __func__, count);
 }
 
 /* vdp_add_profile - adds a profile to a per port list
@@ -1245,23 +1319,22 @@ struct vsi_profile *vdp_add_profile(struct vsi_profile *profile)
 		return NULL;
 	}
 
-	profile->response = VDP_RESPONSE_NO_RESPONSE;
-
 	vdp_print_profile(profile);
 
-	/* loop over all existing profiles and check wether
+	/* loop over all existing profiles and check if
 	 * one for this combination already exists. If yes, check,
-	 * if the MAC/VLAN pair already exists. If not, add it.
-	 * Note: currently only one MAC/VLAN pair supported ! */
+	 * if the MAC/VLAN pair already exists. If not, add it. */
 	LIST_FOREACH(p, &vd->profile_head, profile) {
 		if (p) {
 			if (vdp_profile_equal(p, profile)) {
-				if (p->mode == profile->mode) {
-					LLDPAD_DBG("%s(%i): profile already exists, ignoring !\n",
-					       __func__, __LINE__);
-				} else {
-					LLDPAD_DBG("%s(%i): taking new mode !\n", __func__,
-					       __LINE__);
+				LLDPAD_DBG("%s: profile already exists !\n",
+					   __func__);
+
+				vdp_takeover_macvlans(p, profile);
+
+				if (p->mode != profile->mode) {
+					LLDPAD_DBG("%s(%i): new mode %i !\n",
+						   __func__, __LINE__, p->mode);
 					p->mode = profile->mode;
 				}
 
@@ -1272,11 +1345,29 @@ struct vsi_profile *vdp_add_profile(struct vsi_profile *profile)
 		}
 	}
 
+	profile->response = VDP_RESPONSE_NO_RESPONSE;
+
 	LIST_INSERT_HEAD(&vd->profile_head, profile, profile );
 
 	vdp_somethingChangedLocal(profile, true);
 
 	return profile;
+}
+
+/*
+ * vdp_remove_macvlan - remove all mac/vlan pairs in the profile
+ * @profile: profile to remove
+ *
+ * Remove all allocated <mac,vlan> pairs on the profile.
+ */
+static void vdp_remove_macvlan(struct vsi_profile *profile)
+{
+	struct mac_vlan *p;
+
+	LIST_FOREACH(p, &profile->macvid_head, entry) {
+		LIST_REMOVE(p, entry);
+		free(p);
+	}
 }
 
 /* vdp_remove_profile - remove a profile from a per port list
@@ -1301,21 +1392,16 @@ int vdp_remove_profile(struct vsi_profile *profile)
 		       profile->port->ifname);
 		return -1;
 	}
-
-	/* loop over all existing profiles and check wether
+	/* loop over all existing profiles and check if
 	 * it exists. If yes, remove it. */
 	LIST_FOREACH(p, &vd->profile_head, profile) {
-		if (p) {
-			if (vdp_profile_equal(p, profile)) {
-				vdp_print_profile(p);
-				LIST_REMOVE(p, profile);
-				free(p);
-			}
-		} else {
-			return -1;
+		if (vdp_profile_equal(p, profile)) {
+			vdp_print_profile(p);
+			vdp_remove_macvlan(p);
+			LIST_REMOVE(p, profile);
+			free(p);
 		}
 	}
-
 	return 0;
 }
 

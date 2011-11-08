@@ -84,11 +84,12 @@ static char *check_and_update(size_t *total, size_t *length, char *s, int c)
 	return s + c;
 }
 
-static char * print_profile(char *s, size_t length, struct vsi_profile *p)
+char *print_profile(char *s, size_t length, struct vsi_profile *p)
 {
 	int c;
 	size_t	total = 0;
 	char *r = s;
+	struct mac_vlan *mac_vlan;
 
 	c = snprintf(s, length, "\nmode: %i (%s)\n",
 			p->mode, vsi_modes[p->mode]);
@@ -133,20 +134,30 @@ static char * print_profile(char *s, size_t length, struct vsi_profile *p)
 	if (!s)
 		return r;
 
-	{
+	c = snprintf(s, length, "format: 0x%x\n", p->format);
+	s = check_and_update(&total, &length, s, c);
+	if (!s)
+		return r;
+
+	c = snprintf(s, length, "entries: %u\n", p->entries);
+	s = check_and_update(&total, &length, s, c);
+	if (!s)
+		return r;
+
+	LIST_FOREACH(mac_vlan, &p->macvid_head, entry) {
 		char macbuf[MAC_ADDR_STRLEN + 1];
 
-		mac2str(p->mac, macbuf, MAC_ADDR_STRLEN);
+		mac2str(mac_vlan->mac, macbuf, MAC_ADDR_STRLEN);
 		c = snprintf(s, length, "mac: %s\n", macbuf);
-	}
-	s = check_and_update(&total, &length, s, c);
-	if (!s)
-		return r;
+		s = check_and_update(&total, &length, s, c);
+		if (!s)
+			return r;
 
-	c = snprintf(s, length, "vlan: %i\n\n", p->vlan);
-	s = check_and_update(&total, &length, s, c);
-	if (!s)
-		return r;
+		c = snprintf(s, length, "vlan: %i\n", mac_vlan->vlan);
+		s = check_and_update(&total, &length, s, c);
+		if (!s)
+			return r;
+	}
 
 	return s;
 }
@@ -320,6 +331,8 @@ int instance2str(const u8 *p, char *dst, size_t size)
 
 static void vdp_fill_profile(struct vsi_profile *profile, char *buffer, int field)
 {
+	LLDPAD_DBG("%s: parsed %s\n", __func__, buffer);
+
 	switch(field) {
 		case MODE:
 			profile->mode = atoi(buffer);
@@ -336,11 +349,8 @@ static void vdp_fill_profile(struct vsi_profile *profile, char *buffer, int fiel
 		case INSTANCEID:
 			str2instance(profile, buffer);
 			break;
-		case MAC:
-			str2mac(buffer, &profile->mac[0], MAC_ADDR_LEN);
-			break;
-		case VLAN:
-			profile->vlan = atoi(buffer);
+		case FORMAT:
+			profile->format = atoi(buffer);
 			break;
 		default:
 			LLDPAD_ERR("Unknown field in buffer !\n");
@@ -350,9 +360,8 @@ static void vdp_fill_profile(struct vsi_profile *profile, char *buffer, int fiel
 
 static struct vsi_profile *vdp_parse_mode_line(char * argvalue)
 {
-	int i, arglen, field;
-	char *cmdstring, *buf;
-	char *buffer;
+	int arglen, field;
+	char *cmdstring, *parsed;
 	struct vsi_profile *profile;
 
 	profile = malloc(sizeof(struct vsi_profile));
@@ -361,31 +370,41 @@ static struct vsi_profile *vdp_parse_mode_line(char * argvalue)
 	memset(profile, 0, sizeof(struct vsi_profile));
 
 	arglen = strlen(argvalue);
-	cmdstring = argvalue;
-	buffer = malloc(arglen);
-	if (!buffer)
-		goto out_free;
-	buf = buffer;
+	cmdstring = strdup(argvalue);
 	field = 0;
 
-	for (i=0; i <= arglen; i++) {
-		*buffer = *cmdstring;
+	parsed = strtok(cmdstring, ",");
 
-		if ((*cmdstring == ',') || (*cmdstring == '\0')) {
-			*buffer++ = '\0';
-			vdp_fill_profile(profile, buf, field);
-			field++;
-			buffer = buf;
-			memset(buffer, 0, arglen);
-			cmdstring++;
-			continue;
-		}
-
-		buffer++;
-		cmdstring++;
+	while (parsed != NULL) {
+		vdp_fill_profile(profile, parsed, field);
+		field++;
+		if (field > FORMAT)
+			break;
+		parsed = strtok(NULL, ",");
 	}
 
-	free(buffer);
+	if ((field <= FORMAT) || (parsed == NULL))
+		goto out_free;
+
+	parsed = strtok(NULL, ",");
+
+	while (parsed != NULL) {
+		struct mac_vlan *mac_vlan;
+		mac_vlan = malloc(sizeof(struct mac_vlan));
+		if (mac_vlan == NULL)
+			goto out_free;
+
+		str2mac(parsed, &mac_vlan->mac[0], MAC_ADDR_LEN);
+
+		parsed = strtok(NULL, ",");
+		if (parsed == NULL)
+			goto out_free;
+
+		mac_vlan->vlan = atoi(parsed);
+		LIST_INSERT_HEAD(&profile->macvid_head, mac_vlan, entry);
+		profile->entries++;
+		parsed = strtok(NULL, ",");
+	}
 
 	return profile;
 
@@ -415,6 +434,9 @@ static int _set_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
 	}
 
 	profile = vdp_parse_mode_line(argvalue);
+	if (profile == NULL)
+		return cmd_failed;
+
 	profile->port = port_find_by_name(cmd->ifname);
 
 	if (!profile->port) {

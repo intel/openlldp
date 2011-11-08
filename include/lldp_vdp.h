@@ -49,7 +49,10 @@
 extern const char * const vsi_responses[];
 extern const char * const vsi_states[];
 
-#define VDP_MACVLAN_FORMAT_1	1
+#define VDP_FILTER_INFO_FORMAT_VID		0x1
+#define VDP_FILTER_INFO_FORMAT_MACVID		0x2
+#define VDP_FILTER_INFO_FORMAT_GROUPVID		0x3
+#define VDP_FILTER_INFO_FORMAT_GROUPMACVID	0x4
 
 #define VDP_TIMER_GRANULARITY		100*MSECS /* 100 ms */
 #define VDP_KEEPALIVE_TIMER_DEFAULT	10*SECS  /* 10s */
@@ -71,10 +74,16 @@ enum {
 	VSI_EXIT,
 };
 
-struct mac_vlan {
+struct mac_vlan_p {
 	u8 mac[6];
 	u16 vlan;
 } __attribute__ ((__packed__));
+
+struct mac_vlan {
+	u8 mac[6];
+	u16 vlan;
+	LIST_ENTRY(mac_vlan) entry;
+};
 
 struct tlv_info_vdp {
 	u8 oui[3];
@@ -87,7 +96,6 @@ struct tlv_info_vdp {
 	u8 instance[16];
 	u8 format;
 	u16 entries;
-	struct mac_vlan mac_vlan;
 } __attribute__ ((__packed__));
 
 struct vsi_profile {
@@ -97,8 +105,9 @@ struct vsi_profile {
 	int id;
 	u8 version;
 	u8 instance[16];
-	u8 mac[6]; /* TODO: currently only one MAC/VLAN pair supported, more later */
-	u16 vlan;
+	u8 format;
+	u16 entries;
+	LIST_HEAD(macvid_head, mac_vlan) macvid_head;
 	struct port *port;
 	int ackTimer;
 	int ackReceived;
@@ -133,6 +142,7 @@ struct vdp_data *vdp_data(char *ifname);
 struct packed_tlv *vdp_gettlv(struct vdp_data *vd, struct vsi_profile *profile);
 void vdp_vsi_sm_station(struct vsi_profile *profile);
 struct vsi_profile *vdp_add_profile(struct vsi_profile *profile);
+int vdp_remove_profile(struct vsi_profile *);
 void vdp_somethingChangedLocal(struct vsi_profile *profile, bool mode);
 
 void vdp_ack_profiles(struct vdp_data *vd, int seqnr);

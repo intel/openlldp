@@ -40,6 +40,8 @@ VSI type id
 VSI type id version
 .IP <instanceid>
 VSI instance id
+.IP <format>
+VDP filter info format
 .IP <mac>
 VSI mac address
 .IP <vlan>
@@ -74,7 +76,7 @@ Display the currently configured VSIs for \fIeth8\fR
 .B lldptool -t -i eth8 -V vdp -c mode
 .TP
 Associate a VSI on \fIeth8\fR
-.B lldptool -T -i eth8 -V vdp -c mode=2,12,1193046,1,fa9b7fff-b0a0-4893-8e0e-beef4ff18f8f,52:54:00:C7:3E:CE,3
+.B lldptool -T -i eth8 -V vdp -c mode=2,12,1193046,1,fa9b7fff-b0a0-4893-8e0e-beef4ff18f8f,2,52:54:00:C7:3E:CE,3
 .TP
 Display the locally configured role for VDP on \fIeth8\fR
 .B lldptool -t -i eth8 -V vdp -c role
