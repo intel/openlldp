@@ -56,4 +56,5 @@ AC_TYPE_SSIZE_T
 AC_TYPE_UID_T
 
 AC_CONFIG_FILES([Makefile include/version.h lldpad.spec lldpad.pc])
+AC_CONFIG_MACRO_DIR([m4])
 AC_OUTPUT

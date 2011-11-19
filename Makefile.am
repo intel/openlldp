@@ -8,6 +8,8 @@ noinst_PROGRAMS = nltest
 # pass the value of ${sysconfdir} to the C pre-processor as SYSCONFDIR
 AM_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR="\"${sysconfdir}\""
 
+ACLOCAL_AMFLAGS = -I m4
+
 ## system requires a shared libconfig
 AM_CFLAGS = -Wall $(LIBCONFIG_CFLAGS)
 AM_LDFLAGS = $(LIBCONFIG_LIBS)
