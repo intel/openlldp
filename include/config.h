@@ -44,28 +44,56 @@
 #define TYPE_CHAR 4
 #define TYPE_DOUBLE 4
 
+#ifdef LIBCONFIG_VER_MAJOR
+#if LIBCONFIG_VER_MAJOR >= 1 && LIBCONFIG_VER_MINOR >= 4
+#define CONFIG_INT_TYPE
+#endif /* LIBCONFIG_VER_MAJOR >= 1 && LIBCONFIG_VER_MINOR >= 4 */
+#endif /* LIBCONFIG_VER_MAJOR */
+
+#ifdef CONFIG_INT_TYPE
+typedef int config_int_t;
+#else
+typedef long config_int_t;
+#endif /* CONFIG_INT_TYPE */
+
 extern char *cfg_file_name;
 
+union cfg_get {
+	int		*pint;
+	unsigned int	*puint;
+	long long	*p64;
+	double		*pfloat;
+	const char	**ppchar;
+} __attribute__((__transparent_union__));
+
+union cfg_set {
+	const int	*pint;
+	const unsigned int	*puint;
+	const long long	*p64;
+	const double	*pfloat;
+	const char	**ppchar;
+} __attribute__((__transparent_union__));
+
 void scan_port(void *eloop_data, void *user_ctx);
-int get_cfg(const char *ifname, int agenttype, char *path, void *value, int type);
-int set_cfg(const char *ifname, int agenttype, char *path, void *value, int type);
-int get_config_setting(const char *ifname, int agenttype, char *path, void *value, int type);
-int set_config_setting(const char *ifname, int agenttype, char *path, void *value, int type);
+int get_cfg(const char *ifname, int agenttype, char *path, union cfg_get value, int type);
+int set_cfg(const char *ifname, int agenttype, char *path, union cfg_set value, int type);
+int get_config_setting(const char *ifname, int agenttype, char *path, union cfg_get value, int type);
+int set_config_setting(const char *ifname, int agenttype, char *path, union cfg_set value, int type);
 int remove_config_setting(const char *ifname, int agenttype, char *parent, char *name);
-int get_config_tlvfield(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, int type);
+int get_config_tlvfield(const char *ifname, int agenttype, u32 tlvid, const char *field, union cfg_get value, int type);
 int get_config_tlvfield_int(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value);
 int get_config_tlvfield_bool(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value);
 int get_config_tlvfield_bin(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, size_t size);
-int get_config_tlvfield_str(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, size_t size);
+int get_config_tlvfield_str(const char *ifname, int agenttype, u32 tlvid, const char *field, char *value, size_t size);
 int get_config_tlvinfo_bin(const char *ifname, int agenttype, u32 tlvid, void *value, size_t size);
-int get_config_tlvinfo_str(const char *ifname, int agenttype, u32 tlvid, void *value, size_t size);
-int set_config_tlvfield(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, int type);
+int get_config_tlvinfo_str(const char *ifname, int agenttype, u32 tlvid, char *value, size_t size);
+int set_config_tlvfield(const char *ifname, int agenttype, u32 tlvid, const char *field, union cfg_set value, int type);
 int set_config_tlvfield_int(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value);
 int set_config_tlvfield_bool(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value);
 int set_config_tlvfield_bin(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, size_t size);
-int set_config_tlvfield_str(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, size_t size);
+int set_config_tlvfield_str(const char *ifname, int agenttype, u32 tlvid, const char *field, const char *value, size_t size);
 int set_config_tlvinfo_bin(const char *ifname, int agenttype, u32 tlvid, void *value, size_t size);
-int set_config_tlvinfo_str(const char *ifname, int agenttype, u32 tlvid, void *value, size_t size);
+int set_config_tlvinfo_str(const char *ifname, int agenttype, u32 tlvid, char *value, size_t size);
 int is_tlv_txdisabled(const char *ifname, int agenttype, u32 tlvid);
 int is_tlv_txenabled(const char *ifname, int agenttype, u32 tlvid);
 int tlv_enabletx(const char *ifname, int agenttype, u32 tlvid);

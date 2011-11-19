@@ -64,7 +64,7 @@ config_t lldpad_cfg;
  */
 int init_cfg(void)
 {
-	char *p;
+	const char *p;
 	int err = 1;
 
 	config_init(&lldpad_cfg);
@@ -75,8 +75,7 @@ int init_cfg(void)
 	} else if (!config_read_file(&lldpad_cfg, cfg_file_name)) {
 		err = 0;
 		LLDPAD_INFO("%s: config file failed to load\n", __func__);
-	} else if (config_lookup_string(&lldpad_cfg, 
-					"version", (const char **)&p)) {
+	} else if (config_lookup_string(&lldpad_cfg, "version", &p)) {
 		LLDPAD_INFO("%s: config file version incorrect ", __func__);
 		LLDPAD_INFO("rebuild file with correct version.\n");
 		destroy_cfg();
@@ -393,39 +392,46 @@ void init_ports(void)
 	if_freenameindex(nameidx);
 }
 
-static int set_config_value(config_setting_t *setting, void *value, int type)
+static int
+set_config_value(config_setting_t *setting, union cfg_set v, int type)
 {
+	config_int_t tmp_int;
+
 	switch (type) {
 	case CONFIG_TYPE_INT:
-		return config_setting_set_int(setting, *((long *)value));
+		tmp_int = (config_int_t)*v.pint;
+		return config_setting_set_int(setting, tmp_int);
 	case CONFIG_TYPE_INT64:
-		return config_setting_set_int64(setting, *((long long *)value));
+		return config_setting_set_int64(setting, *v.p64);
 	case CONFIG_TYPE_FLOAT:
-		return config_setting_set_float(setting, *((double *)value));
+		return config_setting_set_float(setting, *v.pfloat);
 	case CONFIG_TYPE_STRING:
-		return config_setting_set_string(setting,
-						*((const char **)value));
+		return config_setting_set_string(setting, *v.ppchar);
 	case CONFIG_TYPE_BOOL:
-		return config_setting_set_bool(setting, *((int *)value));
+		return config_setting_set_bool(setting, *v.pint);
 	default:
 		return CONFIG_FALSE;
 	}
 }
 
-static int lookup_config_value(char *path, void *value, int type)
+static int lookup_config_value(char *path, union cfg_get v, int type)
 {
+	config_int_t tmp_int;
+	int rc;
+
 	switch (type) {
 	case CONFIG_TYPE_INT:
-		return config_lookup_int(&lldpad_cfg, path, (int *)value);
+		rc = config_lookup_int(&lldpad_cfg, path, &tmp_int);
+		*v.pint = (int)tmp_int;
+		return rc;
 	case CONFIG_TYPE_INT64:
-		return config_lookup_int64(&lldpad_cfg, path, (long long *)value);
+		return config_lookup_int64(&lldpad_cfg, path, v.p64);
 	case CONFIG_TYPE_FLOAT:
-		return config_lookup_float(&lldpad_cfg, path, (double *)value);
+		return config_lookup_float(&lldpad_cfg, path, v.pfloat);
 	case CONFIG_TYPE_STRING:
-		return config_lookup_string(&lldpad_cfg, path,
-					   (const char **)value);
+		return config_lookup_string(&lldpad_cfg, path, v.ppchar);
 	case CONFIG_TYPE_BOOL:
-		return config_lookup_bool(&lldpad_cfg, path, (int *)value);
+		return config_lookup_bool(&lldpad_cfg, path, v.pint);
 	default:
 		return CONFIG_FALSE;
 	}
@@ -445,7 +451,7 @@ static int lookup_config_value(char *path, void *value, int type)
  * This function assumes init_cfg() has been called.
  */
 int get_config_setting(const char *ifname, int agenttype, char *path,
-				void *value, int type)
+		       union cfg_get v, int type)
 {
 	char p[1024];
 	int rval = CONFIG_FALSE;
@@ -455,14 +461,14 @@ int get_config_setting(const char *ifname, int agenttype, char *path,
 	if (ifname) {
 		snprintf(p, sizeof(p), "%s.%s.%s",
 			 section, ifname, path);
-		rval = lookup_config_value(p, value, type);
+		rval = lookup_config_value(p, v, type);
 	}
 
 	/* if not found look for setting in section->common area */
 	if (rval == CONFIG_FALSE) {
 		snprintf(p, sizeof(p), "%s.%s.%s",
 			 section, LLDP_COMMON, path);
-		rval = lookup_config_value(p, value, type);
+		rval = lookup_config_value(p, v, type);
 	}
 
 	return (rval == CONFIG_FALSE) ? cmd_failed : cmd_success;
@@ -503,10 +509,11 @@ int remove_config_setting(const char *ifname, int agenttype, char *parent,
 }
 
 /* calling get_config_setting() w/ init_cfg()/destroy_cfg() */
-int get_cfg(const char *ifname, int agenttype, char *path, void *value, int type)
+int get_cfg(const char *ifname, int agenttype, char *path, union cfg_get v,
+	    int type)
 {
 	int rval;
-	rval = get_config_setting(ifname, agenttype, path, value, type);
+	rval = get_config_setting(ifname, agenttype, path, v, type);
 	return rval;
 }
 
@@ -562,7 +569,7 @@ config_setting_t *find_or_create_setting(char *p, int type)
  * This function assumes init_cfg() has been called.
  */
 int set_config_setting(const char *ifname, int agenttype, char *path,
-		       void *value, int type)
+		       union cfg_set v, int type)
 {
 	config_setting_t *setting = NULL;
 	char p[1024];
@@ -580,7 +587,7 @@ int set_config_setting(const char *ifname, int agenttype, char *path,
 	setting = find_or_create_setting(p, type);
 
 	if (setting) {
-		if (!set_config_value(setting, value, type)) {
+		if (!set_config_value(setting, v, type)) {
 			rval = cmd_failed;
 		} else if (!config_write_file(&lldpad_cfg, cfg_file_name)) {
 			LLDPAD_DBG("config write failed\n");
@@ -590,11 +597,11 @@ int set_config_setting(const char *ifname, int agenttype, char *path,
 	return rval;
 }
 
-int set_cfg(const char *ifname, int agenttype, char *path, void *value,
+int set_cfg(const char *ifname, int agenttype, char *path, union cfg_set v,
 	    int type)
 {
 	int rval = cmd_failed;
-	rval = set_config_setting(ifname, agenttype, path, value, type);
+	rval = set_config_setting(ifname, agenttype, path, v, type);
 	return rval;
 }
 
@@ -610,137 +617,141 @@ int set_cfg(const char *ifname, int agenttype, char *path, void *value,
  *
  * Note: must have called init_cfg() before calling this.
  */
-int get_config_tlvfield(const char *ifname, int agenttype, u32 tlvid, const char *field, void *val, int type)
-{
-	int rc;
-	char path[256];
-
-	memset(path, 0, sizeof(path));
-	rc = snprintf(path, sizeof(path), "tlvid%08x.%s", tlvid, field);
-	if (get_config_setting(ifname, agenttype, path, val, type)) {
-		rc = EIO;
-		goto out_err;
-	}
-	rc = 0;
-
-out_err:
-	return rc;
-}
-
-/* libconfig uses long for int */
-int get_config_tlvfield_int(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value)
-{
-	int rc = 0;
-	long int val = (long int) *value;
-
-	rc = get_config_tlvfield(ifname, agenttype, tlvid, field, &val, CONFIG_TYPE_INT);
-	*value = (int) val;
-	return rc;
-}
-
-int get_config_tlvfield_bool(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value)
-{
-	return get_config_tlvfield(ifname, agenttype, tlvid, field, value, CONFIG_TYPE_BOOL);
-}
-
-int get_config_tlvfield_bin(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, size_t size)
-{
-	int rc = 0;
-	char *str = NULL;
-
-	rc = get_config_tlvfield(ifname, agenttype, tlvid, field, (void *)&str, CONFIG_TYPE_STRING);
-	if ((rc == 0) && (str != NULL))
-		rc = hexstr2bin(str, value, size);
-	return rc;
-}
-
-int get_config_tlvfield_str(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, size_t size)
-{
-	int rc = 0;
-	char *str = NULL;
-
-	rc = get_config_tlvfield(ifname, agenttype, tlvid, field, (void *)&str, CONFIG_TYPE_STRING);
-	if ((rc == 0) && (str != NULL))
-		strncpy(value, str, size);
-	return rc;
-}
-
-int get_config_tlvinfo_bin(const char *ifname, int agenttype, u32 tlvid, void *value, size_t size)
-{
-	return	get_config_tlvfield_bin(ifname, agenttype, tlvid, ARG_TLVINFO, value, size);
-}
-
-int get_config_tlvinfo_str(const char *ifname, int agenttype, u32 tlvid, void *value, size_t size)
-{
-	return	get_config_tlvfield_str(ifname, agenttype, tlvid, ARG_TLVINFO, value, size);
-}
-
-int set_config_tlvfield(const char *ifname, int agenttype, u32 tlvid, const char *field, void *val, int type)
+int get_config_tlvfield(const char *ifname, int agenttype, u32 tlvid,
+			const char *field, union cfg_get v, int type)
 {
 	char path[256];
 
 	memset(path, 0, sizeof(path));
 	snprintf(path, sizeof(path), "tlvid%08x.%s", tlvid, field);
-	return set_config_setting(ifname, agenttype, path, val, type);
+	if (get_config_setting(ifname, agenttype, path, v, type))
+		return EIO;
+
+	return 0;
 }
 
-int set_config_tlvfield_str(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, size_t size)
+int get_config_tlvfield_int(const char *ifname, int agenttype, u32 tlvid,
+			    const char *field, int *val)
 {
-	int rc = EINVAL;
-	char *str = NULL;
+	return get_config_tlvfield(ifname, agenttype, tlvid, field, val,
+				   CONFIG_TYPE_INT);
+}
 
-	if (value) {
-		str = (char *)value;
-		rc = set_config_tlvfield(ifname, agenttype, tlvid, field, (void *)&str, CONFIG_TYPE_STRING);
-	}
+int get_config_tlvfield_bool(const char *ifname, int agenttype, u32 tlvid,
+			     const char *field, int *val)
+{
+	return get_config_tlvfield(ifname, agenttype, tlvid, field, val,
+				   CONFIG_TYPE_BOOL);
+}
+
+int get_config_tlvfield_bin(const char *ifname, int agenttype, u32 tlvid,
+			    const char *field, void *value, size_t size)
+{
+	int rc;
+	const char *str = NULL;
+
+	rc = get_config_tlvfield(ifname, agenttype, tlvid, field, &str,
+				 CONFIG_TYPE_STRING);
+	if (rc == 0 && str)
+		rc = hexstr2bin(str, value, size);
 	return rc;
 }
 
-int set_config_tlvfield_bin(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, size_t size)
+int get_config_tlvfield_str(const char *ifname, int agenttype, u32 tlvid,
+			    const char *field, char *value, size_t size)
 {
-	int rc = EINVAL;
-	char *str = NULL;
-	size_t bsize = 0;
+	int rc;
+	const char *str = NULL;
+
+	rc = get_config_tlvfield(ifname, agenttype, tlvid, field, &str,
+				 CONFIG_TYPE_STRING);
+	if (rc == 0 && str)
+		strncpy(value, str, size);
+	return rc;
+}
+
+int get_config_tlvinfo_bin(const char *ifname, int agenttype, u32 tlvid,
+			   void *value, size_t size)
+{
+	return get_config_tlvfield_bin(ifname, agenttype, tlvid, ARG_TLVINFO,
+				       value, size);
+}
+
+int get_config_tlvinfo_str(const char *ifname, int agenttype, u32 tlvid,
+			   char *value, size_t size)
+{
+	return get_config_tlvfield_str(ifname, agenttype, tlvid, ARG_TLVINFO,
+				       value, size);
+}
+
+int set_config_tlvfield(const char *ifname, int agenttype, u32 tlvid,
+			const char *field, union cfg_set v, int type)
+{
+	char path[256];
+
+	memset(path, 0, sizeof(path));
+	snprintf(path, sizeof(path), "tlvid%08x.%s", tlvid, field);
+	return set_config_setting(ifname, agenttype, path, v, type);
+}
+
+int set_config_tlvfield_str(const char *ifname, int agenttype, u32 tlvid,
+			    const char *field, const char *str, size_t size)
+{
+	if (!str)
+		return EINVAL;
+	return set_config_tlvfield(ifname, agenttype, tlvid, field, &str,
+				   CONFIG_TYPE_STRING);
+}
+
+int set_config_tlvfield_bin(const char *ifname, int agenttype, u32 tlvid,
+			    const char *field, void *value, size_t size)
+{
+	int rc;
+	const size_t bsize = size * 2 + 1; /* 2 char per byte + '\0' */
+	char str[bsize];
+	const char *p;
 
 	if (!value)
-		goto out_err;
+		return EINVAL;
 
-	/* 2 char per byte + '\0' */
-	bsize = size * 2 + 1;
-	str = malloc(bsize);
-	if (!str)
-		goto out_err;
 	memset(str, 0, bsize);
-	rc = bin2hexstr((u8 *)value, size, str, bsize);
+	rc = bin2hexstr(value, size, str, bsize);
 	if (rc)
-		goto out_free;
+		goto out;
 	str[bsize - 1] = '\0';
-	rc = set_config_tlvfield(ifname, agenttype, tlvid, field, (void *)&str, CONFIG_TYPE_STRING);
-out_free:
-	free(str);
-out_err:
+	p = str;
+	rc = set_config_tlvfield(ifname, agenttype, tlvid, field, &p,
+				 CONFIG_TYPE_STRING);
+out:
 	return rc;
 }
 
-int set_config_tlvinfo_bin(const char *ifname, int agenttype, u32 tlvid, void *value, size_t size)
+int set_config_tlvinfo_bin(const char *ifname, int agenttype, u32 tlvid,
+			   void *value, size_t size)
 {
-	return	set_config_tlvfield_bin(ifname, agenttype, tlvid, "info", value, size);
+	return set_config_tlvfield_bin(ifname, agenttype, tlvid, "info",
+				       value, size);
 }
 
-int set_config_tlvinfo_str(const char *ifname, int agenttype, u32 tlvid, void *value, size_t size)
+int set_config_tlvinfo_str(const char *ifname, int agenttype, u32 tlvid,
+			   char *value, size_t size)
 {
-	return	set_config_tlvfield_str(ifname, agenttype, tlvid, "info", value, size);
+	return set_config_tlvfield_str(ifname, agenttype, tlvid, "info",
+				       value, size);
 }
 
-int set_config_tlvfield_int(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value)
+int set_config_tlvfield_int(const char *ifname, int agenttype, u32 tlvid,
+			    const char *field, int *value)
 {
-	long int val = (long int )*value;
-	return set_config_tlvfield(ifname, agenttype, tlvid, field, &val, CONFIG_TYPE_INT);
+	return set_config_tlvfield(ifname, agenttype, tlvid, field, value,
+				   CONFIG_TYPE_INT);
 }
 
-int set_config_tlvfield_bool(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value)
+int set_config_tlvfield_bool(const char *ifname, int agenttype, u32 tlvid,
+			     const char *field, int *value)
 {
-	return set_config_tlvfield(ifname, agenttype, tlvid, field, value, CONFIG_TYPE_BOOL);
+	return set_config_tlvfield(ifname, agenttype, tlvid, field, value,
+				   CONFIG_TYPE_BOOL);
 }
 
 int is_tlv_txdisabled(const char *ifname, int agenttype, u32 tlvid)
@@ -751,7 +762,7 @@ int is_tlv_txdisabled(const char *ifname, int agenttype, u32 tlvid)
 	snprintf(arg, sizeof(arg), "%s%08x.%s", TLVID_PREFIX,
 		 tlvid, ARG_TLVTXENABLE);
 
-	get_config_setting(ifname, agenttype, arg, (void *)&enabletx, CONFIG_TYPE_BOOL);
+	get_config_setting(ifname, agenttype, arg, &enabletx, CONFIG_TYPE_BOOL);
 
 	return !enabletx;
 }
@@ -764,7 +775,7 @@ int is_tlv_txenabled(const char *ifname, int agenttype, u32 tlvid)
 	snprintf(arg, sizeof(arg), "%s%08x.%s", TLVID_PREFIX,
 		 tlvid, ARG_TLVTXENABLE);
 
-	get_config_setting(ifname, agenttype, arg, (void *)&enabletx, CONFIG_TYPE_BOOL);
+	get_config_setting(ifname, agenttype, arg, &enabletx, CONFIG_TYPE_BOOL);
 
 	return enabletx;
 }
@@ -773,14 +784,14 @@ int tlv_enabletx(const char *ifname, int agenttype, u32 tlvid)
 {
 	int enabletx = true;
 	return set_config_tlvfield_bool(ifname, agenttype, tlvid,
-					ARG_TLVTXENABLE, (void *)&enabletx);
+					ARG_TLVTXENABLE, &enabletx);
 }
 
 int tlv_disabletx(const char *ifname, int agenttype, u32 tlvid)
 {
 	int enabletx = false;
 	return set_config_tlvfield_bool(ifname, agenttype, tlvid,
-					ARG_TLVTXENABLE, (void *)&enabletx);
+					ARG_TLVTXENABLE, &enabletx);
 }
 
 void set_med_devtype(const char *ifname, int agenttype, int devtype)

@@ -79,7 +79,7 @@ int get_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue,
 	if (cmd->tlvid != INVALID_TLVID)
 		return cmd_bad_params;
 
-	if (get_config_setting(cmd->ifname, cmd->type, arg, (void *)&value,
+	if (get_config_setting(cmd->ifname, cmd->type, arg, &value,
 				CONFIG_TYPE_INT))
 		value = disabled;
 
@@ -207,7 +207,7 @@ int handle_get_arg(struct cmd *cmd, char *arg, char *argvalue,
 int _set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue,
 			 char *obuf, int obuf_len, bool test)
 {
-	long value;
+	int value;
 
 	if (cmd->cmd != cmd_set_lldp || cmd->tlvid != INVALID_TLVID)
 		return cmd_bad_params;
@@ -226,10 +226,9 @@ int _set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue,
 	if (test)
 		return cmd_success;
 
-	if (set_config_setting(cmd->ifname, cmd->type, arg, (void *)&value,
-			       CONFIG_TYPE_INT)) {
+	if (set_config_setting(cmd->ifname, cmd->type, arg, &value,
+			       CONFIG_TYPE_INT))
 		return cmd_failed;
-	}
 
 	set_lldp_agent_admin(cmd->ifname, cmd->type, value);
 

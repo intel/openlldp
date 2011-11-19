@@ -153,7 +153,7 @@ struct ieee8021qaz_tlvs *ieee8021qaz_data(const char *ifname)
 	return NULL;
 }
 
-static void set_ets_prio_map(char *arg, u32 *prio_map)
+static void set_ets_prio_map(const char *arg, u32 *prio_map)
 {
 		char *argcpy = strdup(arg);
 		char *tokens;
@@ -173,7 +173,7 @@ static void set_ets_prio_map(char *arg, u32 *prio_map)
 		free(argcpy);
 }
 
-static void set_ets_tsa_map(char *arg, u8 *tsa_map)
+static void set_ets_tsa_map(const char *arg, u8 *tsa_map)
 {
 	int i, type, tc;
 	char *argcpy = strdup(arg);
@@ -206,9 +206,10 @@ static void set_ets_tsa_map(char *arg, u8 *tsa_map)
 static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 			 struct ieee8021qaz_tlvs *tlvs)
 {
-	char *arg, arg_path[256];
+	const char *arg = NULL;
+	char arg_path[256];
 	int res = 0, i;
-	long willing, pfc_mask, delay;
+	int willing, pfc_mask, delay;
 
 	if (agent->type != NEAREST_BRIDGE)
 		return 0;
@@ -425,7 +426,7 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	struct port *port = NULL;
 	struct ieee8021qaz_tlvs *tlvs;
 	struct ieee8021qaz_user_data *iud;
-	long adminstatus;
+	int adminstatus;
 	feature_support dcb_support;
 	struct ieee_ets *ets = NULL;
 	struct ieee_pfc *pfc = NULL;
@@ -459,9 +460,8 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	 * but do not persist that as a setting.
 	 */
 	if (get_config_setting(ifname, agent->type, ARG_ADMINSTATUS,
-			       (void *)&adminstatus, CONFIG_TYPE_INT)) {
+			       &adminstatus, CONFIG_TYPE_INT))
 		set_lldp_agent_admin(ifname, agent->type, enabledRxOnly);
-	}
 
 	/* lookup port data */
 	port = porthead;
@@ -1870,12 +1870,12 @@ int ieee8021qaz_rchange(struct port *port, struct lldp_agent *agent,
 			 * if current configuration is RXOnly and
 			 * not persistant (i.e. default)
 			 */
-			long adminstatus;
+			int adminstatus;
 			if (qaz_tlvs->ieee8021qazdu &&
 				get_config_setting(qaz_tlvs->ifname,
 						   agent->type,
 						   ARG_ADMINSTATUS,
-						   (void *)&adminstatus,
+						   &adminstatus,
 						   CONFIG_TYPE_INT) &&
 				get_lldp_agent_admin(qaz_tlvs->ifname,
 						     agent->type) ==
@@ -1884,12 +1884,12 @@ int ieee8021qaz_rchange(struct port *port, struct lldp_agent *agent,
 				if (set_config_setting(qaz_tlvs->ifname,
 						       agent->type,
 						       ARG_ADMINSTATUS,
-						      (void *)&adminstatus,
+						       &adminstatus,
 						       CONFIG_TYPE_INT) ==
 						       cmd_success)
 					set_lldp_agent_admin(qaz_tlvs->ifname,
 							     agent->type,
-							    (int)adminstatus);
+							     adminstatus);
 			}
 			if (qaz_tlvs->ieee8021qazdu)
 				qaz_tlvs->pending = false;

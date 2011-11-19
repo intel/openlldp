@@ -71,8 +71,7 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 			 TLVID_PREFIX, cmd->tlvid, arg);
 
 		if (get_config_setting(cmd->ifname, cmd->type, arg_path,
-				       (void *)&value,
-				       CONFIG_TYPE_BOOL))
+				       &value, CONFIG_TYPE_BOOL))
 			value = false;
 		break;
 	case INVALID_TLVID:
@@ -126,7 +125,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 		 cmd->tlvid, arg);
 
-	if (set_cfg(cmd->ifname, cmd->type, arg_path, (void *)&value,
+	if (set_cfg(cmd->ifname, cmd->type, arg_path, &value,
 		    CONFIG_TYPE_BOOL))
 		return cmd_failed;
 

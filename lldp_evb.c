@@ -272,7 +272,7 @@ static void evb_free_tlv(struct evb_data *ed)
 static int evb_init_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
 {
 	char arg_path[EVB_BUF_SIZE];
-	char *param;
+	const char *param = NULL;
 
 	/* load policy from config */
 	ed->policy = (struct tlv_info_evb *) calloc(1, sizeof(struct tlv_info_evb));
@@ -295,7 +295,7 @@ static int evb_init_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
 		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
 
 	if (get_cfg(ed->ifname, agent->type, arg_path,
-		    (void *) &param, CONFIG_TYPE_STRING)) {
+		    &param, CONFIG_TYPE_STRING)) {
 		LLDPAD_INFO("%s:%s: loading EVB policy for forwarding mode failed, using default.\n",
 			__func__, ed->ifname);
 	} else {
@@ -316,7 +316,7 @@ static int evb_init_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
 		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
 
 	if (get_cfg(ed->ifname, agent->type, arg_path,
-		    (void *) &param, CONFIG_TYPE_STRING)) {
+		    &param, CONFIG_TYPE_STRING)) {
 		LLDPAD_INFO("%s:%s: loading EVB policy for capabilities failed, using default.\n",
 			__func__, ed->ifname);
 	} else {
@@ -345,7 +345,7 @@ static int evb_init_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
 		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
 
 	if (get_cfg(ed->ifname, NEAREST_CUSTOMER_BRIDGE, arg_path,
-		    (void *) &param, CONFIG_TYPE_STRING)) {
+		    &param, CONFIG_TYPE_STRING)) {
 		LLDPAD_INFO("%s:%s: loading EVB policy for rte failed, using default.\n",
 			__func__, ed->ifname);
 	} else {
@@ -360,7 +360,7 @@ static int evb_init_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
 		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
 
 	if (get_cfg(ed->ifname, agent->type, arg_path,
-		    (void *) &param, CONFIG_TYPE_STRING)) {
+		    &param, CONFIG_TYPE_STRING)) {
 		LLDPAD_INFO("%s:%s: loading EVB policy for vsis failed, using default.\n",
 			__func__, ed->ifname);
 	} else {

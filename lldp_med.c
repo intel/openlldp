@@ -173,7 +173,7 @@ static int med_bld_medcaps_tlv(struct med_data *md,
 	memset(&medcaps, 0, sizeof(medcaps));
 	if (get_config_tlvinfo_bin(md->ifname, agent->type,
 				   TLVID_MED(LLDP_MED_CAPABILITIES),
-			  (void *)&medcaps, sizeof(medcaps))) {
+				   &medcaps, sizeof(medcaps))) {
 		LLDPAD_DBG("%s:%s:Build MED Caps as Endpoint Class I\n",
 			__func__, md->ifname);
 		goto out_bld;
@@ -443,7 +443,7 @@ static int med_bld_powvmdi_tlv(struct med_data *md,
 	/* Load from config */
 	if (get_config_tlvinfo_bin(md->ifname, agent->type,
 				   TLVID_MED(LLDP_MED_NETWORK_POLICY),
-			       (void *)&extpvm, sizeof(extpvm))) {
+				   &extpvm, sizeof(extpvm))) {
 		LLDPAD_DBG("%s:%s: Must configure Extended Power via MDI TLV as "
 			" currently it has to be manually configured\n",
 			__func__, md->ifname);
@@ -522,7 +522,7 @@ static int med_bld_locid_tlv(struct med_data *md,
 	memset(locstr, 0, length);
 	if (get_config_tlvinfo_str(md->ifname, agent->type,
 				   TLVID_MED(LLDP_MED_LOCATION_ID),
-				   (void *)locstr, length)) {
+				   locstr, length)) {
 		LLDPAD_DBG("%s:%s:Location Id TLV must be"
 			" administratively configured\n",
 			__func__, md->ifname);
@@ -587,7 +587,7 @@ static int med_get_netpoli(struct med_data *md,
 
 	if (!get_config_tlvinfo_bin(md->ifname, agent->type,
 				    TLVID_MED(LLDP_MED_NETWORK_POLICY),
-			       (void *)n, sizeof(*n)))
+				    n, sizeof(*n)))
 		return 0;
 	return EPERM;
 }

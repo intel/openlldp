@@ -121,7 +121,7 @@ static int ieee8023_bld_maccfg_tlv(struct ieee8023_data *bd,
 	memset(&maccfg, 0, sizeof(maccfg));
 	if (get_config_tlvinfo_bin(bd->ifname, agent->type,
 				   TLVID_8023(LLDP_8023_MACPHY_CONFIG_STATUS),
-				   (void *)&maccfg, sizeof(maccfg))) {
+				   &maccfg, sizeof(maccfg))) {
 		hton24(maccfg.oui, OUI_IEEE_8023);
 		maccfg.sub = LLDP_8023_MACPHY_CONFIG_STATUS;
 		if (is_autoneg_supported(bd->ifname))
@@ -176,7 +176,7 @@ static int ieee8023_bld_maxfs_tlv(struct ieee8023_data *bd,
 	memset(&maxfs, 0, sizeof(maxfs));
 	if (get_config_tlvinfo_bin(bd->ifname, agent->type,
 				   TLVID_8023(LLDP_8023_MAXIMUM_FRAME_SIZE),
-			       (void *)&maxfs, sizeof(maxfs))) {
+				   &maxfs, sizeof(maxfs))) {
 		hton24(maxfs.oui, OUI_IEEE_8023);
 		maxfs.sub = LLDP_8023_MAXIMUM_FRAME_SIZE;
 		maxfs.mfs = htons(get_mfs(bd->ifname));
@@ -226,7 +226,7 @@ static int ieee8023_bld_linkagg_tlv(struct ieee8023_data *bd,
 	memset(&linkagg, 0, sizeof(linkagg));
 	if (get_config_tlvinfo_bin(bd->ifname, agent->type,
 				   TLVID_8023(LLDP_8023_LINK_AGGREGATION),
-				   (void *)&linkagg, sizeof(linkagg))) {
+				   &linkagg, sizeof(linkagg))) {
 		hton24(linkagg.oui, OUI_IEEE_8023);
 		linkagg.sub = LLDP_8023_LINK_AGGREGATION;
 		if (is_bond(bd->ifname)) {
@@ -287,7 +287,7 @@ static int ieee8023_bld_powvmdi_tlv(struct ieee8023_data *bd,
 	memset(&powvmdi, 0, sizeof(powvmdi));
 	if (get_config_tlvinfo_bin(bd->ifname, agent->type,
 				   TLVID_8023(LLDP_8023_POWER_VIA_MDI),
-				   (void *)&powvmdi, sizeof(powvmdi))) {
+				   &powvmdi, sizeof(powvmdi))) {
 		goto out_err;
 	}
 

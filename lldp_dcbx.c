@@ -178,7 +178,7 @@ int dcbx_bld_tlv(struct port *newport, struct lldp_agent *agent)
 	bool success;
 	struct dcbx_tlvs *tlvs;
 	int enabletx;
-	long adminstatus = disabled;
+	int adminstatus = disabled;
 
 	if (agent->type != NEAREST_BRIDGE)
 		return 0;
@@ -186,7 +186,7 @@ int dcbx_bld_tlv(struct port *newport, struct lldp_agent *agent)
 	tlvs = dcbx_data(newport->ifname);
 
 	get_config_setting(newport->ifname, agent->type, ARG_ADMINSTATUS,
-			  (void *)&adminstatus, CONFIG_TYPE_INT);
+			  &adminstatus, CONFIG_TYPE_INT);
 
 	enabletx = is_tlv_txenabled(newport->ifname, agent->type,
 				    (OUI_CEE_DCBX << 8) | tlvs->dcbx_st);
@@ -477,8 +477,8 @@ void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 	struct dcbx_manifest *manifest;
 	feature_support dcb_support;
 	int dcb_enable, exists;
-	long adminstatus;
-	long enabletx;
+	int adminstatus;
+	int enabletx;
 	char arg_path[256];
 
 	/* dcb does not support bonded devices */
@@ -516,8 +516,7 @@ void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 	 * then set adminStatus to enabledRxTx.
 	 */
 	if (get_config_setting(ifname, agent->type, ARG_ADMINSTATUS,
-			       (void *)&adminstatus,
-				CONFIG_TYPE_INT) ||
+			       &adminstatus, CONFIG_TYPE_INT) ||
 				adminstatus == enabledTxOnly ||
 				adminstatus == enabledRxOnly) {
 
@@ -525,26 +524,26 @@ void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 			(OUI_CEE_DCBX << 8) | 1, ARG_TLVTXENABLE);
 		if (get_config_setting(ifname, agent->type, arg_path,
-				(void *)&enabletx, CONFIG_TYPE_BOOL)) {
+				       &enabletx, CONFIG_TYPE_BOOL)) {
 			enabletx = true;
 			set_config_setting(ifname, agent->type, arg_path,
-			              (void *)&enabletx, CONFIG_TYPE_BOOL);
+					   &enabletx, CONFIG_TYPE_BOOL);
 		}
 
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 			(OUI_CEE_DCBX << 8) | 2, ARG_TLVTXENABLE);
 		if (get_config_setting(ifname, agent->type, arg_path,
-				(void *)&enabletx, CONFIG_TYPE_BOOL)) {
+				       &enabletx, CONFIG_TYPE_BOOL)) {
 			enabletx = true;
 			set_config_setting(ifname, agent->type, arg_path,
-			              (void *)&enabletx, CONFIG_TYPE_BOOL);
+					   &enabletx, CONFIG_TYPE_BOOL);
 		}
 
 		adminstatus = enabledRxTx;
 		if (set_config_setting(ifname, agent->type, ARG_ADMINSTATUS,
-			              (void *)&adminstatus, CONFIG_TYPE_INT) ==
+				       &adminstatus, CONFIG_TYPE_INT) ==
 				       cmd_success)
-			set_lldp_agent_admin(ifname, agent->type, (int)adminstatus);
+			set_lldp_agent_admin(ifname, agent->type, adminstatus);
 	}
 
 	tlvs = malloc(sizeof(*tlvs));

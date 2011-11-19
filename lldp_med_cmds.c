@@ -86,8 +86,7 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 			 TLVID_PREFIX, cmd->tlvid, arg);
 
 		if (get_config_setting(cmd->ifname, cmd->type, arg_path,
-				       (void *)&value,
-				       CONFIG_TYPE_BOOL))
+				       &value, CONFIG_TYPE_BOOL))
 			value = false;
 		break;
 	case INVALID_TLVID:
@@ -101,8 +100,8 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	else
 		s = VAL_NO;
 
-	snprintf(obuf, obuf_len, "%02x%s%04x%s",
-		(unsigned int)strlen(arg), arg, (unsigned int)strlen(s), s);
+	snprintf(obuf, obuf_len, "%02zx%s%04zx%s",
+		strlen(arg), arg, strlen(s), s);
 
 	return cmd_success;
 }
@@ -150,7 +149,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		 cmd->tlvid, arg);
 
 	if (set_config_setting(cmd->ifname, cmd->type, arg_path,
-			       (void *)&value, CONFIG_TYPE_BOOL))
+			       &value, CONFIG_TYPE_BOOL))
 		return cmd_failed;
 
 	snprintf(obuf, obuf_len, "enableTx = %s\n", value ? "yes" : "no");

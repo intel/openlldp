@@ -320,7 +320,7 @@ static int basman_bld_syscaps_tlv(struct basman_data *bd,
 	/* load from config */
 	if (get_config_tlvinfo_bin(bd->ifname, agent->type,
 				   TLVID_NOUI(SYSTEM_CAPABILITIES_TLV),
-			      (void *)&syscaps, sizeof(syscaps))) {
+				   &syscaps, sizeof(syscaps))) {
 		LLDPAD_DBG("%s:%s:Build System Caps from scratch\n",
 			__func__, bd->ifname);
 		syscaps[0] = htons(get_caps(bd->ifname));
@@ -408,7 +408,7 @@ static int basman_get_manaddr_sub(struct basman_data *bd,
 	if (get_config_tlvfield_str(bd->ifname,
 				    agent->type,
 				    TLVID_NOUI(MANAGEMENT_ADDRESS_TLV),
-				    field, (void *)maddr, sizeof(maddr))) {
+				    field, maddr, sizeof(maddr))) {
 		LLDPAD_DBG("%s:%s:failed to get %s from config\n",
 			__func__, bd->ifname, field);
 		goto out_bld;
@@ -434,7 +434,7 @@ out_set:
 	set_config_tlvfield_str(bd->ifname,
 				agent->type,
 				TLVID_NOUI(MANAGEMENT_ADDRESS_TLV),
-				field, (void *)maddr, sizeof(maddr));
+				field, maddr, sizeof(maddr));
 
 	/* build ifnum and oid:
 	 *  mlen + msub + maddr  + ifsub + ifidx + oidlen + oid
