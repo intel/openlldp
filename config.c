@@ -474,18 +474,19 @@ int remove_config_setting(const char *ifname, int agenttype, char *parent,
 	char p[1024];
 	int rval = CONFIG_FALSE;
 	config_setting_t *setting = NULL;
+	const char *section = agent_type2section(agenttype);
 
-	/* look for setting in ifname area first */
+	/* look for setting in section->ifname area first */
 	if (ifname) {
 		snprintf(p, sizeof(p), "%s.%s.%s",
-			 LLDP_SETTING, ifname, parent);
+			 section, ifname, parent);
 		setting = config_lookup(&lldpad_cfg, p);
 	}
 
-	/* if not found look for setting in common area */
+	/* if not found look for setting in section->common area */
 	if (setting == NULL) {
 		snprintf(p, sizeof(p), "%s.%s.%s",
-			 LLDP_SETTING, LLDP_COMMON, parent);
+			 section, LLDP_COMMON, parent);
 		setting = config_lookup(&lldpad_cfg, p);
 	}
 
