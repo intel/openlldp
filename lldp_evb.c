@@ -431,7 +431,12 @@ static void evb_free_data(struct evb_user_data *ud)
 		while (!LIST_EMPTY(&ud->head)) {
 			ed = LIST_FIRST(&ud->head);
 			LIST_REMOVE(ed, entry);
+
+			free(ed->tie);
+			free(ed->last);
+			free(ed->policy);
 			evb_free_tlv(ed);
+
 			free(ed);
 		}
 	}
