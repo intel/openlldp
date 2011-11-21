@@ -396,6 +396,7 @@ static int _set_arg_up2tc(struct cmd *cmd, char *args,
 	char *toked_maps, *parse;
 	u32 *pmap;
 	u32 save_pmap;
+	u8 max;
 	int i, err = cmd_success;
 
 	if (cmd->cmd != cmd_settlv)
@@ -408,9 +409,11 @@ static int _set_arg_up2tc(struct cmd *cmd, char *args,
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
 		pmap = &tlvs->ets->cfgl->prio_map;
+		max = tlvs->ets->cfgl->max_tcs;
 		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
 		pmap = &tlvs->ets->recl->prio_map;
+		max = MAX_TCS;
 		break;
 	case INVALID_TLVID:
 		return cmd_invalid;
@@ -430,7 +433,6 @@ static int _set_arg_up2tc(struct cmd *cmd, char *args,
 		while (toked_maps) {
 			int tc, prio;
 			u32 mask;
-			u8 max = tlvs->ets->cfgl->max_tcs;
 
 			if (toked_maps[1] != ':') {
 				err = cmd_invalid;
