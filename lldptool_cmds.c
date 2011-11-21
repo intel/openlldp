@@ -102,17 +102,14 @@ int cli_cmd_getstats(struct clif *clif, int argc, char *argv[],
 	char **args;
 	char **argvals;
 
-	args = malloc(argc * sizeof(char *));
+	args = calloc(argc, sizeof(char *));
 	if (!args)
 		return cmd_failed;
-	argvals = malloc(argc * sizeof(char *));
+	argvals = calloc(argc, sizeof(char *));
 	if (!argvals) {
 		free(args);
 		return cmd_failed;
 	}
-
-	memset(args, 0, sizeof(args));
-	memset(argvals, 0, sizeof(argvals));
 
 	render_cmd(cmd, argc, args, argvals);
 	free(args);
@@ -128,18 +125,15 @@ int cli_cmd_gettlv(struct clif *clif, int argc, char *argv[],
 	char **argvals;
 	int i;
 
-	args = malloc(argc * sizeof(char *));
+	args = calloc(argc, sizeof(char *));
 	if (!args)
 		return cmd_failed;
 
-	argvals = malloc(argc * sizeof(char *));
+	argvals = calloc(argc, sizeof(char *));
 	if (!argvals) {
 		free(args);
 		return cmd_failed;
 	}
-
-	memset(args, 0, sizeof(args));
-	memset(argvals, 0, sizeof(argvals));
 
 	for (i = 0; i < argc; i++)
 		get_arg_value(argv[i], &args[i], &argvals[i]);
@@ -194,18 +188,15 @@ int cli_cmd_settlv(struct clif *clif, int argc, char *argv[],
 	char **argvals;
 	int i;
 
-	args = malloc(argc * sizeof(char *));
+	args = calloc(argc, sizeof(char *));
 	if (!args)
 		return cmd_failed;
 
-	argvals = malloc(argc * sizeof(char *));
+	argvals = calloc(argc, sizeof(char *));
 	if (!argvals) {
 		free(args);
 		return cmd_failed;
 	}
-
-	memset(args, 0, argc * sizeof(char *));
-	memset(argvals, 0, argc * sizeof(char *));
 
 	for (i = 0; i < argc; i++)
 		get_arg_value(argv[i], &args[i], &argvals[i]);
@@ -240,18 +231,15 @@ int cli_cmd_getlldp(struct clif *clif, int argc, char *argv[],
 	char **argvals;
 	int i;
 
-	args = malloc(argc * sizeof(char *));
+	args = calloc(argc, sizeof(char *));
 	if (!args)
 		return cmd_failed;
 
-	argvals = malloc(argc * sizeof(char *));
+	argvals = calloc(argc, sizeof(char *));
 	if (!argvals) {
 		free(args);
 		return cmd_failed;
 	}
-
-	memset(args, 0, sizeof(args));
-	memset(argvals, 0, sizeof(argvals));
 
 	for (i = 0; i < argc; i++)
 		get_arg_value(argv[i], &args[i], &argvals[i]);
@@ -287,18 +275,15 @@ int cli_cmd_setlldp(struct clif *clif, int argc, char *argv[],
 	char **argvals;
 	int i;
 
-	args = malloc(argc * sizeof(char *));
+	args = calloc(argc, sizeof(char *));
 	if (!args)
 		return cmd_failed;
 
-	argvals = malloc(argc * sizeof(char *));
+	argvals = calloc(argc, sizeof(char *));
 	if (!argvals) {
 		free(args);
 		return cmd_failed;
 	}
-
-	memset(args, 0, sizeof(args));
-	memset(argvals, 0, sizeof(argvals));
 
 	for (i = 0; i < argc; i++)
 		get_arg_value(argv[i], &args[i], &argvals[i]);
@@ -404,18 +389,15 @@ static int print_arg_value(char *ibuf)
 		}
 	}
 
-	args = malloc(numargs * sizeof(char *));
+	args = calloc(numargs, sizeof(char *));
 	if (!args)
 		return cmd_failed;
 
-	argvals = malloc(numargs * sizeof(char *));
+	argvals = calloc(numargs, sizeof(char *));
 	if (!argvals) {
 		free(args);
 		return cmd_failed;
 	}
-
-	memset(args, 0, sizeof(args));
-	memset(argvals, 0, sizeof(argvals));
 
 	numargs = get_arg_val_list(ibuf, ilen, &ioff, args, argvals);
 

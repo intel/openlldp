@@ -479,18 +479,15 @@ int mand_clif_cmd(void  *data,
 		}
 	}
 
-	args = malloc(numargs * sizeof(char *));
+	args = calloc(numargs, sizeof(char *));
 	if (!args)
 		return cmd_failed;
 
-	argvals = malloc(numargs * sizeof(char *));
+	argvals = calloc(numargs, sizeof(char *));
 	if (!argvals) {
 		free(args);
 		return cmd_failed;
 	}
-
-	memset(args, 0, sizeof(args));
-	memset(argvals, 0, sizeof(argvals));
 
 	if ((cmd.ops & op_arg) && (cmd.ops & op_argval))
 		numargs = get_arg_val_list(ibuf, ilen, &ioff, args, argvals);
