@@ -36,6 +36,7 @@
 #include <signal.h>
 #include <ctype.h>
 #include <errno.h>
+#include <getopt.h>
 
 #include "clif.h"
 #include "lldp_mand_clif.h"
@@ -433,6 +434,17 @@ void print_args(int argc, char *argv[])
 		printf("\tremaining arg %d = %s\n", i, argv[i]);
 }
 
+static struct option lldptool_opts[] = {
+	{"help", 0, NULL, 'h'},
+	{"version", 0, NULL, 'v'},
+	{"stats", 0, NULL, 'S'},
+	{"get-tlv", 0, NULL, 't'},
+	{"set-tlv", 0, NULL, 'T'},
+	{"get-lldp", 0, NULL, 'l'},
+	{"set-lldp", 0, NULL, 'L'},
+	{0, 0, 0, 0}
+};
+
 static int request(struct clif *clif, int argc, char *argv[])
 {
 	struct cli_cmd *cmd, *match = NULL;
@@ -444,6 +456,7 @@ static int request(struct clif *clif, int argc, char *argv[])
 	char **argptr = &argv[0];
 	char *end;
 	int c;
+	int option_index;
 
 	memset((void *)&command, 0, sizeof(command));
 	command.cmd = cmd_nop;
@@ -453,7 +466,8 @@ static int request(struct clif *clif, int argc, char *argv[])
 
 	opterr = 0;
 	for (;;) {
-		c = getopt(argc, argv, "Si:tTlLhcdnvrRqV:g:");
+		c = getopt_long(argc, argv, "Si:tTlLhcdnvrRqV:g:",
+				lldptool_opts, &option_index);
 		if (c < 0)
 			break;
 		switch (c) {
