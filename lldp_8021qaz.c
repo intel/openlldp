@@ -1096,10 +1096,7 @@ void run_all_sm(struct port *port, struct lldp_agent *agent)
 	if (!tlvs)
 		return;
 
-	if (!is_tlv_txdisabled(port->ifname, agent->type, TLVID_8021(LLDP_8021QAZ_ETSCFG))) {
-		ets_sm(tlvs->ets->cfgl, tlvs->ets->recr,
-		       &tlvs->ets->current_state);
-	}
+	ets_sm(tlvs->ets->cfgl, tlvs->ets->recr, &tlvs->ets->current_state);
 
 	ets = malloc(sizeof(*ets));
 	if (!ets) {
@@ -1115,8 +1112,7 @@ void run_all_sm(struct port *port, struct lldp_agent *agent)
 	else
 		ets_cfg_to_ieee(ets, tlvs->ets->cfgl);
 
-	if (!is_tlv_txdisabled(port->ifname, agent->type, TLVID_8021(LLDP_8021QAZ_PFC)))
-		pfc_sm(tlvs);
+	pfc_sm(tlvs);
 
 	if (tlvs->pfc->current_state == RX_RECOMMEND)
 		pfc_obj = &tlvs->pfc->remote;
