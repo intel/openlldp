@@ -152,7 +152,6 @@ struct lldp_agent {
 
 struct lldp_agent *lldp_agent_find_by_type(const char *, int);
 int lldp_add_agent(const char *ifname, int type);
-int lldp_remove_agent(const char *ifname, int type);
 
 void set_lldp_agent_admin(const char *ifname, int type, int enable);
 int get_lldp_agent_admin(const char *ifname, int type);

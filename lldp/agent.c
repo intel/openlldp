@@ -153,22 +153,6 @@ int lldp_add_agent(const char *ifname, int type)
 	return 0;
 }
 
-int lldp_remove_agent(const char *ifname, int type)
-{
-	struct lldp_agent *agent;
-
-	agent = lldp_agent_find_by_type(ifname, type);
-
-	if (agent == NULL)
-		return 0;
-
-	LIST_REMOVE(agent, entry);
-
-	free(agent);
-
-	return 0;
-}
-
 static void timer(void *eloop_data, void *user_ctx)
 {
 	struct lldp_module *n;

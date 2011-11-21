@@ -345,7 +345,9 @@ int remove_port(char *ifname)
 
 	port->portEnabled  = false;
 
-	LIST_FOREACH(agent, &port->agent_head, entry) {
+	while (!LIST_EMPTY(&port->agent_head)) {
+		agent = LIST_FIRST(&port->agent_head);
+
 		/* Re-initialize relevant port variables */
 		agent->tx.state = TX_LLDP_INITIALIZE;
 		agent->rx.state = LLDP_WAIT_PORT_OPERATIONAL;
@@ -370,7 +372,9 @@ int remove_port(char *ifname)
 		if (agent->tx.frameout)
 			free(agent->tx.frameout);
 
-		lldp_remove_agent(port->ifname, agent->type);
+		LIST_REMOVE(agent, entry);
+		free(agent);
+
 	}
 
 	/* Take this port out of the chain */
