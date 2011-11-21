@@ -192,7 +192,6 @@ int oper_add_device(char *device_name)
 	struct lldp_module *np;
 	struct port *port, *newport;
 	struct lldp_agent *agent;
-	int err;
 
 	port = porthead;
 	while (port != NULL) {
@@ -210,7 +209,7 @@ int oper_add_device(char *device_name)
 		if (newport == NULL) {
 			LLDPAD_INFO("%s: Error adding device %s\n",
 				__func__, device_name);
-			return err;
+			return -EINVAL;
 		}
 
 		LLDPAD_INFO("%s: Adding device %s\n", __func__, device_name);
