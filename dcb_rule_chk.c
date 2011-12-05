@@ -36,15 +36,60 @@
  * @fixpg: pg attributes or resolve
  *
  * Resolve mismatch in number of traffic classes by
- * grouping traffic types. Requires a minimum of three
- * class to create a PFC, Link, and Best Effort class.
+ * grouping traffic types. Requires at minimum at
+ * least as many classes as traffic types (e.g. Best
+ * Effort, PFC, and link strict).
  *
  * Strategy: This takes two passes over the attribs on
  * the first pass the pg attribs are packed into a
- * matrix with row index equal to pgid (per_up_list).
+ * matrix with row index equal to pgid (pgid_up_list).
+ * This allows identifying user priorities that map
+ * to the same traffic class and traffic types.
+ *
+ * For example
+ *
+ * pgid:  0 0 3 1 2 0 4 4
+ * pfcup: 0 0 1 1 1 0 1 1
+ *
+ * Maps to an pgid_up_list as follows,
+ *
+ * ------------------------------------
+ *     up0|up1|up2|up3|up4|up5|up6|up7|
+ * ------------------------------------
+ * pg0| x | x |   |   |   | x |   |   |
+ * ------------------------------------
+ * pg1|   |   |   | x |   |   |   |   |
+ * ------------------------------------
+ * pg2|   |   |   |   | x |   |   |   |
+ * ------------------------------------
+ * pg3|   |   | x |   |   |   |   |   |
+ * ------------------------------------
+ * pg4|   |   |   |   |   |   | x | x |
+ * ------------------------------------
+ * pg5|   |   |   |   |   |   |   |   |
+ * ------------------------------------
+ * pg6|   |   |   |   |   |   |   |   |
+ * ------------------------------------
+ * pg7|   |   |   |   |   |   |   |   |
+ * ------------------------------------
+ *
  * Then on the second pass the rows are collapsed onto
  * the correct number of pgid values (result). Finally,
  * the new pgid, bw, and tcmap can be tabulated.
+ *
+ * Above example collapses pg4 onto pg1 as follows.
+ *
+ * ------------------------------------
+ *     up0|up1|up2|up3|up4|up5|up6|up7|
+ * ------------------------------------
+ * pg0| x | x |   |   |   | x |   |   |
+ * ------------------------------------
+ * pg1|   |   |   | x |   |   | x | x |
+ * ------------------------------------
+ * pg2|   |   |   |   | x |   |   |   |
+ * ------------------------------------
+ * pg3|   |   | x |   |   |   |   |   |
+ * ------------------------------------
  *
  * This _should_ happen infrequently so we use up
  * arrays and variables freely. Any simpler suggestions
@@ -52,10 +97,10 @@
  */
 static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 {
-	dcb_user_priority_attribs_type * per_up_list[8][8] = { {0} };
+	dcb_user_priority_attribs_type * pgid_up_list[8][8] = { {0} };
 	dcb_user_priority_attribs_type * result[8][8] = { {0} };
 	dcb_user_priority_attribs_type *entry;
-	int index, i, j, k, pgid, bw, cnt, r;
+	int i, j, pgid, bw, cnt, r;
 	int be, pfc, strict, cbe, cpfc, cstrict;
 	int tcbw[8] = {0};
 	int totalbw = 0;
@@ -69,8 +114,8 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 	}
 	pgid++;
 
-	/* If the PGIDs can be mapped onto the number of
-	 * existing traffic classes do it and return
+	/* If the PGIDs can be mapped onto the number of existing traffic
+	 * classes do it and retur
 	 */
 	if (pgid <= fixpg->num_tcs) {
 		for (i = 0; i < MAX_USER_PRIORITIES; i++)
@@ -78,106 +123,98 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 		return 0;
 	}
 
-	/* Require at least three traffic classes */
-	if (fixpg->num_tcs < MIN_TRAFFIC_CLASSES) {
+	/* Build matrix with rows per pgid and columns per user priorities.
+	 * Also count type of UP classes for PFC, best effort, and link
+	 * strict.
+	 */
+	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
+		pgid = fixpg->tx.up[i].pgid;
+		pgid_up_list[pgid][i] = &fixpg->tx.up[i];
+	}
+
+	strict = pfc = be = 0;
+
+	for (i = 0; i < MAX_TRAFFIC_CLASS; i++) {
+		for (j = 0; j < MAX_USER_PRIORITIES; j++) {
+			entry = pgid_up_list[i][j];
+
+			if (!entry)
+				continue;
+
+			if (entry->strict_priority == dcb_link)
+				strict++;
+			else if (fixpfc && fixpfc->admin[j] == pfc_enabled)
+				pfc++;
+			else
+				be++;
+
+			break;
+		}
+	}
+
+	/* Require at least as many traffic classes as traffic types */
+	if (fixpg->num_tcs < (!!be + !!strict + !!pfc)) {
 		LLDPAD_WARN("DCBX: num_tcs %i!!!\n", fixpg->num_tcs);
 		return -1;
 	}
 
-	/* Build matrix to support attrib manipulation
-	 * this puts attribs with like pgid values in
-	 * the same row of the matrix.
-	 */
-	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
-		index = fixpg->tx.up[i].pgid;
+	/* Map traffic class counts onto devices max number traffic classes */
+	if (strict > fixpg->num_tcs - !!be - !!pfc)
+		strict = fixpg->num_tcs - !!be - !!pfc;
 
-		for (j = 0; j < MAX_USER_PRIORITIES; j++) {
-			if (!per_up_list[index][j]) {
-				per_up_list[index][j] = &fixpg->tx.up[i];
-				break;
-			}
-		}
-	}
+	if (pfc > fixpg->num_tcs - strict - !!be)
+		pfc = fixpg->num_tcs - strict - !!be;
 
-	/* Divide up available traffic classes by type */
-	strict = pfc = be = 0;
+	if (be > fixpg->num_tcs - strict - pfc)
+		be = fixpg->num_tcs - strict - pfc;
 
-	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
-		entry = per_up_list[i][0];
-
-		if (!entry)
-			continue;
-
-		pgid = entry->pgid;
-
-		if (entry->strict_priority == dcb_link)
-			strict++;
-		else if (fixpfc && fixpfc->admin[pgid] == pfc_enabled)
-			pfc++;
-		else
-			be++;
-	}
-
-	if (pfc >= fixpg->num_tcs - strict) {
-		pfc = fixpg->num_tcs - strict;
-		if (be)
-			pfc--;
-	}
-	be = fixpg->num_tcs - strict - pfc;
-
-	/* cXXX variables immutable type count */
 	cbe = be;
 	cstrict = strict;
 	cpfc = pfc;
 
+	totalbw = be = strict = pfc = 0;
+	LLDPAD_INFO("%s -- tc types pfc %i be %i strict %i\n",
+		     __func__, cpfc, cbe, cstrict);
+
 	/* Do REMAPPING into result matrix */
-	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
-		entry = per_up_list[i][0];
-		if (!entry)
-			continue;
+	for (i = 0; i < MAX_TRAFFIC_CLASS; i++) {
+		pgid = -1;
 
-		pgid = entry->pgid;
+		for (j = 0; j < MAX_USER_PRIORITIES; j++) {
+			entry = pgid_up_list[i][j];
 
-		LLDPAD_INFO("%s : ", __func__);
-		/* Find index, subtract one to account for be, scrict, and
-		 * pfc variables being counters instead of indices.
-		 */
-		if (entry->strict_priority == dcb_link) {
-			index = cbe + cpfc + strict - 1;
-			strict--;
-			LLDPAD_INFO("strict");
-		} else if (fixpfc &&
-			   fixpfc->admin[pgid] == pfc_enabled) {
-			index = cbe + pfc - 1;
-			pfc--;
-			LLDPAD_INFO("pfc");
-		} else {
-			index = be - 1;
-			be--;
-			LLDPAD_INFO("be");
-		}
+			if (!entry)
+				continue;
 
-		tcbw[index] += fixpg->tx.pg_percent[i];
-
-		/* Do row move from old pgid to new pgid */
-		LLDPAD_INFO(" : map %i -> %i\n", i, index);
-		for (k = 1; entry && k < MAX_USER_PRIORITIES; k++) {
-			for (j = 0; j < MAX_USER_PRIORITIES; j++) {
-				if (!result[index][j]) {
-					result[index][j] = entry;
-					break;
+			if (pgid < 0) {
+				if (entry->strict_priority == dcb_link) {
+					pgid = cbe + cpfc + strict;
+					strict++;
+				} else if (fixpfc &&
+					   fixpfc->admin[j] == pfc_enabled) {
+					pgid = cbe + pfc;
+					pfc++;
+				} else {
+					pgid = be;
+					be++;
 				}
-			}
-			entry = per_up_list[i][k];
-		}
 
-		/* Reset zeroed counters */
-		if (!pfc)
-			pfc = cpfc;
-		if (!strict)
-			strict = cstrict;
-		if (!be)
-			be = cbe;
+				if (pfc == cpfc)
+					pfc = 0;
+				if (strict == cstrict)
+					strict = 0;
+				if (be == cbe)
+					be = 0;
+			}
+
+			tcbw[pgid] += fixpg->tx.pg_percent[j];
+			totalbw += fixpg->tx.pg_percent[j];
+
+			/* Do row move from old pgid to new pgid */
+			LLDPAD_INFO("%s: matrix: (%i,%i) -> (%i,%i)\n",
+				    __func__, i, j, pgid, j);
+			result[pgid][j] = entry;
+		}
 	}
 
 	/* The peer _may_ give some percentage of pgpct to a user
@@ -185,24 +222,24 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 	 * a poor config by the peer. However add the bandwidth to
 	 * the highest priority traffic class (that is not strict).
 	 */
-	for (i = 0; i < MAX_USER_PRIORITIES; i++)
-		totalbw += tcbw[i];
-
 	if (totalbw != 100) {
-		index = fixpg->num_tcs - cstrict - 1;
-		tcbw[index] += (100 - totalbw);
+		pgid = fixpg->num_tcs - cstrict - 1;
+		tcbw[pgid] += (100 - totalbw);
 	}
 
-	/* Walk results matrix and update objects */
-	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
+	/* Traverse result matrix and push values onto entries */
+	for (i = 0; i < MAX_TRAFFIC_CLASS; i++) {
 		bw = cnt = 0;
 
+		/* First Pass: Calculate TC BW and set pgid */
 		for (j = 0; j < MAX_USER_PRIORITIES; j++) {
 			entry = result[i][j];
 
 			if (!entry)
-				break;
+				continue;
 
+			LLDPAD_INFO("%s: result: up(%i): map %i->%i\n",
+				    __func__,  j, entry->pgid, i);
 			entry->pgid = i;
 			entry->tcmap = i;
 			bw += entry->percent_of_pg_cap;
@@ -212,25 +249,23 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 		bw = cnt ?  100 / cnt : 0;
 		r = 100 - (bw * cnt);
 
+		/* Second Pass: Distribute PG bandwidth */
 		for (j = 0; j < MAX_USER_PRIORITIES; j++) {
 			entry = result[i][j];
 
 			if (!entry)
-				break;
+				continue;
 
-			if (entry->strict_priority == dcb_link)
+			if (entry->strict_priority == dcb_link) {
 				entry->percent_of_pg_cap = 0;
-			else
-				entry->percent_of_pg_cap = bw;
-		}
-
-		if (j) {
-			entry = result[i][--j];
-			if (entry)
-				entry->percent_of_pg_cap += r;
+			} else {
+				entry->percent_of_pg_cap = bw + r;
+				r = 0;
+			}
 		}
 	}
 
+	/* Final Pass: Distribute TC bandwidth */
 	for (i = 0; i < MAX_TRAFFIC_CLASS; i++)
 		fixpg->tx.pg_percent[i] = tcbw[i];
 
