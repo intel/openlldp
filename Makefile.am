@@ -33,8 +33,8 @@ include/dcb_rule_chk.h include/lldp_dcbx_nl.h include/eloop.h \
 include/lldpad_shm.h include/event_iface.h include/messages.h \
 include/parse_cli.h include/version.h include/lldptool_cli.h include/list.h \
 include/lldp_mand_clif.h include/lldp_basman_clif.h include/lldp_med_clif.h \
-include/lldp_8023_clif.h include/lldp_dcbx_clif.h \
-include/lldp_evb_clif.h include/lldp_vdp_clif.h include/lldp_8021qaz_clif.h\
+include/lldp_8023_clif.h include/lldp_dcbx_clif.h include/lldp_evb_clif.h \
+include/lldp_vdp_clif.h include/lldp_8021qaz_clif.h include/lldp_orgspec_clif.h \
 include/lldptool.h include/lldp_rtnl.h include/dcbtool.h include/lldp_dcbx_cfg.h
 
 lldpad_SOURCES = lldpad.c config.c lldp_dcbx_nl.c ctrl_iface.c \
@@ -64,6 +64,7 @@ lldptool_SOURCES = lldptool.c clif.c lldptool_cmds.c lldp_rtnl.c \
 		   lldp_mand_clif.c lldp_basman_clif.c lldp_med_clif.c \
 		   lldp_8023_clif.c lldp_dcbx_clif.c lldp_util.c \
 		   lldp_8021qaz_clif.c lldp_evb_clif.c lldp_vdp_clif.c \
+		   lldp_orgspec_clif.c \
 		   $(lldpad_include_HEADERS) $(noinst_HEADERS)
 
 nltest_SOURCES = nltest.c nltest.h

@@ -100,6 +100,16 @@ typedef __u64 u64;
 #define PORT_ID_LOCALLY_ASSIGNED 7
 #define PORT_ID_INVALID(t)	(((t) == 0) || ((t) > 7))
 
+/* IEEE 802.1AB: Annex E, Table E.1: Organizationally Specific TLVs */
+#define ORG_SPEC_PVID		1
+#define ORG_SPEC_PPVID		2
+#define ORG_SPEC_VLAN_NAME	3
+#define ORG_SPEC_PROTO_ID	4
+#define ORG_SPEC_VID_USAGE	5
+#define ORG_SPEC_MGMT_VID	6
+#define ORG_SPEC_LINK_AGGR	7
+#define ORG_SPEC_INVALID(t)	(((t) == 0) || ((t) > 7))
+
 /* IEEE 802.1AB: 8.5.8, Table 8-4: System Capabilities */
 #define SYSCAP_OTHER	(1 << 0)
 #define SYSCAP_REPEATER (1 << 1)
