@@ -1453,8 +1453,11 @@ static bool unpack_ieee8021qaz_tlvs(struct port *port,
 	/* Unpack tlvs and store in rx */
 	struct ieee8021qaz_tlvs *tlvs;
 
-	if (agent->type != NEAREST_BRIDGE)
+	if (agent->type != NEAREST_BRIDGE) {
+		LLDPAD_INFO("%s: %s: ignoring tlv from remote bridge\n",
+			    __func__, port->ifname);
 		return false;
+	}
 
 	tlvs = ieee8021qaz_data(port->ifname);
 
@@ -1840,8 +1843,6 @@ int ieee8021qaz_rchange(struct port *port, struct lldp_agent *agent,
 	 * More than 1 of this type is allowed.
 	 */
 	if (tlv->type == TYPE_127) {
-		int res;
-
 		if (tlv->length < (OUI_SUB_SIZE))
 			return TLV_ERR;
 
@@ -1849,10 +1850,7 @@ int ieee8021qaz_rchange(struct port *port, struct lldp_agent *agent,
 			return SUBTYPE_INVALID;
 
 		l2_packet_get_remote_addr(port->l2, qaz_tlvs->remote_mac);
-		res = unpack_ieee8021qaz_tlvs(port, agent, tlv);
-		if (!res)
-			LLDPAD_WARN("Error unpacking 8021 tlvs");
-		else
+		if (unpack_ieee8021qaz_tlvs(port, agent, tlv))
 			return TLV_OK;
 	}
 
