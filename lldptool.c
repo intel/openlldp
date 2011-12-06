@@ -48,6 +48,7 @@
 #include "lldp_vdp_clif.h"
 #include "lldp_8021qaz_clif.h"
 #include "lldp_orgspec_clif.h"
+#include "lldp_cisco_clif.h"
 #include "lldptool.h"
 #include "lldptool_cli.h"
 #include "lldp_mod.h"
@@ -176,6 +177,7 @@ struct lldp_module *(*register_tlv_table[])(void) = {
 	vdp_cli_register,
 	ieee8021qaz_cli_register,
 	orgspec_cli_register,
+	cisco_cli_register,
 	NULL,
 };
 

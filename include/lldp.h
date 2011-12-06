@@ -63,6 +63,8 @@ typedef __u64 u64;
 #define OUI_IEEE_80211	0x000fac
 /* Telecommunications Industry Association TR-41 Committee */
 #define OUI_TIA_TR41	0x0012bb
+/* Ciso OUI */
+#define OUI_CISCO	0x000142
 
 #define OUI_IEEE_8021Qbg	0x001b3f
 
