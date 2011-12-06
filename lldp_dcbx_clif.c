@@ -259,9 +259,11 @@ void print_dcbx_v1(u16 len, char *info)
 			printf("\t  Link is %s\n", (llink & 0x80)?"up":"down");
 			break;
 		case DCB_BCN_TLV:
+			printf("\tUnhandled DCBX BCN TLV\n");
+			break;
 		default:
-			printf("\tUnknown DCBX sub-TLV: %*.*s\n",
-			       2*tlvlen, 2*tlvlen, info+offset);
+			printf("\tUnknown DCBX sub-TLV %d: %*.*s\n",
+			       tlvtype, 2*tlvlen, 2*tlvlen, info+offset);
 			break;
 		}
 
@@ -290,6 +292,7 @@ void print_dcbx_v2(u16 len, char *info)
 	u8 oui_up8;
 	u16 oui_low16;
 	u8 app_up_map;
+	u8 llink;
 
 	while (offset < 2*len) {
 		hexstr2bin(info+offset, (u8 *)&tlvtype, sizeof(tlvtype));
@@ -426,9 +429,22 @@ void print_dcbx_v2(u16 len, char *info)
 				suboff += 12;
 			}
 			break;
+		case DCB_LLINK_TLV:
+			hexstr2bin(info+offset+6, (u8 *)&subtype,
+				   sizeof(subtype));
+			if (subtype == 0)
+				printf("\tFCoE Logical Link TLV:\n");
+			else if (subtype == 1)
+				printf("\tLAN Logical Link TLV:\n");
+			print_dcbx_feature_header(info, offset, &subtype);
+
+			hexstr2bin(info+offset+8, (u8 *)&llink, sizeof(llink));
+			printf("\t  Link is %s\n",
+			       (llink & 0x80) ? "up" : "down");
+			break;
 		default:
-			printf("\tUnknown DCBX sub-TLV: %*.*s\n",
-			       2*tlvlen, 2*tlvlen, info+offset);
+			printf("\tUnknown DCBX sub-TLV %d: %*.*s\n",
+			       tlvtype, 2*tlvlen, 2*tlvlen, info+offset);
 			break;
 		}
 
