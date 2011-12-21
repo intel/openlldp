@@ -46,20 +46,13 @@ typedef enum {
 struct tlv_info_evb {
 	u8 oui[3];
 	u8 sub;
-	/* supported forwarding mode */
-	u8 smode;
-	/* supported capabilities */
-	u8 scap;
-	/* currently configured forwarding mode */
-	u8 cmode;
-	/* currently configured capabilities */
-	u8 ccap;
-	/* supported no. of vsi */
-	u16 svsi;
-	/* currently configured no. of vsi */
-	u16 cvsi;
-	/* retransmission exponent */
-	u8 rte;
+	u8 smode;	/* supported forwarding mode */
+	u8 scap;	/* supported capabilities */
+	u8 cmode;	/* currently configured forwarding mode */
+	u8 ccap;	/* currently configured capabilities */
+	u16 svsi;	/* supported no. of vsi */
+	u16 cvsi;	/* currently configured no. of vsi */
+	u8 rte;		/* retransmission exponent */
 } __attribute__ ((__packed__));
 
 struct evb_data {
@@ -68,8 +61,7 @@ struct evb_data {
 	struct unpacked_tlv *evb;
 	struct tlv_info_evb *tie;
 	struct tlv_info_evb *last;
-	/* local policy */
-	struct tlv_info_evb *policy;
+	struct tlv_info_evb *policy;	/* local policy */
 	LIST_ENTRY(evb_data) entry;
 };
 

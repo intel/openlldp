@@ -360,7 +360,7 @@ static void vdp_fill_profile(struct vsi_profile *profile, char *buffer, int fiel
 
 static struct vsi_profile *vdp_parse_mode_line(char * argvalue)
 {
-	int arglen, field;
+	int field;
 	char *cmdstring, *parsed;
 	struct vsi_profile *profile;
 
@@ -369,8 +369,10 @@ static struct vsi_profile *vdp_parse_mode_line(char * argvalue)
 		return NULL;
 	memset(profile, 0, sizeof(struct vsi_profile));
 
-	arglen = strlen(argvalue);
 	cmdstring = strdup(argvalue);
+	if (!cmdstring)
+		goto out_free;
+
 	field = 0;
 
 	parsed = strtok(cmdstring, ",");
@@ -406,9 +408,16 @@ static struct vsi_profile *vdp_parse_mode_line(char * argvalue)
 		parsed = strtok(NULL, ",");
 	}
 
+	free(cmdstring);
 	return profile;
 
 out_free:
+	free(cmdstring);
+	while (profile->entries-- > 0) {
+		struct mac_vlan *mac_vlan = LIST_FIRST(&profile->macvid_head);
+		LIST_REMOVE(mac_vlan, entry);
+		free(mac_vlan);
+	}
 	free(profile);
 	return NULL;
 }
@@ -416,10 +425,7 @@ out_free:
 static int _set_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
 			 char *obuf, bool test)
 {
-	int arglen;
 	struct vsi_profile *profile, *p;
-
-	arglen = strlen(argvalue);
 
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
@@ -489,17 +495,17 @@ static int get_arg_role(struct cmd *cmd, char *arg, char *argvalue,
 
 	switch (cmd->tlvid) {
 	case ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE:
-		if (vd->role == VDP_ROLE_STATION) {
+		if (vd->role == VDP_ROLE_STATION)
 			snprintf(obuf, obuf_len, "%02x%s%04x%s",
 				(unsigned int) strlen(arg), arg,
-	 			(unsigned int) strlen("station"), "station");
-		} else if (vd->role == VDP_ROLE_BRIDGE) {
+				(unsigned int) strlen(VAL_STATION),
+				VAL_STATION);
+		else if (vd->role == VDP_ROLE_BRIDGE)
 			snprintf(obuf, obuf_len, "%02x%s%04x%s",
 				(unsigned int) strlen(arg), arg,
-				(unsigned int) strlen("bridge"), "bridge");
-		} else {
+				(unsigned int) strlen(VAL_BRIDGE), VAL_BRIDGE);
+		else
 			return cmd_failed;
-	 	}
 		break;
 	case INVALID_TLVID:
 		return cmd_invalid;

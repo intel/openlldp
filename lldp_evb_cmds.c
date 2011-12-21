@@ -283,15 +283,9 @@ static int get_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
 	char *s, *t;
 	struct evb_data *ed;
 
-	printf("%s(%i): arg %s, argvalue %s !\n", __func__, __LINE__, arg, argvalue);
-
-	s = t = malloc(EVB_BUF_SIZE);
-
+	s = t = calloc(EVB_BUF_SIZE, sizeof *s);
 	if (!s)
 		goto out_free;
-
-	memset(s, 0, EVB_BUF_SIZE);
-
 	if (cmd->cmd != cmd_gettlv)
 		goto out_free;
 
@@ -341,6 +335,38 @@ out_free:
 	return cmd_invalid;
 }
 
+/*
+ * Check for valid parameters: rte,ecp,vpd,none and combinations thereof
+ */
+static int check_capabilities(const char *capabilities, u8 *scap)
+{
+	char *cp, *old_string, *string;
+	int retcode = 0;
+
+	*scap = 0;
+	old_string = string = strdup(capabilities);
+	if (!string)
+		return -1;
+	while ((cp = strtok(string, ", "))) {
+		if (!strcasecmp(cp, VAL_EVB_CAPA_RTE))
+			*scap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
+		else if (!strcasecmp(cp, VAL_EVB_CAPA_ECP))
+			*scap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
+		else if (!strcasecmp(cp, VAL_EVB_CAPA_VDP))
+			*scap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+		else if (!strcasecmp(cp, VAL_EVB_CAPA_NONE)) {
+			if (*scap)		/* Invalid combination */
+				retcode = -1;
+			break;
+		} else {
+			retcode = -1;
+			break;
+		}
+		string = 0;
+	}
+	free(old_string);
+	return retcode;
+}
 static int
 _set_arg_capabilities(struct cmd *cmd, char *arg, const char *argvalue,
 		      char *obuf, int obuf_len, bool test)
@@ -365,19 +391,8 @@ _set_arg_capabilities(struct cmd *cmd, char *arg, const char *argvalue,
 
 	if (!ed)
 		return cmd_invalid;
-
-	if (strstr(argvalue, VAL_EVB_CAPA_RTE))
-		scap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
-
-	if (strstr(argvalue, VAL_EVB_CAPA_ECP))
-		scap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
-
-	if (strstr(argvalue, VAL_EVB_CAPA_VDP))
-		scap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
-
-	if (strstr(argvalue, VAL_EVB_CAPA_NONE))
-		scap = 0;
-
+	if (check_capabilities(argvalue, &scap) < 0)
+		return cmd_invalid;
 	if (test)
 		return cmd_success;
 
@@ -466,9 +481,8 @@ static int _set_arg_rte(struct cmd *cmd, char *arg, const char *argvalue,
 		return cmd_invalid;
 
 	value = atoi(argvalue);
-
-	if ((value < 0))
-		goto out_err;
+	if ((value < 0) || value > LLDP_EVB_DEFAULT_MAX_RTE)
+		return cmd_bad_params;
 
 	if (test)
 		return cmd_success;
@@ -477,9 +491,6 @@ static int _set_arg_rte(struct cmd *cmd, char *arg, const char *argvalue,
 
 	err = snprintf(arg_path, sizeof(arg_path), "%s%08x.rte",
 		       TLVID_PREFIX, cmd->tlvid);
-
-	if (err < 0)
-		goto out_err;
 
 	if (err < 0)
 		goto out_err;
