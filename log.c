@@ -27,18 +27,42 @@
 #include <stdio.h>
 #include <syslog.h>
 #include <stdarg.h>
+#include <string.h>
+#include <time.h>
+#include <sys/time.h>
+
 #include "messages.h"
 
+/*
+ * Prepend each entry with a time stamp.
+ */
+static void showtime(void)
+{
+	struct timeval tv;
+	struct tm now;
+
+	if (!gettimeofday(&tv, NULL)) {
+		localtime_r(&tv.tv_sec, &now);
+		printf("%02d:%02d:%02d.%06ld ",
+			now.tm_hour, now.tm_min, now.tm_sec, tv.tv_usec);
+	}
+}
+
+/* Helper macros for handling struct os_time */
 void log_message(int level, const char *format, ...)
 {
+	static int bypass_time;
 	va_list va, vb;
 	va_start(va, format);
 	va_copy(vb, va);
 
 	if (daemonize)
 		vsyslog(level, format, vb);
-	else if (loglvl >= level)
+	else if (loglvl >= level) {
+		if (!bypass_time)
+			showtime();
 		vprintf(format, vb);
-
+		bypass_time = strchr(format, '\n') == 0;
+	}
 	va_end(va);
 }
