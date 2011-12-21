@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-  implementation of EVB TLVs for LLDP
+  Implementation of EVB TLVs for LLDP
   (c) Copyright IBM Corp. 2010
 
   Author(s): Jens Osterkamp <jens at linux.vnet.ibm.com>

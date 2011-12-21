@@ -1604,5 +1604,3 @@ void vdp_unregister(struct lldp_module *mod)
 	free(mod);
 	LLDPAD_DBG("%s:done\n", __func__);
 }
-
-
