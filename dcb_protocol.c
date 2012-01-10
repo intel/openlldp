@@ -1279,7 +1279,6 @@ static int dcbx_free_app_config(char *device_name)
 int dcbx_remove_all(void)
 {
 	pg_it it;
-	char sTmp[MAX_DEVICE_NAME_LEN*2];
 
 	clear_dcbx_state();
 
@@ -1293,31 +1292,9 @@ int dcbx_remove_all(void)
 
 		/* Remove kernel APP entries */
 		dcbx_free_app_config(it->ifname);
-
-		/* prepare sTmp in case of error */
-		snprintf(sTmp, MAX_DEVICE_NAME_LEN*2, /* Localization OK */
-			"Remove_all_adapters error: Bad device name: %.*s\n",
-			MAX_DEVICE_NAME_LEN, it->ifname);
-		if (remove_port((char *) (it->ifname)) < 0)
-			LLDPAD_DBG(sTmp);
 	}
 
 	return 0;
-}
-
-/* Function to find all the dcb devices from store and remove them. */
-void remove_all_adapters()
-{
-	struct port *port, *p;
-
-	port = porthead;
-	while (port != NULL) {
-		p = port;
-		port = port->next;
-		remove_port(p->ifname);
-	}
-
-	return;
 }
 
 bool add_pg_defaults()

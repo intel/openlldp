@@ -146,6 +146,20 @@ void send_event(int level, u32 moduleid, char *msg)
 		ctrl_iface_send(cd, level, moduleid, msg, strlen(msg));
 }
 
+static void remove_all_adapters()
+{
+	struct port *port, *p;
+
+	port = porthead;
+	while (port != NULL) {
+		p = port;
+		port = port->next;
+		remove_port(p->ifname);
+	}
+
+	return;
+}
+
 void lldpad_reconfig(int sig, void *eloop_ctx, void *signal_ctx)
 {
 	LLDPAD_WARN("lldpad: SIGHUP received reinit...");
@@ -413,7 +427,7 @@ int main(int argc, char *argv[])
 	ctrl_iface_deinit(clifd);  /* free's clifd */
 	event_iface_deinit();
 	stop_lldp_agents();
- out:
+out:
 	destroy_cfg();
 	closelog();
 	unlink(PID_FILE);

@@ -128,8 +128,6 @@ dcb_result run_feature_protocol(char *device_name, u32 EventFlag, u32 Subtype);
 dcb_result run_control_protocol(char *device_name, u32 EventFlag);
 dcb_result run_dcb_protocol(char *device_name, u32 EventFlag, u32 Subtype);
 
-void remove_all_adapters(void);
-
 dcb_result save_dcbx_state(const char *device_name);
 int set_dcbx_state(const char *device_name, dcbx_state *state);
 int get_dcbx_state(const char *device_name, dcbx_state *state);
