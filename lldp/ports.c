@@ -146,8 +146,10 @@ void set_lldp_agent_admin(const char *ifname, int type, int admin)
 			}
 
 			agent = lldp_agent_find_by_type(port->ifname, type);
-			if (agent == NULL)
+			if (!agent) {
+				port = port->next;
 				continue;
+			}
 
 			if (agent->adminStatus != admin) {
 				agent->adminStatus = admin;
