@@ -46,6 +46,7 @@ struct dcbx_manifest {
 struct dcbx_tlvs {
 	bool active;
 	bool rxed_tlvs;
+	bool operup;
 	u16  dcbdu;
 	u8   dcbx_st;
 	char ifname[IFNAMSIZ];

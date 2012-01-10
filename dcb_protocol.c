@@ -3918,7 +3918,8 @@ dcb_result run_dcb_protocol(char *device_name, u32 EventFlag, u32 Subtype)
 	dcb_result result = dcb_success;
 	bool LocalChange = false;
 	u32 i, SubTypeMin, SubTypeMax;
-	int oper, mask;
+	struct dcbx_tlvs *tlvs;
+	int mask;
 
 	LLDPAD_DBG("running DCB protocol for %s, flags:%04x\n", device_name,
 		EventFlag);
@@ -4007,10 +4008,10 @@ dcb_result run_dcb_protocol(char *device_name, u32 EventFlag, u32 Subtype)
 	}
 
 	/* apply all feature setting to the driver: linux only */
-	oper = get_operstate(device_name);
-	if (oper == IF_OPER_UP || oper == IF_OPER_UNKNOWN) {
+	tlvs = dcbx_data(device_name);
+	if (tlvs && tlvs->operup) {
 		LLDPAD_DBG("%s: %s: Managed DCB device coming online, program HW\n",
-			__func__, device_name);
+			    __func__, device_name);
 		set_hw_all(device_name);
 	}
 

@@ -78,11 +78,16 @@ static int dcbx_check_operstate(struct port *port, struct lldp_agent *agent)
 	u8 pfc_good = 0;
 	app_attribs app_data;
 	pfc_attribs pfc_data;
+	struct dcbx_tlvs *tlvs;
 
 	if (agent->type != NEAREST_BRIDGE)
 		return 0;
 
 	if (!port->portEnabled || !port->dormantDelay)
+		return 0;
+
+	tlvs = dcbx_data(port->ifname);
+	if (!tlvs || tlvs->operup)
 		return 0;
 
 	err = get_app(port->ifname, 0, &app_data);
@@ -105,6 +110,7 @@ static int dcbx_check_operstate(struct port *port, struct lldp_agent *agent)
 			__func__, port->ifname, port->dormantDelay,
 			pfc_data.protocol.OperMode,
 			app_data.protocol.OperMode);
+		tlvs->operup = true;
 		set_operstate(port->ifname, IF_OPER_UP);
 	}
 
@@ -569,6 +575,7 @@ void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 	LIST_INSERT_HEAD(&dud->head, tlvs, entry);
 
 initialized:
+	tlvs->operup = false;
 	dcbx_add_adapter(ifname);
 
 	/* ensure advertise bits are set consistently with enabletx */
