@@ -103,6 +103,7 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 	int i, j, pgid, bw, cnt, r;
 	int be, pfc, strict, cbe, cpfc, cstrict;
 	int tcbw[8] = {0};
+	bool pg_done[8] = { 0 };
 	int totalbw = 0;
 
 	LLDPAD_INFO("%s : fixup\n", __func__);
@@ -209,8 +210,11 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 					be = 0;
 			}
 
-			tcbw[pgid] += fixpg->tx.pg_percent[j];
-			totalbw += fixpg->tx.pg_percent[j];
+			if (pg_done[i] == false) {
+				tcbw[pgid] += fixpg->tx.pg_percent[i];
+				totalbw += fixpg->tx.pg_percent[i];
+				pg_done[i] = true;
+			}
 
 			/* Do row move from old pgid to new pgid */
 			LLDPAD_INFO("%s: matrix: (%i,%i) -> (%i,%i)\n",
