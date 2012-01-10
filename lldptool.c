@@ -1,7 +1,7 @@
 /*******************************************************************************
 
   LLDP Agent Daemon (LLDPAD) Software 
-  Copyright(c) 2007-2010 Intel Corporation.
+  Copyright(c) 2007-2011 Intel Corporation.
 
   Substantially modified from:
   hostapd-0.5.7
@@ -37,6 +37,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #include "clif.h"
 #include "lldp_mand_clif.h"
@@ -649,28 +651,23 @@ static void cli_recv_pending(struct clif *clif, int in_read)
 static void cli_interactive()
 {
 	const int max_args = 20;
-	char cmd[1024], *res, *argv[max_args], *pos;
+	char *cmd, *argv[max_args], *pos;
 	int argc;
 
 	setlinebuf(stdout);
 	printf("\nInteractive mode\n\n");
+	using_history();
+	stifle_history(1000);
 
 	do {
 		cli_recv_pending(clif_conn, 0);
-		printf("> ");
 		alarm(1);
-		res = fgets(cmd, sizeof(cmd), stdin);
+		cmd = readline("> ");
 		alarm(0);
-		if (res == NULL)
+		if (!cmd)
 			break;
-		pos = cmd;
-		while (*pos != '\0') {
-			if (*pos == '\n') {
-				*pos = '\0';
-				break;
-			}
-			pos++;
-		}
+		if (*cmd)
+			add_history(cmd);
 		argc = 1;
 		pos = cmd;
 		for (;;) {
@@ -691,6 +688,7 @@ static void cli_interactive()
 			optind = 0;
 			request(clif_conn, argc, argv);
 		}
+		free(cmd);
 	} while (!cli_quit);
 }
 

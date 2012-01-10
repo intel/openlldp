@@ -6,6 +6,8 @@ AC_PROG_CXX
 AC_PROG_LEX
 AC_PROG_LIBTOOL
 
+AC_LIBTOOL_DLOPEN
+
 PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.3.2])
 PKG_CHECK_MODULES([LIBNL], [libnl-1 >= 1.1])
 
@@ -33,8 +35,15 @@ AC_CHECK_FUNCS([uname])
 AC_CHECK_HEADER([libconfig.h], ,[AC_MSG_ERROR(
 [Could not find libconfig.h. Try installing libconfig-devel])]
 )
+AC_CHECK_HEADER([readline/readline.h], , [AC_MSG_ERROR(
+[Could not find readline.h. Try installing readline-devel])]
+)
+AC_CHECK_HEADER([readline/history.h], , [AC_MSG_ERROR(
+[Could not find history.h. Try installing readline-devel])]
+)
 
 AC_CHECK_HEADERS([arpa/inet.h])
+AC_CHECK_HEADERS([dlfcn.h])
 AC_CHECK_HEADERS([fcntl.h])
 AC_CHECK_HEADERS([netdb.h])
 AC_CHECK_HEADERS([netinet/in.h])

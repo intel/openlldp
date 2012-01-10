@@ -25,13 +25,14 @@ of
 to perform these operations.
 .B dcbtool
 will operate in interactive mode if it is executed without a
-.I command.
+\fIcommand\fR.
 In interactive mode,
 .B dcbtool
 also functions as an event listener and will print out events
 received from
 .B lldpad
-as they arrive. 802.1Qaz DCBX is not controllable from
+as they arrive. It will use libreadline for interactive input
+when available. 802.1Qaz DCBX is not controllable from
 .B dcbtool
 instead
 .B lldptool

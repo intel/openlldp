@@ -22,12 +22,13 @@ of
 to perform these operations.
 .B lldptool
 will operate in interactive mode if it is executed without a
-.I command.
+\fIcommand\fR.
 In interactive mode,
 .B lldptool
-also functions as an event listener and will print out events
+will also function as an event listener to print out events
 as they are received asynchronously from
 .B lldpad.
+It will use libreadline for interactive input when available.
 
 .SH OPTIONS
 .TP

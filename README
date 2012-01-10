@@ -164,7 +164,7 @@ lldpad Application Install
    Check to see that the following libraries are installed; install them if
    they are not present.
 
-	 libtool; libconfig-devel; libnl-devel
+	 libtool; libconfig-devel; libnl-devel; readline-devel
 
    Go into the lldpad-x.y.z directory and run the following commands
    
