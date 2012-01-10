@@ -788,7 +788,7 @@ int set_hw_app(char *ifname, appgroup_attribs *app_data)
 	return(recv_msg(DCB_CMD_SAPP, DCB_ATTR_APP, seq));
 }
 
-void run_cmd(char *cmd, ...)
+int run_cmd(char *cmd, ...)
 {
 	char cbuf[128];
 	va_list args;
@@ -796,8 +796,7 @@ void run_cmd(char *cmd, ...)
 	va_start(args, cmd);
 	vsprintf(cbuf, cmd, args);
 	va_end(args);
-	system(cbuf);
-	return;
+	return system(cbuf);
 }
 
 int set_hw_all(char *ifname)

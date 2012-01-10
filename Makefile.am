@@ -6,7 +6,8 @@ noinst_PROGRAMS = nltest
 
 # look for header files in the include directory
 # pass the value of ${sysconfdir} to the C pre-processor as SYSCONFDIR
-AM_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR="\"${sysconfdir}\""
+AM_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR="\"${sysconfdir}\"" \
+	-D_FORTIFY_SOURCE=2
 
 ACLOCAL_AMFLAGS = -I m4
 
