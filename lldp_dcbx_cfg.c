@@ -253,7 +253,9 @@ static int _set_persistent(char *device_name, int dcb_enable,
 	int result, i;
 
 	dcbx_setting = config_lookup(&lldpad_cfg, DCBX_SETTING);
-	eth_settings = config_setting_get_member(dcbx_setting, device_name);
+	if (dcbx_setting)
+		eth_settings = config_setting_get_member(dcbx_setting,
+							 device_name);
 
 	/* init the internal data store for device_name */
 	if (NULL == eth_settings) {
@@ -653,7 +655,9 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 
 	memset(attribs, 0, sizeof(*attribs));
 	dcbx_setting = config_lookup(&lldpad_cfg, DCBX_SETTING);
-	eth_settings = config_setting_get_member(dcbx_setting, device_name);
+	if (dcbx_setting)
+		eth_settings = config_setting_get_member(dcbx_setting,
+							 device_name);
 
 	/* init the internal data store for device_name */
 	result = get_default_persistent(device_name, attribs);
