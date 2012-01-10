@@ -115,11 +115,13 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 	pgid++;
 
 	/* If the PGIDs can be mapped onto the number of existing traffic
-	 * classes do it and retur
+	 * classes do it and return
 	 */
 	if (pgid <= fixpg->num_tcs) {
-		for (i = 0; i < MAX_USER_PRIORITIES; i++)
+		for (i = 0; i < MAX_USER_PRIORITIES; i++) {
 			fixpg->tx.up[i].tcmap = fixpg->tx.up[i].pgid;
+			fixpg->rx.up[i].tcmap = fixpg->rx.up[i].pgid;
+		}
 		return 0;
 	}
 
@@ -240,6 +242,10 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 
 			LLDPAD_INFO("%s: result: up(%i): map %i->%i\n",
 				    __func__,  j, entry->pgid, i);
+
+			fixpg->rx.up[j].pgid = i;
+			fixpg->rx.up[j].tcmap = i;
+
 			entry->pgid = i;
 			entry->tcmap = i;
 			bw += entry->percent_of_pg_cap;
@@ -258,16 +264,20 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 
 			if (entry->strict_priority == dcb_link) {
 				entry->percent_of_pg_cap = 0;
+				fixpg->rx.up[j].percent_of_pg_cap = 0;
 			} else {
 				entry->percent_of_pg_cap = bw + r;
+				fixpg->rx.up[j].percent_of_pg_cap = bw + r;
 				r = 0;
 			}
 		}
 	}
 
 	/* Final Pass: Distribute TC bandwidth */
-	for (i = 0; i < MAX_TRAFFIC_CLASS; i++)
+	for (i = 0; i < MAX_TRAFFIC_CLASS; i++) {
 		fixpg->tx.pg_percent[i] = tcbw[i];
+		fixpg->rx.pg_percent[i] = tcbw[i];
+	}
 
 	return 0;
 }
