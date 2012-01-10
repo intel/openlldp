@@ -896,15 +896,13 @@ static int vdp_validate_tlv(struct tlv_info_vdp *vdp)
 		goto out_err;
 	}
 
-	if ((vdp->mode < VDP_MODE_PREASSOCIATE) ||
-		(vdp->mode > VDP_MODE_DEASSOCIATE)) {
+	if (vdp->mode > VDP_MODE_DEASSOCIATE) {
 		LLDPAD_DBG("Unknown mode %02x in vsi tlv !\n", vdp->mode);
 		goto out_err;
 	}
 
-	if ((vdp->response < VDP_RESPONSE_SUCCESS) ||
-		(vdp->response > VDP_RESPONSE_OUT_OF_SYNC)) {
-		LLDPAD_DBG("Unknown response %02x \n", vdp->response);
+	if (vdp->response > VDP_RESPONSE_OUT_OF_SYNC) {
+		LLDPAD_DBG("Unknown response %02x\n", vdp->response);
 		goto out_err;
 	}
 

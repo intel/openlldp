@@ -120,16 +120,6 @@ int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie)
 		return TLV_ERR;
 	}
 
-	if ((tie->svsi < 0) || (tie->svsi > LLDP_EVB_DEFAULT_MAX_VSI)) {
-		LLDPAD_ERR("nr of supported vsis (%i) exceeds allow value range !", ntohs(tie->svsi));
-		return TLV_ERR;
-	}
-
-	if ((tie->cvsi < 0) || (tie->cvsi > LLDP_EVB_DEFAULT_MAX_VSI)) {
-		LLDPAD_ERR("nr of configured vsis (%i) exceeds allow value range !", ntohs(tie->cvsi));
-		return TLV_ERR;
-	}
-
 	/* check bridge capabilities against local policy*/
 	/* if bridge supports RR and we support it as well, request it
 	 * by setting smode in tlv to be sent out (ed->tie->smode) */
