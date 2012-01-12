@@ -52,7 +52,7 @@ struct l2_packet_data {
 	u8 curr_mac_addr[ETH_ALEN];
 	u8 san_mac_addr[ETH_ALEN];
 	u8 remote_mac_addr[ETH_ALEN];
-	void (*rx_callback)(void *ctx, unsigned int ifindex,
+	void (*rx_callback)(void *ctx, int ifindex,
 			    const u8 *buf, size_t len);
 	void *rx_callback_ctx;
 	int l2_hdr; /* whether to include layer 2 (Ethernet) header data
@@ -155,7 +155,7 @@ static void l2_packet_receive(int sock, void *eloop_ctx, void *sock_ctx)
 
 struct l2_packet_data * l2_packet_init(
 	const char *ifname, const u8 *own_addr, unsigned short protocol,
-	void (*rx_callback)(void *ctx, unsigned int ifindex,
+	void (*rx_callback)(void *ctx, int ifindex,
 			    const u8 *buf, size_t len),
 	void *rx_callback_ctx, int l2_hdr)
 {
@@ -357,10 +357,9 @@ fail1:
 }
 
 
-void recv_on_bond(void *ctx, unsigned int ifindex, const u8 *buf, size_t len)
+void recv_on_bond(void *ctx, int ifindex, const u8 *buf, size_t len)
 {
 	struct port *port;
-	
 
 	/* Find the originating slave port object */
 	for (port = porthead; port != NULL && port->l2->ifindex != ifindex;

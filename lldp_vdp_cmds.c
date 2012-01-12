@@ -299,7 +299,7 @@ static int get_arg_mode(struct cmd *cmd, char *arg, char *argvalue,
 
 static void str2instance(struct vsi_profile *profile, char *buffer)
 {
-	int i, j = 0;
+	unsigned int i, j = 0;
 
 	for(i=0; i <= strlen(buffer); i++) {
 		if (buffer[i] == '-') {

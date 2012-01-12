@@ -57,7 +57,7 @@ void rxInitializeLLDP(struct port *port, struct lldp_agent *agent)
 	return;
 }
 
-void rxReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t len)
+void rxReceiveFrame(void *ctx, int ifindex, const u8 *buf, size_t len)
 {
 	struct port * port;
 	struct lldp_agent *agent;

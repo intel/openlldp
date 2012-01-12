@@ -48,7 +48,8 @@ static const char *agent_sections[AGENT_MAX] = {
 	[NEAREST_CUSTOMER_BRIDGE] = "nearest_customer_bridge",
 };
 
-struct lldp_agent *lldp_agent_find_by_type(const char *ifname, int type)
+struct lldp_agent *
+lldp_agent_find_by_type(const char *ifname, enum agent_type type)
 {
 	struct port *port;
 	struct lldp_agent *agent;
@@ -105,7 +106,7 @@ void lldp_init_agent(struct port *port, struct lldp_agent *agent, int type)
 	txInitializeLLDP(agent);
 }
 
-int lldp_add_agent(const char *ifname, int type)
+int lldp_add_agent(const char *ifname, enum agent_type type)
 {
 	int count;
 	struct port *port;

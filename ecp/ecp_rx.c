@@ -189,7 +189,7 @@ void ecp_rx_send_ack_frame(struct vdp_data *vd)
  * statistics about ecp frames. Checks if it is a request or an ack frame and branches
  * to ecp rx or ecp tx state machine.
  */
-void ecp_rx_ReceiveFrame(void *ctx, unsigned int ifindex, const u8 *buf, size_t len)
+void ecp_rx_ReceiveFrame(void *ctx, int ifindex, const u8 *buf, size_t len)
 {
 	struct vdp_data *vd;
 	struct port *port;

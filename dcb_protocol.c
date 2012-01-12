@@ -1884,7 +1884,7 @@ dcb_result put_app(char *device_name, u32 subtype, app_attribs *app_data)
 	full_dcb_attrib_ptrs attr_ptr;
 	u32              EventFlag = 0;
 	dcb_result       result = dcb_success;
-	int i;
+	unsigned i;
 
 	if (!app_data)
 		return dcb_bad_params;

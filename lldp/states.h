@@ -135,7 +135,7 @@ void rxInitializeLLDP(struct port *port, struct lldp_agent *);
  * 2: The flag variable tooManyNghbrs is automatically reset when the
  *    tooManyNghbrsTimer expires.
 */
-void rxReceiveFrame(void *, unsigned int, const u8 *, size_t );
+void rxReceiveFrame(void *, int ifindex, const u8 *, size_t);
 void rxProcessFrame(struct port *, struct lldp_agent *);
 
 /**

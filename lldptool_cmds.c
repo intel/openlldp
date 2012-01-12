@@ -79,7 +79,7 @@ int parse_response(char *buf)
 
 void get_arg_value(char *str, char **arg, char **argval)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < strlen(str); i++)
 		if (!isprint(str[i]))
@@ -420,7 +420,7 @@ static void print_lldp(struct cmd *cmd, char *ibuf)
 
 static void print_tlvs(struct cmd *cmd, char *ibuf)
 {
-	int ilen;
+	unsigned int ilen;
 	u16 tlv_type;
 	u16 tlv_len;
 	u32 tlvid;

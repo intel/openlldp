@@ -59,15 +59,17 @@ static int rtnl_recv(int s, rtnl_handler *fn, void *arg)
 {
 	char buf[8192];
 	struct nlmsghdr *nh;
-	int len;
+	int res;
 	int rc = 0;
+	unsigned len;
 	bool more = false;
 
 more:
-	len = recv(s, buf, sizeof(buf), 0);
-	if (len < 0)
-		return len;
+	res = recv(s, buf, sizeof(buf), 0);
+	if (res < 0)
+		return res;
 
+	len = res;
 	for (nh = NLMSG(buf); NLMSG_OK(nh, len); nh = NLMSG_NEXT(nh, len)) {
 		if (nh->nlmsg_flags & NLM_F_MULTI)
 			more = true;

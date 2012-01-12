@@ -150,8 +150,8 @@ struct lldp_agent {
         LIST_ENTRY(lldp_agent) entry;
 };
 
-struct lldp_agent *lldp_agent_find_by_type(const char *, int);
-int lldp_add_agent(const char *ifname, int type);
+struct lldp_agent *lldp_agent_find_by_type(const char *, enum agent_type);
+int lldp_add_agent(const char *ifname, enum agent_type);
 
 void set_lldp_agent_admin(const char *ifname, int type, int enable);
 int get_lldp_agent_admin(const char *ifname, int type);

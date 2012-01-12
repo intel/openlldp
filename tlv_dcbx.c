@@ -622,9 +622,8 @@ struct unpacked_tlv *bld_dcbx1_app_tlv(struct dcbx_tlvs *dcbx,
 		if(app_cfg.protocol.Error == true)
 			app_info->hdr.ewe |= BIT5;
 		app_info->hdr.sub_type = (u8)sub_type;
-		for (i = 0; i < (int)app_cfg.Length; i++) {
+		for (i = 0; i < app_cfg.Length; i++)
 			app_info->data[i] = app_cfg.AppData[i];
-		}
 		tlv->length = (u16)len;
 	} else {
 		LLDPAD_DBG("bld_dcbx1_app_tlv: Failed to malloc app_info\n");

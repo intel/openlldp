@@ -55,8 +55,8 @@ void mark_lldpad_shm_for_removal()
 void lldpad_shm_ver0_to_ver1(struct lldpad_shm_tbl_ver0 *shmold,
 			    int num_old_entries)
 {
-	int i;
-	int num_entries;
+	unsigned i;
+	unsigned num_entries;
 	struct lldpad_shm_entry new_ent[MAX_LLDPAD_SHM_ENTRIES];
 
 	num_entries = num_old_entries;
@@ -97,8 +97,8 @@ int lldpad_shm_get_msap(const char *device_name, int type, char *info, size_t *l
 	int shmid;
 	struct lldpad_shm_tbl *shmaddr=NULL;
 	pid_t rval = 0;
-	int i;
-	int num_entries;
+	unsigned i;
+	unsigned num_entries;
 	int version;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
@@ -122,7 +122,7 @@ int lldpad_shm_get_msap(const char *device_name, int type, char *info, size_t *l
 	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
 
 	/* check for invalid number of shm table entries */
-	if (num_entries < 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
+	if (num_entries > MAX_LLDPAD_SHM_ENTRIES)
 		goto done;
 
 	/* search for existing entry */
@@ -158,9 +158,9 @@ int lldpad_shm_set_msap(const char *device_name, int type, char *info, size_t le
 	int shmid;
 	struct lldpad_shm_tbl *shmaddr=NULL;
 	pid_t rval = 0;
-	int i;
+	unsigned i;
 	int version;
-	int num_entries;
+	unsigned num_entries;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
 	if (shmid < 0 && errno == ENOENT)
@@ -182,7 +182,7 @@ int lldpad_shm_set_msap(const char *device_name, int type, char *info, size_t le
 	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
 
 	/* check for invalid number of shm table entries */
-	if (num_entries < 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
+	if (num_entries > MAX_LLDPAD_SHM_ENTRIES)
 		goto done;
 
 	/* search for existing entry */
@@ -222,8 +222,8 @@ int lldpad_shm_get_dcbx(const char *device_name)
 	int shmid;
 	struct lldpad_shm_tbl *shmaddr = NULL;
 	pid_t rval = 0;  /* zero is default DCBX auto mode */
-	int i;
-	int num_entries;
+	unsigned i;
+	unsigned num_entries;
 	int version;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
@@ -246,7 +246,7 @@ int lldpad_shm_get_dcbx(const char *device_name)
 	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
 
 	/* check for invalid number of shm table entries */
-	if (num_entries < 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
+	if (num_entries > MAX_LLDPAD_SHM_ENTRIES)
 		goto done;
 
 	/* search for existing entry */
@@ -275,8 +275,8 @@ int lldpad_shm_set_dcbx(const char *device_name, int dcbx_mode)
 	int shmid;
 	struct lldpad_shm_tbl *shmaddr = NULL;
 	pid_t rval = 0;
-	int i;
-	int num_entries;
+	unsigned i;
+	unsigned num_entries;
 	int version;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
@@ -300,7 +300,7 @@ int lldpad_shm_set_dcbx(const char *device_name, int dcbx_mode)
 	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
 
 	/* check for invalid number of shm table entries */
-	if (num_entries < 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
+	if (num_entries > MAX_LLDPAD_SHM_ENTRIES)
 		goto done;
 
 	if ((dcbx_mode != dcbx_subtype0) && (dcbx_mode != dcbx_subtype1) &&
@@ -406,9 +406,9 @@ int clear_dcbx_state()
 {
 	int shmid;
 	struct lldpad_shm_tbl *shmaddr=NULL;
-	int i;
+	unsigned i;
 	int version;
-	int num_entries;
+	unsigned num_entries;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
 
@@ -427,7 +427,7 @@ int clear_dcbx_state()
 	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
 
 	/* check for invalid number of shm table entries */
-	if (num_entries < 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
+	if (num_entries > MAX_LLDPAD_SHM_ENTRIES)
 		goto done;
 
 	/* clear out dcbx_state for all entries */
@@ -446,10 +446,10 @@ int set_dcbx_state(const char *device_name, dcbx_state *state)
 {
 	int shmid;
 	struct lldpad_shm_tbl *shmaddr=NULL;
-	int i;
+	unsigned i;
 	int rval = 0;
 	int version;
-	int num_entries;
+	unsigned num_entries;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
 
@@ -468,7 +468,7 @@ int set_dcbx_state(const char *device_name, dcbx_state *state)
 	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
 
 	/* check for invalid number of shm table entries */
-	if (num_entries < 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
+	if (num_entries > MAX_LLDPAD_SHM_ENTRIES)
 		goto done;
 
 	/* search for existing entry */
@@ -500,10 +500,10 @@ int get_dcbx_state(const char *device_name, dcbx_state *state)
 {
 	int shmid;
 	struct lldpad_shm_tbl *shmaddr=NULL;
-	int i;
+	unsigned i;
 	int rval = 0;
 	int version;
-	int num_entries;
+	unsigned num_entries;
 
 	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
 
@@ -522,7 +522,7 @@ int get_dcbx_state(const char *device_name, dcbx_state *state)
 	num_entries = shmaddr->num_entries & SHM_NUM_ENT_MASK;
 
 	/* check for invalid number of shm table entries */
-	if (num_entries <= 0 || num_entries > MAX_LLDPAD_SHM_ENTRIES)
+	if (num_entries > MAX_LLDPAD_SHM_ENTRIES)
 		goto done;
 
 	/* search for existing entry */
@@ -553,12 +553,12 @@ int print_lldpad_shm()
 	int shmid;
 	struct lldpad_shm_tbl_ver0 *shmaddr_ver0 = NULL;
 	struct lldpad_shm_tbl *shmaddr=NULL;
-	int i;
+	unsigned i;
 	int j;
 	int rval = 0;
 	int version;
-	int num_entries;
-	int max_entries;
+	unsigned num_entries;
+	unsigned max_entries;
 	int ent_size;
 	struct lldpad_shm_entry *entry_ptr = NULL;
 
@@ -591,7 +591,7 @@ int print_lldpad_shm()
 	printf("max num_entries = %d\n", max_entries);
 
 	/* check for invalid number of shm table entries */
-	if (num_entries <= 0 || num_entries > max_entries)
+	if (num_entries > max_entries)
 		goto done;
 
 	for (i = 0; i < num_entries; i++) {

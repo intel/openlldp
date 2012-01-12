@@ -111,7 +111,7 @@ static struct basman_data *basman_data(const char *ifname, enum agent_type type)
 static int basman_bld_portdesc_tlv(struct basman_data *bd,
 				   struct lldp_agent *agent)
 {
-	int length;
+	unsigned int length;
 	int rc = 0;
 	char desc[256];
 	struct unpacked_tlv *tlv = NULL;
@@ -168,7 +168,7 @@ out_err:
 static int basman_bld_sysname_tlv(struct basman_data *bd,
 				  struct lldp_agent *agent)
 {
-	int length;
+	unsigned int length;
 	int rc = 0;
 	char desc[256];
 	struct utsname uts;
@@ -233,7 +233,7 @@ out_err:
 static int basman_bld_sysdesc_tlv(struct basman_data *bd,
 				  struct lldp_agent *agent)
 {
-	int length;
+	unsigned int length;
 	int rc = 0;
 	char desc[256];
 	struct utsname uts;
