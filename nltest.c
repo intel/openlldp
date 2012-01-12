@@ -1517,15 +1517,21 @@ int main(int argc, char *argv[])
 #endif /* DCB_APP_DRV_IF_SUPPORTED */
 
 	if (1) {
-		printf("\nSETTING ETS:\n");
-		struct ieee_ets ets = { 0, 0x1, 0,
-					{25, 25, 25, 25, 0, 0, 0, 0},
-					{0, 0, 0, 0, 25, 25, 25, 25},
-					{1, 2, 3, 4, 1, 2, 3, 4},
-					{1, 2, 3, 4, 1, 2, 3, 4} };
-		struct ieee_pfc pfc = {0xf1, 0, 0, 0x32};
-		struct dcb_app app = {0, 4, 0x8906};
+		struct ieee_ets ets = {
+			.willing = 0, .ets_cap = 0x1, .cbs = 0,
+			.tc_tx_bw = {25, 25, 25, 25, 0, 0, 0, 0},
+			.tc_rx_bw = {0, 0, 0, 0, 25, 25, 25, 25},
+			.tc_tsa = {1, 2, 3, 4, 1, 2, 3, 4},
+			.prio_tc = {1, 2, 3, 4, 1, 2, 3, 4}
+		};
+		struct ieee_pfc pfc = {
+			.pfc_cap = 0xf1, .pfc_en = 0, .mbc = 0, .delay = 0x32
+		};
+		struct dcb_app app = {
+			.selector = 0, .priority = 4, .protocol = 0x8906
+		};
 
+		printf("\nSETTING ETS:\n");
 		set_ieee(argv[1], &ets, &pfc, &app);
 	}
 

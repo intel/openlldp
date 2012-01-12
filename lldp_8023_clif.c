@@ -52,23 +52,19 @@ static const struct lldp_mod_ops ieee8023_ops_clif = {
 };
 
 struct type_name_info ieee8023_tlv_names[] = {
-	{ (LLDP_MOD_8023 << 8) | LLDP_8023_MACPHY_CONFIG_STATUS,
-		"MAC/PHY Configuration Status TLV",
-		"macPhyCfg", print_mac_phy },
-
-	{ (LLDP_MOD_8023 << 8) | LLDP_8023_POWER_VIA_MDI,
-		"Power via MDI TLV",
-		"powerMdi",  print_power_mdi },
-
-	{ (LLDP_MOD_8023 << 8) | LLDP_8023_LINK_AGGREGATION,
-		"Link Aggregation TLV",
-		"linkAgg",   print_link_agg },
-
-	{ (LLDP_MOD_8023 << 8) | LLDP_8023_MAXIMUM_FRAME_SIZE,
-		"Maximum Frame Size TLV",
-		"MTU",       print_mtu },
-
-	{ INVALID_TLVID,     NULL,        NULL }
+	{	.type = (LLDP_MOD_8023 << 8) | LLDP_8023_MACPHY_CONFIG_STATUS,
+		.name = "MAC/PHY Configuration Status TLV", .key = "macPhyCfg",
+		.print_info = print_mac_phy, },
+	{	.type = (LLDP_MOD_8023 << 8) | LLDP_8023_POWER_VIA_MDI,
+		.name = "Power via MDI TLV", .key = "powerMdi",
+		.print_info = print_power_mdi, },
+	{	.type = (LLDP_MOD_8023 << 8) | LLDP_8023_LINK_AGGREGATION,
+		.name = "Link Aggregation TLV", .key = "linkAgg",
+		.print_info = print_link_agg, },
+	{	.type = (LLDP_MOD_8023 << 8) | LLDP_8023_MAXIMUM_FRAME_SIZE,
+		.name = "Maximum Frame Size TLV", .key = "MTU",
+		.print_info = print_mtu, },
+	{	.type = INVALID_TLVID, }
 };
 
 int ieee8023_print_help()

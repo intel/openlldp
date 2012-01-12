@@ -46,10 +46,11 @@ static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_TLVTXENABLE, TLV_ARG,
-		get_arg_tlvtxenable, set_arg_tlvtxenable,
-		test_arg_tlvtxenable },
-	{ NULL }
+	{	.arg = ARG_TLVTXENABLE, .arg_class = TLV_ARG,
+		.handle_get = get_arg_tlvtxenable,
+		.handle_set = set_arg_tlvtxenable,
+		.handle_test = test_arg_tlvtxenable, },
+	{	.arg = 0 }
 };
 
 static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,

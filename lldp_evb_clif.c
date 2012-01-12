@@ -48,10 +48,10 @@ static const struct lldp_mod_ops evb_ops_clif = {
 };
 
 struct type_name_info evb_tlv_names[] = {
-	{ (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE,
-		"EVB Configuration TLV",
-		"evbCfg", evb_print_cfg_tlv },
-	{ INVALID_TLVID,     NULL,        NULL }
+	{	.type = (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE,
+		.name = "EVB Configuration TLV", .key = "evbCfg",
+		.print_info = evb_print_cfg_tlv, },
+	{	.type = INVALID_TLVID, }
 };
 
 int evb_print_help()

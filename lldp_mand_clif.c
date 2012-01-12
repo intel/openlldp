@@ -52,11 +52,18 @@ static const struct lldp_mod_ops mand_ops_clif = {
 
 
 struct type_name_info mand_tlv_names[] = {
-	{ END_OF_LLDPDU_TLV, "End of LLDPDU TLV","" },
-	{ CHASSIS_ID_TLV,    "Chassis ID TLV",   "chassisID",print_chassis_id },
-	{ PORT_ID_TLV,       "Port ID TLV",      "portID",   print_port_id },
-	{ TIME_TO_LIVE_TLV,  "Time to Live TLV", "TTL",      print_ttl },
-	{ INVALID_TLVID,	  NULL, NULL }
+	{	.type = END_OF_LLDPDU_TLV,
+		.name = "End of LLDPDU TLV", .key = "", },
+	{	.type = CHASSIS_ID_TLV,
+		.name = "Chassis ID TLV", .key = "chassisID",
+		.print_info = print_chassis_id, },
+	{	.type = PORT_ID_TLV,
+		.name = "Port ID TLV", .key = "portID",
+		.print_info = print_port_id, },
+	{	.type = TIME_TO_LIVE_TLV,
+		.name = "Time to Live TLV", .key = "TTL",
+		.print_info = print_ttl, },
+	{	.type = INVALID_TLVID, }
 };
 
 int mand_print_help()

@@ -50,13 +50,15 @@ static int set_arg_med_devtype(struct cmd *, char *, char *, char *, int);
 static int test_arg_med_devtype(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_TLVTXENABLE, TLV_ARG,
-		get_arg_tlvtxenable, set_arg_tlvtxenable,
-		test_arg_tlvtxenable },
-	{ ARG_MED_DEVTYPE, TLV_ARG,
-		get_arg_med_devtype, set_arg_med_devtype,
-		test_arg_med_devtype },
-	{ NULL }
+	{	.arg = ARG_TLVTXENABLE, .arg_class = TLV_ARG,
+		.handle_get = get_arg_tlvtxenable,
+		.handle_set = set_arg_tlvtxenable,
+		.handle_test = test_arg_tlvtxenable, },
+	{	.arg = ARG_MED_DEVTYPE, .arg_class = TLV_ARG,
+		.handle_get = get_arg_med_devtype,
+		.handle_set = set_arg_med_devtype,
+		.handle_test = test_arg_med_devtype, },
+	{	.arg = 0 }
 };
 
 static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,

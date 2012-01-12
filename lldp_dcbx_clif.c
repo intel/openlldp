@@ -50,11 +50,13 @@ static const struct lldp_mod_ops dcbx_ops_clif = {
 };
 
 struct type_name_info dcbx_tlv_names[] = {
-	{ (OUI_CEE_DCBX << 8) | 1, "PRE-CEE DCBX TLV",	
-		"DCBXv1", print_dcbx_v1 },
-	{ (OUI_CEE_DCBX << 8) | 2, "CEE DCBX TLV",
-		"DCBX", print_dcbx_v2 },
-	{ INVALID_TLVID,	  NULL, NULL }
+	{	.type = (OUI_CEE_DCBX << 8) | 1,
+		.name = "PRE-CEE DCBX TLV", .key = "DCBXv1",
+		.print_info = print_dcbx_v1, },
+	{	.type = (OUI_CEE_DCBX << 8) | 2,
+		.name = "CEE DCBX TLV", .key = "DCBX",
+		.print_info = print_dcbx_v2, },
+	{	.type = INVALID_TLVID, }
 };
 
 int dcbx_print_help()

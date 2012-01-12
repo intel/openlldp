@@ -47,10 +47,10 @@ static const struct lldp_mod_ops cisco_ops_clif = {
 };
 
 struct type_name_info cisco_tlv_names[] = {
-	{ (OUI_CISCO << 8) | 1,
-		"Cisco 4-wire Power-via-MDI TLV",
-		"uPoE", cisco_print_upoe_tlv },
-	{ INVALID_TLVID,     NULL,        NULL }
+	{	.type = (OUI_CISCO << 8) | 1,
+		.name = "Cisco 4-wire Power-via-MDI TLV", .key = "uPoE",
+		.print_info = cisco_print_upoe_tlv },
+	{	.type = INVALID_TLVID, }
 };
 
 static int cisco_print_help()

@@ -51,22 +51,31 @@ static const struct lldp_mod_ops ieee8021qaz_ops_clif = {
 };
 
 struct type_name_info ieee8021qaz_tlv_names[] = {
-	{ (OUI_IEEE_8021 << 8),
-		"IEEE-DCBX Settings", "IEEE-DCBX",
-		NULL },
-	{ (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG,
-		"IEEE 8021QAZ ETS Configuration TLV", "ETS-CFG",
-		ieee8021qaz_print_etscfg_tlv },
-	{ (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC,
-		"IEEE 8021QAZ ETS Recommendation TLV", "ETS-REC",
-		ieee8021qaz_print_etsrec_tlv },
-	{ (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC,
-		"IEEE 8021QAZ PFC TLV",	"PFC",
-		ieee8021qaz_print_pfc_tlv },
-	{ (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_APP,
-		"IEEE 8021QAZ APP TLV",	"APP",
-		ieee8021qaz_print_app_tlv },
-	{ INVALID_TLVID, NULL, NULL }
+	{
+		.type = (OUI_IEEE_8021 << 8),
+		.name = "IEEE-DCBX Settings", .key = "IEEE-DCBX",
+	},
+	{
+		.type = (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG,
+		.name = "IEEE 8021QAZ ETS Configuration TLV", .key = "ETS-CFG",
+		.print_info = ieee8021qaz_print_etscfg_tlv,
+	},
+	{
+		.type = (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC,
+		.name = "IEEE 8021QAZ ETS Recommendation TLV", .key = "ETS-REC",
+		.print_info = ieee8021qaz_print_etsrec_tlv,
+	},
+	{
+		.type = (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC,
+		.name = "IEEE 8021QAZ PFC TLV",	.key = "PFC",
+		.print_info = ieee8021qaz_print_pfc_tlv,
+	},
+	{
+		.type = (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_APP,
+		.name = "IEEE 8021QAZ APP TLV",	.key = "APP",
+		.print_info = ieee8021qaz_print_app_tlv,
+	},
+	{	.type = INVALID_TLVID, }
 };
 
 static int ieee8021qaz_print_help(void)

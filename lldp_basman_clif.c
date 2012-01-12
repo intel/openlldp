@@ -50,17 +50,22 @@ static const struct lldp_mod_ops basman_ops_clif = {
 };
 
 struct type_name_info basman_tlv_names[] = {
-	{ PORT_DESCRIPTION_TLV,    "Port Description TLV",    "portDesc",
-				    print_string_tlv },
-	{ SYSTEM_NAME_TLV,         "System Name TLV",         "sysName",
-				    print_string_tlv },
-	{ SYSTEM_DESCRIPTION_TLV,  "System Description TLV",  "sysDesc",
-				    print_string_tlv },
-	{ SYSTEM_CAPABILITIES_TLV, "System Capabilities TLV", "sysCap",
-				    print_capabilities },
-	{ MANAGEMENT_ADDRESS_TLV,  "Management Address TLV",  "mngAddr",
-				    print_mng_addr },
-	{ INVALID_TLVID,	NULL, NULL }
+	{	.type = PORT_DESCRIPTION_TLV,
+		.name = "Port Description TLV", .key = "portDesc",
+		.print_info = print_string_tlv, },
+	{	.type = SYSTEM_NAME_TLV,
+		.name = "System Name TLV", .key = "sysName",
+		.print_info = print_string_tlv, },
+	{	.type = SYSTEM_DESCRIPTION_TLV,
+		.name = "System Description TLV", .key = "sysDesc",
+		.print_info = print_string_tlv, },
+	{	.type = SYSTEM_CAPABILITIES_TLV,
+		.name = "System Capabilities TLV", .key = "sysCap",
+		.print_info = print_capabilities, },
+	{	.type = MANAGEMENT_ADDRESS_TLV,
+		.name = "Management Address TLV", .key = "mngAddr",
+		.print_info = print_mng_addr, },
+	{	.type = INVALID_TLVID, }
 };
 
 int basman_print_help()

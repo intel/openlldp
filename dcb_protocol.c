@@ -911,7 +911,7 @@ int dcbx_add_adapter(char *device_name)
 	u32 EventFlag = 0;
 	full_dcb_attrib_ptrs attr_ptr;
 	full_dcb_attribs attribs;
-	feature_support dcb_support = {0};
+	feature_support dcb_support = { .pg = 0 };
 	dcb_result sResult = dcb_success;
 	dcbx_state state;
 	int i = 0;

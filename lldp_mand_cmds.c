@@ -52,13 +52,17 @@ static int handle_set_arg(struct cmd *, char *, char *, char *, int);
 static int handle_test_arg(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_ADMINSTATUS, LLDP_ARG,
-		get_arg_adminstatus, set_arg_adminstatus,
-		test_arg_adminstatus },
-	{ ARG_TLVTXENABLE, TLV_ARG,
-		get_arg_tlvtxenable, set_arg_tlvtxenable, set_arg_tlvtxenable },
+	{	.arg = ARG_ADMINSTATUS, .arg_class = LLDP_ARG,
+		.handle_get = get_arg_adminstatus,
+		.handle_set = set_arg_adminstatus,
+		.handle_test = test_arg_adminstatus, },
+	{	.arg = ARG_TLVTXENABLE, .arg_class = TLV_ARG,
+		.handle_get = get_arg_tlvtxenable,
+		.handle_set = set_arg_tlvtxenable,
+		.handle_test = set_arg_tlvtxenable,
+	},
 		/* test same as set */
-	{ NULL }
+	{	.arg = 0 }
 };
 
 struct arg_handlers *mand_get_arg_handlers()

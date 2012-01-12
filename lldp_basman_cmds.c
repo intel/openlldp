@@ -52,14 +52,19 @@ static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_IPV4_ADDR, TLV_ARG,
-		get_arg_ipv4, set_arg_ipv4, test_arg_ipv4 },
-	{ ARG_IPV6_ADDR, TLV_ARG,
-		get_arg_ipv6, set_arg_ipv6, test_arg_ipv6 },
-	{ ARG_TLVTXENABLE, TLV_ARG,
-		get_arg_tlvtxenable, set_arg_tlvtxenable,
-		test_arg_tlvtxenable },
-	{ NULL }
+	{	.arg = ARG_IPV4_ADDR, .arg_class = TLV_ARG,
+		.handle_get = get_arg_ipv4,
+		.handle_set = set_arg_ipv4,
+		.handle_test = test_arg_ipv4, },
+	{	.arg = ARG_IPV6_ADDR, .arg_class = TLV_ARG,
+		.handle_get = get_arg_ipv6,
+		.handle_set = set_arg_ipv6,
+		.handle_test = test_arg_ipv6, },
+	{	.arg = ARG_TLVTXENABLE, .arg_class = TLV_ARG,
+		.handle_get = get_arg_tlvtxenable,
+		.handle_set = set_arg_tlvtxenable,
+		.handle_test = test_arg_tlvtxenable },
+	{	.arg = 0 }
 };
 
 static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,

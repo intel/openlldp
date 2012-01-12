@@ -56,14 +56,19 @@ static int set_arg_role(struct cmd *, char *, char *, char *, int);
 static int test_arg_role(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
-	{ ARG_VDP_MODE, TLV_ARG,
-		get_arg_mode, set_arg_mode, test_arg_mode },
-	{ ARG_VDP_ROLE, TLV_ARG,
-		get_arg_role, set_arg_role, test_arg_role },
-	{ ARG_TLVTXENABLE, TLV_ARG,
-		get_arg_tlvtxenable, set_arg_tlvtxenable,
-		test_arg_tlvtxenable },
-	{ NULL }
+	{	.arg = ARG_VDP_MODE, .arg_class = TLV_ARG,
+		.handle_get = get_arg_mode,
+		.handle_set = set_arg_mode,
+		.handle_test = test_arg_mode, },
+	{	.arg = ARG_VDP_ROLE, .arg_class = TLV_ARG,
+		.handle_get = get_arg_role,
+		.handle_set = set_arg_role,
+		.handle_test = test_arg_role, },
+	{	.arg = ARG_TLVTXENABLE, .arg_class = TLV_ARG,
+		.handle_get = get_arg_tlvtxenable,
+		.handle_set = set_arg_tlvtxenable,
+		.handle_test = test_arg_tlvtxenable, },
+	{	.arg = 0 }
 };
 
 static const char * const vsi_modes[] = {

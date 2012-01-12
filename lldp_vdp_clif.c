@@ -48,10 +48,10 @@ static const struct lldp_mod_ops vdp_ops_clif = {
 };
 
 struct type_name_info vdp_tlv_names[] = {
-       { ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE,
-               "VDP protocol configuration",
-               "vdp", vdp_print_cfg_tlv },
-       { INVALID_TLVID,     NULL,        NULL }
+	{	.type = ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE,
+		.name = "VDP protocol configuration", .key = "vdp",
+		.print_info = vdp_print_cfg_tlv, },
+	{	.type = INVALID_TLVID, }
 };
 
 int vdp_print_help()
