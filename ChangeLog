@@ -1,3 +1,13 @@
+Changes from 0.9.43 through 0.9.44
+- Support for multiple agent types Nearest non-TPMR, Nearest customer bridge,
+  and Nearest Bridge (always supported).
+- New man pages for VDP, EVB, and MED have been added.
+- DCBX improvements to remap DCB attributes when the host has less traffic
+  classes then the peer.
+- Support to parse 802.1AB Organizationally Specific TLVs, Cisco Specific TLVs
+  and the LLINK attributes of the DCBX CEE TLVs.
+- Support to reconfigure and set the MSAP subtype.
+- Additional gcc warnings turned on and miscellaneous fixes.
 Changes from 0.9.40 through 0.9.43
 - New client interface (abstract sockets) to support initrd stage
 - IEEE 802.1Qaz support has been added
