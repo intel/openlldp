@@ -32,6 +32,44 @@
 
 #define LLDP_MOD_MAND	1
 
+struct tlv_info_chassis {
+	u8 sub;
+	union {
+		u8 ccomp[255];
+		u8 ifalias[255];
+		u8 pcomp[255];
+		u8 mac[6];
+		struct  {
+			u8 type;
+			union {
+				struct in_addr v4;
+				struct in6_addr v6;
+			} __attribute__ ((__packed__)) ip;
+		} __attribute__ ((__packed__)) na;
+		u8 ifname[255];
+		u8 local[255];
+	} __attribute__ ((__packed__)) id;
+} __attribute__ ((__packed__));
+
+struct tlv_info_portid {
+	u8 sub;
+	union {
+		u8 ifalias[255];
+		u8 pcomp[255];
+		u8 mac[6];
+		struct  {
+			u8 type;
+			union {
+				struct in_addr v4;
+				struct in6_addr v6;
+			} __attribute__ ((__packed__)) ip;
+		} __attribute__ ((__packed__)) na;
+		u8 ifname[255];
+		u8 circuit[255];
+		u8 local[255];
+	} __attribute__ ((__packed__)) id;
+} __attribute__ ((__packed__));
+
 struct mand_data {
 	char ifname[IFNAMSIZ];
 	enum agent_type agenttype;
@@ -41,6 +79,7 @@ struct mand_data {
 	struct unpacked_tlv *end;
 	u8 rebuild_chassis:1;
 	u8 rebuild_portid:1;
+	bool read_shm;
 	LIST_ENTRY(mand_data) entry;
 };
 
@@ -48,6 +87,7 @@ struct mand_user_data {
 	LIST_HEAD(mand_head, mand_data) head;
 };
 
+struct mand_data *mand_data(const char *, enum agent_type);
 struct lldp_module *mand_register(void);
 void mand_unregister(struct lldp_module *mod);
 struct packed_tlv *mand_gettlv(struct port *, struct lldp_agent *);

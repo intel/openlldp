@@ -29,9 +29,11 @@
 #include <syslog.h>
 #include <sys/un.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include "lldpad.h"
 #include "ctrl_iface.h"
 #include "lldp.h"
+#include "lldp_tlv.h"
 #include "lldp_mand.h"
 #include "lldp_mand_clif.h"
 #include "lldp/ports.h"
@@ -51,6 +53,10 @@ static int handle_get_arg(struct cmd *, char *, char *, char *, int);
 static int handle_set_arg(struct cmd *, char *, char *, char *, int);
 static int handle_test_arg(struct cmd *, char *, char *, char *, int);
 
+static int get_mand_subtype(struct cmd *, char *, char *, char *, int);
+static int set_mand_subtype(struct cmd *, char *, char *, char *, int);
+static int test_mand_subtype(struct cmd *, char *, char *, char *, int);
+
 static struct arg_handlers arg_handlers[] = {
 	{	.arg = ARG_ADMINSTATUS, .arg_class = LLDP_ARG,
 		.handle_get = get_arg_adminstatus,
@@ -59,11 +65,227 @@ static struct arg_handlers arg_handlers[] = {
 	{	.arg = ARG_TLVTXENABLE, .arg_class = TLV_ARG,
 		.handle_get = get_arg_tlvtxenable,
 		.handle_set = set_arg_tlvtxenable,
-		.handle_test = set_arg_tlvtxenable,
-	},
-		/* test same as set */
+		.handle_test = set_arg_tlvtxenable, },
+	{	.arg = ARG_MAND_SUBTYPE,
+		.arg_class = TLV_ARG,
+		.handle_get = get_mand_subtype,
+		.handle_set = set_mand_subtype,
+		.handle_test = test_mand_subtype, },
 	{	.arg = 0 }
 };
+
+static int get_mand_subtype(struct cmd *cmd, char *arg, char *argvalue,
+			    char *obuf, int obuf_len)
+{
+	struct mand_data *md;
+	int subtype;
+	char *string, arg_path[256];
+
+	if (cmd->cmd != cmd_gettlv)
+		return cmd_invalid;
+
+	md = mand_data(cmd->ifname, cmd->type);
+	if (!md)
+		return cmd_device_not_found;
+
+	switch (cmd->tlvid) {
+	case CHASSIS_ID_TLV:
+		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
+			 TLVID_PREFIX, TLVID_NOUI(CHASSIS_ID_TLV),
+			 ARG_MAND_SUBTYPE);
+		get_config_setting(cmd->ifname, cmd->type, arg_path,
+				   &subtype, CONFIG_TYPE_INT);
+
+		switch (subtype) {
+		case CHASSIS_ID_CHASSIS_COMPONENT:
+			string = "CHASSIS_ID_CHASSIS_COMPONENT";
+			break;
+		case CHASSIS_ID_INTERFACE_ALIAS:
+			string = "CHASSIS_ID_INTERFACE_ALIAS";
+			break;
+		case CHASSIS_ID_PORT_COMPONENT:
+			string = "CHASSIS_ID_PORT_COMPONENT";
+			break;
+		case CHASSIS_ID_MAC_ADDRESS:
+			string = "CHASSIS_ID_MAC_ADDRESS";
+			break;
+		case CHASSIS_ID_NETWORK_ADDRESS:
+			string = "CHASSIS_ID_NETWORK_ADDRESS";
+			break;
+		case CHASSIS_ID_INTERFACE_NAME:
+			string = "CHASSIS_ID_INTERFACE_NAME";
+			break;
+		case CHASSIS_ID_LOCALLY_ASSIGNED:
+			string = "CHASSIS_ID_LOCALLY_ASSIGNED";
+			break;
+		default:
+			string = "DEFAULT";
+			break;
+		}
+		break;
+	case PORT_ID_TLV:
+		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
+			 TLVID_PREFIX, TLVID_NOUI(PORT_ID_TLV),
+			 ARG_MAND_SUBTYPE);
+		get_config_setting(cmd->ifname, cmd->type, arg_path,
+				   &subtype, CONFIG_TYPE_INT);
+
+		switch (subtype) {
+		case PORT_ID_INTERFACE_ALIAS:
+			string = "PORT_ID_INTERFACE_ALIAS";
+			break;
+		case PORT_ID_PORT_COMPONENT:
+			string = "PORT_ID_PORT_COMPONENT";
+			break;
+		case PORT_ID_MAC_ADDRESS:
+			string = "PORT_ID_MAC_ADDRESS";
+			break;
+		case PORT_ID_NETWORK_ADDRESS:
+			string = "PORT_ID_NETWORK_ADDRESS";
+			break;
+		case PORT_ID_INTERFACE_NAME:
+			string = "PORT_ID_INTERFACE_NAME";
+			break;
+		case PORT_ID_AGENT_CIRCUIT_ID:
+			string = "PORT_ID_AGENT_CIRCUIT_ID";
+			break;
+		case PORT_ID_LOCALLY_ASSIGNED:
+			string = "PORT_ID_LOCALLY_ASSIGNED";
+			break;
+		default:
+			string = "DEFAULT";
+			break;
+		}
+		break;
+		break;
+	case INVALID_TLVID:
+		return cmd_invalid;
+	default:
+		return cmd_not_applicable;
+	}
+
+	snprintf(obuf, obuf_len, "%02x%s%04x%s",
+		 (unsigned int) strlen(arg), arg,
+		 (unsigned int)strlen(string), string);
+	return 0;
+}
+
+static int _set_mand_subtype(struct cmd *cmd, char *arg, char *argvalue,
+			     char *obuf, int obuf_len, bool test)
+{
+	struct mand_data *md;
+	int subtype;
+	char *end;
+	char arg_path[256];
+
+	if (cmd->cmd != cmd_settlv)
+		return cmd_invalid;
+
+	md = mand_data(cmd->ifname, cmd->type);
+	if (!md)
+		return cmd_device_not_found;
+
+	switch (cmd->tlvid) {
+	case CHASSIS_ID_TLV:
+		break;
+	case PORT_ID_TLV:
+		break;
+	case INVALID_TLVID:
+		return cmd_invalid;
+	default:
+		return cmd_not_applicable;
+	}
+
+	errno = 0;
+	subtype = strtoul(argvalue, &end, 0);
+
+	if (cmd->tlvid == CHASSIS_ID_TLV) {
+		if (errno || *end != '\0') {
+			if (strcasecmp(argvalue,
+				       "CHASSIS_ID_MAC_ADDRESS") == 0)
+				subtype = CHASSIS_ID_MAC_ADDRESS;
+			else if (strcasecmp(argvalue,
+					    "CHASSIS_ID_NETWORK_ADDRESS") == 0)
+				subtype = CHASSIS_ID_NETWORK_ADDRESS;
+			else if (strcasecmp(argvalue,
+					    "CHASSIS_ID_INTERFACE_NAME") == 0)
+				subtype = CHASSIS_ID_INTERFACE_NAME;
+			else {
+				snprintf(obuf, obuf_len,
+					 "subtype=[Unsupported subtype]");
+				return cmd_invalid;
+			}
+		} else {
+			switch (subtype) {
+			case CHASSIS_ID_MAC_ADDRESS:
+			case CHASSIS_ID_NETWORK_ADDRESS:
+			case CHASSIS_ID_INTERFACE_NAME:
+				break;
+			default:
+				snprintf(obuf, obuf_len,
+					 "subtype=[Unsupported subtype]");
+				return cmd_invalid;
+			}
+		}
+	} else {
+		if (errno || *end != '\0') {
+			if (strcasecmp(argvalue,
+				       "PORT_ID_MAC_ADDRESS") == 0)
+				subtype = PORT_ID_MAC_ADDRESS;
+			else if (strcasecmp(argvalue,
+					    "PORT_ID_NETWORK_ADDRESS") == 0)
+				subtype = PORT_ID_NETWORK_ADDRESS;
+			else if (strcasecmp(argvalue,
+					    "PORT_ID_INTERFACE_NAME") == 0)
+				subtype = PORT_ID_INTERFACE_NAME;
+			else {
+				snprintf(obuf, obuf_len,
+					 "subtype=[Unsupported subtype]");
+				return cmd_invalid;
+			}
+		} else {
+			switch (subtype) {
+			case PORT_ID_MAC_ADDRESS:
+			case PORT_ID_NETWORK_ADDRESS:
+			case PORT_ID_INTERFACE_NAME:
+				break;
+			default:
+				snprintf(obuf, obuf_len,
+					 "subtype=[Unsupported subtype]");
+				return cmd_invalid;
+			}
+		}
+	}
+
+	if (test)
+		return cmd_success;
+
+	md->read_shm = 1;
+	md->rebuild_chassis = 1;
+	md->rebuild_portid = 1;
+
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
+		 cmd->tlvid, arg);
+	snprintf(obuf, obuf_len, "%s=%s\n", arg, argvalue);
+	set_config_setting(cmd->ifname, cmd->type,
+			   arg_path, &subtype, CONFIG_TYPE_INT);
+
+	somethingChangedLocal(cmd->ifname, cmd->type);
+
+	return 0;
+}
+
+static int set_mand_subtype(struct cmd *cmd, char *arg, char *argvalue,
+			    char *obuf, int obuf_len)
+{
+	return _set_mand_subtype(cmd, arg, argvalue, obuf, obuf_len, false);
+}
+
+static int test_mand_subtype(struct cmd *cmd, char *arg, char *argvalue,
+			     char *obuf, int obuf_len)
+{
+	return _set_mand_subtype(cmd, arg, argvalue, obuf, obuf_len, true);
+}
 
 struct arg_handlers *mand_get_arg_handlers()
 {

@@ -27,6 +27,7 @@
 #ifndef _LLDP_MAND_CMDS_H
 #define _LLDP_MAND_CMDS_H
 
+#define ARG_MAND_SUBTYPE "subtype"
 
 struct arg_handlers *mand_get_arg_handlers();
 
