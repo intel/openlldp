@@ -442,7 +442,7 @@ int ctrl_iface_init(struct clif_data *clifd)
 	setsockopt(s, SOL_SOCKET, SO_PASSCRED,
 		   &feature_on, sizeof(feature_on));
 
-	LLDPAD_INFO("bound ctrl iface to %s", &addr.sun_path[1]);
+	LLDPAD_INFO("bound ctrl iface to %s\n", &addr.sun_path[1]);
 	clifd->ctrl_sock = s;
 
 	return 0;

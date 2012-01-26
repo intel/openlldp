@@ -77,26 +77,24 @@ static void evb_print_tlvinfo(struct tlv_info_evb *tie)
 
 static void evb_dump_tlv(struct unpacked_tlv *tlv)
 {
-	int i;
-	char *s, *t;
+	int i, left = 0;
+	char buffer[256];
 
-	s = t = malloc(256);
-
-	 if (!s) {
-		LLDPAD_ERR("%s(%i): unable to allocate string !\n", __func__, __LINE__);
-	 }
-
-	LLDPAD_DBG("%s:type %i, length %i, info ", __func__, tlv->type, tlv->length);
-
-	for (i=0; i < tlv->length; i++) {
+	for (i = 0; i < tlv->length; i++) {
 		int c;
-		c = sprintf(s, "%02x ", tlv->info[i]);
-		s += c;
+
+		c = snprintf(buffer + left,
+			     sizeof buffer - left,
+			     "%02x ", tlv->info[i]);
+
+		if (c < 0 || (c >= sizeof buffer - left))
+			break;
+		else
+			left += c;
 	}
 
-	LLDPAD_DBG("%s\n", t);
-
-	free(t);
+	LLDPAD_DBG("%s:type %i length %i info %s\n",
+		   __func__, tlv->type, tlv->length, buffer);
 }
 
 unsigned int evb_get_rte(char *ifname)
