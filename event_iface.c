@@ -1,7 +1,7 @@
 /*******************************************************************************
 
   LLDP Agent Daemon (LLDPAD) Software
-  Copyright(c) 2007-2011 Intel Corporation.
+  Copyright(c) 2007-2012 Intel Corporation.
 
   implementation of libvirt netlink interface
   (c) Copyright IBM Corp. 2010
