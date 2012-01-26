@@ -804,9 +804,14 @@ void set_med_devtype(const char *ifname, int agenttype, int devtype)
 
 int get_med_devtype(const char *ifname, int agenttype)
 {
-	int devtype;
+	int devtype, err;
 
-	get_config_tlvfield_int(ifname, agenttype, TLVID_MED(LLDP_MED_RESERVED),
-				"devtype", &devtype);
+	err = get_config_tlvfield_int(ifname, agenttype,
+				      TLVID_MED(LLDP_MED_RESERVED),
+				      "devtype", &devtype);
+
+	if (err)
+		devtype = 0;
+
 	return devtype;
 }
