@@ -1,9 +1,10 @@
 /*******************************************************************************
 
-  implementation of ECP according to 802.1Qbg
-  (c) Copyright IBM Corp. 2010
+  Implementation of EVB TLVs for LLDP
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens at linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -35,12 +36,12 @@
 #define ECP_SEQUENCE_NR_START		0x0
 
 #define MSECS				1000
-#define SECS				1000*MSECS
+#define SECS				(1000 * MSECS)
 
-#define ECP_ACK_TIMER_DEFAULT		500*MSECS /* 500 ms */
-#define ECP_LOCALCHANGE_TIMEOUT		1*MSECS /* 1 ms */
+#define ECP_ACK_TIMER_DEFAULT		(500 * MSECS)	/* 500 ms */
+#define ECP_LOCALCHANGE_TIMEOUT		(1 * MSECS)	/* 1 ms */
 
-#define ECP_ACK_TIMER_STOPPED		-1
+#define ECP_ACK_TIMER_STOPPED		(-1)
 
 typedef enum {
 	ECP_REQUEST = 0,
@@ -92,12 +93,12 @@ void ecp_print_frameout(struct vdp_data *);
 u8 ecp_txFrame(struct vdp_data *);
 void ecp_tx_run_sm(struct vdp_data *);
 bool ecp_ackTimer_expired(struct vdp_data *);
-void ecp_rx_change_state(struct vdp_data *, u8 newstate);
-int ecp_stop_ack_timer(struct vdp_data *vd);
-int ecp_start_ack_timer(struct vdp_data *vd);
+void ecp_rx_change_state(struct vdp_data *, u8);
+int ecp_stop_ack_timer(struct vdp_data *);
+int ecp_start_ack_timer(struct vdp_data *);
 void ecp_tx_stop_ackTimer(struct vdp_data *);
-int ecp_start_localchange_timer(struct vdp_data *vd);
-int ecp_init(char *ifname);
-int ecp_deinit(char *ifname);
+int ecp_start_localchange_timer(struct vdp_data *);
+int ecp_init(char *);
+int ecp_deinit(char *);
 
 #endif /* _ECP_H */

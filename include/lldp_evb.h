@@ -1,9 +1,10 @@
 /*******************************************************************************
 
   Implementation of EVB TLVs for LLDP
-  (c) Copyright IBM Corp. 2010
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens at linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -58,9 +59,9 @@ struct tlv_info_evb {
 struct evb_data {
 	char ifname[IFNAMSIZ];
 	enum agent_type agenttype;
-	struct unpacked_tlv *evb;
-	struct tlv_info_evb *tie;
-	struct tlv_info_evb *last;
+	struct unpacked_tlv *evb;	/* EVB settings to be sent */
+	struct tlv_info_evb *tie;	/* currently supported */
+	struct tlv_info_evb *last;	/* last received */
 	struct tlv_info_evb *policy;	/* local policy */
 	LIST_ENTRY(evb_data) entry;
 };
@@ -70,12 +71,12 @@ struct evb_user_data {
 };
 
 struct lldp_module *evb_register(void);
-void evb_unregister(struct lldp_module *mod);
+void evb_unregister(struct lldp_module *);
 struct packed_tlv *evb_gettlv(struct port *, struct lldp_agent *);
 void evb_ifdown(char *, struct lldp_agent *);
 void evb_ifup(char *, struct lldp_agent *);
-struct evb_data *evb_data(char *ifname, enum agent_type);
+struct evb_data *evb_data(char *, enum agent_type);
 
-int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie);
+int evb_check_and_fill(struct evb_data *, struct tlv_info_evb *);
 
 #endif /* _LLDP_EVB_H */

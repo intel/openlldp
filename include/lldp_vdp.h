@@ -1,9 +1,10 @@
 /*******************************************************************************
 
-  implementation of according to IEEE 802.1Qbg
-  (c) Copyright IBM Corp. 2010
+  Implementation of EVB TLVs for LLDP
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens at linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -54,12 +55,12 @@ extern const char * const vsi_states[];
 #define VDP_FILTER_INFO_FORMAT_GROUPVID		0x3
 #define VDP_FILTER_INFO_FORMAT_GROUPMACVID	0x4
 
-#define VDP_TIMER_GRANULARITY		100*MSECS /* 100 ms */
-#define VDP_KEEPALIVE_TIMER_DEFAULT	10*SECS  /* 10s */
-#define VDP_ACK_TIMER_DEFAULT		(2*ECP_ACK_TIMER_DEFAULT*ECP_MAX_RETRIES)
-#define VDP_KEEPALIVE_TIMER_STOPPED	-1
-#define VDP_ACK_TIMER_STOPPED		-1
-#define VDP_LOCALCHANGE_TIMEOUT		1*MSECS /* 1 ms */
+#define VDP_TIMER_GRANULARITY		(100 * MSECS)	/* 100 ms */
+#define VDP_KEEPALIVE_TIMER_DEFAULT	(10 * SECS)	/* 10s */
+#define VDP_ACK_TIMER_DEFAULT		(2 * ECP_ACK_TIMER_DEFAULT * ECP_MAX_RETRIES)
+#define VDP_KEEPALIVE_TIMER_STOPPED	(-1)
+#define VDP_ACK_TIMER_STOPPED		(-1)
+#define VDP_LOCALCHANGE_TIMEOUT		(1 * MSECS)	/* 1 ms */
 
 #define VDP_ROLE_STATION		0
 #define VDP_ROLE_BRIDGE			1
@@ -137,23 +138,23 @@ struct vdp_user_data {
 };
 
 struct lldp_module *vdp_register(void);
-void vdp_unregister(struct lldp_module *mod);
-struct vdp_data *vdp_data(char *ifname);
-struct packed_tlv *vdp_gettlv(struct vdp_data *vd, struct vsi_profile *profile);
-void vdp_vsi_sm_station(struct vsi_profile *profile);
-struct vsi_profile *vdp_add_profile(struct vsi_profile *profile);
+void vdp_unregister(struct lldp_module *);
+struct vdp_data *vdp_data(char *);
+struct packed_tlv *vdp_gettlv(struct vdp_data *, struct vsi_profile *);
+void vdp_vsi_sm_station(struct vsi_profile *);
+struct vsi_profile *vdp_add_profile(struct vsi_profile *);
 int vdp_remove_profile(struct vsi_profile *);
-void vdp_somethingChangedLocal(struct vsi_profile *profile, bool mode);
+void vdp_somethingChangedLocal(struct vsi_profile *, bool);
 
-void vdp_ack_profiles(struct vdp_data *vd, int seqnr);
-int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode);
-int vdp_vsis_pending(struct vdp_data *vd);
-int vdp_vsis(char *ifname);
+void vdp_ack_profiles(struct vdp_data *, int);
+int vdp_indicate(struct vdp_data *, struct unpacked_tlv *, int);
+int vdp_vsis_pending(struct vdp_data *);
+int vdp_vsis(char *);
 const char *vdp_response2str(int);
 void vdp_print_profile(struct vsi_profile *);
-void ecp_somethingChangedLocal(struct vdp_data *vd, bool flag);
-void ecp_rx_send_ack_frame(struct vdp_data *vd);
-int instance2str(const u8 *p, char *dst, size_t size);
+void ecp_somethingChangedLocal(struct vdp_data *, bool);
+void ecp_rx_send_ack_frame(struct vdp_data *);
+int instance2str(const u8 *, char *, size_t);
 
 #define MAC_ADDR_STRLEN		18
 #define INSTANCE_STRLEN		36
