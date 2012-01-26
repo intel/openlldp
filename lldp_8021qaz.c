@@ -449,12 +449,6 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	if (tlvs)
 		goto initialized;
 
-	if (!init_cfg()) {
-		LLDPAD_ERR("%s: 802.1Qaz: fatal init_cfg() failure\n",
-			   __func__);
-		return;
-	}
-
 	/* if there is no persistent adminStatus setting then set to enabledRx
 	 * but do not persist that as a setting.
 	 */
