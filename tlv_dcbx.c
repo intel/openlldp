@@ -682,7 +682,12 @@ struct unpacked_tlv *bld_dcbx2_app_tlv(struct dcbx_tlvs *dcbx,
 	if (result != dcb_success) {
 		free(tlv);
 		return NULL;
+	} else if (!(app_cfg.protocol.Advertise)) {
+			free(tlv);
+			*success = true;
+			return NULL;
 	}
+
 	app_info = (struct dcbx2_app_info *)malloc(DCBX2_APP_LEN);
 	tlv->length = DCBX2_APP_LEN;
 	if (app_info) {
