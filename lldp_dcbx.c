@@ -117,6 +117,7 @@ static int dcbx_check_operstate(struct port *port, struct lldp_agent *agent)
 	return 0;
 
 err_out:
+	set_operstate(port->ifname, IF_OPER_UP);
 	return -1;
 }
 
