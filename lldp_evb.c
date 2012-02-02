@@ -1,9 +1,10 @@
 /*******************************************************************************
 
-  implementation of EVB TLVs for LLDP
-  (c) Copyright IBM Corp. 2010
+  Implementation of EVB TLVs for LLDP
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens at linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -387,7 +388,7 @@ static int evb_init_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
 		return ENOMEM;
 	}
 
-	ed->last->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD | \
+	ed->last->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD |
 			  LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
 
 	return 0;
@@ -535,6 +536,7 @@ void evb_ifdown(char *ifname, struct lldp_agent *agent)
 
 	free(ed->policy);
 	free(ed->tie);
+	free(ed->last);
 	LIST_REMOVE(ed, entry);
 	evb_free_tlv(ed);
 	free(ed);
