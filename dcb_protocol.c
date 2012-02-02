@@ -1531,7 +1531,7 @@ void mark_pfc_sent(char *device_name)
 		it->second->protocol.tlv_sent = true;
 }
 
-void mark_app_sent(char *device_name, u32 subtype)
+void mark_app_sent(char *device_name)
 {
 	app_it it;
 	int i;

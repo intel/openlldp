@@ -80,7 +80,7 @@ bool add_pfc_defaults(void);
 bool add_app_defaults(u32 subtype);
 void mark_pg_sent(char *device_name);
 void mark_pfc_sent(char *device_name);
-void mark_app_sent(char *device_name, u32 subtype);
+void mark_app_sent(char *device_name);
 bool add_llink_defaults(u32 subtype);
 void mark_llink_sent(char *device_name, u32 subtype);
 

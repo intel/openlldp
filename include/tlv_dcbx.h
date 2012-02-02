@@ -246,7 +246,7 @@ bool   unpack_dcbx2_tlvs(struct port *, struct lldp_agent *, struct unpacked_tlv
 bool   process_dcbx_ctrl_tlv(struct port *, struct lldp_agent *);
 bool   process_dcbx_pg_tlv(struct port *, struct lldp_agent *);
 bool   process_dcbx_pfc_tlv(struct port *, struct lldp_agent *);
-bool   process_dcbx_app_tlv(struct port *, struct lldp_agent *, int);
+bool   process_dcbx_app_tlv(struct port *, struct lldp_agent *);
 bool   process_dcbx_llink_tlv(struct port *, struct lldp_agent *);
 
 #ifdef __cplusplus

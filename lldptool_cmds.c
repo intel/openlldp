@@ -96,8 +96,8 @@ void get_arg_value(char *str, char **arg, char **argval)
 	*arg = str;
 }
 
-int cli_cmd_getstats(struct clif *clif, int argc, char *argv[],
-			struct cmd *cmd, int raw)
+int cli_cmd_getstats(struct clif *clif, int argc, UNUSED char *argv[],
+		     struct cmd *cmd, int raw)
 {
 	char **args;
 	char **argvals;
@@ -411,11 +411,9 @@ static int print_arg_value(char *ibuf)
 	return ioff;
 }
 
-static void print_lldp(struct cmd *cmd, char *ibuf)
+static void print_lldp(char *ibuf)
 {
-	int ioff = 0;
-
-	ioff = print_arg_value(ibuf);
+	print_arg_value(ibuf);
 }
 
 static void print_tlvs(struct cmd *cmd, char *ibuf)
@@ -494,7 +492,7 @@ static void print_tlvs(struct cmd *cmd, char *ibuf)
 	}
 }
 
-static void print_port_stats(struct cmd *cmd, char *ibuf)
+static void print_port_stats(char *ibuf)
 {
 	static char *stat_names[] = {
 		"Total Frames Transmitted       ",
@@ -550,13 +548,13 @@ void print_cmd_response(char *ibuf, int status)
 
 	switch (cmd.cmd) {
 	case cmd_getstats:
-		print_port_stats(&cmd, ibuf+ioff);
+		print_port_stats(ibuf + ioff);
 		break;
 	case cmd_gettlv:
 		print_tlvs(&cmd, ibuf+ioff);
 		break;
 	case cmd_get_lldp:
-		print_lldp(&cmd, ibuf+ioff);
+		print_lldp(ibuf + ioff);
 		break;
 	case cmd_settlv:
 	case cmd_set_lldp:

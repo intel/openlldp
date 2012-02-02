@@ -318,7 +318,7 @@ void print_link_agg(u16 len, char *info)
 	printf("\tAggregated Port ID: %d\n", agg_portid);
 }
 
-void print_mtu(u16 len, char *info)
+void print_mtu(UNUSED u16 len, char *info)
 {
 	u16 mtu;
 

@@ -159,7 +159,6 @@ void mibUpdateObjects(struct port *, struct lldp_agent *);
 void run_rx_sm(struct port *, struct lldp_agent *);
 bool set_rx_state(struct port *, struct lldp_agent *);
 void rx_change_state(struct lldp_agent *, u8 );
-void process_wait_port_operational(struct port *);
 void process_delete_aged_info(struct port *, struct lldp_agent *);
 void process_rx_lldp_initialize(struct port *, struct lldp_agent *);
 void process_wait_for_frame(struct lldp_agent *);

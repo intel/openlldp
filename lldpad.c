@@ -84,7 +84,7 @@ static const char *lldpad_version =
 "\nPortions used and/or modified from:  hostapd v 0.5.7\n"
 "Copyright (c) 2004-2007, Jouni Malinen <j@w1.fi> and contributors";
 
-void init_modules(char *path)
+static void init_modules(void)
 {
 	struct lldp_module *module;
 	struct lldp_module *premod = NULL;
@@ -160,7 +160,8 @@ static void remove_all_adapters()
 	return;
 }
 
-void lldpad_reconfig(int sig, void *eloop_ctx, void *signal_ctx)
+void
+lldpad_reconfig(UNUSED int sig, UNUSED void *eloop_ctx, UNUSED void *signal_ctx)
 {
 	LLDPAD_WARN("lldpad: SIGHUP received reinit...");
 	/* Send LLDP SHUTDOWN frames and deinit modules */
@@ -172,7 +173,7 @@ void lldpad_reconfig(int sig, void *eloop_ctx, void *signal_ctx)
 
 	/* Reinit config file and modules */
 	init_cfg();
-	init_modules("");
+	init_modules();
 	init_ports();
 
 	return;
@@ -391,7 +392,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	init_modules("");
+	init_modules();
 
 	eloop_register_signal_terminate(eloop_terminate, NULL);
 	eloop_register_signal_reconfig(lldpad_reconfig, NULL); 

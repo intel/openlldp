@@ -293,7 +293,7 @@ struct arg_handlers *mand_get_arg_handlers()
 }
 
 
-int get_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue,
+int get_arg_adminstatus(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 			char *obuf, int obuf_len)
 {
 	int value;
@@ -332,7 +332,7 @@ int get_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
+int get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 			char *obuf, int obuf_len)
 {
 	int value;
@@ -365,7 +365,7 @@ int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-int handle_get_args(struct cmd *cmd, char *arg, char *argvalue,
+int handle_get_args(struct cmd *cmd, UNUSED char *arg, char *argvalue,
 		   char *obuf, int obuf_len)
 {
 	struct lldp_module *np;
@@ -431,7 +431,7 @@ int handle_get_arg(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 int _set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue,
-			 char *obuf, int obuf_len, bool test)
+			 char *obuf, UNUSED int obuf_len, bool test)
 {
 	int value;
 
@@ -475,8 +475,9 @@ int set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue,
 	return _set_arg_adminstatus(cmd, arg, argvalue, obuf, obuf_len, false);
 }
 
-int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			char *obuf, int obuf_len)
+int
+set_arg_tlvtxenable(struct cmd *cmd, UNUSED char *arg, UNUSED char *argvalue,
+		    UNUSED char *obuf, UNUSED int obuf_len)
 {
 	if (cmd->cmd != cmd_settlv)
 		return cmd_bad_params;
@@ -643,9 +644,9 @@ int get_agent_stats(struct cmd *cmd, char *rbuf, int rlen)
 	return cmd_success;
 }
 
-int mand_clif_cmd(void  *data,
-		  struct sockaddr_un *from,
-		  socklen_t fromlen,
+int mand_clif_cmd(UNUSED void  *data,
+		  UNUSED struct sockaddr_un *from,
+		  UNUSED socklen_t fromlen,
 		  char *ibuf, int ilen,
 		  char *rbuf, int rlen)
 {

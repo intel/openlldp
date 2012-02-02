@@ -49,7 +49,7 @@
  * to not having to call the ecp code from the vdp state machine. Instead, we
  * return to the event loop, giving other code a chance to do work.
  */
-void ecp_localchange_handler(void *eloop_data, void *user_ctx)
+void ecp_localchange_handler(UNUSED void *eloop_data, void *user_ctx)
 {
 	struct vdp_data *vd;
 
@@ -104,7 +104,7 @@ static int ecp_stop_localchange_timer(struct vdp_data *vd)
  *
  * called when the ECP timer has expired. Calls the ECP station state machine.
  */
-void ecp_ack_timeout_handler(void *eloop_data, void *user_ctx)
+void ecp_ack_timeout_handler(UNUSED void *eloop_data, void *user_ctx)
 {
 	struct vdp_data *vd;
 

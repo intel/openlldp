@@ -183,7 +183,7 @@ struct lldp_module *(*register_tlv_table[])(void) = {
 	NULL,
 };
 
-void init_modules(char *path)
+static void init_modules(void)
 {
 	struct lldp_module *module;
 	struct lldp_module *premod = NULL;
@@ -294,7 +294,7 @@ static void cli_close_connection(void)
 }
 
 
-static void cli_msg_cb(char *msg, size_t len)
+static void cli_msg_cb(char *msg, UNUSED size_t len)
 {
 	parse_print_message(msg, SHOW_OUTPUT | show_raw);
 }
@@ -342,21 +342,22 @@ inline int clif_command(struct clif *clif, char *cmd, int raw)
 	return _clif_command(clif, cmd, SHOW_OUTPUT | raw);
 }
 
-
-static int cli_cmd_ping(struct clif *clif, int argc, char *argv[],
-			struct cmd *command, int raw)
+static int cli_cmd_ping(struct clif *clif, UNUSED int argc, UNUSED char *argv[],
+			UNUSED struct cmd *command, int raw)
 {
 	return clif_command(clif, "P", raw);
 }
 
-static int cli_cmd_nop(struct clif *clif, int argc, char *argv[],
-			struct cmd *command, int raw)
+static int
+cli_cmd_nop(UNUSED struct clif *clif, UNUSED int argc, UNUSED char *argv[],
+	    UNUSED struct cmd *command, UNUSED int raw)
 {
 	return 0;
 }
 
-static int cli_cmd_help(struct clif *clif, int argc, char *argv[],
-			struct cmd *command, int raw)
+static int
+cli_cmd_help(UNUSED struct clif *clif, UNUSED int argc, UNUSED char *argv[],
+	     UNUSED struct cmd *command, UNUSED int raw)
 {
 	struct lldp_module *np;
 
@@ -369,23 +370,25 @@ static int cli_cmd_help(struct clif *clif, int argc, char *argv[],
 	return 0;
 }
 
-
-static int cli_cmd_version(struct clif *clif, int argc, char *argv[],
-			   struct cmd *command, int raw)
+static int
+cli_cmd_version(UNUSED struct clif *clif, UNUSED int argc, UNUSED char *argv[],
+		UNUSED struct cmd *command, UNUSED int raw)
 {
 	printf("%s\n", cli_version);
 	return 0;
 }
 
-static int cli_cmd_license(struct clif *clif, int argc, char *argv[],
-			   struct cmd *command, int raw)
+static int
+cli_cmd_license(UNUSED struct clif *clif, UNUSED int argc, UNUSED char *argv[],
+		UNUSED struct cmd *command, UNUSED int raw)
 {
 	printf("%s\n", cli_full_license);
 	return 0;
 }
 
-static int cli_cmd_quit(struct clif *clif, int argc, char *argv[],
-			struct cmd *command, int raw)
+static int
+cli_cmd_quit(UNUSED struct clif *clif, UNUSED int argc, UNUSED char *argv[],
+	     UNUSED struct cmd *command, UNUSED int raw)
 {
 	cli_quit = 1;
 	return 0;
@@ -692,15 +695,13 @@ static void cli_interactive()
 	} while (!cli_quit);
 }
 
-
-static void cli_terminate(int sig)
+static void cli_terminate(UNUSED int sig)
 {
 	cli_close_connection();
 	exit(0);
 }
 
-
-static void cli_alarm(int sig)
+static void cli_alarm(UNUSED int sig)
 {
 	if (clif_conn && _clif_command(clif_conn, "P", SHOW_NO_OUTPUT)) {
 		printf("Connection to lldpad lost - trying to reconnect\n");
@@ -758,7 +759,7 @@ int main(int argc, char *argv[])
 		continue;
 	}
 
-	init_modules("");
+	init_modules();
 
 	signal(SIGINT, cli_terminate);
 	signal(SIGTERM, cli_terminate);

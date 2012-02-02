@@ -297,7 +297,7 @@ static bool vdp_ackTimer_expired(struct vsi_profile *profile)
  * to not having to call the vdp code from the ecp state machine. Instead, we
  * return to the event loop, giving other code a chance to do work.
  */
-void vdp_localchange_handler(void *eloop_data, void *user_ctx)
+void vdp_localchange_handler(UNUSED void *eloop_data, void *user_ctx)
 {
 	struct vsi_profile *p;
 
@@ -338,7 +338,7 @@ int vdp_start_localchange_timer(struct vsi_profile *p)
  * called when the VDP ack timer for a profile has expired.
  * Calls the VDP station state machine for the profile.
  */
-void vdp_ack_timeout_handler(void *eloop_data, void *user_ctx)
+void vdp_ack_timeout_handler(UNUSED void *eloop_data, void *user_ctx)
 {
 	struct vsi_profile *p = (struct vsi_profile *) user_ctx;
 
@@ -404,7 +404,7 @@ static int vdp_stop_ackTimer(struct vsi_profile *profile)
  * called when the VDP keepalive timer for a profile has expired.
  * Calls the VDP station state machine for the profile.
  */
-void vdp_keepalive_timeout_handler(void *eloop_data, void *user_ctx)
+void vdp_keepalive_timeout_handler(UNUSED void *eloop_data, void *user_ctx)
 {
 	struct vsi_profile *p = (struct vsi_profile *) user_ctx;
 
@@ -927,14 +927,13 @@ out_err:
  * vdp_indicate - receive VSI TLVs from ECP
  * @port: the port on which the tlv was received
  * @tlv: the unpacked tlv to receive
- * @ecp_mode: the mode under which the tlv was received (ACK or REQ)
  *
  * Returns 0 on success
  *
  * receives a vsi tlv and creates a profile. Take appropriate action
  * depending on the role of the (receive) port
  */
-int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv, int ecp_mode)
+int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 {
 	struct tlv_info_vdp *vdp;
 	struct vsi_profile *p, *profile;
@@ -1411,7 +1410,7 @@ int vdp_remove_profile(struct vsi_profile *profile)
  * interface function to lldpad. tears down vdp specific structures if
  * interface "ifname" goes down.
  */
-void vdp_ifdown(char *ifname, struct lldp_agent *agent)
+void vdp_ifdown(char *ifname, UNUSED struct lldp_agent *agent)
 {
 	struct vdp_data *vd;
 	struct vsi_profile *p;

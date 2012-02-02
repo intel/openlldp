@@ -291,7 +291,7 @@ void print_port_id(u16 len, char *info)
 	}
 }
 
-void print_ttl(u16 len, char *info)
+void print_ttl(UNUSED u16 len, char *info)
 {
 	u16 ttl;
 

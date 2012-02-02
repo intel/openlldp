@@ -127,8 +127,9 @@ static struct arg_handlers arg_handlers[] = {
 	{ .arg = 0 }
 };
 
-static int get_arg_dcbx_mode(struct cmd *cmd, char *args,
-			 char *arg_value, char *obuf, int obuf_len)
+static int
+get_arg_dcbx_mode(struct cmd *cmd, char *args, UNUSED char *arg_value,
+		  char *obuf, int obuf_len)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 	char buf[250] = "";
@@ -171,8 +172,8 @@ static int get_arg_dcbx_mode(struct cmd *cmd, char *args,
 	return cmd_success;
 }
 
-static int set_arg_dcbx_mode(struct cmd *cmd, char *args,
-			 char *arg_value, char *obuf, int obuf_len)
+static int set_arg_dcbx_mode(struct cmd *cmd, UNUSED char *args,
+			     char *arg_value, char *obuf, int obuf_len)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 
@@ -201,14 +202,16 @@ static int set_arg_dcbx_mode(struct cmd *cmd, char *args,
 	return cmd_success;
 }
 
-static int test_arg_dcbx_mode(struct cmd *cmd, char *args,
-			 char *arg_value, char *obuf, int obuf_len)
+static int
+test_arg_dcbx_mode(UNUSED struct cmd *cmd, UNUSED char *args,
+		   UNUSED char *arg_value, UNUSED char *obuf,
+		   UNUSED int obuf_len)
 {
 	return cmd_success;
 }
 
 static int get_arg_willing(struct cmd *cmd, char *args,
-			   char *arg_value, char *obuf, int obuf_len)
+			   UNUSED char *arg_value, char *obuf, int obuf_len)
 {
 	int willing;
 	struct ieee8021qaz_tlvs *tlvs;
@@ -325,7 +328,7 @@ static int test_arg_willing(struct cmd *cmd, char *args,
 }
 
 static int get_arg_numtc(struct cmd *cmd, char *args,
-			 char *arg_value, char *obuf, int obuf_len)
+			 UNUSED char *arg_value, char *obuf, int obuf_len)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 
@@ -353,14 +356,16 @@ static int get_arg_numtc(struct cmd *cmd, char *args,
 	return cmd_success;
 }
 
-static int test_arg_numtc(struct cmd *cmd, char *args,
-			 char *arg_value, char *obuf, int obuf_len)
+static int test_arg_numtc(UNUSED struct cmd *cmd, UNUSED char *args,
+			  UNUSED char *arg_value,
+			  UNUSED char *obuf, UNUSED int obuf_len)
 {
 	return cmd_invalid;
 }
 
 static int get_arg_up2tc(struct cmd *cmd, char *args,
-			 char *arg_value, char *obuf, int obuf_len)
+			 UNUSED char *arg_value,
+			 char *obuf, UNUSED int obuf_len)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 	char buf[250] = "";
@@ -514,7 +519,7 @@ static int test_arg_up2tc(struct cmd *cmd, char *args,
 }
 
 static int get_arg_tcbw(struct cmd *cmd, char *args,
-			char *arg_value, char *obuf, int obuf_len)
+			UNUSED char *arg_value, char *obuf, UNUSED int obuf_len)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 	char buf[250] = "";
@@ -641,8 +646,8 @@ static int test_arg_tcbw(struct cmd *cmd, char *args,
 	return _set_arg_tcbw(cmd, args, arg_value, obuf, obuf_len, true);
 }
 
-static int get_arg_tsa(struct cmd *cmd, char *args, char *arg_value,
-		       char *obuf, int obuf_len)
+static int get_arg_tsa(struct cmd *cmd, char *args, UNUSED char *arg_value,
+		       char *obuf, UNUSED int obuf_len)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 	char buf[250] = "";
@@ -836,8 +841,8 @@ static int test_arg_tsa(struct cmd *cmd, char *args, char *arg_value,
 	return _set_arg_tsa(cmd, args, arg_value, obuf, obuf_len, true);
 }
 
-static int get_arg_enabled(struct cmd *cmd, char *args,
-			   char *arg_value, char *obuf, int obuf_len)
+static int get_arg_enabled(struct cmd *cmd, char *args, UNUSED char *arg_value,
+			   char *obuf, UNUSED int obuf_len)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 	char buf[20] = "";
@@ -979,7 +984,7 @@ static int test_arg_enabled(struct cmd *cmd, char *args,
 }
 
 static int get_arg_delay(struct cmd *cmd, char *args,
-			 char *arg_value, char *obuf, int obuf_len)
+			 UNUSED char *arg_value, char *obuf, int obuf_len)
 {
 	struct ieee8021qaz_tlvs *tlvs;
 
@@ -1059,7 +1064,7 @@ static int test_arg_delay(struct cmd *cmd, char *args,
 	return _set_arg_delay(cmd, args, arg_value, obuf, obuf_len, true);
 }
 
-static int get_arg_app(struct cmd *cmd, char *args, char *arg_value,
+static int get_arg_app(struct cmd *cmd, char *args, UNUSED char *arg_value,
 		       char *obuf, int obuf_len)
 {
 	struct ieee8021qaz_tlvs *tlvs;
@@ -1320,8 +1325,9 @@ static int test_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	return _set_arg_app(cmd, args, arg_value, obuf, obuf_len, true);
 }
 
-static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+static int
+get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
+		    char *obuf, int obuf_len)
 {
 	int value;
 	char *s;

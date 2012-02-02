@@ -67,8 +67,9 @@ static struct arg_handlers arg_handlers[] = {
 	{	.arg = 0 }
 };
 
-static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+static int
+get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
+		    char *obuf, int obuf_len)
 {
 	int value;
 	char *s;
@@ -107,7 +108,7 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len, bool test)
+			       char *obuf, bool test)
 {
 	int value;
 	char arg_path[256];
@@ -153,15 +154,15 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+			       char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, false);
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, false);
 }
 
 static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+			       char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, true);
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, true);
 }
 
 struct arg_handlers *basman_get_arg_handlers()
@@ -169,7 +170,7 @@ struct arg_handlers *basman_get_arg_handlers()
 	return &arg_handlers[0];
 }
 
-int get_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue,
+int get_arg_ipv4(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		 char *obuf, int obuf_len)
 {
 	const char *p = NULL;
@@ -193,7 +194,7 @@ int get_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-int get_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue,
+int get_arg_ipv6(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		 char *obuf, int obuf_len)
 {
 	const char *p = NULL;
@@ -219,7 +220,7 @@ int get_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 int _set_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue,
-		  char *obuf, int obuf_len, bool test)
+		  char *obuf, bool test)
 {
 	struct in_addr ipv4addr;
 	char arg_path[256];
@@ -250,19 +251,19 @@ int _set_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 int set_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue,
-		 char *obuf, int obuf_len)
+		 char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_ipv4(cmd, arg, argvalue, obuf, obuf_len, false);
+	return _set_arg_ipv4(cmd, arg, argvalue, obuf, false);
 }
 
 int test_arg_ipv4(struct cmd *cmd, char *arg, char *argvalue,
-		  char *obuf, int obuf_len)
+		  char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_ipv4(cmd, arg, argvalue, obuf, obuf_len, true);
+	return _set_arg_ipv4(cmd, arg, argvalue, obuf, true);
 }
 
 int _set_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue,
-		  char *obuf, int obuf_len, bool test)
+		  char *obuf, bool test)
 {
 	struct in6_addr ipv6addr;
 	char arg_path[256];
@@ -292,13 +293,13 @@ int _set_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 int set_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue,
-		 char *obuf, int obuf_len)
+		 char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_ipv6(cmd, arg, argvalue, obuf, obuf_len, false);
+	return _set_arg_ipv6(cmd, arg, argvalue, obuf, false);
 }
 
 int test_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue,
-		  char *obuf, int obuf_len)
+		  char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_ipv6(cmd, arg, argvalue, obuf, obuf_len, false);
+	return _set_arg_ipv6(cmd, arg, argvalue, obuf, false);
 }

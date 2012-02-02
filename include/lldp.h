@@ -35,6 +35,8 @@ typedef __u16 u16;
 typedef __u32 u32;
 typedef __u64 u64;
 
+#define UNUSED __attribute__((__unused__))
+
 #define MIN(x,y) \
 	({	\
 		typeof (x) __x = (x);	\

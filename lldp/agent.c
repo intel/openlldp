@@ -154,7 +154,7 @@ int lldp_add_agent(const char *ifname, enum agent_type type)
 	return 0;
 }
 
-static void timer(void *eloop_data, void *user_ctx)
+static void timer(UNUSED void *eloop_data, UNUSED void *user_ctx)
 {
 	struct lldp_module *n;
 	struct lldp_agent *agent;

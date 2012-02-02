@@ -53,8 +53,9 @@ static struct arg_handlers arg_handlers[] = {
 	{	.arg = 0 }
 };
 
-static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+static int
+get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
+		    char *obuf, int obuf_len)
 {
 	int value;
 	char *s;
@@ -93,7 +94,7 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-				char *obuf, int obuf_len, bool test)
+				char *obuf, bool test)
 {
 	int value;
 	char arg_path[256];
@@ -137,15 +138,15 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+			       char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, false);
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, false);
 }
 
 static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+			       char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, true);
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, true);
 }
 
 struct arg_handlers *ieee8023_get_arg_handlers()

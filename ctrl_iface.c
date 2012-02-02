@@ -125,19 +125,19 @@ int clif_iface_module(struct clif_data *clifd,
 }
 
 
-int clif_iface_cmd_unknown(struct clif_data *clifd,
-			   struct sockaddr_un *from,
-			   socklen_t fromlen,
-			   char *ibuf, int ilen,
-			   char *rbuf, int rlen)
+int clif_iface_cmd_unknown(UNUSED struct clif_data *clifd,
+			   UNUSED struct sockaddr_un *from,
+			   UNUSED socklen_t fromlen,
+			   UNUSED char *ibuf, UNUSED int ilen,
+			   UNUSED char *rbuf, UNUSED int rlen)
 {
 	return cmd_invalid;
 }
 
-int clif_iface_ping(struct clif_data *clifd,
-		    struct sockaddr_un *from,
-		    socklen_t fromlen,
-		    char *ibuf, int ilen,
+int clif_iface_ping(UNUSED struct clif_data *clifd,
+		    UNUSED struct sockaddr_un *from,
+		    UNUSED socklen_t fromlen,
+		    UNUSED char *ibuf, UNUSED int ilen,
 		    char *rbuf, int rlen)
 {
 	snprintf(rbuf, rlen, "%cPONG", PING_CMD);
@@ -148,7 +148,7 @@ int clif_iface_ping(struct clif_data *clifd,
 int clif_iface_attach(struct clif_data *clifd,
 		      struct sockaddr_un *from,
 		      socklen_t fromlen,
-		      char *ibuf, int ilen,
+		      char *ibuf, UNUSED int ilen,
 		      char *rbuf, int rlen)
 {
 	struct ctrl_dst *dst;
@@ -258,7 +258,7 @@ static int detach_clif_monitor(struct clif_data *clifd,
 int clif_iface_detach(struct clif_data *clifd,
 				     struct sockaddr_un *from,
 				     socklen_t fromlen,
-				     char *ibuf, int ilen,
+				     UNUSED char *ibuf, UNUSED int ilen,
 				     char *rbuf, int rlen)
 {
 	snprintf(rbuf, rlen, "%c", DETACH_CMD);
@@ -268,7 +268,7 @@ int clif_iface_detach(struct clif_data *clifd,
 int clif_iface_level(struct clif_data *clifd,
 				    struct sockaddr_un *from,
 				    socklen_t fromlen,
-				    char *ibuf, int ilen,
+				    char *ibuf, UNUSED int ilen,
 				    char *rbuf, int rlen)
 {
 	struct ctrl_dst *dst;
@@ -332,7 +332,7 @@ static void process_clif_cmd(  struct clif_data *cd,
 
 
 static void ctrl_iface_receive(int sock, void *eloop_ctx,
-				       void *sock_ctx)
+			       UNUSED void *sock_ctx)
 {
 	struct clif_data *clifd = eloop_ctx;
 	char buf[MAX_CLIF_MSGBUF];

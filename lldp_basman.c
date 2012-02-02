@@ -434,7 +434,7 @@ out_set:
 	set_config_tlvfield_str(bd->ifname,
 				agent->type,
 				TLVID_NOUI(MANAGEMENT_ADDRESS_TLV),
-				field, maddr, sizeof(maddr));
+				field, maddr);
 
 	/* build ifnum and oid:
 	 *  mlen + msub + maddr  + ifsub + ifidx + oidlen + oid

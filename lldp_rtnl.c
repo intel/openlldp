@@ -55,7 +55,7 @@ typedef int rtnl_handler(struct nlmsghdr *nh, void *arg);
  * 		<0 on error
  * 		>0 when more data is expected
  */
-static int rtnl_recv(int s, rtnl_handler *fn, void *arg)
+static int rtnl_recv(int s, UNUSED rtnl_handler *fn, UNUSED void *arg)
 {
 	char buf[8192];
 	struct nlmsghdr *nh;

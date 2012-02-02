@@ -91,7 +91,7 @@ void vdp_cli_unregister(struct lldp_module *mod)
        free(mod);
 }
 
-void vdp_print_cfg_tlv(u16 len, char *info)
+void vdp_print_cfg_tlv(UNUSED u16 len, UNUSED char *info)
 {
        /* TODO: this should print out all associated VSI mac/vlan pairs */
        printf("This should print out all associated VSI mac/vlan pairs !\n");

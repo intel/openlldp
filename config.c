@@ -99,7 +99,7 @@ void destroy_cfg(void)
 	config_destroy(&lldpad_cfg);
 }
 
-void scan_port(void *eloop_data, void *user_ctx)
+void scan_port(UNUSED void *eloop_data, UNUSED void *user_ctx)
 {
 	struct port *port;
 	struct if_nameindex *nameidx, *p;
@@ -695,7 +695,7 @@ int set_config_tlvfield(const char *ifname, int agenttype, u32 tlvid,
 }
 
 int set_config_tlvfield_str(const char *ifname, int agenttype, u32 tlvid,
-			    const char *field, const char *str, size_t size)
+			    const char *field, const char *str)
 {
 	if (!str)
 		return EINVAL;
@@ -734,10 +734,9 @@ int set_config_tlvinfo_bin(const char *ifname, int agenttype, u32 tlvid,
 }
 
 int set_config_tlvinfo_str(const char *ifname, int agenttype, u32 tlvid,
-			   char *value, size_t size)
+			   char *value)
 {
-	return set_config_tlvfield_str(ifname, agenttype, tlvid, "info",
-				       value, size);
+	return set_config_tlvfield_str(ifname, agenttype, tlvid, "info", value);
 }
 
 int set_config_tlvfield_int(const char *ifname, int agenttype, u32 tlvid,

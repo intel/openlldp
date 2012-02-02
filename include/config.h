@@ -91,9 +91,9 @@ int set_config_tlvfield(const char *ifname, int agenttype, u32 tlvid, const char
 int set_config_tlvfield_int(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value);
 int set_config_tlvfield_bool(const char *ifname, int agenttype, u32 tlvid, const char *field, int *value);
 int set_config_tlvfield_bin(const char *ifname, int agenttype, u32 tlvid, const char *field, void *value, size_t size);
-int set_config_tlvfield_str(const char *ifname, int agenttype, u32 tlvid, const char *field, const char *value, size_t size);
+int set_config_tlvfield_str(const char *ifname, int agenttype, u32 tlvid, const char *field, const char *value);
 int set_config_tlvinfo_bin(const char *ifname, int agenttype, u32 tlvid, void *value, size_t size);
-int set_config_tlvinfo_str(const char *ifname, int agenttype, u32 tlvid, char *value, size_t size);
+int set_config_tlvinfo_str(const char *ifname, int agenttype, u32 tlvid, char *value);
 int is_tlv_txdisabled(const char *ifname, int agenttype, u32 tlvid);
 int is_tlv_txenabled(const char *ifname, int agenttype, u32 tlvid);
 int tlv_enabletx(const char *ifname, int agenttype, u32 tlvid);

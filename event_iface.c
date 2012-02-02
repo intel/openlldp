@@ -756,7 +756,9 @@ err_exit:
 	return NULL;
 }
 
-static void event_iface_receive_user_space(int sock, void *eloop_ctx, void *sock_ctx)
+static void
+event_iface_receive_user_space(int sock,
+			       UNUSED void *eloop_ctx, UNUSED void *sock_ctx)
 {
 	struct nlmsghdr *nlh, *nlh2;
 	struct nl_msg *nl_msg;
@@ -882,7 +884,8 @@ out_err2:
 	return;
 }
 
-static void event_iface_receive(int sock, void *eloop_ctx, void *sock_ctx)
+static void
+event_iface_receive(int sock, UNUSED void *eloop_ctx, UNUSED void *sock_ctx)
 {
 	struct nlmsghdr *nlh;
 	struct sockaddr_nl dest_addr;

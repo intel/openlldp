@@ -65,11 +65,11 @@ static int get_pfc_data(pfc_attribs *pfc_data, int cmd, char *port_id,
 static int set_app_config(app_attribs *app_data, char *port_id, u32 subtype,
 		char *ibuf, int ilen);
 static int get_app_data(app_attribs *app_data, int cmd, char *port_id,
-		u32 subtype, int dcbx_st, char *rbuf);
+		u32 subtype, char *rbuf);
 static int set_llink_config(llink_attribs *app_data, char *port_id, u32 subtype,
 		char *ibuf, int ilen);
 static int get_llink_data(llink_attribs *llink_data, int cmd, char *port_id,
-		u32 subtype, int dcbx_st, char *rbuf);
+		u32 subtype, char *rbuf);
 static dcb_result get_bwg_desc(char *port_id, char *ibuf, int ilen, char *rbuf);
 static dcb_result set_bwg_desc(char *port_id, char *ibuf, int ilen);
 static void set_protocol_data(feature_protocol_attribs *protocol, char *ifname,
@@ -89,8 +89,9 @@ static struct arg_handlers arg_handlers[] = {
 	{	.arg = 0 }
 };
 
-static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+static int
+get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
+		    char *obuf, int obuf_len)
 {
 	int value;
 	char *s;
@@ -443,9 +444,7 @@ static dcb_result get_cmd_protocol_data(feature_protocol_attribs *protocol,
 	return rval;
 }
 
-static int  handle_dcbx_cmd(u8 cmd, u8 feature, u8 subtype,
-				     char *ibuf, int ilen,
-				     char *rbuf)
+static int handle_dcbx_cmd(u8 cmd, u8 feature, char *ibuf, int ilen, char *rbuf)
 {
 	int status = dcb_success;
 
@@ -473,8 +472,8 @@ static int  handle_dcbx_cmd(u8 cmd, u8 feature, u8 subtype,
 }
 
 int dcbx_clif_cmd(void *data,
-		  struct sockaddr_un *from,
-		  socklen_t fromlen,
+		  UNUSED struct sockaddr_un *from,
+		  UNUSED socklen_t fromlen,
 		  char *ibuf, int ilen,
 		  char *rbuf, int rlen)
 {
@@ -498,7 +497,7 @@ int dcbx_clif_cmd(void *data,
 		return dcb_invalid_cmd;
 
 	if (feature == FEATURE_DCBX)
-		return handle_dcbx_cmd(cmd, feature, subtype, ibuf, ilen, rbuf);
+		return handle_dcbx_cmd(cmd, feature, ibuf, ilen, rbuf);
 
 	if (hexstr2bin(ibuf+DCB_SUBTYPE_OFF, &subtype, sizeof(subtype)) ||
 		hexstr2bin(ibuf+DCB_PORTLEN_OFF, &plen, sizeof(plen)))
@@ -643,8 +642,7 @@ int dcbx_clif_cmd(void *data,
 				rbuf+strlen(rbuf));
 			if (status == dcb_success)
 				status = get_app_data(&app_data, cmd, port_id,
-					subtype, app_data.protocol.dcbx_st,
-					rbuf+strlen(rbuf));
+					subtype, rbuf + strlen(rbuf));
 		}
 		break;
 
@@ -677,9 +675,7 @@ int dcbx_clif_cmd(void *data,
 				cmd, rbuf+strlen(rbuf));
 			if (status == dcb_success)
 				status = get_llink_data(&llink_data, cmd,
-					port_id, subtype,
-					llink_data.protocol.dcbx_st,
-					rbuf+strlen(rbuf));
+					port_id, subtype, rbuf + strlen(rbuf));
 		}
 		break;
 
@@ -813,7 +809,7 @@ static int get_pfc_data(pfc_attribs *pfc_data, int cmd, char *port_id,
 
 /* rbuf points to correct destination location */
 static int get_app_data(app_attribs *app_data, int cmd, char *port_id,
-		u32 subtype, int dcbx_st, char *rbuf)
+		u32 subtype, char *rbuf)
 {
 	int status;
 	unsigned int i;
@@ -849,7 +845,7 @@ static int get_app_data(app_attribs *app_data, int cmd, char *port_id,
 
 /* rbuf points to correct destination location */
 static int get_llink_data(llink_attribs *llink_data, int cmd, char *port_id,
-		u32 subtype, int dcbx_st, char *rbuf)
+		u32 subtype, char *rbuf)
 {
 	int status;
 

@@ -21,6 +21,8 @@
 #include <unistd.h>
 #include "eloop.h"
 
+#define UNUSED __attribute__((__unused__))
+
 typedef long os_time_t;
 
 /**
@@ -516,7 +518,7 @@ out:
 }
 
 
-void eloop_terminate(int sig, void *eloop_ctx, void *signal_ctx)
+void eloop_terminate(int sig, UNUSED void *eloop_ctx, UNUSED void *signal_ctx)
 {
 	printf("Signal %d received - terminating\n", sig);
 	eloop.terminate = 1;

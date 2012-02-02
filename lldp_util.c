@@ -709,7 +709,7 @@ out:
 	return false;
 }
 
-int is_router(const char *ifname)
+static int is_router(void)
 {
 	int rc = 0;
 	char path[256];
@@ -996,7 +996,7 @@ u16 get_caps(const char *ifname)
 	if (is_bridge(ifname))
 		caps |= SYSCAP_BRIDGE;
 
-	if (is_router(ifname))
+	if (is_router())
 		caps |= SYSCAP_ROUTER;
 
 	if (is_wlan(ifname))

@@ -36,6 +36,12 @@
 #include "lldp/agent.h"
 #include "messages.h"
 
+bool process_dcbx_ctrl_tlv(struct port *port, struct lldp_agent *);
+bool process_dcbx_pg_tlv(struct port *port, struct lldp_agent *);
+bool process_dcbx_pfc_tlv(struct port *port, struct lldp_agent *);
+bool process_dcbx_app_tlv(struct port *port, struct lldp_agent *);
+bool process_dcbx_llink_tlv(struct port *port, struct lldp_agent *);
+
 /* for the specified remote feature, if the feature is not present in the
  * EventFlag parameter (indicating it was not received in the DCB TLV), then
  * check and update the peer data store object for the feature if it is
@@ -598,7 +604,7 @@ struct unpacked_tlv *bld_dcbx1_app_tlv(struct dcbx_tlvs *dcbx,
 	memset(&app_cfg, 0, sizeof(app_cfg));
 	result = get_app(dcbx->ifname, sub_type, &app_cfg);
 	if (result == dcb_success) {
-		mark_app_sent(dcbx->ifname, sub_type);
+		mark_app_sent(dcbx->ifname);
 		if (!(app_cfg.protocol.Advertise)) {
 			free(tlv);
 			*success = true;
@@ -697,7 +703,7 @@ struct unpacked_tlv *bld_dcbx2_app_tlv(struct dcbx_tlvs *dcbx,
 		for (i = 0; i < DCB_MAX_APPTLV; i++) {
 			result = get_app(dcbx->ifname, i, &app_cfg);
 			if (result == dcb_success) {
-				mark_app_sent(dcbx->ifname, i);
+				mark_app_sent(dcbx->ifname);
 				if (!(app_cfg.protocol.Advertise))
 					continue;
 			}
@@ -1095,7 +1101,7 @@ void  mibUpdateObjects(struct port *port, struct lldp_agent *agent)
 	}
 
 	if (tlvs->manifest->dcbx_app) {
-		if (process_dcbx_app_tlv(port, agent, 0) != true) {
+		if (process_dcbx_app_tlv(port, agent) != true) {
 			/* mark feature not present */
 			if (check_feature_not_present(port->ifname, 0,
 				EventFlag, DCB_REMOTE_CHANGE_APPTLV(0))) {
@@ -1400,7 +1406,7 @@ bool process_dcbx_pfc_tlv(struct port *port, struct lldp_agent *agent)
 	return(true);
 }
 
-bool process_dcbx_app_tlv(struct port *port, struct lldp_agent *agent, int stype)
+bool process_dcbx_app_tlv(struct port *port, struct lldp_agent *agent)
 {
 	app_attribs peer_app;
 	u32         i=0, len=0;

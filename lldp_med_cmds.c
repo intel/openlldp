@@ -61,8 +61,9 @@ static struct arg_handlers arg_handlers[] = {
 	{	.arg = 0 }
 };
 
-static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+static int
+get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
+		    char *obuf, int obuf_len)
 {
 	int value;
 	char *s;
@@ -173,8 +174,9 @@ static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, true);
 }
 
-static int get_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+static int
+get_arg_med_devtype(struct cmd *cmd, char *arg, UNUSED char *argvalue,
+		    char *obuf, int obuf_len)
 {
 	long value;
 	char *s;
@@ -230,7 +232,7 @@ static int get_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-static int _set_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
+static int _set_arg_med_devtype(struct cmd *cmd, char *argvalue,
 			       char *obuf, int obuf_len, bool test)
 {
 	long value;
@@ -325,16 +327,18 @@ static int _set_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-static int set_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+static int
+set_arg_med_devtype(struct cmd *cmd, UNUSED char *arg, char *argvalue,
+		    char *obuf, int obuf_len)
 {
-	return _set_arg_med_devtype(cmd, arg, argvalue, obuf, obuf_len, false);
+	return _set_arg_med_devtype(cmd, argvalue, obuf, obuf_len, false);
 }
 
-static int test_arg_med_devtype(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+static int
+test_arg_med_devtype(struct cmd *cmd, UNUSED char *arg, char *argvalue,
+		     char *obuf, int obuf_len)
 {
-	return _set_arg_med_devtype(cmd, arg, argvalue, obuf, obuf_len, true);
+	return _set_arg_med_devtype(cmd, argvalue, obuf, obuf_len, true);
 }
 
 struct arg_handlers *med_get_arg_handlers()

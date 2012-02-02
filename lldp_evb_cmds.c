@@ -90,8 +90,9 @@ static struct arg_handlers arg_handlers[] = {
 	{	.arg = 0 }
 };
 
-static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+static int
+get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
+		    char *obuf, int obuf_len)
 {
 	int value;
 	char *s;
@@ -129,7 +130,7 @@ static int get_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-				char *obuf, int obuf_len, bool test)
+				bool test)
 {
 	int value;
 	char arg_path[EVB_BUF_SIZE];
@@ -167,18 +168,18 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 }
 
 static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, int obuf_len)
+			       UNUSED char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, false);
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, false);
 }
 
 static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-				char *obuf, int obuf_len)
+				UNUSED char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, true);
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, true);
 }
 
-static int get_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
+static int get_arg_fmode(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 			 char *obuf, int obuf_len)
 {
 	char *s;
@@ -206,8 +207,7 @@ static int get_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-static int _set_arg_fmode(struct cmd *cmd, char *arg, const char *argvalue,
-			  char *obuf, int obuf_len, bool test)
+static int _set_arg_fmode(struct cmd *cmd, const char *argvalue, bool test)
 {
 	u8 smode;
 	char arg_path[EVB_BUF_SIZE];
@@ -262,20 +262,21 @@ static int _set_arg_fmode(struct cmd *cmd, char *arg, const char *argvalue,
 	return cmd_success;
 }
 
-static int set_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
-			 char *obuf, int obuf_len)
+static int set_arg_fmode(struct cmd *cmd, UNUSED char *arg, char *argvalue,
+			 UNUSED char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_fmode(cmd, arg, argvalue, obuf, obuf_len, false);
+	return _set_arg_fmode(cmd, argvalue, false);
 }
 
-static int test_arg_fmode(struct cmd *cmd, char *arg, char *argvalue,
-			  char *obuf, int obuf_len)
+static int test_arg_fmode(struct cmd *cmd, UNUSED char *arg, char *argvalue,
+			  UNUSED char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_fmode(cmd, arg, argvalue, obuf, obuf_len, true);
+	return _set_arg_fmode(cmd, argvalue, true);
 }
 
-static int get_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
-				char *obuf, int obuf_len)
+static int
+get_arg_capabilities(struct cmd *cmd, char *arg, UNUSED char *argvalue,
+		     char *obuf, int obuf_len)
 {
 	int c;
 	char *s, *t;
@@ -360,8 +361,7 @@ static int check_capabilities(const char *capabilities, u8 *scap)
 	return retcode;
 }
 static int
-_set_arg_capabilities(struct cmd *cmd, char *arg, const char *argvalue,
-		      char *obuf, int obuf_len, bool test)
+_set_arg_capabilities(struct cmd *cmd, const char *argvalue, bool test)
 {
 	u8 scap = 0;
 	char arg_path[EVB_BUF_SIZE];
@@ -404,19 +404,21 @@ _set_arg_capabilities(struct cmd *cmd, char *arg, const char *argvalue,
 	return cmd_success;
 }
 
-static int set_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
-				char *obuf, int obuf_len)
+static int
+set_arg_capabilities(struct cmd *cmd, UNUSED char *arg, char *argvalue,
+		     UNUSED char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_capabilities(cmd, arg, argvalue, obuf, obuf_len, false);
+	return _set_arg_capabilities(cmd, argvalue, false);
 }
 
-static int test_arg_capabilities(struct cmd *cmd, char *arg, char *argvalue,
-				 char *obuf, int obuf_len)
+static int
+test_arg_capabilities(struct cmd *cmd, UNUSED char *arg, char *argvalue,
+		      UNUSED char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_capabilities(cmd, arg, argvalue, obuf, obuf_len, true);
+	return _set_arg_capabilities(cmd, argvalue, true);
 }
 
-static int get_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
+static int get_arg_rte(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		       char *obuf, int obuf_len)
 {
 	char s[EVB_BUF_SIZE];
@@ -447,8 +449,7 @@ static int get_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-static int _set_arg_rte(struct cmd *cmd, char *arg, const char *argvalue,
-			char *obuf, int obuf_len, bool test)
+static int _set_arg_rte(struct cmd *cmd, const char *argvalue, bool test)
 {
 	int value, err;
 	char arg_path[EVB_BUF_SIZE];
@@ -499,19 +500,19 @@ out_err:
 	return cmd_invalid;
 }
 
-static int set_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
-		       char *obuf, int obuf_len)
+static int set_arg_rte(struct cmd *cmd, UNUSED char *arg, char *argvalue,
+		       UNUSED char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_rte(cmd, arg, argvalue, obuf, obuf_len, false);
+	return _set_arg_rte(cmd, argvalue, false);
 }
 
-static int test_arg_rte(struct cmd *cmd, char *arg, char *argvalue,
-			char *obuf, int obuf_len)
+static int test_arg_rte(struct cmd *cmd, UNUSED char *arg, char *argvalue,
+			UNUSED char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_rte(cmd, arg, argvalue, obuf, obuf_len, true);
+	return _set_arg_rte(cmd, argvalue, true);
 }
 
-static int get_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
+static int get_arg_vsis(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 			char *obuf, int obuf_len)
 {
 	char s[EVB_BUF_SIZE];
@@ -537,8 +538,7 @@ static int get_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
 	return cmd_success;
 }
 
-static int _set_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
-			 char *obuf, int obuf_len, bool test)
+static int _set_arg_vsis(struct cmd *cmd, char *argvalue, bool test)
 {
 	int value, err;
 	char arg_path[EVB_BUF_SIZE];
@@ -596,16 +596,16 @@ out_err:
 	return cmd_invalid;
 }
 
-static int set_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
-			char *obuf, int obuf_len)
+static int set_arg_vsis(struct cmd *cmd, UNUSED char *arg, char *argvalue,
+			UNUSED char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_vsis(cmd, arg, argvalue, obuf, obuf_len, false);
+	return _set_arg_vsis(cmd, argvalue, false);
 }
 
-static int test_arg_vsis(struct cmd *cmd, char *arg, char *argvalue,
-			 char *obuf, int obuf_len)
+static int test_arg_vsis(struct cmd *cmd, UNUSED char *arg, char *argvalue,
+			 UNUSED char *obuf, UNUSED int obuf_len)
 {
-	return _set_arg_vsis(cmd, arg, argvalue, obuf, obuf_len, true);
+	return _set_arg_vsis(cmd, argvalue, true);
 }
 
 struct arg_handlers *evb_get_arg_handlers()
