@@ -72,11 +72,6 @@ struct evb_user_data {
 
 struct lldp_module *evb_register(void);
 void evb_unregister(struct lldp_module *);
-struct packed_tlv *evb_gettlv(struct port *, struct lldp_agent *);
-void evb_ifdown(char *, struct lldp_agent *);
-void evb_ifup(char *, struct lldp_agent *);
 struct evb_data *evb_data(char *, enum agent_type);
-
-int evb_check_and_fill(struct evb_data *, struct tlv_info_evb *);
 
 #endif /* _LLDP_EVB_H */

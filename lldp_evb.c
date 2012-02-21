@@ -104,7 +104,7 @@ static void evb_dump_tlv(struct unpacked_tlv *tlv)
 		   __func__, tlv->type, tlv->length, buffer);
 }
 
-unsigned int evb_get_rte(char *ifname)
+static unsigned int evb_get_rte(char *ifname)
 {
 	/* TODO: fixed to ncb for now */
 	struct evb_data *ed = evb_data(ifname, NEAREST_CUSTOMER_BRIDGE);
@@ -116,7 +116,7 @@ unsigned int evb_get_rte(char *ifname)
  *
  * checks values received in TLV and takes over some values
  */
-int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie)
+static int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie)
 {
 	/* sanity check of received data in tie */
 	if ((tie->smode & (LLDP_EVB_CAPABILITY_FORWARD_STANDARD |
@@ -433,7 +433,8 @@ static void evb_free_data(struct evb_user_data *ud)
 	}
 }
 
-struct packed_tlv *evb_gettlv(struct port *port, struct lldp_agent *agent)
+static struct packed_tlv *evb_gettlv(struct port *port,
+		struct lldp_agent *agent)
 {
 	int size;
 	struct evb_data *ed;
@@ -526,7 +527,7 @@ static int evb_rchange(struct port *port, struct lldp_agent *agent,
 	return TLV_OK;
 }
 
-void evb_ifdown(char *ifname, struct lldp_agent *agent)
+static void evb_ifdown(char *ifname, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
 
@@ -548,7 +549,7 @@ out_err:
 	LLDPAD_ERR("%s:port %s remove failed\n", __func__, ifname);
 }
 
-void evb_ifup(char *ifname, struct lldp_agent *agent)
+static void evb_ifup(char *ifname, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
 	struct evb_user_data *ud;
@@ -589,7 +590,7 @@ out_free:
 	return;
 }
 
-u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
+static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
 
