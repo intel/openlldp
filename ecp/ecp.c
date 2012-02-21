@@ -1,9 +1,10 @@
-/*******************************************************************************
+/******************************************************************************
 
-  implementation of ECP according to 802.1Qbg
-  (c) Copyright IBM Corp. 2010
+  Implementation of ECP according to 802.1Qbg
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens at linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -21,7 +22,7 @@
   The full GNU General Public License is included in this distribution in
   the file called "COPYING".
 
-*******************************************************************************/
+******************************************************************************/
 
 #include <net/if.h>
 #include <sys/queue.h>
@@ -56,9 +57,8 @@ void ecp_localchange_handler(UNUSED void *eloop_data, void *user_ctx)
 	vd = (struct vdp_data *) user_ctx;
 
 	if (vd->ecp.tx.localChange) {
-		LLDPAD_DBG("%s(%i)-%s: ecp.tx.localChange %i!\n",
-			   __func__, __LINE__,
-			   vd->ifname, vd->ecp.tx.localChange);
+		LLDPAD_DBG("%s-%s: ecp.tx.localChange %i\n",
+			   __func__, vd->ifname, vd->ecp.tx.localChange);
 		ecp_tx_run_sm(vd);
 	}
 }
@@ -73,11 +73,9 @@ void ecp_localchange_handler(UNUSED void *eloop_data, void *user_ctx)
  */
 int ecp_start_localchange_timer(struct vdp_data *vd)
 {
-	unsigned int usecs;
-
-	usecs = ECP_LOCALCHANGE_TIMEOUT;
-
-	return eloop_register_timeout(0, usecs, ecp_localchange_handler, NULL, (void *) vd);
+	return eloop_register_timeout(0, ECP_LOCALCHANGE_TIMEOUT,
+				      ecp_localchange_handler,
+				      NULL, (void *) vd);
 }
 
 /* ecp_stop_localchange_timer - stop the ECP localchange timer
@@ -89,8 +87,8 @@ int ecp_start_localchange_timer(struct vdp_data *vd)
  */
 static int ecp_stop_localchange_timer(struct vdp_data *vd)
 {
-	LLDPAD_DBG("%s(%i)-%s: stopping ecp localchange timer\n", __func__, __LINE__,
-	       vd->ifname);
+	LLDPAD_DBG("%s-%s: stopping ecp localchange timer\n",
+		    __func__, vd->ifname);
 
 	return eloop_cancel_timeout(ecp_localchange_handler, NULL, (void *) vd);
 }
@@ -114,12 +112,12 @@ void ecp_ack_timeout_handler(UNUSED void *eloop_data, void *user_ctx)
 		vd->ecp.ackTimer -= ECP_ACK_TIMER_DEFAULT;
 
 	if (ecp_ackTimer_expired(vd) == true) {
-		LLDPAD_DBG("%s(%i)-%s: ecp_ackTimer_expired (%i) !\n",
-			   __func__, __LINE__, vd->ifname, vd->ecp.ackTimer);
+		LLDPAD_DBG("%s-%s: ecp_ackTimer_expired (%i)\n",
+			   __func__, vd->ifname, vd->ecp.ackTimer);
 		ecp_tx_run_sm(vd);
 	} else {
 		LLDPAD_DBG("%s-%s: BUG ! handler called but"
-			   "vdp->ecp.ackTimer not expired (%i) !\n",
+			   "vdp->ecp.ackTimer not expired (%i)\n",
 			   __func__, vd->ifname, vd->ecp.ackTimer);
 	}
 }
@@ -133,11 +131,9 @@ void ecp_ack_timeout_handler(UNUSED void *eloop_data, void *user_ctx)
  */
 int ecp_start_ack_timer(struct vdp_data *vd)
 {
-	unsigned int usecs;
-
-	usecs = ECP_ACK_TIMER_DEFAULT;
-
-	return eloop_register_timeout(0, usecs, ecp_ack_timeout_handler, NULL, (void *) vd);
+	return eloop_register_timeout(0, ECP_ACK_TIMER_DEFAULT,
+				      ecp_ack_timeout_handler,
+				      NULL, (void *) vd);
 }
 
 /* ecp_stop_ack_timer - stop the ECP ack timer
@@ -149,9 +145,7 @@ int ecp_start_ack_timer(struct vdp_data *vd)
  */
 int ecp_stop_ack_timer(struct vdp_data *vd)
 {
-	LLDPAD_DBG("%s(%i)-%s: stopping ecp ack timer\n", __func__, __LINE__,
-	       vd->ifname);
-
+	LLDPAD_DBG("%s-%s: stopping ecp ack timer\n", __func__, vd->ifname);
 	return eloop_cancel_timeout(ecp_ack_timeout_handler, NULL, (void *) vd);
 }
 
@@ -169,56 +163,46 @@ int ecp_init(char *ifname)
 {
 	struct vdp_data *vd;
 
-	LLDPAD_DBG("%s(%i): starting ECP for if %s !\n", __func__, __LINE__, ifname);
+	LLDPAD_DBG("%s: starting ECP for if %s\n", __func__, ifname);
 
 	vd = vdp_data(ifname);
 
 	if (!vd) {
-		LLDPAD_ERR("%s(%i): unable to find vd %s ! \n", __func__, __LINE__, ifname);
-		goto fail;
+		LLDPAD_ERR("%s: unable to find vd %s\n", __func__, ifname);
+		return -1;
 	}
 
-	if (!vd->ecp.l2) {
+	if (!vd->ecp.l2)
 		vd->ecp.l2 = l2_packet_init(vd->ifname, NULL, ETH_P_ECP,
 					    ecp_rx_ReceiveFrame, vd, 1);
-	}
 
 	if (!vd->ecp.l2) {
 		LLDPAD_ERR("ERROR: Failed to open register layer 2 access to "
 			"ETH_P_ECP\n");
-		goto fail;
+		return -1;
 	}
 
 	ecp_rx_change_state(vd, ECP_RX_IDLE);
 	ecp_rx_run_sm(vd);
-
 	ecp_somethingChangedLocal(vd, true);
-
 	return 0;
-
-fail:
-	return -1;
 }
 
 int ecp_deinit(char *ifname)
 {
 	struct vdp_data *vd;
 
-	LLDPAD_DBG("%s(%i): stopping ECP for if %s !\n", __func__, __LINE__, ifname);
+	LLDPAD_DBG("%s: stopping ECP for if %s\n", __func__, ifname);
 
 	vd = vdp_data(ifname);
 
 	if (!vd) {
-		LLDPAD_ERR("%s(%i): unable to find vd %s ! \n", __func__, __LINE__, ifname);
-		goto fail;
+		LLDPAD_ERR("%s: unable to find vd %s\n", __func__, ifname);
+		return -1;
 	}
 
 	ecp_stop_ack_timer(vd);
 	ecp_stop_localchange_timer(vd);
 	ecp_tx_stop_ackTimer(vd);
-
 	return 0;
-
-fail:
-	return -1;
 }
