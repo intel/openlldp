@@ -47,6 +47,21 @@ static const char *ecp_rx_states[] = {
 	"ECP_RX_RESEND_ACK",
 };
 
+/* ecp_rx_freeFrame - free up received frame
+ * @vd: vd for the state machine
+ *
+ * no return value
+ *
+ * frees up an old received frame, set pointer to NULL and size to 0.
+ */
+static void ecp_rx_freeFramein(struct vdp_data *vd)
+{
+	if (vd->ecp.rx.framein)
+		free(vd->ecp.rx.framein);
+	vd->ecp.rx.framein = NULL;
+	vd->ecp.rx.sizein = 0;
+}
+
 /* ecp_rx_Initialize - initializes the ecp rx state machine
  * @vd: vd for the state machine
  *
@@ -58,30 +73,8 @@ void ecp_rx_Initialize(struct vdp_data *vd)
 {
 	vd->ecp.rx.rcvFrame = false;
 	vd->ecp.rx.badFrame = false;
-
 	vd->ecp.ackReceived = false;
-
-	if (vd->ecp.rx.framein) {
-		free(vd->ecp.rx.framein);
-		vd->ecp.rx.framein = NULL;
-	}
-	vd->ecp.rx.sizein = 0;
-
-	return;
-}
-
-/* ecp_rx_freeFrame - free up received frame
- * @vd: vd for the state machine
- *
- * no return value
- *
- * frees up an old received frame, set pointer to NULL and size to 0.
- */
-void ecp_rx_freeFrame(struct vdp_data *vd)
-{
-	free(vd->ecp.rx.framein);
-	vd->ecp.rx.framein = NULL;
-	vd->ecp.rx.sizein = 0;
+	ecp_rx_freeFramein(vd);
 }
 
 /* ecp_print_framein - print raw received frame
@@ -236,9 +229,7 @@ ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf, size_t len)
 		LLDPAD_ERR("ERROR multicast address error in incoming frame. "
 			"Dropping frame.\n");
 		frame_error++;
-		free(vd->ecp.rx.framein);
-		vd->ecp.rx.framein = NULL;
-		vd->ecp.rx.sizein = 0;
+		ecp_rx_freeFramein(vd);
 		return;
 	}
 
@@ -246,9 +237,7 @@ ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf, size_t len)
 		LLDPAD_ERR("ERROR Ethertype not ECP ethertype but ethertype "
 			"'%x' in incoming frame.\n", htons(hdr->h_proto));
 		frame_error++;
-		free(vd->ecp.rx.framein);
-		vd->ecp.rx.framein = NULL;
-		vd->ecp.rx.sizein = 0;
+		ecp_rx_freeFramein(vd);
 		return;
 	}
 
@@ -285,7 +274,7 @@ ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf, size_t len)
 		return;
 	}
 
-	ecp_rx_freeFrame(vd);
+	ecp_rx_freeFramein(vd);
 }
 
 /* ecp_rx_validate_frame - validates received frame
@@ -471,8 +460,6 @@ out:
 		vd->ecp.stats.statsFramesInErrorsTotal++;
 		vd->ecp.rx.badFrame = true;
 	}
-
-	return;
 }
 
 /* ecp_rx_change_state - changes the ecp rx sm state
@@ -618,7 +605,7 @@ void ecp_rx_run_sm(struct vdp_data *vd)
 			ecp_rx_ProcessFrame(vd);
 			if (!vd->ecp.ackReceived) {
 				ecp_rx_send_ack_frame(vd);
-				ecp_rx_freeFrame(vd);
+				ecp_rx_freeFramein(vd);
 			}
 			break;
 		default:
@@ -626,5 +613,4 @@ void ecp_rx_run_sm(struct vdp_data *vd)
 				   vd->ifname, vd->ecp.rx.state);
 		}
 	} while (ecp_set_rx_state(vd) == true);
-
 }
