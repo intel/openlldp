@@ -685,6 +685,7 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 		case VSI_EXIT:
 			vdp_stop_ackTimer(profile);
 			vdp_stop_keepaliveTimer(profile);
+			event_if_indicate_profile(profile);
 			vdp_remove_profile(profile);
 			break;
 		default:

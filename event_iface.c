@@ -1,14 +1,15 @@
-/*******************************************************************************
+/******************************************************************************
 
   LLDP Agent Daemon (LLDPAD) Software
   Copyright(c) 2007-2012 Intel Corporation.
 
-  implementation of libvirt netlink interface
-  (c) Copyright IBM Corp. 2010
+  Implementation of peer netlink interface
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens at linux.vnet.ibm.com>
 	     Stefan Berger <stefanb at linux.vnet.ibm.com>
 	     Gerhard Stenzel <gstenzel at linux.vnet.ibm.com>
+	     Thomas Richter <tmricht at linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -29,7 +30,7 @@
   Contact Information:
   open-lldp Mailing List <lldp-devel@open-lldp.org>
 
-*******************************************************************************/
+******************************************************************************/
 
 #include <stdlib.h>
 #include <string.h>
@@ -64,6 +65,10 @@
 
 extern unsigned int if_nametoindex(const char *);
 extern char *if_indextoname(unsigned int, char *);
+
+/* nlmsg struct to save data related to communication with a peer */
+static struct nlmsghdr peer_nlmsg;
+static int peer_sock;
 
 static struct nla_policy ifla_vf_policy[IFLA_VF_MAX + 1] =
 {
@@ -246,7 +251,7 @@ static void event_if_decode_nlmsg(int route_type, void *data, int len)
 	int link_status = IF_OPER_UNKNOWN;
 
 	switch (route_type) {
-	case RTM_NEWLINK:		
+	case RTM_NEWLINK:
 	case RTM_DELLINK:
 	case RTM_SETLINK:
 	case RTM_GETLINK:
@@ -343,11 +348,11 @@ static void event_if_process_recvmsg(struct nlmsghdr *nlmsg)
 		NLMSG_PAYLOAD(nlmsg, 0));
 }
 
-static int event_if_parse_getmsg(struct nlmsghdr *nlh, int *ifindex,
-				 char *ifname)
+static int event_if_parse_getmsg(struct nlmsghdr *nlh, int *ifindex)
 {
 	struct nlattr *tb[IFLA_MAX+1];
 	struct ifinfomsg *ifinfo;
+	char *ifname;
 
 	if (nlmsg_parse(nlh, sizeof(struct ifinfomsg),
 			(struct nlattr **)&tb, IFLA_MAX, NULL)) {
@@ -355,15 +360,24 @@ static int event_if_parse_getmsg(struct nlmsghdr *nlh, int *ifindex,
 		return -EINVAL;
 	}
 
-	if (tb[IFLA_IFNAME]) {
-		ifname = (char *)RTA_DATA(tb[IFLA_IFNAME]);
-		LLDPAD_DBG("IFLA_IFNAME=%s\n", ifname);
-	} else {
-		ifinfo = (struct ifinfomsg *)NLMSG_DATA(nlh);
-		*ifindex = ifinfo->ifi_index;
-		LLDPAD_DBG("interface index: %d\n", ifinfo->ifi_index);
-	}
+	ifinfo = (struct ifinfomsg *)NLMSG_DATA(nlh);
+	*ifindex = ifinfo->ifi_index;
+	LLDPAD_DBG("interface index: %d\n", ifinfo->ifi_index);
 
+	if (tb[IFLA_IFNAME]) {
+		int myindex;
+
+		ifname = (char *)RTA_DATA(tb[IFLA_IFNAME]);
+		myindex = if_nametoindex(ifname);
+		LLDPAD_DBG("IFLA_IFNAME=%s myindex:%d\n", ifname, myindex);
+		if (*ifindex == 0)
+			*ifindex = myindex;
+		else if (*ifindex != myindex) {
+			LLDPAD_DBG("%s ifindex %d and myindex %d mismatch\n",
+				   __func__, *ifindex, myindex);
+			return -EINVAL;
+		}
+	}
 	return 0;
 }
 
@@ -374,7 +388,7 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 		      *tb_vfinfo[IFLA_VF_MAX+1],
 		      *tb_vfinfo_list;
 	struct vsi_profile *profile, *p;
-	struct mac_vlan *mac_vlan;
+	struct mac_vlan *mac_vlan = 0;
 	struct ifinfomsg *ifinfo;
 	struct vdp_data *vd;
 	char *ifname;
@@ -562,8 +576,12 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 
 	vdp_print_profile(p);
 
-	if (p != profile)
+	if (p != profile) {
+		/* Check on dis-associate command */
+		if (profile->mode == VDP_MODE_DEASSOCIATE)
+			p->no_nlmsg = 1;
 		goto out_err;
+	}
 
 	return ret;
 
@@ -640,7 +658,7 @@ static void event_if_parseResponseMsg(struct nlmsghdr *nlh)
 			if (tb3[IFLA_PORT_REQUEST]) {
 				LLDPAD_DBG("IFLA_PORT_REQUEST=%d\n",
 					*(uint8_t*)RTA_DATA(tb3[IFLA_PORT_REQUEST]));
-			}		
+			}
 			if (tb3[IFLA_PORT_RESPONSE]) {
 				LLDPAD_DBG("IFLA_PORT_RESPONSE=%d\n",
 					*(uint16_t*)RTA_DATA(tb3[IFLA_PORT_RESPONSE]));
@@ -649,14 +667,14 @@ static void event_if_parseResponseMsg(struct nlmsghdr *nlh)
 	}
 }
 
-struct nl_msg *event_if_constructResponse(struct nlmsghdr *nlh, int ifindex)
+struct nl_msg *event_if_constructResponse(int ifindex)
 {
 	struct nl_msg *nl_msg;
 	struct nlattr *vf_ports = NULL, *vf_port;
 	struct ifinfomsg ifinfo;
 	struct vdp_data *vd;
-	uint32_t pid = nlh->nlmsg_pid;
-	uint32_t seq = nlh->nlmsg_seq;
+	uint32_t pid = peer_nlmsg.nlmsg_pid;
+	uint32_t seq = peer_nlmsg.nlmsg_seq;
 	char *ifname = malloc(IFNAMSIZ);
 	struct vsi_profile *p;
 
@@ -732,10 +750,195 @@ err_exit:
 	return NULL;
 }
 
-struct nl_msg *event_if_simpleResponse(uint32_t pid, uint32_t seq, int err)
+/*
+ * Add one entry in the list of MAC,VLAN pairs.
+ */
+static int add_pair(struct mac_vlan *mymac, struct nl_msg *nl_msg)
+{
+	struct nlattr *vfinfo;
+	struct ifla_vf_mac ifla_vf_mac = {
+		.vf = PORT_SELF_VF,
+		.mac = { 0, },
+	};
+	struct ifla_vf_vlan ifla_vf_vlan = {
+		.vf = PORT_SELF_VF,
+		.vlan = mymac->vlan,
+		.qos = 0,
+	};
+
+
+	vfinfo = nla_nest_start(nl_msg, IFLA_VF_INFO);
+	if (!vfinfo)
+		return -1;
+
+	memcpy(ifla_vf_mac.mac, mymac->mac, ETH_ALEN);
+
+	if (nla_put(nl_msg, IFLA_VF_MAC, sizeof ifla_vf_mac, &ifla_vf_mac) < 0)
+		return -1;
+
+	if (nla_put(nl_msg, IFLA_VF_VLAN, sizeof ifla_vf_vlan, &ifla_vf_vlan)
+			< 0)
+		return -1;
+	nla_nest_end(nl_msg, vfinfo);
+	return 0;
+}
+
+/*
+ * Walk along the MAC,VLAN ID list and add each entry into the message.
+ */
+static int add_mac_vlan(struct vsi_profile *profile, struct nl_msg *nl_msg)
+{
+	struct nlattr *vfinfolist;
+	int cnt = 0;
+	struct mac_vlan *mv1;
+
+	vfinfolist = nla_nest_start(nl_msg, IFLA_VFINFO_LIST);
+	if (!vfinfolist)
+		return -1;
+	LIST_FOREACH(mv1, &profile->macvid_head, entry) {
+		if (add_pair(mv1, nl_msg) == 0)
+			++cnt;
+		else
+			break;
+	}
+	nla_nest_end(nl_msg, vfinfolist);
+	LLDPAD_DBG("%s: added pairs:%d\n", __func__, cnt);
+	return 0;
+}
+
+/* event_if_indicate_profile - indicate the status of a profile via netlink
+ * @profile: pointer to the profile to indicate
+ *
+ * 0 on success, < 0 on error
+ *
+ * interface function to peer. Prepares a netlink message with the contents
+ * of the current profile and sends it to peer via netlink.
+ */
+int event_if_indicate_profile(struct vsi_profile *profile)
+{
+	struct nlmsghdr *nlh;
+	struct nl_msg *nl_msg;
+	struct nlattr *vf_ports = NULL, *vf_port;
+	struct ifinfomsg ifinfo;
+	struct msghdr msg;
+	struct sockaddr_nl dest_addr;
+	struct iovec iov;
+	struct vdp_data *vd;
+	uint32_t pid = peer_nlmsg.nlmsg_pid;
+	uint32_t seq = peer_nlmsg.nlmsg_seq;
+	char *ifname;
+	int result;
+	struct ifla_port_vsi portvsi;
+
+	LLDPAD_DBG("%s: no_nlmsg:%d\n", __func__, profile->no_nlmsg);
+	if (profile->no_nlmsg)
+		return 0;
+	nl_msg = nlmsg_alloc();
+	if (!nl_msg) {
+		LLDPAD_ERR("%s: Unable to allocate netlink message\n",
+			   __func__);
+		return -ENOMEM;
+	}
+	if (!profile->port || !profile->port->ifname) {
+		LLDPAD_ERR("%s: No ifname found for profile %p:\n",
+			   __func__, profile);
+		vdp_print_profile(profile);
+		goto err_exit;
+	}
+	ifname = profile->port->ifname;
+	vd = vdp_data(ifname);
+	if (!vd) {
+		LLDPAD_ERR("%s: Could not find vdp_data for %s !\n",
+			   __func__, ifname);
+		goto err_exit;
+	}
+	if (nlmsg_put(nl_msg, getpid(), seq, NLMSG_DONE, 0, 0) == NULL)
+		goto err_exit;
+	ifinfo.ifi_index = if_nametoindex(ifname);
+	if (ifinfo.ifi_index == 0) {
+		LLDPAD_ERR("%s: Could not find index for ifname %s\n",
+			   __func__, ifname);
+		goto err_exit;
+	}
+	if (nlmsg_append(nl_msg, &ifinfo, sizeof(ifinfo), NLMSG_ALIGNTO) < 0)
+		goto err_exit;
+
+	if (nla_put_string(nl_msg, IFLA_IFNAME, ifname) < 0)
+		goto err_exit;
+
+	vdp_print_profile(profile);
+
+	if (add_mac_vlan(profile, nl_msg))
+		goto err_exit;
+
+	portvsi.vsi_mgr_id = profile->mgrid;
+	portvsi.vsi_type_id[0] = profile->id & 0xff;
+	portvsi.vsi_type_id[1] = (profile->id >> 8) & 0xff;
+	portvsi.vsi_type_id[2] = (profile->id >> 16) & 0xff;
+	portvsi.vsi_type_version = profile->version;
+	vf_ports = nla_nest_start(nl_msg, IFLA_VF_PORTS);
+	if (!vf_ports)
+		goto err_exit;
+
+	vf_port = nla_nest_start(nl_msg, IFLA_VF_PORT);
+	if (!vf_port)
+		goto err_exit;
+	if (nla_put(nl_msg, IFLA_PORT_VSI_TYPE, sizeof portvsi,
+		&portvsi) < 0)
+		goto err_exit;
+	if (nla_put(nl_msg, IFLA_PORT_INSTANCE_UUID, 16, profile->instance) < 0)
+		goto err_exit;
+	if (nla_put_u32(nl_msg, IFLA_PORT_VF, PORT_SELF_VF) < 0)
+		goto err_exit;
+	if (nla_put_u16(nl_msg, IFLA_PORT_REQUEST, VDP_MODE_DEASSOCIATE) < 0)
+		goto err_exit;
+	nla_nest_end(nl_msg, vf_port);
+	if (vf_ports)
+		nla_nest_end(nl_msg, vf_ports);
+	memset(&dest_addr, 0, sizeof(dest_addr));
+	memset(&msg, 0, sizeof(msg));
+
+	dest_addr.nl_family = AF_NETLINK;
+	dest_addr.nl_pid = pid;
+
+	nlh = nlmsg_hdr(nl_msg);
+	nlh->nlmsg_type = RTM_SETLINK;
+
+	iov.iov_base = (void *)nlh;
+	iov.iov_len = nlh->nlmsg_len;
+
+	msg.msg_name = (void *)&dest_addr;
+	msg.msg_namelen = sizeof(dest_addr);
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+
+	LLDPAD_DBG("dest_addr.nl_pid: %d\n", dest_addr.nl_pid);
+	LLDPAD_DBG("nlh.nl_pid: %d\n", nlh->nlmsg_pid);
+	LLDPAD_DBG("nlh_type: %d\n", nlh->nlmsg_type);
+	LLDPAD_DBG("nlh_seq: 0x%x\n", nlh->nlmsg_seq);
+	LLDPAD_DBG("nlh_len: 0x%x\n", nlh->nlmsg_len);
+	result = sendmsg(peer_sock, &msg, 0);
+	LLDPAD_DBG("%s result:%d pid:%d sender-pid:%d\n",
+		   __func__, result, pid, nlh->nlmsg_pid);
+	if (result < 0)
+		LLDPAD_ERR("%s error %i: (len:%u) send on netlink socket %i\n",
+			   __func__, errno, peer_sock, nlh->nlmsg_len);
+	else
+		LLDPAD_DBG("%s(%i): sent %d bytes !\n",
+			   __func__, __LINE__, result);
+	return 0;
+
+err_exit:
+	nlmsg_free(nl_msg);
+	return -EINVAL;
+}
+
+struct nl_msg *event_if_simpleResponse(int err)
 {
 	struct nl_msg *nl_msg = nlmsg_alloc();
 	struct nlmsgerr nlmsgerr;
+	uint32_t pid = peer_nlmsg.nlmsg_pid;
+	uint32_t seq = peer_nlmsg.nlmsg_seq;
 
 	memset(&nlmsgerr, 0x0, sizeof(nlmsgerr));
 
@@ -768,7 +971,6 @@ event_iface_receive_user_space(int sock,
 	int result;
 	int err;
 	int ifindex = 0;
-	char *ifname = NULL;
 
 	nlh = (struct nlmsghdr *)calloc(1,
 					NLMSG_SPACE(MAX_PAYLOAD));
@@ -806,6 +1008,9 @@ event_iface_receive_user_space(int sock,
 	LLDPAD_DBG("nlh_seq: 0x%x\n", nlh->nlmsg_seq);
 	LLDPAD_DBG("nlh_len: 0x%x\n", nlh->nlmsg_len);
 
+	peer_nlmsg.nlmsg_pid = nlh->nlmsg_pid;
+	peer_nlmsg.nlmsg_seq = nlh->nlmsg_seq;
+
 	switch (nlh->nlmsg_type) {
 		case RTM_SETLINK:
 			LLDPAD_DBG("RTM_SETLINK\n");
@@ -814,32 +1019,20 @@ event_iface_receive_user_space(int sock,
 
 			/* send simple response wether profile was accepted
 			 * or not */
-			nl_msg = event_if_simpleResponse(nlh->nlmsg_pid,
-							 nlh->nlmsg_seq,
-							 err);
+			nl_msg = event_if_simpleResponse(err);
 			nlh2 = nlmsg_hdr(nl_msg);
 			break;
 		case RTM_GETLINK:
 			LLDPAD_DBG("RTM_GETLINK\n");
 
-			err = event_if_parse_getmsg(nlh, &ifindex, ifname);
+			err = event_if_parse_getmsg(nlh, &ifindex);
 			if (err) {
-				nl_msg = event_if_simpleResponse(nlh->nlmsg_pid,
-								 nlh->nlmsg_seq,
-								 err);
+				nl_msg = event_if_simpleResponse(err);
 				nlh2 = nlmsg_hdr(nl_msg);
 				break;
 			}
-			if (ifname) {
-				ifindex = if_nametoindex(ifname);
-				LLDPAD_DBG("%s: ifname %s (%d)\n", __func__,
-				       ifname, ifindex);
-			} else {
-				LLDPAD_DBG("%s: ifindex %i\n", __func__,
-				       ifindex);
-			}
 
-			nl_msg = event_if_constructResponse(nlh, ifindex);
+			nl_msg = event_if_constructResponse(ifindex);
 			if (!nl_msg) {
 				LLDPAD_ERR("%s: Unable to construct response\n",
 				       __func__);
@@ -892,7 +1085,7 @@ event_iface_receive(int sock, UNUSED void *eloop_ctx, UNUSED void *sock_ctx)
 	char buf[MAX_PAYLOAD];
 	socklen_t fromlen = sizeof(dest_addr);
 	int result;
-	
+
 	result = recvfrom(sock, buf, sizeof(buf), MSG_DONTWAIT,
 		       (struct sockaddr *) &dest_addr, &fromlen);
 
@@ -967,6 +1160,10 @@ int event_iface_init_user_space()
 		LLDPAD_ERR("Error binding to netlink socket (%s) !\n", strerror(errno));
 		return -EIO;
 	}
+
+	peer_sock = fd;
+
+	LLDPAD_DBG("%s(%i): socket %i.\n", __func__, __LINE__, peer_sock);
 
 	return eloop_register_read_sock(fd, event_iface_receive_user_space,
 					NULL, NULL);
