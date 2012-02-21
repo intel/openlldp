@@ -1,9 +1,10 @@
-/*******************************************************************************
+/******************************************************************************
 
-  implementation of EVB TLVs for LLDP
-  (c) Copyright IBM Corp. 2010
+  Implementation of EVB TLVs for LLDP
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens at linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -21,7 +22,7 @@
   The full GNU General Public License is included in this distribution in
   the file called "COPYING".
 
-*******************************************************************************/
+******************************************************************************/
 
 #define _GNU_SOURCE
 #include <string.h>
@@ -98,7 +99,7 @@ get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 	char *s;
 	char arg_path[EVB_BUF_SIZE];
 
-	LLDPAD_DBG("%s(%i): \n", __func__, __LINE__);
+	LLDPAD_DBG("%s:\n", __func__);
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
@@ -124,7 +125,7 @@ get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		s = VAL_NO;
 
 	snprintf(obuf, obuf_len, "%02x%s%04x%s",
-		 (unsigned int) strlen(arg), arg, (unsigned int) strlen(s), s);
+		 (unsigned int)strlen(arg), arg, (unsigned int)strlen(s), s);
 
 	return cmd_success;
 }
@@ -203,7 +204,7 @@ static int get_arg_fmode(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 	else
 		s = VAL_EVB_FMODE_BRIDGE;
 	snprintf(obuf, obuf_len, "%02x%s%04x%s",
-		 (unsigned int) strlen(arg), arg, (unsigned int) strlen(s), s);
+		 (unsigned int)strlen(arg), arg, (unsigned int)strlen(s), s);
 	return cmd_success;
 }
 
@@ -231,21 +232,18 @@ static int _set_arg_fmode(struct cmd *cmd, const char *argvalue, bool test)
 
 	smode = 0;
 
-	if (!strcasecmp(argvalue, VAL_EVB_FMODE_BRIDGE)) {
+	if (!strcasecmp(argvalue, VAL_EVB_FMODE_BRIDGE))
 		smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
-	}
 
-	if (!strcasecmp(argvalue, VAL_EVB_FMODE_REFLECTIVE_RELAY)) {
+	if (!strcasecmp(argvalue, VAL_EVB_FMODE_REFLECTIVE_RELAY))
 		smode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
-	}
 
-	if (smode == 0) {
+	if (smode == 0)
 		return cmd_invalid;
-	} else if (test) {
+	else if (test)
 		return cmd_success;
-	} else {
+	else
 		ed->policy->smode = smode;
-	}
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.fmode",
 		 TLVID_PREFIX, cmd->tlvid);
@@ -360,6 +358,7 @@ static int check_capabilities(const char *capabilities, u8 *scap)
 	free(old_string);
 	return retcode;
 }
+
 static int
 _set_arg_capabilities(struct cmd *cmd, const char *argvalue, bool test)
 {
@@ -534,7 +533,7 @@ static int get_arg_vsis(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 	if (sprintf(s, "%04i", ed->policy->svsi) <= 0)
 		return cmd_invalid;
 	snprintf(obuf, obuf_len, "%02x%s%04x%s",
-		 (unsigned int) strlen(arg), arg, (unsigned int) strlen(s), s);
+		 (unsigned int)strlen(arg), arg, (unsigned int)strlen(s), s);
 	return cmd_success;
 }
 
