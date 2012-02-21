@@ -104,14 +104,6 @@ static void evb_dump_tlv(struct unpacked_tlv *tlv)
 		   __func__, tlv->type, tlv->length, buffer);
 }
 
-static unsigned int evb_get_rte(char *ifname)
-{
-	/* TODO: fixed to ncb for now */
-	struct evb_data *ed = evb_data(ifname, NEAREST_CUSTOMER_BRIDGE);
-
-	return (unsigned int) ed->tie->rte;
-}
-
 /* evb_check_and_fill
  *
  * checks values received in TLV and takes over some values
