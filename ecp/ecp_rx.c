@@ -94,28 +94,21 @@ void ecp_rx_freeFrame(struct vdp_data *vd)
  */
 void ecp_print_framein(struct vdp_data *vd)
 {
-	int i;
-	char *s, *t;
+	int i, left = 0;
+	char buffer[128];
 
-	s = t = malloc(256);
-
-	 if (!s) {
-		LLDPAD_ERR("%s: unable to allocate string\n", __func__);
-	 }
-
-	for (i=0; i < vd->ecp.rx.sizein; i++) {
+	for (i = 0; i < vd->ecp.rx.sizein; i++) {
 		int c;
-		c = sprintf(s, "%02x ", vd->ecp.rx.framein[i]);
-		s += c;
+		c = snprintf(buffer + left, sizeof buffer - left, "%02x ",
+			     vd->ecp.rx.framein[i]);
+		if (c > 0 && (c < sizeof buffer - left))
+			left += c;
 		if (!((i+1) % 16)) {
-			LLDPAD_DBG("%s\n", t);
-			s = t;
+			LLDPAD_DBG("%s\n", buffer);
+			left = 0;
 		}
 	}
-
-	LLDPAD_DBG("%s\n", t);
-
-	free(t);
+	LLDPAD_DBG("%s\n", buffer);
 }
 
 /* ecp_rx_SendAckFrame - send ack frame
