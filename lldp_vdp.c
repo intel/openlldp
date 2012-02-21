@@ -1,9 +1,10 @@
-/*******************************************************************************
+/******************************************************************************
 
-  implementation of VDP according to IEEE 802.1Qbg
-  (c) Copyright IBM Corp. 2010
+  Implementation of VDP according to IEEE 802.1Qbg
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens at linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -21,7 +22,7 @@
   The full GNU General Public License is included in this distribution in
   the file called "COPYING".
 
-*******************************************************************************/
+******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1330,8 +1331,8 @@ struct vsi_profile *vdp_add_profile(struct vsi_profile *profile)
 				vdp_takeover_macvlans(p, profile);
 
 				if (p->mode != profile->mode) {
-					LLDPAD_DBG("%s(%i): new mode %i !\n",
-						   __func__, __LINE__, p->mode);
+					LLDPAD_DBG("%s: new mode %i !\n",
+						   __func__, profile->mode);
 					p->mode = profile->mode;
 				}
 
@@ -1445,7 +1446,7 @@ out_err:
  * no return value
  *
  * interface function to lldpad. builds up vdp specific structures if
- * interface "ifname" goes down.
+ * interface "ifname" goes up.
  */
 void vdp_ifup(char *ifname, struct lldp_agent *agent)
 {
@@ -1460,18 +1461,18 @@ void vdp_ifup(char *ifname, struct lldp_agent *agent)
 	if (is_bond(ifname))
 		return;
 
-	LLDPAD_DBG("%s(%i): starting VDP for if %s !\n", __func__, __LINE__, ifname);
+	LLDPAD_DBG("%s: %s agent:%d start VDP\n",
+		   __func__, ifname, agent->type);
 
 	snprintf(config_path, sizeof(config_path), "%s.%s",
 		 VDP_PREFIX, ARG_TLVTXENABLE);
 
-	if (get_config_setting(ifname, NEAREST_BRIDGE, config_path,
+	if (get_config_setting(ifname, agent->type, config_path,
 			       (void *)&enabletx, CONFIG_TYPE_BOOL))
 			enabletx = false;
 
 	if (enabletx == false) {
-		LLDPAD_DBG("%s: port %s not enabled for VDP\n",
-			   __func__, ifname);
+		LLDPAD_DBG("%s: %s not enabled for VDP\n", __func__, ifname);
 		return;
 	}
 
@@ -1533,12 +1534,12 @@ out_start_again:
 			vdp_start_keepaliveTimer(p);
 	}
 
-	LLDPAD_DBG("%s:%s vdp added\n", __func__, ifname);
+	LLDPAD_DBG("%s:%s agent:%d vdp added\n", __func__, ifname, agent->type);
 	return;
 
 out_err:
-	LLDPAD_ERR("%s:%s vdp adding failed\n", __func__, ifname);
-	return;
+	LLDPAD_ERR("%s:%s agent:%d vdp adding failed\n",
+		   __func__, ifname, agent->type);
 }
 
 static const struct lldp_mod_ops vdp_ops =  {
@@ -1564,14 +1565,14 @@ struct lldp_module *vdp_register(void)
 
 	mod = malloc(sizeof(*mod));
 	if (!mod) {
-		LLDPAD_ERR("lldpad failed to start - failed to malloc module data\n");
-		goto out_err;
+		LLDPAD_ERR("lldpad failed to start - vdp data\n");
+		return NULL;
 	}
 	ud = malloc(sizeof(struct vdp_user_data));
 	if (!ud) {
 		free(mod);
-		LLDPAD_ERR("lldpad failed to start - failed to malloc module user data\n");
-		goto out_err;
+		LLDPAD_ERR("lldpad failed to start - vdp user data\n");
+		return NULL;
 	}
 	LIST_INIT(&ud->head);
 	mod->id = LLDP_MOD_VDP;
@@ -1579,10 +1580,6 @@ struct lldp_module *vdp_register(void)
 	mod->data = ud;
 	LLDPAD_DBG("%s:done\n", __func__);
 	return mod;
-
-out_err:
-	LLDPAD_ERR("%s:failed\n", __func__);
-	return NULL;
 }
 
 /* vdp_unregister - unregister vdp module from lldpad
