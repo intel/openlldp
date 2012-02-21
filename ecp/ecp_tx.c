@@ -1,9 +1,10 @@
-/*******************************************************************************
+/******************************************************************************
 
-  implementation of ECP according to 802.1Qbg
-  (c) Copyright IBM Corp. 2010
+  Implementation of ECP according to 802.1Qbg
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens at linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -21,7 +22,7 @@
   The full GNU General Public License is included in this distribution in
   the file called "COPYING".
 
-*******************************************************************************/
+******************************************************************************/
 
 #include <stdio.h>
 #include <errno.h>
@@ -59,14 +60,11 @@ void ecp_somethingChangedLocal(struct vdp_data *vd, bool flag)
 	if (!vd)
 		return;
 
-	LLDPAD_DBG("%s(%i): vd->ecp.tx.localChange to %s.\n", __func__,
-		   __LINE__, (flag == true) ? "true" : "false");
+	LLDPAD_DBG("%s: vd->ecp.tx.localChange to %s\n", __func__,
+		   (flag == true) ? "true" : "false");
 
 	vd->ecp.tx.localChange = flag;
-
 	ecp_start_localchange_timer(vd);
-
-	return;
 }
 
 /* ecp_print_frameout - print outbound frame
@@ -133,14 +131,16 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 	struct packed_tlv *ptlv =  NULL;
 	struct vsi_profile *p;
 
-	/* TODO: use LLDP group MAC addresses to support S-channels/multichannel*/
+	/* TODO: use LLDP group MAC addresses to support
+	 *	 S-channels/multichannel
+	 */
 	memcpy(eth.h_dest, nearest_bridge, ETH_ALEN);
 	l2_packet_get_own_src_addr(vd->ecp.l2,(u8 *)&own_addr);
 	memcpy(eth.h_source, &own_addr, ETH_ALEN);
 	eth.h_proto = htons(ETH_P_ECP);
 	vd->ecp.tx.frameout = (u8 *)malloc(ETH_FRAME_LEN);
 	if (vd->ecp.tx.frameout == NULL) {
-		LLDPAD_ERR("InfoECPDU: Failed to malloc frame buffer \n");
+		LLDPAD_ERR("InfoECPDU: Failed to malloc frame buffer\n");
 		return false;
 	}
 	memset(vd->ecp.tx.frameout,0,ETH_FRAME_LEN);
@@ -161,26 +161,29 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 
 	if ((sizeof(struct ecp_hdr)+fb_offset) > ETH_MAX_DATA_LEN)
 		goto error;
-	memcpy(vd->ecp.tx.frameout+fb_offset, (void *)&ecp_hdr, sizeof(struct ecp_hdr));
+	memcpy(vd->ecp.tx.frameout+fb_offset, (void *)&ecp_hdr,
+	       sizeof(struct ecp_hdr));
 	datasize += sizeof(struct ecp_hdr);
 	fb_offset += sizeof(struct ecp_hdr);
 
 	/* create packed_tlvs for all profiles on this interface */
 	LIST_FOREACH(p, &vd->profile_head, profile) {
 		if(!p) {
-			LLDPAD_ERR("%s(%i): list vd->profile_head empty !\n", __func__, __LINE__);
+			LLDPAD_ERR("%s: list vd->profile_head empty\n",
+				   __func__);
 			continue;
 		}
 
 		if (!p->localChange) {
-			LLDPAD_DBG("%s(%i): skipping unchanged profile !\n", __func__, __LINE__);
+			LLDPAD_DBG("%s: skipping unchanged profile!\n",
+				   __func__);
 			continue;
 		}
 
 		ptlv = vdp_gettlv(vd, p);
 
 		if (!ptlv) {
-			LLDPAD_ERR("%s(%i): ptlv not created !\n", __func__, __LINE__);
+			LLDPAD_ERR("%s: ptlv not created !\n", __func__);
 			continue;
 		}
 
@@ -251,8 +254,6 @@ void ecp_tx_Initialize(struct vdp_data *vd)
 	vd->ecp.retries = 0;
 
 	l2_packet_get_port_state(vd->ecp.l2, (u8 *)&(port->portEnabled));
-
-	return;
 }
 
 /* ecp_txFrame - transmit ecp frame
@@ -289,7 +290,7 @@ void ecp_tx_create_frame(struct vdp_data *vd)
 	if (vd->ecp.tx.localChange) {
 		int ret;
 
-		LLDPAD_DBG("%s(%i)-%s: sending REQs\n", __func__, __LINE__, vd->ifname);
+		LLDPAD_DBG("%s-%s: sending REQs\n", __func__, vd->ifname);
 		ret = ecp_build_ECPDU(vd);
 
 		/* ECPDU construction succesful, send out frame */
@@ -300,7 +301,6 @@ void ecp_tx_create_frame(struct vdp_data *vd)
 	}
 
 	ecp_somethingChangedLocal(vd, false);
-	return;
 }
 
 /* ecp_tx_stop_ackTimer - stop the ECP ack timer
@@ -315,8 +315,7 @@ void ecp_tx_stop_ackTimer(struct vdp_data *vd)
 {
 	vd->ecp.ackTimer = ECP_ACK_TIMER_STOPPED;
 
-	LLDPAD_DBG("%s(%i)-%s: stopped ecp ack timer\n", __func__, __LINE__,
-	       vd->ifname);
+	LLDPAD_DBG("%s-%s: stopped ecp ack timer\n", __func__, vd->ifname);
 
 	ecp_stop_ack_timer(vd);
 }
@@ -332,8 +331,7 @@ static void ecp_tx_start_ackTimer(struct vdp_data *vd)
 {
 	vd->ecp.ackTimer = ECP_ACK_TIMER_DEFAULT;
 
-	LLDPAD_DBG("%s(%i)-%s: starting ecp ack timer\n", __func__, __LINE__,
-	       vd->ifname);
+	LLDPAD_DBG("%s-%s: starting ecp ack timer\n", __func__, vd->ifname);
 
 	ecp_start_ack_timer(vd);
 }
@@ -376,13 +374,12 @@ static void ecp_tx_change_state(struct vdp_data *vd, u8 newstate)
 		assert(vd->ecp.tx.state == ECP_TX_WAIT_FOR_ACK);
 		break;
 	default:
-		LLDPAD_ERR("%s: LLDP TX state machine setting invalid state %d\n",
+		LLDPAD_ERR("%s: LLDP TX state machine invalid state %d\n",
 			   vd->ifname, newstate);
 	}
-
-	LLDPAD_DBG("%s(%i)-%s: state change %s -> %s\n", __func__, __LINE__,
-	       vd->ifname, ecp_tx_states[vd->ecp.tx.state], ecp_tx_states[newstate]);
-
+	LLDPAD_DBG("%s-%s: state change %s -> %s\n", __func__,
+		   vd->ifname, ecp_tx_states[vd->ecp.tx.state],
+		   ecp_tx_states[newstate]);
 	vd->ecp.tx.state = newstate;
 	return;
 }
@@ -401,7 +398,7 @@ static bool ecp_set_tx_state(struct vdp_data *vd)
 	struct port *port = port_find_by_name(vd->ifname);
 
 	if (!port) {
-		LLDPAD_ERR("%s(%i): port not found !\n", __func__, __LINE__);
+		LLDPAD_ERR("%s: port not found\n", __func__);
 		return 0;
 	}
 
@@ -435,18 +432,19 @@ static bool ecp_set_tx_state(struct vdp_data *vd)
 				return true;
 			}
 			if (vd->ecp.retries == ECP_MAX_RETRIES) {
-				LLDPAD_DBG("%s(%i)-%s: 1 \n", __func__, __LINE__,
-				       vd->ifname);
+				LLDPAD_DBG("%s-%s: retries expired\n",
+					   __func__, vd->ifname);
 				ecp_tx_stop_ackTimer(vd);
 				ecp_tx_change_state(vd, ECP_TX_REQUEST_PDU);
 				return true;
 			}
 		}
-		if (vd->ecp.ackReceived && vd->ecp.seqECPDU == vd->ecp.lastSequence) {
+		if (vd->ecp.ackReceived &&
+		    vd->ecp.seqECPDU == vd->ecp.lastSequence) {
 			vd->ecp.ackReceived = false;
 			if (vdp_vsis_pending(vd)) {
-				LLDPAD_DBG("%s(%i)-%s: still work pending !\n",
-					   __func__, __LINE__, vd->ifname);
+				LLDPAD_DBG("%s-%s: still work pending\n",
+					   __func__, vd->ifname);
 				ecp_somethingChangedLocal(vd, true);
 			}
 			ecp_tx_change_state(vd, ECP_TX_REQUEST_PDU);
@@ -476,7 +474,7 @@ static bool ecp_set_tx_state(struct vdp_data *vd)
 void ecp_tx_run_sm(struct vdp_data *vd)
 {
 	do {
-		LLDPAD_DBG("%s(%i)-%s: ecp_tx - %s\n", __func__, __LINE__,
+		LLDPAD_DBG("%s-%s: ecp_tx - %s\n", __func__,
 		       vd->ifname, ecp_tx_states[vd->ecp.tx.state]);
 
 		switch(vd->ecp.tx.state) {
@@ -490,24 +488,23 @@ void ecp_tx_run_sm(struct vdp_data *vd)
 			break;
 		case ECP_TX_WAIT_FOR_ACK:
 			if (vd->ecp.ackReceived) {
-				LLDPAD_DBG("%s(%i)-%s: ECP_TX_WAIT_FOR_ACK ackReceived\n", __func__, __LINE__,
-				       vd->ifname);
-				LLDPAD_DBG("%s(%i)-%s: seqECPDU %x lastSequence %x \n", __func__, __LINE__,
-				       vd->ifname, vd->ecp.seqECPDU, vd->ecp.lastSequence);
+				LLDPAD_DBG("%s-%s: ECP_TX_WAIT_FOR_ACK "
+					   "ackReceived seqECPDU %#x "
+					   "lastSequence %#x\n", __func__,
+					   vd->ifname, vd->ecp.seqECPDU,
+					   vd->ecp.lastSequence);
 				ecp_somethingChangedLocal(vd, false);
 				ecp_tx_stop_ackTimer(vd);
 			}
 			break;
 		case ECP_TX_REQUEST_PDU:
 			vd->ecp.retries = 0;
-			LLDPAD_DBG("%s(%i)-%s: ECP_TX_REQUEST_PDU lastSequence %x\n", __func__, __LINE__,
-			       vd->ifname, vd->ecp.lastSequence);
+			LLDPAD_DBG("%s-%s: ECP_TX_REQUEST_PDU lastSeq %#x\n",
+				   __func__, vd->ifname, vd->ecp.lastSequence);
 			break;
 		default:
 			LLDPAD_ERR("%s: LLDP TX state machine in invalid state %d\n",
 				   vd->ifname, vd->ecp.tx.state);
 		}
 	} while (ecp_set_tx_state(vd) == true);
-
-	return;
 }
