@@ -69,7 +69,7 @@ static void ecp_rx_freeFramein(struct vdp_data *vd)
  *
  * initialize some variables, get rid of old frame if necessary
  */
-void ecp_rx_Initialize(struct vdp_data *vd)
+static void ecp_rx_Initialize(struct vdp_data *vd)
 {
 	vd->ecp.rx.rcvFrame = false;
 	vd->ecp.rx.badFrame = false;
@@ -85,7 +85,7 @@ void ecp_rx_Initialize(struct vdp_data *vd)
  * prints out a raw version of a received frame. useful for low-level protocol
  * debugging.
  */
-void ecp_print_framein(struct vdp_data *vd)
+static void ecp_print_framein(struct vdp_data *vd)
 {
 	int i, left = 0;
 	char buffer[128];
@@ -112,7 +112,7 @@ void ecp_print_framein(struct vdp_data *vd)
  * copies current received frame over to frame out, fills in address of this
  * port and set mode field to ACK. used by ecp_rx_send_ack_frame.
  */
-int ecp_rx_SendAckFrame(struct vdp_data *vd)
+static int ecp_rx_SendAckFrame(struct vdp_data *vd)
 {
 	u16 tlv_offset = 0;
 	struct ecp_hdr *ecp_hdr;
@@ -285,7 +285,7 @@ ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf, size_t len)
  * checks wether received frame has correct subtype and mode
  */
 
-void ecp_rx_validate_frame(struct vdp_data *vd)
+static void ecp_rx_validate_frame(struct vdp_data *vd)
 {
 	u16 tlv_offset = 0;
 	struct ecp_hdr *ecp_hdr;
@@ -337,7 +337,7 @@ void ecp_rx_validate_frame(struct vdp_data *vd)
  * walks through the packed vsi tlvs in an ecp frame, extracts them
  * and passes them to the VDP ULP with vdp_indicate.
  */
-void ecp_rx_ProcessFrame(struct vdp_data *vd)
+static void ecp_rx_ProcessFrame(struct vdp_data *vd)
 {
 	u16 tlv_cnt = 0;
 	u8  tlv_type = 0;
@@ -514,7 +514,7 @@ void ecp_rx_change_state(struct vdp_data *vd, u8 newstate)
  * variables. returns true or false depending on wether the state machine
  * can be run again with the new state or can stop at the current state.
  */
-bool ecp_set_rx_state(struct vdp_data *vd)
+static bool ecp_set_rx_state(struct vdp_data *vd)
 {
 	struct port *port = port_find_by_name(vd->ifname);
 

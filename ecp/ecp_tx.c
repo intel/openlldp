@@ -236,7 +236,7 @@ error:
  *
  * initializes some variables for the ecp tx state machine.
  */
-void ecp_tx_Initialize(struct vdp_data *vd)
+static void ecp_tx_Initialize(struct vdp_data *vd)
 {
 	struct port *port = port_find_by_name(vd->ifname);
 
@@ -284,7 +284,7 @@ u8 ecp_txFrame(struct vdp_data *vd)
  *
  *
  */
-void ecp_tx_create_frame(struct vdp_data *vd)
+static void ecp_tx_create_frame(struct vdp_data *vd)
 {
 	/* send REQs */
 	if (vd->ecp.tx.localChange) {
