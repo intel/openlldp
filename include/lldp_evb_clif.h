@@ -1,4 +1,4 @@
-/*******************************************************************************
+/******************************************************************************
 
   Implementation of EVB TLVs for LLDP
   (c) Copyright IBM Corp. 2010, 2012
@@ -22,14 +22,12 @@
   The full GNU General Public License is included in this distribution in
   the file called "COPYING".
 
-*******************************************************************************/
+******************************************************************************/
 
 #ifndef _LLDP_EVB_CLIF_H
 #define _LLDP_EVB_CLIF_H
 
 struct lldp_module *evb_cli_register(void);
-void evb_cli_unregister(struct lldp_module *);
-int evb_print_tlv(u32, u16, char *);
 
 #define EVB_BUF_SIZE			256
 

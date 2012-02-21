@@ -35,27 +35,16 @@
 #include "lldp_evb.h"
 #include "lldp_evb_clif.h"
 
-void evb_print_cfg_tlv(u16, char *info);
-int evb_print_help();
+static void evb_print_cfg_tlv(u16, char *);
 
-u32 evb_lookup_tlv_name(char *tlvid_str);
-
-static const struct lldp_mod_ops evb_ops_clif = {
-	.lldp_mod_register	= evb_cli_register,
-	.lldp_mod_unregister	= evb_cli_unregister,
-	.print_tlv		= evb_print_tlv,
-	.lookup_tlv_name	= evb_lookup_tlv_name,
-	.print_help		= evb_print_help,
-};
-
-struct type_name_info evb_tlv_names[] = {
+static struct type_name_info evb_tlv_names[] = {
 	{	.type = (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE,
 		.name = "EVB Configuration TLV", .key = "evbCfg",
 		.print_info = evb_print_cfg_tlv, },
 	{	.type = INVALID_TLVID, }
 };
 
-int evb_print_help()
+static int evb_print_help()
 {
 	struct type_name_info *tn = &evb_tlv_names[0];
 
@@ -72,27 +61,12 @@ int evb_print_help()
 	return 0;
 }
 
-struct lldp_module *evb_cli_register(void)
-{
-	struct lldp_module *mod;
-
-	mod = malloc(sizeof(*mod));
-	if (!mod) {
-		fprintf(stderr, "%s failed to malloc module data\n", __func__);
-		return NULL;
-	}
-	mod->id = LLDP_MOD_EVB;
-	mod->ops = &evb_ops_clif;
-
-	return mod;
-}
-
-void evb_cli_unregister(struct lldp_module *mod)
+static void evb_cli_unregister(struct lldp_module *mod)
 {
 	free(mod);
 }
 
-void evb_print_cfg_tlv(u16 len, char *info)
+static void evb_print_cfg_tlv(u16 len, char *info)
 {
 	u8 smode;
 	u8 scap;
@@ -117,9 +91,8 @@ void evb_print_cfg_tlv(u16 len, char *info)
 			printf(" standard 802.1Q");
 
 		printf("\n");
-	} else {
+	} else
 		printf("Unable to decode smode !\n");
-	}
 
 	if (!hexstr2bin(info+2, &scap, sizeof(scap))) {
 		printf("\tsupported capabilities: (0x%02hhx)", scap);
@@ -134,9 +107,8 @@ void evb_print_cfg_tlv(u16 len, char *info)
 		     printf(" VDP");
 
 		printf("\n");
-	} else {
+	} else
 		printf("Unable to decode scap !\n");
-	}
 
 	if (!hexstr2bin(info+4, &cmode, sizeof(cmode))) {
 		printf("\tconfigured forwarding mode: (0x%02hhx)", cmode);
@@ -148,9 +120,8 @@ void evb_print_cfg_tlv(u16 len, char *info)
 			printf(" standard 802.1Q");
 
 		printf("\n");
-	} else {
+	} else
 		printf("Unable to decode cmode !\n");
-	}
 
 	if (!hexstr2bin(info+6, &ccap, sizeof(ccap))) {
 		printf("\tconfigured capabilities: (0x%02hhx)", ccap);
@@ -165,27 +136,23 @@ void evb_print_cfg_tlv(u16 len, char *info)
 		     printf(" VDP");
 
 		printf("\n");
-	} else {
+	} else
 		printf("Unable to decode ccap !\n");
-	}
 
-	if (!hexstr2bin(info+8, (u8 *)&svsi, sizeof(svsi))) {
+	if (!hexstr2bin(info+8, (u8 *)&svsi, sizeof(svsi)))
 		printf("\tno. of supported VSIs: %04i\n",svsi);
-	} else {
+	else
 		printf("Unable to decode svsi !\n");
-	}
 
-	if (!hexstr2bin(info+12, (u8 *)&cvsi, sizeof(cvsi))) {
+	if (!hexstr2bin(info+12, (u8 *)&cvsi, sizeof(cvsi)))
 		printf("\tno. of configured VSIs: %04i\n",cvsi);
-	} else {
+	else
 		printf("Unable to decode cvsi !\n");
-	}
 
-	if (!hexstr2bin(info+16, &rte, sizeof(rte))) {
+	if (!hexstr2bin(info+16, &rte, sizeof(rte)))
 		printf("\tRTE: %i\n",rte);
-	} else {
+	else
 		printf("Unable to decode cvsi !\n");
-	}
 
 	printf("\n");
 }
@@ -193,7 +160,7 @@ void evb_print_cfg_tlv(u16 len, char *info)
 /* return 1: if it printed the TLV
  *        0: if it did not
  */
-int evb_print_tlv(u32 tlvid, u16 len, char *info)
+static int evb_print_tlv(u32 tlvid, u16 len, char *info)
 {
 	struct type_name_info *tn = &evb_tlv_names[0];
 
@@ -212,7 +179,7 @@ int evb_print_tlv(u32 tlvid, u16 len, char *info)
 	return 0;
 }
 
-u32 evb_lookup_tlv_name(char *tlvid_str)
+static u32 evb_lookup_tlv_name(char *tlvid_str)
 {
 	struct type_name_info *tn = &evb_tlv_names[0];
 
@@ -222,4 +189,27 @@ u32 evb_lookup_tlv_name(char *tlvid_str)
 		tn++;
 	}
 	return INVALID_TLVID;
+}
+
+static const struct lldp_mod_ops evb_ops_clif = {
+	.lldp_mod_register	= evb_cli_register,
+	.lldp_mod_unregister	= evb_cli_unregister,
+	.print_tlv		= evb_print_tlv,
+	.lookup_tlv_name	= evb_lookup_tlv_name,
+	.print_help		= evb_print_help,
+};
+
+struct lldp_module *evb_cli_register(void)
+{
+	struct lldp_module *mod;
+
+	mod = malloc(sizeof(*mod));
+	if (!mod) {
+		fprintf(stderr, "%s failed to malloc module data\n", __func__);
+		return NULL;
+	}
+	mod->id = LLDP_MOD_EVB;
+	mod->ops = &evb_ops_clif;
+
+	return mod;
 }
