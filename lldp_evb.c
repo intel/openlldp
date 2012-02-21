@@ -22,7 +22,7 @@
   The full GNU General Public License is included in this distribution in
   the file called "COPYING".
 
-*******************************************************************************/
+******************************************************************************/
 
 #define _GNU_SOURCE
 
@@ -534,8 +534,10 @@ static void evb_ifdown(char *ifname, struct lldp_agent *agent)
 	LLDPAD_DBG("%s called\n", __func__);
 
 	ed = evb_data(ifname, agent->type);
-	if (!ed)
-		goto out_err;
+	if (!ed) {
+		LLDPAD_ERR("%s:port %s remove failed\n", __func__, ifname);
+		return;
+	}
 
 	free(ed->policy);
 	free(ed->tie);
@@ -544,9 +546,6 @@ static void evb_ifdown(char *ifname, struct lldp_agent *agent)
 	evb_free_tlv(ed);
 	free(ed);
 	LLDPAD_INFO("%s:port %s removed\n", __func__, ifname);
-	return;
-out_err:
-	LLDPAD_ERR("%s:port %s remove failed\n", __func__, ifname);
 }
 
 static void evb_ifup(char *ifname, struct lldp_agent *agent)
@@ -587,7 +586,6 @@ out_free:
 	free(ed->last);
 	free(ed->policy);
 	free(ed);
-	return;
 }
 
 static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
@@ -609,13 +607,11 @@ static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 	free(ed->last);
 	free(ed->policy);
 
-	if (evb_init_cfg_tlv(ed, agent)) {
-		LLDPAD_ERR("%s:%s evb_init_cfg_tlv failed\n",
-			   __func__, port->ifname);
-		goto out_err;
-	}
-
-	evb_bld_tlv(ed, agent);
+	if (evb_init_cfg_tlv(ed, agent))
+		LLDPAD_ERR("%s:%s evb_init_cfg_tlv failed\n", __func__,
+			   port->ifname);
+	else
+		evb_bld_tlv(ed, agent);
 
 out_err:
 	return 0;
@@ -640,13 +636,13 @@ struct lldp_module *evb_register(void)
 	mod = malloc(sizeof(*mod));
 	if (!mod) {
 		LLDPAD_ERR("%s: failed to malloc module data\n", __func__);
-		goto out_err;
+		return NULL;
 	}
 	ud = malloc(sizeof(struct evb_user_data));
 	if (!ud) {
 		free(mod);
 		LLDPAD_ERR("%s failed to malloc module user data\n", __func__);
-		goto out_err;
+		return NULL;
 	}
 	LIST_INIT(&ud->head);
 	mod->id = LLDP_MOD_EVB;
@@ -654,10 +650,6 @@ struct lldp_module *evb_register(void)
 	mod->data = ud;
 	LLDPAD_DBG("%s:done\n", __func__);
 	return mod;
-
-out_err:
-	LLDPAD_ERR("%s:failed\n", __func__);
-	return NULL;
 }
 
 void evb_unregister(struct lldp_module *mod)
