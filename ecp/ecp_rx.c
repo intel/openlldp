@@ -1,9 +1,10 @@
-/*******************************************************************************
+/******************************************************************************
 
-  implementation of ECP according to 802.1Qbg
-  (c) Copyright IBM Corp. 2010
+  Implementation of ECP according to 802.1Qbg
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens at linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -99,7 +100,7 @@ void ecp_print_framein(struct vdp_data *vd)
 	s = t = malloc(256);
 
 	 if (!s) {
-		LLDPAD_ERR("%s(%i): unable to allocate string !\n", __func__, __LINE__);
+		LLDPAD_ERR("%s: unable to allocate string\n", __func__);
 	 }
 
 	for (i=0; i < vd->ecp.rx.sizein; i++) {
@@ -132,7 +133,7 @@ int ecp_rx_SendAckFrame(struct vdp_data *vd)
 	struct l2_ethhdr *hdr;
 	u8 own_addr[ETH_ALEN];
 
-	LLDPAD_DBG("%s(%i)-%s: acking frame \n", __func__, __LINE__, vd->ifname);
+	LLDPAD_DBG("%s-%s: acking frame\n", __func__, vd->ifname);
 
 	assert(vd->ecp.rx.framein && vd->ecp.rx.sizein);
 
@@ -151,10 +152,10 @@ int ecp_rx_SendAckFrame(struct vdp_data *vd)
 	ecp_hdr->mode = ECP_ACK;
 
 	tlv_offset = sizeof(struct l2_ethhdr) + sizeof(struct ecp_hdr);
-	LLDPAD_DBG("%s(%i)-%s: zeroing out rest of ack frame from %i to %i.\n",
-		   __func__, __LINE__, vd->ifname, tlv_offset, vd->ecp.rx.sizein);
-	memset(&vd->ecp.tx.frameout[tlv_offset], 0, vd->ecp.rx.sizein-tlv_offset);
-
+	LLDPAD_DBG("%s-%s: zeroing out rest of ack frame from %i to %i\n",
+		   __func__, vd->ifname, tlv_offset, vd->ecp.rx.sizein);
+	memset(&vd->ecp.tx.frameout[tlv_offset], 0,
+	       vd->ecp.rx.sizein-tlv_offset);
 	return 0;
 }
 
@@ -169,12 +170,8 @@ int ecp_rx_SendAckFrame(struct vdp_data *vd)
 void ecp_rx_send_ack_frame(struct vdp_data *vd)
 {
 	ecp_rx_SendAckFrame(vd);
-
 	ecp_print_frameout(vd);
-
 	ecp_txFrame(vd);
-
-	return;
 }
 
 /* ecp_rx_ReceiveFrame - receive ecp frame
@@ -212,8 +209,8 @@ ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf, size_t len)
 	if (port == NULL)
 		return;
 
-	LLDPAD_DBG("%s(%i)-%s: received packet with size %i\n", __func__, __LINE__,
-	       vd->ifname, (int) len);
+	LLDPAD_DBG("%s-%s: received packet with size %i\n",
+		   __func__, vd->ifname, (int) len);
 
 	if (vd->enabletx == false)
 		return;
@@ -230,7 +227,7 @@ ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf, size_t len)
 
 	vd->ecp.rx.framein = (u8 *)malloc(len);
 	if (vd->ecp.rx.framein == NULL) {
-		LLDPAD_ERR("ERROR - could not allocate memory for rx'ed frame\n");
+		LLDPAD_ERR("ERROR - allocating memory for rx'ed frame\n");
 		return;
 	}
 	memset(vd->ecp.rx.framein, 0, len);
@@ -277,21 +274,21 @@ ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf, size_t len)
 
 	switch(ecp_hdr->mode) {
 	case ECP_REQUEST:
-		LLDPAD_DBG("%s(%i)-%s: received REQ frame \n",
-			   __func__, __LINE__, vd->ifname);
+		LLDPAD_DBG("%s-%s: received REQ frame\n",
+			   __func__, vd->ifname);
 		vd->ecp.ackReceived = false;
 		ecp_rx_run_sm(vd);
 		break;
 	case ECP_ACK:
-		LLDPAD_DBG("%s(%i)-%s: received ACK frame \n",
-			   __func__, __LINE__, vd->ifname);
+		LLDPAD_DBG("%s-%s: received ACK frame\n",
+			   __func__, vd->ifname);
 		vd->ecp.ackReceived = true;
 		vdp_ack_profiles(vd, vd->ecp.seqECPDU);
 		ecp_tx_run_sm(vd);
 		vd->ecp.ackReceived = false;
 		break;
 	default:
-		LLDPAD_ERR("ERROR: unknown mode %i!\n", ecp_hdr->mode);
+		LLDPAD_ERR("ERROR: unknown mode %i\n", ecp_hdr->mode);
 		return;
 	}
 
@@ -311,7 +308,7 @@ void ecp_rx_validate_frame(struct vdp_data *vd)
 	u16 tlv_offset = 0;
 	struct ecp_hdr *ecp_hdr;
 
-	LLDPAD_DBG("%s(%i)-%s: validating frame \n", __func__, __LINE__, vd->ifname);
+	LLDPAD_DBG("%s-%s: validating frame\n", __func__, vd->ifname);
 
 	assert(vd->ecp.rx.framein && vd->ecp.rx.sizein);
 
@@ -319,18 +316,19 @@ void ecp_rx_validate_frame(struct vdp_data *vd)
 
 	ecp_hdr = (struct ecp_hdr *)&vd->ecp.rx.framein[tlv_offset];
 
-	LLDPAD_DBG("%s(%i)-%s: ecp packet with subtype %04x, mode %02x, sequence nr %04x\n",
-	       __func__, __LINE__, vd->ifname, ecp_hdr->subtype, ecp_hdr->mode, ntohs(ecp_hdr->seqnr));
+	LLDPAD_DBG("%s-%s: ecp packet with subtype %#x mode %#x seq %#04x\n",
+		   __func__, vd->ifname, ecp_hdr->subtype, ecp_hdr->mode,
+		   ntohs(ecp_hdr->seqnr));
 
 	if (ecp_hdr->subtype != ECP_SUBTYPE) {
-		LLDPAD_ERR("ERROR: unknown subtype !\n");
+		LLDPAD_ERR("ERROR: unknown subtype\n");
 		return;
 	}
 
 	if ((ecp_hdr->oui[0] != 0x0) || (ecp_hdr->oui[1] != 0x1b) ||
 		(ecp_hdr->oui[2] != 0x3f)) {
-		LLDPAD_ERR("ERROR: incorrect OUI 0x%02x%02x%02x !\n",
-		       ecp_hdr->oui[0], ecp_hdr->oui[1], ecp_hdr->oui[2]);
+		LLDPAD_ERR("ERROR: incorrect OUI 0x%02x%02x%02x\n",
+			   ecp_hdr->oui[0], ecp_hdr->oui[1], ecp_hdr->oui[2]);
 		return;
 	}
 
@@ -340,7 +338,7 @@ void ecp_rx_validate_frame(struct vdp_data *vd)
 	case ECP_ACK:
 		break;
 	default:
-		LLDPAD_ERR("ERROR: unknown mode %i!\n", ecp_hdr->mode);
+		LLDPAD_ERR("ERROR: unknown mode %i\n", ecp_hdr->mode);
 		return;
 	}
 
@@ -368,7 +366,7 @@ void ecp_rx_ProcessFrame(struct vdp_data *vd)
 	bool tlv_stored     = false;
 	struct ecp_hdr *ecp_hdr;
 
-	LLDPAD_DBG("%s(%i)-%s: processing frame \n", __func__, __LINE__, vd->ifname);
+	LLDPAD_DBG("%s-%s: processing frame\n", __func__, vd->ifname);
 
 	assert(vd->ecp.rx.framein && vd->ecp.rx.sizein);
 
@@ -376,8 +374,9 @@ void ecp_rx_ProcessFrame(struct vdp_data *vd)
 
 	ecp_hdr = (struct ecp_hdr *)&vd->ecp.rx.framein[tlv_offset];
 
-	LLDPAD_DBG("%s(%i)-%s: ecp packet with subtype %04x, mode %02x, sequence nr %04x\n",
-	       __func__, __LINE__, vd->ifname, ecp_hdr->subtype, ecp_hdr->mode, ntohs(ecp_hdr->seqnr));
+	LLDPAD_DBG("%s-%s: ecp packet with subtype %#x mode %#x seq %#04x\n",
+		   __func__, vd->ifname, ecp_hdr->subtype,
+		   ecp_hdr->mode, ntohs(ecp_hdr->seqnr));
 
 	if (ecp_hdr->mode == ECP_ACK)
 		return;
@@ -390,14 +389,15 @@ void ecp_rx_ProcessFrame(struct vdp_data *vd)
 		tlv_cnt++;
 
 		if (tlv_offset > vd->ecp.rx.sizein) {
-			LLDPAD_ERR("%s(%i)-%s: ERROR: Frame overrun! tlv_offset %i, sizein %i cnt %i\n",
-			       __func__, __LINE__, vd->ifname, tlv_offset, vd->ecp.rx.sizein, tlv_cnt);
+			LLDPAD_ERR("%s-%s: ERROR: Frame overrun! tlv_offset %i sizein %i cnt %i\n",
+				   __func__, vd->ifname, tlv_offset,
+				   vd->ecp.rx.sizein, tlv_cnt);
 			frame_error++;
 			goto out;
 		}
 
 		if (tlv_offset + 2 > vd->ecp.rx.sizein) {
-			LLDPAD_DBG("%s: tlv end of frame problem, size=%d, offset=%d\n",
+			LLDPAD_DBG("%s: tlv EOF problem size=%d offset=%d\n",
 				   __func__, vd->ecp.rx.sizein, tlv_offset);
 			frame_error++;
 			goto out;
@@ -410,7 +410,8 @@ void ecp_rx_ProcessFrame(struct vdp_data *vd)
 		u16 tmp_offset = tlv_offset + tlv_length;
 		if (tmp_offset > vd->ecp.rx.sizein) {
 			LLDPAD_ERR("ERROR: Frame overflow error: offset=%d, "
-				"rx.size=%d \n", tmp_offset, vd->ecp.rx.sizein);
+				   "rx.size=%d\n",
+				   tmp_offset, vd->ecp.rx.sizein);
 			frame_error++;
 			goto out;
 		}
@@ -421,8 +422,7 @@ void ecp_rx_ProcessFrame(struct vdp_data *vd)
 		struct unpacked_tlv *tlv = create_tlv();
 
 		if (!tlv) {
-			LLDPAD_ERR("ERROR: Failed to malloc space for "
-				   "incoming TLV. \n");
+			LLDPAD_ERR("ERROR: Failed malloc for incoming TLV\n");
 			goto out;
 		}
 
@@ -439,8 +439,7 @@ void ecp_rx_ProcessFrame(struct vdp_data *vd)
 			memset(tlv->info,0, tlv_length);
 			memcpy(tlv->info, info, tlv_length);
 		} else {
-			LLDPAD_ERR("ERROR: Failed to malloc space for incoming "
-				"TLV info \n");
+			LLDPAD_ERR("ERROR: Failed malloc for incoming TLV info\n");
 			free_unpkd_tlv(tlv);
 			goto out;
 		}
@@ -453,16 +452,17 @@ void ecp_rx_ProcessFrame(struct vdp_data *vd)
 			if (!vdp_indicate(vd, tlv))
 				tlv_stored = true;
 			else {
-				/* TODO: put it in a list and try again later until
-				 * timer and retries have expired */
+				/* TODO
+				 * put it in a list and try again later until
+				 * timer and retries have expired
+				 */
 				tlv_stored = false;
 			}
 		}
 
 		if ((tlv->type != TYPE_0) && !tlv_stored) {
-			LLDPAD_DBG("\n%s: allocated TLV (%u) "
-				   " was not stored! (%p)\n", __func__, tlv->type,
-				   tlv);
+			LLDPAD_DBG("%s: TLV (%u) was not stored (%p)\n",
+				   __func__, tlv->type, tlv);
 			tlv = free_unpkd_tlv(tlv);
 			vd->ecp.stats.statsTLVsUnrecognizedTotal++;
 		}
@@ -514,12 +514,13 @@ void ecp_rx_change_state(struct vdp_data *vd, u8 newstate)
 		assert(vd->ecp.rx.state == ECP_RX_RECEIVE_ECPDU);
 		break;
 	default:
-		LLDPAD_ERR("%s: LLDP rx state machine setting invalid state %d\n",
+		LLDPAD_ERR("%s: LLDP RX state machine invalid state %d\n",
 			   vd->ifname, newstate);
 	}
 
-	LLDPAD_DBG("%s(%i)-%s: state change %s -> %s\n", __func__, __LINE__,
-	       vd->ifname, ecp_rx_states[vd->ecp.rx.state], ecp_rx_states[newstate]);
+	LLDPAD_DBG("%s-%s: state change %s -> %s\n", __func__,
+		   vd->ifname, ecp_rx_states[vd->ecp.rx.state],
+		   ecp_rx_states[newstate]);
 
 	vd->ecp.rx.state = newstate;
 }
@@ -569,8 +570,9 @@ bool ecp_set_rx_state(struct vdp_data *vd)
 		return false;
 	case ECP_RX_RECEIVE_ECPDU:
 		if (vd->ecp.seqECPDU == vd->ecp.lastSequence) {
-			LLDPAD_DBG("%s(%i):-(%s) seqECPDU %x, lastSequence %x\n", __func__, __LINE__,
-			       vd->ifname, vd->ecp.seqECPDU, vd->ecp.lastSequence);
+			LLDPAD_DBG("%s:-(%s) seqECPDU %x, lastSequence %x\n",
+				   __func__, vd->ifname, vd->ecp.seqECPDU,
+				   vd->ecp.lastSequence);
 			ecp_rx_change_state(vd, ECP_RX_RESEND_ACK);
 			return true;
 		}
@@ -601,7 +603,7 @@ void ecp_rx_run_sm(struct vdp_data *vd)
 {
 	ecp_set_rx_state(vd);
 	do {
-		LLDPAD_DBG("%s(%i)-%s: ecp_rx - %s\n", __func__, __LINE__,
+		LLDPAD_DBG("%s-%s: ecp_rx - %s\n", __func__,
 		       vd->ifname, ecp_rx_states[vd->ecp.tx.state]);
 
 		switch(vd->ecp.rx.state) {
