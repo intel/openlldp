@@ -646,11 +646,12 @@ int is_macvtap(const char *ifname)
 	}
 
 	nlh = malloc(NLMSG_SIZE);
-	memset(nlh, 0, NLMSG_SIZE);
 
 	if (!nlh) {
 		goto out;
 	}
+
+	memset(nlh, 0, NLMSG_SIZE);
 
 	nlh->nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
         nlh->nlmsg_type = RTM_GETLINK;
