@@ -1,9 +1,10 @@
-/*******************************************************************************
+/******************************************************************************
 
-  implementation of EVB TLVs for LLDP
-  (c) Copyright IBM Corp. 2010
+  Implementation of EVB TLVs for LLDP
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens at linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -21,7 +22,7 @@
   The full GNU General Public License is included in this distribution in
   the file called "COPYING".
 
-*******************************************************************************/
+******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,7 +78,7 @@ struct lldp_module *evb_cli_register(void)
 
 	mod = malloc(sizeof(*mod));
 	if (!mod) {
-		fprintf(stderr, "failed to malloc module data\n");
+		fprintf(stderr, "%s failed to malloc module data\n", __func__);
 		return NULL;
 	}
 	mod->id = LLDP_MOD_EVB;
@@ -107,7 +108,7 @@ void evb_print_cfg_tlv(u16 len, char *info)
 	}
 
 	if (!hexstr2bin(info, &smode, sizeof(smode))) {
-		printf("supported forwarding mode: (0x%02hhx)", smode);
+		printf("supported forwarding mode: (%#x)", smode);
 
 		if (smode & LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY)
 			printf(" reflective relay");
@@ -222,4 +223,3 @@ u32 evb_lookup_tlv_name(char *tlvid_str)
 	}
 	return INVALID_TLVID;
 }
-
