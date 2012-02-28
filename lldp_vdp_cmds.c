@@ -1,9 +1,10 @@
 /******************************************************************************
 
-  implementation of VDP according to IEEE 802.1Qbg
-  (c) Copyright IBM Corp. 2010
+  Implementation of VDP according to IEEE 802.1Qbg
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens@linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht@linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -21,7 +22,7 @@
   The full GNU General Public License is included in this distribution in
   the file called "COPYING".
 
-*******************************************************************************/
+******************************************************************************/
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -103,13 +104,13 @@ char *print_profile(char *s, size_t length, struct vsi_profile *p)
 		return r;
 
 	c = snprintf(s, length, "response: %i (%s)\n", p->response,
-		vdp_response2str(p->response));
+		     vdp_response2str(p->response));
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
 		return r;
 
 	c = snprintf(s, length, "state: %i (%s)\n",
-		p->state, vsi_states[p->state]);
+		     p->state, vsi_states[p->state]);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
 		return r;
@@ -180,11 +181,10 @@ get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 
 	switch (cmd->tlvid) {
 	case ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE:
-		snprintf(arg_path, sizeof(arg_path), "%s.%s",
-			 VDP_PREFIX, arg);
+		snprintf(arg_path, sizeof(arg_path), "%s.%s", VDP_PREFIX, arg);
 
 		if (get_cfg(cmd->ifname, cmd->type, arg_path, &value,
-		    CONFIG_TYPE_BOOL))
+			    CONFIG_TYPE_BOOL))
 			value = false;
 		break;
 	case INVALID_TLVID:
@@ -199,7 +199,7 @@ get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		s = VAL_NO;
 
 	snprintf(obuf, obuf_len, "%02zx%s%04zx%s",
-		  strlen(arg), arg,  strlen(s), s);
+		 strlen(arg), arg, strlen(s), s);
 
 	return cmd_success;
 }
@@ -277,26 +277,24 @@ static int get_arg_mode(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 
 	vd = vdp_data(cmd->ifname);
 	if (!vd) {
-		LLDPAD_ERR("%s(%i): vdp_data for %s not found !\n",
-			    __func__, __LINE__, cmd->ifname);
+		LLDPAD_ERR("%s: vdp_data for %s not found !\n",
+			    __func__, cmd->ifname);
 		return cmd_invalid;
 	}
 
-	LIST_FOREACH(np, &vd->profile_head, profile) {
+	LIST_FOREACH(np, &vd->profile_head, profile)
 		count++;
-	}
 
-	s = t = malloc((count+1)*VDP_BUF_SIZE);
+	s = t = malloc((count + 1) * VDP_BUF_SIZE);
 	if (!s)
 		return cmd_invalid;
-	memset(s, 0, (count+1)*VDP_BUF_SIZE);
+	memset(s, 0, (count + 1) * VDP_BUF_SIZE);
 
-	LIST_FOREACH(np, &vd->profile_head, profile) {
+	LIST_FOREACH(np, &vd->profile_head, profile)
 		t = print_profile(t, (count + 1) * VDP_BUF_SIZE, np);
-	}
 
 	snprintf(obuf, obuf_len, "%02x%s%04x%s",
-		 (unsigned int) strlen(arg), arg, (unsigned int) strlen(s), s);
+		 (unsigned int)strlen(arg), arg, (unsigned int)strlen(s), s);
 
 	free(s);
 
@@ -307,10 +305,9 @@ static void str2instance(struct vsi_profile *profile, char *buffer)
 {
 	unsigned int i, j = 0;
 
-	for(i=0; i <= strlen(buffer); i++) {
-		if (buffer[i] == '-') {
+	for (i = 0; i <= strlen(buffer); i++) {
+		if (buffer[i] == '-')
 			continue;
-		}
 
 		if (sscanf(&buffer[i], "%02hhx", &profile->instance[j]) == 1) {
 			i++;
@@ -325,17 +322,17 @@ static void str2instance(struct vsi_profile *profile, char *buffer)
 int instance2str(const u8 *p, char *dst, size_t size)
 {
 	if (dst && size > INSTANCE_STRLEN) {
-		snprintf(dst, size, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-			 p[0], p[1], p[2], p[3],
-			 p[4], p[5], p[6], p[7],
-			 p[8], p[9], p[10], p[11],
-			 p[12], p[13], p[14], p[15]);
+		snprintf(dst, size, "%02x%02x%02x%02x-%02x%02x-%02x%02x"
+			 "-%02x%02x-%02x%02x%02x%02x%02x%02x",
+			 p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+			 p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
 		return 0;
 	}
 	return -1;
 }
 
-static void vdp_fill_profile(struct vsi_profile *profile, char *buffer, int field)
+static void vdp_fill_profile(struct vsi_profile *profile, char *buffer,
+			     int field)
 {
 	LLDPAD_DBG("%s: parsed %s\n", __func__, buffer);
 
@@ -370,10 +367,9 @@ static struct vsi_profile *vdp_parse_mode_line(char * argvalue)
 	char *cmdstring, *parsed;
 	struct vsi_profile *profile;
 
-	profile = malloc(sizeof(struct vsi_profile));
+	profile = calloc(1, sizeof(struct vsi_profile));
 	if (!profile)
 		return NULL;
-	memset(profile, 0, sizeof(struct vsi_profile));
 
 	cmdstring = strdup(argvalue);
 	if (!cmdstring)
@@ -398,6 +394,7 @@ static struct vsi_profile *vdp_parse_mode_line(char * argvalue)
 
 	while (parsed != NULL) {
 		struct mac_vlan *mac_vlan;
+
 		mac_vlan = malloc(sizeof(struct mac_vlan));
 		if (mac_vlan == NULL)
 			goto out_free;
@@ -421,6 +418,7 @@ out_free:
 	free(cmdstring);
 	while (profile->entries-- > 0) {
 		struct mac_vlan *mac_vlan = LIST_FIRST(&profile->macvid_head);
+
 		LIST_REMOVE(mac_vlan, entry);
 		free(mac_vlan);
 	}
@@ -495,20 +493,20 @@ static int get_arg_role(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		vd = vdp_data(cmd->ifname);
 
 		if (!vd) {
-			LLDPAD_ERR("%s(%i): could not find vdp_data for %s !\n",
-				    __FILE__, __LINE__, cmd->ifname);
+			LLDPAD_ERR("%s: could not find vdp_data for %s\n",
+				    __FILE__, cmd->ifname);
 			return cmd_invalid;
 		}
 
 		if (vd->role == VDP_ROLE_STATION)
 			snprintf(obuf, obuf_len, "%02x%s%04x%s",
-				(unsigned int) strlen(arg), arg,
-				(unsigned int) strlen(VAL_STATION),
-				VAL_STATION);
+				 (unsigned int) strlen(arg), arg,
+				 (unsigned int) strlen(VAL_STATION),
+				 VAL_STATION);
 		else if (vd->role == VDP_ROLE_BRIDGE)
 			snprintf(obuf, obuf_len, "%02x%s%04x%s",
-				(unsigned int) strlen(arg), arg,
-				(unsigned int) strlen(VAL_BRIDGE), VAL_BRIDGE);
+				 (unsigned int) strlen(arg), arg,
+				 (unsigned int) strlen(VAL_BRIDGE), VAL_BRIDGE);
 		else
 			return cmd_failed;
 		break;
@@ -541,8 +539,8 @@ static int _set_arg_role(struct cmd *cmd, char *arg, char *argvalue, bool test)
 	vd = vdp_data(cmd->ifname);
 
 	if (!vd) {
-		LLDPAD_ERR("%s(%i): could not find vdp_data for %s !\n",
-			    __FILE__, __LINE__, cmd->ifname);
+		LLDPAD_ERR("%s: could not find vdp_data for %s\n",
+			    __FILE__, cmd->ifname);
 		return cmd_invalid;
 	}
 
