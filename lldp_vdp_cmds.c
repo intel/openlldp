@@ -44,34 +44,6 @@
 #include "clif_msgs.h"
 #include "lldp/states.h"
 
-static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
-static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
-static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
-
-static int get_arg_mode(struct cmd *, char *, char *, char *, int);
-static int set_arg_mode(struct cmd *, char *, char *, char *, int);
-static int test_arg_mode(struct cmd *, char *, char *, char *, int);
-
-static int get_arg_role(struct cmd *, char *, char *, char *, int);
-static int set_arg_role(struct cmd *, char *, char *, char *, int);
-static int test_arg_role(struct cmd *, char *, char *, char *, int);
-
-static struct arg_handlers arg_handlers[] = {
-	{	.arg = ARG_VDP_MODE, .arg_class = TLV_ARG,
-		.handle_get = get_arg_mode,
-		.handle_set = set_arg_mode,
-		.handle_test = test_arg_mode, },
-	{	.arg = ARG_VDP_ROLE, .arg_class = TLV_ARG,
-		.handle_get = get_arg_role,
-		.handle_set = set_arg_role,
-		.handle_test = test_arg_role, },
-	{	.arg = ARG_TLVTXENABLE, .arg_class = TLV_ARG,
-		.handle_get = get_arg_tlvtxenable,
-		.handle_set = set_arg_tlvtxenable,
-		.handle_test = test_arg_tlvtxenable, },
-	{	.arg = 0 }
-};
-
 static const char * const vsi_modes[] = {
 	[VDP_MODE_PREASSOCIATE] = "VDP_MODE_PREASSOCIATED",
 	[VDP_MODE_PREASSOCIATE_WITH_RR] = "VDP_MODE_PREASSOCIATED_WITH_RR",
@@ -577,6 +549,33 @@ static int test_arg_role(struct cmd *cmd, char *arg, char *argvalue,
 {
 	return _set_arg_role(cmd, arg, argvalue, true);
 }
+
+static struct arg_handlers arg_handlers[] = {
+	{
+		.arg = ARG_VDP_MODE,
+		.arg_class = TLV_ARG,
+		.handle_get = get_arg_mode,
+		.handle_set = set_arg_mode,
+		.handle_test = test_arg_mode
+	},
+	{
+		.arg = ARG_VDP_ROLE,
+		.arg_class = TLV_ARG,
+		.handle_get = get_arg_role,
+		.handle_set = set_arg_role,
+		.handle_test = test_arg_role
+	},
+	{
+		.arg = ARG_TLVTXENABLE,
+		.arg_class = TLV_ARG,
+		.handle_get = get_arg_tlvtxenable,
+		.handle_set = set_arg_tlvtxenable,
+		.handle_test = test_arg_tlvtxenable
+	},
+	{
+		.arg = 0
+	}
+};
 
 struct arg_handlers *vdp_get_arg_handlers()
 {
