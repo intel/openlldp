@@ -94,7 +94,7 @@ static void evb_dump_tlv(struct unpacked_tlv *tlv)
 			     sizeof buffer - left,
 			     "%02x ", tlv->info[i]);
 
-		if (c < 0 || (c >= sizeof buffer - left))
+		if (c < 0 || (c >= (int)sizeof buffer - left))
 			break;
 		else
 			left += c;

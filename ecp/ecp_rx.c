@@ -94,7 +94,7 @@ static void ecp_print_framein(struct vdp_data *vd)
 		int c;
 		c = snprintf(buffer + left, sizeof buffer - left, "%02x ",
 			     vd->ecp.rx.framein[i]);
-		if (c > 0 && (c < sizeof buffer - left))
+		if (c > 0 && (c < (int)sizeof buffer - left))
 			left += c;
 		if (!((i+1) % 16)) {
 			LLDPAD_DBG("%s\n", buffer);
