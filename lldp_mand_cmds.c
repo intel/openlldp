@@ -74,7 +74,7 @@ static struct arg_handlers arg_handlers[] = {
 	{	.arg = 0 }
 };
 
-static int get_mand_subtype(struct cmd *cmd, char *arg, char *argvalue,
+static int get_mand_subtype(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 			    char *obuf, int obuf_len)
 {
 	struct mand_data *md;

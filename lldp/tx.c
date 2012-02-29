@@ -305,7 +305,7 @@ bool set_tx_state(struct port *port, struct lldp_agent *agent)
 	}
 }
 
-void process_tx_idle(struct lldp_agent *agent)
+void process_tx_idle(UNUSED struct lldp_agent *agent)
 {
 	return;
 }
