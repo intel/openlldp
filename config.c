@@ -150,29 +150,39 @@ void scan_port(UNUSED void *eloop_data, UNUSED void *user_ctx)
 	 * IF_OPER_UP, IF_OPER_DOWN or IF_OPER_DORMANT. 
 	 */
 	p = nameidx;
-	port = porthead;
 	while (p->if_index != 0) {
 		struct lldp_module *np;
 		const struct lldp_mod_ops *ops;
 		char *ifname = p->if_name;
 		struct lldp_agent *agent;
 
-		if (is_valid_lldp_device(ifname)) {
-			if (check_link_status(ifname))
-				oper_add_device(ifname);
-			else {
+		if (!is_valid_lldp_device(ifname)) {
+			p++;
+			continue;
+		}
 
-				LIST_FOREACH(agent, &port->agent_head, entry) {
-					LLDPAD_DBG("%s: calling ifdown for agent %p.\n",
-						   __func__, agent);
-					LIST_FOREACH(np, &lldp_head, lldp) {
-						ops = np->ops;
-						if (ops->lldp_mod_ifdown)
-							ops->lldp_mod_ifdown(ifname, agent);
-					}
+		port = port_find_by_name(p->if_name);
+		if (!port) {
+			if (is_bond(p->if_name))
+				port = add_bond_port(p->if_name);
+			else
+				port = add_port(p->if_name);
+		}
+
+		if (port && check_link_status(ifname)) {
+				oper_add_device(ifname);
+		} else if (port) {
+			LIST_FOREACH(agent, &port->agent_head, entry) {
+				LLDPAD_DBG("%s: calling ifdown for agent %p.\n",
+					   __func__, agent);
+				LIST_FOREACH(np, &lldp_head, lldp) {
+					ops = np->ops;
+					if (ops->lldp_mod_ifdown)
+						ops->lldp_mod_ifdown(ifname,
+								     agent);
 				}
-				set_lldp_port_enable(ifname, 0);
 			}
+			set_lldp_port_enable(ifname, 0);
 		}
 		p++;
 	}
