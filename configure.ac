@@ -8,6 +8,12 @@ AC_PROG_LIBTOOL
 
 AC_LIBTOOL_DLOPEN
 
+AC_CHECK_PROGS(FLEX, flex, none)
+if test "$FLEX" = "none"
+then
+ AC_MSG_ERROR([no suitable flex found. Please install the 'flex' package.])
+fi
+
 PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.3.2])
 PKG_CHECK_MODULES([LIBNL], [libnl-1 >= 1.1])
 
