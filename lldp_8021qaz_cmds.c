@@ -926,7 +926,17 @@ static int _set_arg_enabled(struct cmd *cmd, char *args,
 		priority = strtok(parse, ",");
 
 		while (priority) {
-			int prio = atoi(priority);
+			int prio;
+			char *end;
+
+			errno = 0;
+			prio = strtol(priority, &end, 10);
+
+			if (end == priority || *end != '\0')
+				return cmd_invalid;
+
+			if (errno || prio < 0)
+				return cmd_invalid;
 
 			if (prio > 7) {
 				err = cmd_invalid;
