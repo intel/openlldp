@@ -551,6 +551,9 @@ void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 				       &adminstatus, CONFIG_TYPE_INT) ==
 				       cmd_success)
 			set_lldp_agent_admin(ifname, agent->type, adminstatus);
+
+		/* ensure advertise bits are set consistently with enabletx */
+		dont_advertise_dcbx_all(ifname, 1);
 	}
 
 	tlvs = malloc(sizeof(*tlvs));
@@ -585,7 +588,7 @@ initialized:
 	exists = get_config_setting(ifname, agent->type, arg_path,
 				    &enabletx, CONFIG_TYPE_BOOL);
 
-	if (!exists || enabletx)
+	if (exists != cmd_success)
 		dont_advertise_dcbx_all(ifname, 1);
 
 	dcbx_bld_tlv(port, agent);
