@@ -33,6 +33,9 @@
 #include "lldp.h"
 #include "lldp_orgspec_clif.h"
 
+#define VNAME_SIZE 32
+#define PROTOID_SIZE 256
+
 static void orgspec_print_pvid_tlv(u16 len, char *info);
 static void orgspec_print_ppvid_tlv(u16 len, char *info);
 static void orgspec_print_vlan_name_tlv(u16 len, char *info);
@@ -166,7 +169,7 @@ static void orgspec_print_vlan_name_tlv(u16 len, char *info)
 {
 	u16 vid;
 	u8 name_len;
-	unsigned char vlan_name[32];
+	unsigned char vlan_name[VNAME_SIZE] = {0};
 
 	if (len < 4) {
 		printf("Bad VLAN Name TLV: %s\n", info);
@@ -181,7 +184,7 @@ static void orgspec_print_vlan_name_tlv(u16 len, char *info)
 	if (hexstr2bin(info + 4, &name_len, sizeof(name_len)))
 		name_len = 0;
 
-	if (!hexstr2bin(info + 6, vlan_name, name_len - 1))
+	if (!hexstr2bin(info + 6, vlan_name, name_len))
 		printf("VID %d: Name %s", ntohs(vid), vlan_name);
 
 	printf("\n");
@@ -190,7 +193,7 @@ static void orgspec_print_vlan_name_tlv(u16 len, char *info)
 static void orgspec_print_protoid_tlv(u16 len, char *info)
 {
 	u8 protoid_len;
-	unsigned char protoid[256];
+	unsigned char protoid[PROTOID_SIZE] = {0};
 	int i;
 
 	if (len < 4) {
@@ -203,7 +206,7 @@ static void orgspec_print_protoid_tlv(u16 len, char *info)
 		return;
 	}
 
-	if (!hexstr2bin(info + 2, protoid, protoid_len - 1)) {
+	if (!hexstr2bin(info + 2, protoid, protoid_len)) {
 		for (i = 0; i < protoid_len; i++)
 			printf("%02x.", protoid[i]);
 	}
@@ -214,7 +217,7 @@ static void orgspec_print_vid_usage_tlv(u16 len, char *info)
 {
 	u16 vid;
 	u8 name_len;
-	unsigned char vlan_name[32];
+	unsigned char vlan_name[VNAME_SIZE] = {0};
 
 	if (len < 4) {
 		printf("Bad VLAN Name TLV: %s\n", info);
@@ -229,7 +232,7 @@ static void orgspec_print_vid_usage_tlv(u16 len, char *info)
 	if (hexstr2bin(info + 4, &name_len, sizeof(name_len)))
 		name_len = 0;
 
-	if (!hexstr2bin(info + 6, vlan_name, name_len - 1))
+	if (!hexstr2bin(info + 6, vlan_name, name_len))
 		printf("VID %d: Name %s", ntohs(vid), vlan_name);
 
 	printf("\n");
