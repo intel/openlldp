@@ -168,8 +168,7 @@ void vdp_print_profile(struct vsi_profile *profile)
 
 	print_profile(buf, VDP_BUF_SIZE, profile);
 
-	LLDPAD_DBG("profile %p:\n", profile);
-	LLDPAD_DBG("%s\n", buf);
+	LLDPAD_DBG("profile %p:%s\n", profile, buf);
 
 	free(buf);
 }
@@ -252,8 +251,8 @@ int vdp_vsis_pending(struct vdp_data *vd)
  */
 void vdp_somethingChangedLocal(struct vsi_profile *profile, bool flag)
 {
-	LLDPAD_DBG("%s(%i): setting profile->localChange to %s.\n",
-		   __func__, __LINE__, (flag == true) ? "true" : "false");
+	LLDPAD_DBG("%s: setting profile->localChange to %s\n",
+		   __func__, (flag == true) ? "true" : "false");
 
 	profile->localChange = flag;
 
@@ -266,8 +265,8 @@ void vdp_somethingChangedLocal(struct vsi_profile *profile, bool flag)
  *
  * returns true or false
  *
- * returns value of profile->keepaliveTimerExpired, true if ack timer has expired,
- * false otherwise.
+ * returns value of profile->keepaliveTimerExpired, true if ack timer has
+ * expired, * false otherwise.
  */
 static bool vdp_keepaliveTimer_expired(struct vsi_profile *profile)
 {
@@ -287,7 +286,8 @@ static bool vdp_ackTimer_expired(struct vsi_profile *profile)
 	return (profile->ackTimer == 0);
 }
 
-/* vdp_localchange_handler - triggers in case of ackReceived or on vdp localchange
+/* vdp_localchange_handler - triggers in case of ackReceived or on vdp
+ *				localchange
  * @eloop_data: data structure of event loop
  * @user_ctx: user context, vdp_data here
  *
@@ -305,10 +305,8 @@ void vdp_localchange_handler(UNUSED void *eloop_data, void *user_ctx)
 	p = (struct vsi_profile *) user_ctx;
 
 	if ((p->ackReceived) || (p->localChange)) {
-		LLDPAD_DBG("%s(%i): p->localChange %i!\n",
-			   __func__, __LINE__, p->localChange);
-		LLDPAD_DBG("%s(%i): p->ackReceived %i!\n",
-			   __func__, __LINE__, p->ackReceived);
+		LLDPAD_DBG("%s: p->localChange %i p->ackReceived %i\n",
+			   __func__, p->localChange, p->ackReceived);
 		vdp_vsi_sm_station(p);
 	}
 }
@@ -327,7 +325,8 @@ int vdp_start_localchange_timer(struct vsi_profile *p)
 
 	usecs = VDP_LOCALCHANGE_TIMEOUT;
 
-	return eloop_register_timeout(0, usecs, vdp_localchange_handler, NULL, (void *) p);
+	return eloop_register_timeout(0, usecs, vdp_localchange_handler, NULL,
+				      (void *) p);
 }
 
 /* vdp_ack_timeout_handler - handles the ack timer expiry
@@ -347,12 +346,9 @@ void vdp_ack_timeout_handler(UNUSED void *eloop_data, void *user_ctx)
 		p->ackTimer -= VDP_ACK_TIMER_DEFAULT;
 
 	if (vdp_ackTimer_expired(p)) {
-		LLDPAD_DBG("%s(%i): profile 0x%02x\n",
-			   __func__, __LINE__, p->instance[15]);
-		LLDPAD_DBG("%s(%i): vdp_ackTimer_expired %i\n",
-			   __func__, __LINE__, vdp_ackTimer_expired(p));
-		LLDPAD_DBG("%s(%i): p->ackReceived %i\n",
-			   __func__, __LINE__, p->ackReceived);
+		LLDPAD_DBG("%s: profile %#02x vdp_ackTimer_expired %i"
+			   " p->ackReceived %i\n", __func__, p->instance[15],
+			   vdp_ackTimer_expired(p), p->ackReceived);
 		vdp_vsi_sm_station(p);
 	}
 }
@@ -373,11 +369,12 @@ static int vdp_start_ackTimer(struct vsi_profile *profile)
 
 	profile->ackTimer = VDP_ACK_TIMER_DEFAULT;
 
-	LLDPAD_DBG("%s(%i)-%s: starting ack timer for 0x%02x (%i)\n",
-		   __func__, __LINE__, profile->port->ifname,
+	LLDPAD_DBG("%s: %s starting ack timer for %#02x (%i)\n",
+		   __func__, profile->port->ifname,
 		   profile->instance[15], profile->ackTimer);
 
-	return eloop_register_timeout(0, usecs, vdp_ack_timeout_handler, NULL, (void *) profile);
+	return eloop_register_timeout(0, usecs, vdp_ack_timeout_handler, NULL,
+				      (void *)profile);
 }
 
 /* vdp_stop_ackTimer - stops the VDP profile ack timer
@@ -389,11 +386,12 @@ static int vdp_start_ackTimer(struct vsi_profile *profile)
  */
 static int vdp_stop_ackTimer(struct vsi_profile *profile)
 {
-	LLDPAD_DBG("%s(%i)-%s: stopping ack timer for 0x%02x (%i)\n",
-		   __func__, __LINE__, profile->port->ifname,
-		   profile->instance[15], profile->ackTimer);
+	LLDPAD_DBG("%s: %s stopping ack timer for %#02x (%i)\n", __func__,
+		   profile->port->ifname, profile->instance[15],
+		   profile->ackTimer);
 
-	return eloop_cancel_timeout(vdp_ack_timeout_handler, NULL, (void *) profile);
+	return eloop_cancel_timeout(vdp_ack_timeout_handler, NULL,
+				    (void *)profile);
 }
 
 /* vdp_keepalive_timeout_handler - handles the keepalive timer expiry
@@ -413,12 +411,9 @@ void vdp_keepalive_timeout_handler(UNUSED void *eloop_data, void *user_ctx)
 		p->keepaliveTimer -= VDP_KEEPALIVE_TIMER_DEFAULT;
 
 	if (vdp_keepaliveTimer_expired(p)) {
-		LLDPAD_DBG("%s(%i): profile 0x%02x\n",
-			   __func__, __LINE__, p->instance[15]);
-		LLDPAD_DBG("%s(%i): vdp_keepaliveTimer_expired %i\n",
-			   __func__, __LINE__, vdp_keepaliveTimer_expired(p));
-		LLDPAD_DBG("%s(%i): p->ackReceived %i\n",
-			   __func__, __LINE__, p->ackReceived);
+		LLDPAD_DBG("%s: profile %#02x vdp_keepaliveTimer_expired %i"
+			   " p->ackReceived %i\n", __func__, p->instance[15],
+			   vdp_keepaliveTimer_expired(p), p->ackReceived);
 		vdp_vsi_sm_station(p);
 	}
 }
@@ -428,8 +423,8 @@ void vdp_keepalive_timeout_handler(UNUSED void *eloop_data, void *user_ctx)
  *
  * returns 0 on success, -1 on error
  *
- * starts the VDP profile keepalive timer when a profile has been handed to ecp for
- * transmission.
+ * starts the VDP profile keepalive timer when a profile has been handed to
+ * ecp for transmission.
  */
 static int vdp_start_keepaliveTimer(struct vsi_profile *profile)
 {
@@ -439,9 +434,9 @@ static int vdp_start_keepaliveTimer(struct vsi_profile *profile)
 
 	profile->keepaliveTimer = VDP_KEEPALIVE_TIMER_DEFAULT;
 
-	LLDPAD_DBG("%s(%i)-%s: starting keepalive timer for 0x%02x (%i)\n",
-		   __func__, __LINE__, profile->port->ifname,
-		   profile->instance[15], profile->keepaliveTimer);
+	LLDPAD_DBG("%s: %s starting keepalive timer for %#02x (%i)\n",
+		   __func__, profile->port->ifname, profile->instance[15],
+		   profile->keepaliveTimer);
 
 	return eloop_register_timeout(0, usecs, vdp_keepalive_timeout_handler,
 				      NULL, (void *) profile);
@@ -458,11 +453,12 @@ static int vdp_stop_keepaliveTimer(struct vsi_profile *profile)
 {
 	profile->keepaliveTimer = VDP_KEEPALIVE_TIMER_STOPPED;
 
-	LLDPAD_DBG("%s(%i)-%s: stopping keepalive timer for 0x%02x (%i)\n",
-		   __func__, __LINE__, profile->port->ifname,
+	LLDPAD_DBG("%s: %s stopping keepalive timer for %#02x (%i)\n",
+		   __func__, profile->port->ifname,
 		   profile->instance[15], profile->keepaliveTimer);
 
-	return eloop_cancel_timeout(vdp_keepalive_timeout_handler, NULL, (void *) profile);
+	return eloop_cancel_timeout(vdp_keepalive_timeout_handler, NULL,
+				    (void *) profile);
 }
 
 static bool vdp_vsi_negative_response(struct vsi_profile *profile)
@@ -517,12 +513,13 @@ void vdp_vsi_change_station_state(struct vsi_profile *profile, u8 newstate)
 		       (profile->state == VSI_ASSOCIATED));
 		break;
 	default:
-		LLDPAD_ERR("ERROR: The VDP station State Machine is broken!\n");
+		LLDPAD_ERR("ERROR: The VDP station State Machine is broken\n");
 		break;
 	}
 
-	LLDPAD_DBG("%s(%i)-%s: state change %s -> %s\n", __func__, __LINE__,
-	       profile->port->ifname, vsi_states[profile->state], vsi_states[newstate]);
+	LLDPAD_DBG("%s: %s state change %s -> %s\n", __func__,
+		   profile->port->ifname, vsi_states[profile->state],
+		   vsi_states[newstate]);
 
 	profile->state = newstate;
 }
@@ -582,8 +579,8 @@ static bool vdp_vsi_set_station_state(struct vsi_profile *profile)
 		}
 		return false;
 	case VSI_PREASSOC_PROCESSING:
-		LLDPAD_DBG("%s(%i): profile->ackReceived %i, vdp_ackTimer %i\n", __func__,
-			   __LINE__, profile->ackReceived, profile->ackTimer);
+		LLDPAD_DBG("%s: profile->ackReceived %i, vdp_ackTimer %i\n",
+			   __func__, profile->ackReceived, profile->ackTimer);
 		if (profile->ackReceived) {
 			vdp_vsi_change_station_state(profile, VSI_PREASSOCIATED);
 			return true;
@@ -635,8 +632,8 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 
 	vdp_vsi_set_station_state(profile);
 	do {
-		LLDPAD_DBG("%s(%i)-%s: station for 0x%02x - %s\n",
-			   __func__, __LINE__, profile->port->ifname,
+		LLDPAD_DBG("%s: %s station for %#02x - %s\n",
+			   __func__, profile->port->ifname,
 			   profile->instance[15], vsi_states[profile->state]);
 
 		switch(profile->state) {
@@ -689,7 +686,7 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			vdp_remove_profile(profile);
 			break;
 		default:
-			LLDPAD_ERR("%s: VSI state machine in invalid state %d\n",
+			LLDPAD_ERR("%s: ERROR VSI state machine in invalid state %d\n",
 				   vd->ifname, profile->state);
 		}
 	} while (vdp_vsi_set_station_state(profile) == true);
@@ -704,7 +701,8 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
  *
  * actually changes the state of the profile
  */
-static void vdp_vsi_change_bridge_state(struct vsi_profile *profile, u8 newstate)
+static void vdp_vsi_change_bridge_state(struct vsi_profile *profile,
+					u8 newstate)
 {
 	switch(newstate) {
 	case VSI_UNASSOCIATED:
@@ -736,7 +734,7 @@ static void vdp_vsi_change_bridge_state(struct vsi_profile *profile, u8 newstate
 		      (profile->state == VSI_ASSOC_PROCESSING));
 		break;
 	default:
-		LLDPAD_ERR("ERROR: The VDP bridge State Machine is broken!\n");
+		LLDPAD_ERR("ERROR: The VDP bridge State Machine is broken\n");
 		break;
 	}
 	profile->state = newstate;
@@ -813,7 +811,7 @@ static bool vdp_vsi_set_bridge_state(struct vsi_profile *profile)
 	case VSI_EXIT:
 		return false;
 	default:
-		LLDPAD_ERR("%s: VSI state machine (bridge) in invalid state %d\n",
+		LLDPAD_ERR("%s: ERROR VSI state machine (bridge) in invalid state %d\n",
 			   profile->port->ifname, profile->state);
 		return false;
 	}
@@ -832,7 +830,7 @@ static void vdp_vsi_sm_bridge(struct vsi_profile *profile)
 
 	vdp_vsi_set_bridge_state(profile);
 	do {
-		LLDPAD_DBG("%s(%i)-%s: bridge - %s\n", __func__, __LINE__,
+		LLDPAD_DBG("%s: %s bridge - %s\n", __func__,
 		       profile->port->ifname, vsi_states[profile->state]);
 		switch(profile->state) {
 		case VSI_UNASSOCIATED:
@@ -856,13 +854,13 @@ static void vdp_vsi_sm_bridge(struct vsi_profile *profile)
 			 */
 			/* for now, we always succeed */
 			profile->response = VDP_RESPONSE_SUCCESS;
-			LLDPAD_DBG("%s(%i)-%s: framein %p, sizein %i\n", __func__, __LINE__,
+			LLDPAD_DBG("%s: %s framein %p, sizein %i\n", __func__,
 			       profile->port->ifname, vd->ecp.rx.framein,
 			       vd->ecp.rx.sizein);
 			ecp_rx_send_ack_frame(vd);
 			break;
 		case VSI_PREASSOCIATED:
-			LLDPAD_DBG("%s(%i)-%s: \n", __func__, __LINE__, profile->port->ifname);
+			LLDPAD_DBG("%s: %s\n", __func__, profile->port->ifname);
 			break;
 		case VSI_DEASSOC_PROCESSING:
 			/* TODO: txTLV(DeAssoc ACK) */
@@ -871,7 +869,7 @@ static void vdp_vsi_sm_bridge(struct vsi_profile *profile)
 			vdp_remove_profile(profile);
 			break;
 		default:
-			LLDPAD_ERR("%s: VSI state machine in invalid state %d\n",
+			LLDPAD_ERR("%s: ERROR VSI state machine in invalid state %d\n",
 				   vd->ifname, profile->state);
 		}
 	} while (vdp_vsi_set_bridge_state(profile) == true);
@@ -889,32 +887,32 @@ static void vdp_vsi_sm_bridge(struct vsi_profile *profile)
 static int vdp_validate_tlv(struct tlv_info_vdp *vdp)
 {
 	if (ntoh24(vdp->oui) != OUI_IEEE_8021Qbg) {
-		LLDPAD_DBG("vdp->oui %06x \n", ntoh24(vdp->oui));
+		LLDPAD_DBG("vdp->oui %#06x\n", ntoh24(vdp->oui));
 		goto out_err;
 	}
 
 	if (vdp->sub != LLDP_VDP_SUBTYPE) {
-		LLDPAD_DBG("vdp->sub %02x \n", vdp->sub);
+		LLDPAD_DBG("vdp->sub %#02x\n", vdp->sub);
 		goto out_err;
 	}
 
 	if (vdp->mode > VDP_MODE_DEASSOCIATE) {
-		LLDPAD_DBG("Unknown mode %02x in vsi tlv !\n", vdp->mode);
+		LLDPAD_DBG("unknown mode %#02x in vsi tlv\n", vdp->mode);
 		goto out_err;
 	}
 
 	if (vdp->response > VDP_RESPONSE_OUT_OF_SYNC) {
-		LLDPAD_DBG("Unknown response %02x\n", vdp->response);
+		LLDPAD_DBG("unknown response %#02x\n", vdp->response);
 		goto out_err;
 	}
 
 	if (vdp->format != VDP_FILTER_INFO_FORMAT_MACVID) {
-		LLDPAD_DBG("Unknown format %02x in vsi tlv !\n", vdp->format);
+		LLDPAD_DBG("unknown format %#02x in vsi tlv\n", vdp->format);
 		goto out_err;
 	}
 
 	if (ntohs(vdp->entries) < 1) {
-		LLDPAD_DBG("Invalid # of entries %02x in vsi tlv !\n",
+		LLDPAD_DBG("invalid # of entries %#02x in vsi tlv\n",
 			    ntohs(vdp->entries));
 		goto out_err;
 	}
@@ -941,19 +939,20 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 	struct vsi_profile *p, *profile;
 	struct port *port = port_find_by_name(vd->ifname);
 
-	LLDPAD_DBG("%s(%i): indicating vdp of length %u (%lu) for %s !\n",
-		   __func__, __LINE__, tlv->length, sizeof(struct tlv_info_vdp),
+	LLDPAD_DBG("%s: indicating vdp of length %u (%lu) for %s\n",
+		   __func__, tlv->length, sizeof(struct tlv_info_vdp),
 		   vd->ifname);
 
 	if (!port) {
-		LLDPAD_ERR("%s(%i): port not found for %s !\n", __func__, __LINE__, vd->ifname);
+		LLDPAD_ERR("%s: port not found for %s\n", __func__,
+			   vd->ifname);
 		goto out_err;
 	}
 
 	vdp = malloc(sizeof(struct tlv_info_vdp));
 
 	if (!vdp) {
-		LLDPAD_ERR("%s(%i): unable to allocate vdp !\n", __func__, __LINE__);
+		LLDPAD_ERR("%s: unable to allocate vdp\n", __func__);
 		goto out_err;
 	}
 
@@ -962,14 +961,14 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 	memcpy(vdp, tlv->info, sizeof(struct tlv_info_vdp));
 
 	if (vdp_validate_tlv(vdp)) {
-		LLDPAD_ERR("%s(%i): Invalid TLV received !\n", __func__, __LINE__);
+		LLDPAD_ERR("%s: invalid TLV received\n", __func__);
 		goto out_vdp;
 	}
 
 	profile = malloc(sizeof(struct vsi_profile));
 
 	 if (!profile) {
-		LLDPAD_ERR("%s(%i): unable to allocate profile !\n", __func__, __LINE__);
+		LLDPAD_ERR("%s: unable to allocate profile\n", __func__);
 		goto out_vdp;
 	 }
 
@@ -994,9 +993,9 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 		/* do we have the profile already ? */
 		LIST_FOREACH(p, &vd->profile_head, profile) {
 			if (vdp_profile_equal(p, profile)) {
-				LLDPAD_DBG("%s(%i): station: profile found, "
-					   "localChange %i ackReceived %i!\n",
-					   __func__, __LINE__,
+				LLDPAD_DBG("%s: station: profile found, "
+					   "localChange %i ackReceived %i\n",
+					   __func__,
 					   p->localChange, p->ackReceived);
 
 				p->ackReceived = true;
@@ -1004,24 +1003,24 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 				if (vdp->mode != p->mode) {
 					p->mode = vdp->mode;
 					p->remoteChange = true;
-					LLDPAD_DBG("%s(%i): station: remoteChange %i !\n",
-						   __func__, __LINE__, p->remoteChange);
+					LLDPAD_DBG("%s: station remoteChange %i\n",
+						   __func__, p->remoteChange);
 				}
 				p->response = vdp->response;
 
 				if (vdp_vsi_negative_response(p))
 					p->mode = VDP_MODE_DEASSOCIATE;
 
-				LLDPAD_DBG("%s(%i): profile response: %s (%i) "
-					   "for profile 0x%02x at state %s.\n",
-					   __func__, __LINE__,
+				LLDPAD_DBG("%s: profile response: %s (%i) "
+					   "for profile %#02x at state %s\n",
+					   __func__,
 					   vdp_response2str(p->response),
 					   p->response, p->instance[15],
 					   vsi_states[p->state]);
 				free(profile);
 			} else {
-				LLDPAD_DBG("%s(%i): station: profile not found !\n",
-					   __func__, __LINE__);
+				LLDPAD_DBG("%s: station: profile not found\n",
+					   __func__);
 				/* ignore profile */
 			}
 		}
@@ -1036,9 +1035,9 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 		}
 
 		if (p) {
-			LLDPAD_DBG("%s(%i): bridge: profile found !\n", __func__, __LINE__);
+			LLDPAD_DBG("%s: bridge profile found\n", __func__);
 		} else {
-			LLDPAD_DBG("%s(%i): bridge: profile not found !\n", __func__, __LINE__);
+			LLDPAD_DBG("%s: bridge profile not found\n", __func__);
 			/* put it in the list  */
 			profile->state = VSI_UNASSOCIATED;
 			LIST_INSERT_HEAD(&vd->profile_head, profile, profile );
@@ -1052,7 +1051,7 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 out_vdp:
 	free(vdp);
 out_err:
-	LLDPAD_ERR("%s(%i): error !\n", __func__, __LINE__);
+	LLDPAD_ERR("%s: error\n", __func__);
 	return 1;
 
 }
@@ -1079,7 +1078,7 @@ static int vdp_bld_vsi_tlv(struct vdp_data *vd, struct vsi_profile *profile)
 	vdp = malloc(size);
 
 	if (!vdp) {
-		LLDPAD_DBG("%s: Unable to allocate memory for VDP TLV !\n",
+		LLDPAD_DBG("%s: unable to allocate memory for VDP TLV\n",
 			   __func__);
 		rc = ENOMEM;
 		goto out_err;
@@ -1154,7 +1153,7 @@ static int vdp_bld_tlv(struct vdp_data *vd, struct vsi_profile *profile)
 	}
 
 	if (vdp_bld_vsi_tlv(vd, profile)) {
-		LLDPAD_ERR("%s:%s:vdp_bld_vsi_tlv() failed\n",
+		LLDPAD_ERR("%s: %s vdp_bld_vsi_tlv() failed\n",
 				__func__, vd->ifname);
 		rc = EINVAL;
 		goto out_err;
@@ -1183,7 +1182,7 @@ struct packed_tlv *vdp_gettlv(struct vdp_data *vd, struct vsi_profile *profile)
 	vdp_free_tlv(vd);
 
 	if (vdp_bld_tlv(vd, profile)) {
-		LLDPAD_ERR("%s:%s vdp_bld_tlv failed\n",
+		LLDPAD_ERR("%s: %s vdp_bld_tlv failed\n",
 			__func__, vd->ifname);
 		goto out_err;
 	}
@@ -1191,8 +1190,8 @@ struct packed_tlv *vdp_gettlv(struct vdp_data *vd, struct vsi_profile *profile)
 	size = TLVSIZE(vd->vdp);
 
 	if (!size) {
-		LLDPAD_ERR("%s(%i): size %i of unpacked_tlv not correct !\n", __func__, __LINE__,
-		       size);
+		LLDPAD_ERR("%s: size %i of unpacked_tlv not correct\n",
+			   __func__, size);
 		goto out_err;
 	}
 
@@ -1212,7 +1211,7 @@ struct packed_tlv *vdp_gettlv(struct vdp_data *vd, struct vsi_profile *profile)
 out_free:
 	ptlv = free_pkd_tlv(ptlv);
 out_err:
-	LLDPAD_ERR("%s:%s: failed\n", __func__, vd->ifname);
+	LLDPAD_ERR("%s: %s failed\n", __func__, vd->ifname);
 	return NULL;
 }
 
@@ -1276,7 +1275,7 @@ void vdp_takeover_macvlans(struct vsi_profile *p1, struct vsi_profile *p2)
 	struct mac_vlan *mv1, *mv2;
 	int count = 0;
 
-	LLDPAD_DBG("%s: taking over mac/vlan pairs !\n", __func__);
+	LLDPAD_DBG("%s: taking over mac/vlan pairs\n", __func__);
 
 	LIST_FOREACH(mv2, &p2->macvid_head, entry) {
 		LIST_FOREACH(mv1, &p1->macvid_head, entry) {
@@ -1292,7 +1291,7 @@ void vdp_takeover_macvlans(struct vsi_profile *p1, struct vsi_profile *p2)
 		}
 	}
 
-	LLDPAD_DBG("%s: %u mac/vlan pairs taken over !\n", __func__, count);
+	LLDPAD_DBG("%s: %u mac/vlan pairs taken over\n", __func__, count);
 }
 
 /* vdp_add_profile - adds a profile to a per port list
@@ -1308,13 +1307,13 @@ struct vsi_profile *vdp_add_profile(struct vsi_profile *profile)
 	struct vsi_profile *p;
 	struct vdp_data *vd;
 
-	LLDPAD_DBG("%s(%i): adding vdp profile for %s !\n", __func__, __LINE__,
-	       profile->port->ifname);
+	LLDPAD_DBG("%s: adding vdp profile for %s\n", __func__,
+		   profile->port->ifname);
 
 	vd = vdp_data(profile->port->ifname);
 	if (!vd) {
-		LLDPAD_ERR("%s(%i): Could not find vdp_data for %s !\n", __func__, __LINE__,
-		       profile->port->ifname);
+		LLDPAD_ERR("%s: could not find vdp_data for %s\n", __func__,
+			   profile->port->ifname);
 		return NULL;
 	}
 
@@ -1326,13 +1325,13 @@ struct vsi_profile *vdp_add_profile(struct vsi_profile *profile)
 	LIST_FOREACH(p, &vd->profile_head, profile) {
 		if (p) {
 			if (vdp_profile_equal(p, profile)) {
-				LLDPAD_DBG("%s: profile already exists !\n",
+				LLDPAD_DBG("%s: profile already exists\n",
 					   __func__);
 
 				vdp_takeover_macvlans(p, profile);
 
 				if (p->mode != profile->mode) {
-					LLDPAD_DBG("%s: new mode %i !\n",
+					LLDPAD_DBG("%s: new mode %i\n",
 						   __func__, profile->mode);
 					p->mode = profile->mode;
 				}
@@ -1382,13 +1381,13 @@ int vdp_remove_profile(struct vsi_profile *profile)
 	struct vsi_profile *p;
 	struct vdp_data *vd;
 
-	LLDPAD_DBG("%s(%i): removing vdp profile on %s !\n", __func__, __LINE__,
-	       profile->port->ifname);
+	LLDPAD_DBG("%s: removing vdp profile on %s\n", __func__,
+		   profile->port->ifname);
 
 	vd = vdp_data(profile->port->ifname);
 	if (!vd) {
-		LLDPAD_ERR("%s(%i): Could not find vdp_data for %s !\n", __func__, __LINE__,
-		       profile->port->ifname);
+		LLDPAD_ERR("%s: could not find vdp_data for %s\n", __func__,
+			   profile->port->ifname);
 		return -1;
 	}
 	/* loop over all existing profiles and check if
@@ -1417,7 +1416,7 @@ void vdp_ifdown(char *ifname, UNUSED struct lldp_agent *agent)
 	struct vdp_data *vd;
 	struct vsi_profile *p;
 
-	LLDPAD_DBG("%s called on interface %s !\n", __func__, ifname);
+	LLDPAD_DBG("%s: called on interface %s\n", __func__, ifname);
 
 	vd = vdp_data(ifname);
 	if (!vd)
@@ -1433,10 +1432,10 @@ void vdp_ifdown(char *ifname, UNUSED struct lldp_agent *agent)
 			vdp_stop_keepaliveTimer(p);
 	}
 
-	LLDPAD_INFO("%s:%s vdp data removed\n", __func__, ifname);
+	LLDPAD_INFO("%s: %s vdp data removed\n", __func__, ifname);
 	return;
 out_err:
-	LLDPAD_INFO("%s:%s vdp data remove failed\n", __func__, ifname);
+	LLDPAD_INFO("%s: %s vdp data remove failed\n", __func__, ifname);
 
 	return;
 }
@@ -1481,7 +1480,7 @@ void vdp_ifup(char *ifname, struct lldp_agent *agent)
 	if (vd) {
 		vd->enabletx = enabletx;
 
-		LLDPAD_WARN("%s:%s vdp data already exists !\n",
+		LLDPAD_WARN("%s: %s vdp data already exists\n",
 			    __func__, ifname);
 		goto out_start_again;
 	}
@@ -1489,7 +1488,7 @@ void vdp_ifup(char *ifname, struct lldp_agent *agent)
 	/* not found, alloc/init per-port module data */
 	vd = (struct vdp_data *) calloc(1, sizeof(struct vdp_data));
 	if (!vd) {
-		LLDPAD_ERR("%s:%s malloc %ld failed\n",
+		LLDPAD_ERR("%s: %s malloc %ld failed\n",
 			 __func__, ifname, sizeof(*vd));
 		goto out_err;
 	}
@@ -1505,7 +1504,7 @@ void vdp_ifup(char *ifname, struct lldp_agent *agent)
 		}
 	}
 
-	LLDPAD_DBG("%s: configured for %s mode !\n", ifname,
+	LLDPAD_DBG("%s: configured for %s mode\n", ifname,
 	       (vd->role ==VDP_ROLE_BRIDGE) ? "bridge" : "station");
 
 	LIST_INIT(&vd->profile_head);
@@ -1515,7 +1514,7 @@ void vdp_ifup(char *ifname, struct lldp_agent *agent)
 
 out_start_again:
 	if (ecp_init(ifname)) {
-		LLDPAD_ERR("%s:%s unable to init ecp !\n", __func__, ifname);
+		LLDPAD_ERR("%s: %s unable to init ecp\n", __func__, ifname);
 		vdp_ifdown(ifname, agent);
 		goto out_err;
 	}
@@ -1523,8 +1522,8 @@ out_start_again:
 	vd->keepaliveTimer = VDP_KEEPALIVE_TIMER_DEFAULT;
 	vd->ackTimer = VDP_ACK_TIMER_DEFAULT;
 
-	LLDPAD_DBG("%s(%i)-%s: starting vdp timer (%i)\n", __func__, __LINE__,
-	       vd->ifname, vd->nroftimers);
+	LLDPAD_DBG("%s: %s starting vdp timer (%i)\n", __func__,
+		   vd->ifname, vd->nroftimers);
 
 	LIST_FOREACH(p, &vd->profile_head, profile) {
 		if (p->ackTimer > 0) {
@@ -1535,11 +1534,12 @@ out_start_again:
 			vdp_start_keepaliveTimer(p);
 	}
 
-	LLDPAD_DBG("%s:%s agent:%d vdp added\n", __func__, ifname, agent->type);
+	LLDPAD_DBG("%s: %s agent:%d vdp added\n", __func__, ifname,
+		   agent->type);
 	return;
 
 out_err:
-	LLDPAD_ERR("%s:%s agent:%d vdp adding failed\n",
+	LLDPAD_ERR("%s: %s agent:%d vdp adding failed\n",
 		   __func__, ifname, agent->type);
 }
 
@@ -1566,20 +1566,20 @@ struct lldp_module *vdp_register(void)
 
 	mod = malloc(sizeof(*mod));
 	if (!mod) {
-		LLDPAD_ERR("lldpad failed to start - vdp data\n");
+		LLDPAD_ERR("%s: failed to start - vdp data\n", __func__);
 		return NULL;
 	}
 	ud = malloc(sizeof(struct vdp_user_data));
 	if (!ud) {
 		free(mod);
-		LLDPAD_ERR("lldpad failed to start - vdp user data\n");
+		LLDPAD_ERR("%s: failed to start - vdp user data\n", __func__);
 		return NULL;
 	}
 	LIST_INIT(&ud->head);
 	mod->id = LLDP_MOD_VDP;
 	mod->ops = &vdp_ops;
 	mod->data = ud;
-	LLDPAD_DBG("%s:done\n", __func__);
+	LLDPAD_DBG("%s: done\n", __func__);
 	return mod;
 }
 
@@ -1597,5 +1597,5 @@ void vdp_unregister(struct lldp_module *mod)
 		free(mod->data);
 	}
 	free(mod);
-	LLDPAD_DBG("%s:done\n", __func__);
+	LLDPAD_DBG("%s: done\n", __func__);
 }
