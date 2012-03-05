@@ -434,6 +434,7 @@ static void print_tlvs(struct cmd *cmd, char *ibuf)
 	ilen = strlen(ibuf + offset);
 
 	while (ilen > 0) {
+		tlv_len = 2*sizeof(u16);
 		if (ilen < 2*sizeof(u16)) {
 			printf("corrupted TLV ilen=%d, tlv_len=%d\n",
 				ilen, tlv_len);
