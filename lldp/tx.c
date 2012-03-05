@@ -227,9 +227,7 @@ error:
 
 u8 txFrame(struct port *port, struct lldp_agent *agent)
 {
-	int status = 0;
-
-	status = l2_packet_send(port->l2, agent->mac_addr,
+	l2_packet_send(port->l2, agent->mac_addr,
 		htons(ETH_P_LLDP), agent->tx.frameout, agent->tx.sizeout);
 
 	agent->stats.statsFramesOutTotal++;
