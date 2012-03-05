@@ -649,15 +649,12 @@ static int set_numtcs(char *ifname, int tcid, __u8 numtcs)
 	struct nlmsghdr *nlh;
 	struct rtattr *rta_parent, *rta_child;
 
-	int seq;
-
 	printf("set_numtcs_cfg: %s\n", ifname);
 
 	nlh = start_msg(RTM_SETDCB, DCB_CMD_SNUMTCS);
 	if (NULL == nlh)
 		return -EIO;
 
-	seq = nlh->nlmsg_seq;
 	add_rta(nlh, DCB_ATTR_IFNAME, (void *)ifname, strlen(ifname) + 1);
 	rta_parent = add_rta(nlh, DCB_ATTR_NUMTCS, NULL, 0);
 	rta_child = add_rta(nlh, tcid, &numtcs, sizeof(__u8));
@@ -884,7 +881,6 @@ static int set_bcn_cfg(char *ifname, bcn_cfg *bcn_data)
 	struct rtattr *rta_parent, *rta_child;
 
 	int i;
-	int seq;
 	int temp_int;
 
 	printf("set_bcn_cfg: %s\n", ifname);
@@ -893,7 +889,6 @@ static int set_bcn_cfg(char *ifname, bcn_cfg *bcn_data)
 	if (NULL == nlh)
 		return -EIO;
 
-	seq = nlh->nlmsg_seq;
 	add_rta(nlh, DCB_ATTR_IFNAME, (void *)ifname, strlen(ifname) + 1);
 	rta_parent = add_rta(nlh, DCB_ATTR_BCN, NULL, 0);
 	for (i = DCB_BCN_ATTR_RP_0; i <= DCB_BCN_ATTR_RP_7; i++) {
@@ -1029,7 +1024,6 @@ static int get_app_cfg(char *ifname, appgroup_attribs *app_data)
 	struct dcbmsg *d;
 	struct rtattr *rta_parent, *rta_child;
 	int rval = 0;
-	unsigned int seq;
 	__u8 idtype;
 	__u16 id;
 
@@ -1037,7 +1031,6 @@ static int get_app_cfg(char *ifname, appgroup_attribs *app_data)
 	if (NULL==nlh)
 		return -EIO;
 
-	seq = nlh->nlmsg_seq;
 	add_rta(nlh, DCB_ATTR_IFNAME, (void *)ifname, strlen(ifname) + 1);
 	rta_parent = add_rta(nlh, DCB_ATTR_APP, NULL, 0);
 
@@ -1108,7 +1101,6 @@ int set_hw_app0(char *ifname, appgroup_attribs *app_data)
 {
 	struct nlmsghdr *nlh;
 	struct rtattr *rta_parent, *rta_child;
-	int seq;
 
 	printf("set_hw_app0: %s\n", ifname);
 
@@ -1116,7 +1108,6 @@ int set_hw_app0(char *ifname, appgroup_attribs *app_data)
 	if (NULL == nlh)
 		return -EIO;
 
-	seq = nlh->nlmsg_seq;
 	add_rta(nlh, DCB_ATTR_IFNAME, (void *)ifname, strlen(ifname) + 1);
 	rta_parent = add_rta(nlh, DCB_ATTR_APP, NULL, 0);
 
