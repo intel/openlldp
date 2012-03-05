@@ -301,7 +301,7 @@ struct unpacked_tlv *bld_dcbx_ctrl_tlv(struct dcbx_tlvs *dcbx)
 {
 	struct unpacked_tlv *tlv = create_tlv();
 	control_protocol_attribs ctrl_cfg;
-	int result,i;
+	int i;
 	u8 oper_version;
 	u8 max_version;
 	u32 seqno;
@@ -310,7 +310,7 @@ struct unpacked_tlv *bld_dcbx_ctrl_tlv(struct dcbx_tlvs *dcbx)
 	if (!tlv)
 		return NULL;
 
-	result = get_control(dcbx->ifname, &ctrl_cfg);
+	get_control(dcbx->ifname, &ctrl_cfg);
 	oper_version = (u8)ctrl_cfg.Oper_version;
 	max_version = (u8)ctrl_cfg.Max_version;
 	seqno = htonl(ctrl_cfg.SeqNo);
