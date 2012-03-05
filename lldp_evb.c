@@ -215,8 +215,10 @@ static int evb_bld_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
 	evb_update_tlv(ed);
 
 	tlv = create_tlv();
-	if (!tlv)
+	if (!tlv) {
+		rc = ENOMEM;
 		goto out_err;
+	}
 
 	tlv->type = ORG_SPECIFIC_TLV;
 	tlv->length = sizeof(struct tlv_info_evb);
