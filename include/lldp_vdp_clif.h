@@ -1,9 +1,10 @@
 /*******************************************************************************
 
-  implementation of VDP according to IEEE 802.1Qbg
-  (c) Copyright IBM Corp. 2010
+  Implementation of VDP according to IEEE 802.1Qbg
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens@linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht@linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -27,8 +28,6 @@
 #define _LLDP_VDP_CLIF_H
 
 struct lldp_module *vdp_cli_register(void);
-void vdp_cli_unregister(struct lldp_module *);
-int vdp_print_tlv(u32, u16, char *);
 
 #define VDP_BUF_SIZE                   256
 

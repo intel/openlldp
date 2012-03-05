@@ -1,9 +1,10 @@
 /*******************************************************************************
 
-  implementation of VDP according to IEEE 802.1Qbg
-  (c) Copyright IBM Corp. 2010
+  Implementation of VDP according to IEEE 802.1Qbg
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens@linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht@linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -34,27 +35,25 @@
 #include "lldp_vdp.h"
 #include "lldp_vdp_clif.h"
 
-void vdp_print_cfg_tlv(u16, char *info);
-int vdp_print_help();
+static void vdp_print_cfg_tlv(UNUSED u16 len, UNUSED char *info)
+{
+       /* TODO: this should print out all associated VSI mac/vlan pairs */
+       printf("TODO print out all associated VSI mac/vlan pairs\n");
+}
 
-u32 vdp_lookup_tlv_name(char *tlvid_str);
-
-static const struct lldp_mod_ops vdp_ops_clif = {
-       .lldp_mod_register      = vdp_cli_register,
-       .lldp_mod_unregister    = vdp_cli_unregister,
-       .print_tlv              = vdp_print_tlv,
-       .lookup_tlv_name        = vdp_lookup_tlv_name,
-       .print_help             = vdp_print_help,
+static struct type_name_info vdp_tlv_names[] = {
+	{
+		.type = ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE,
+		.name = "VDP protocol configuration",
+		.key = "vdp",
+		.print_info = vdp_print_cfg_tlv
+	},
+	{
+		.type = INVALID_TLVID
+	}
 };
 
-struct type_name_info vdp_tlv_names[] = {
-	{	.type = ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE,
-		.name = "VDP protocol configuration", .key = "vdp",
-		.print_info = vdp_print_cfg_tlv, },
-	{	.type = INVALID_TLVID, }
-};
-
-int vdp_print_help()
+static int vdp_print_help()
 {
        struct type_name_info *tn = &vdp_tlv_names[0];
 
@@ -67,42 +66,30 @@ int vdp_print_help()
                }
                tn++;
        }
-
        return 0;
 }
 
-struct lldp_module *vdp_cli_register(void)
+static u32 vdp_lookup_tlv_name(char *tlvid_str)
 {
-       struct lldp_module *mod;
+       struct type_name_info *tn = &vdp_tlv_names[0];
 
-       mod = malloc(sizeof(*mod));
-       if (!mod) {
-               fprintf(stderr, "failed to malloc module data\n");
-               return NULL;
+       while (tn->type != INVALID_TLVID) {
+               if (!strcasecmp(tn->key, tlvid_str))
+                       return tn->type;
+               tn++;
        }
-       mod->id = LLDP_MOD_VDP;
-       mod->ops = &vdp_ops_clif;
-
-       return mod;
+       return INVALID_TLVID;
 }
 
-void vdp_cli_unregister(struct lldp_module *mod)
+static void vdp_cli_unregister(struct lldp_module *mod)
 {
        free(mod);
-}
-
-void vdp_print_cfg_tlv(UNUSED u16 len, UNUSED char *info)
-{
-       /* TODO: this should print out all associated VSI mac/vlan pairs */
-       printf("This should print out all associated VSI mac/vlan pairs !\n");
-
-       return;
 }
 
 /* return 1: if it printed the TLV
  *        0: if it did not
  */
-int vdp_print_tlv(u32 tlvid, u16 len, char *info)
+static int vdp_print_tlv(u32 tlvid, u16 len, char *info)
 {
        struct type_name_info *tn = &vdp_tlv_names[0];
 
@@ -117,19 +104,27 @@ int vdp_print_tlv(u32 tlvid, u16 len, char *info)
                }
                tn++;
        }
-
        return 0;
 }
 
-u32 vdp_lookup_tlv_name(char *tlvid_str)
+static const struct lldp_mod_ops vdp_ops_clif = {
+       .lldp_mod_register      = vdp_cli_register,
+       .lldp_mod_unregister    = vdp_cli_unregister,
+       .print_tlv              = vdp_print_tlv,
+       .lookup_tlv_name        = vdp_lookup_tlv_name,
+       .print_help             = vdp_print_help,
+};
+
+struct lldp_module *vdp_cli_register(void)
 {
-       struct type_name_info *tn = &vdp_tlv_names[0];
+       struct lldp_module *mod;
 
-       while (tn->type != INVALID_TLVID) {
-               if (!strcasecmp(tn->key, tlvid_str))
-                       return tn->type;
-               tn++;
+       mod = malloc(sizeof(*mod));
+       if (!mod) {
+		fprintf(stderr, "failed to malloc module data\n");
+		return NULL;
        }
-       return INVALID_TLVID;
+       mod->id = LLDP_MOD_VDP;
+       mod->ops = &vdp_ops_clif;
+       return mod;
 }
-
