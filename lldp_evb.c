@@ -525,11 +525,13 @@ static void evb_ifdown(char *ifname, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
 
-	LLDPAD_DBG("%s called\n", __func__);
+	LLDPAD_DBG("%s port %s agent %d called\n", __func__, ifname,
+		   agent->type);
 
 	ed = evb_data(ifname, agent->type);
 	if (!ed) {
-		LLDPAD_ERR("%s:port %s remove failed\n", __func__, ifname);
+		LLDPAD_ERR("%s:port %s agent %d remove failed\n", __func__,
+			   ifname, agent->type);
 		return;
 	}
 
@@ -539,13 +541,17 @@ static void evb_ifdown(char *ifname, struct lldp_agent *agent)
 	LIST_REMOVE(ed, entry);
 	evb_free_tlv(ed);
 	free(ed);
-	LLDPAD_INFO("%s:port %s removed\n", __func__, ifname);
+	LLDPAD_INFO("%s:port %s agent %d removed\n", __func__, ifname,
+		    agent->type);
 }
 
 static void evb_ifup(char *ifname, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
 	struct evb_user_data *ud;
+
+	LLDPAD_DBG("%s port %s agent %d called\n", __func__, ifname,
+		   agent->type);
 
 	ed = evb_data(ifname, agent->type);
 	if (ed) {
@@ -572,7 +578,8 @@ static void evb_ifup(char *ifname, struct lldp_agent *agent)
 
 	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_EVB);
 	LIST_INSERT_HEAD(&ud->head, ed, entry);
-	LLDPAD_DBG("%s:port %s added\n", __func__, ifname);
+	LLDPAD_DBG("%s:port %s agent %d added\n", __func__, ifname,
+		   agent->type);
 	return;
 
 out_free:
@@ -586,6 +593,8 @@ static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
 
+	LLDPAD_DBG("%s:port %s agent %d\n", __func__, port->ifname,
+		   agent->type);
 	if (!is_tlv_txenabled(port->ifname, agent->type,
 			      TLVID_8021Qbg(LLDP_EVB_SUBTYPE))) {
 		goto out_err;
@@ -593,7 +602,8 @@ static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 
 	ed = evb_data(port->ifname, agent->type);
 	if (!ed) {
-		LLDPAD_DBG("%s:%s does not exist.\n", __func__, port->ifname);
+		LLDPAD_DBG("%s: port %s agent %d does not exist.\n", __func__,
+			   port->ifname, agent->type);
 		goto out_err;
 	}
 
@@ -602,8 +612,8 @@ static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 	free(ed->policy);
 
 	if (evb_init_cfg_tlv(ed, agent))
-		LLDPAD_ERR("%s:%s evb_init_cfg_tlv failed\n", __func__,
-			   port->ifname);
+		LLDPAD_ERR("%s:%s agent %d evb_init_cfg_tlv failed\n", __func__,
+			   port->ifname, agent->type);
 	else
 		evb_bld_tlv(ed, agent);
 
