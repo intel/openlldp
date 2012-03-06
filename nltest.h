@@ -32,10 +32,10 @@
 #include <string.h>
 #include <asm/errno.h>
 #include <sys/socket.h>
-#include <linux/if.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
-#include <linux/dcbnl.h>
+#include "linux/if.h"
+#include "linux/netlink.h"
+#include "linux/rtnetlink.h"
+#include "linux/dcbnl.h"
 
 typedef __u8 u8;
 typedef __u16 u16;
