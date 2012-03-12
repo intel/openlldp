@@ -391,7 +391,7 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 	struct mac_vlan *mac_vlan = 0;
 	struct ifinfomsg *ifinfo;
 	struct vdp_data *vd;
-	char *ifname;
+	char ifname[IFNAMSIZ];
 	int rem;
 	int ret = 0;
 
@@ -404,9 +404,8 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 	LLDPAD_DBG("%s(%d): nlmsg_len %i\n", __FILE__, __LINE__, nlh->nlmsg_len);
 
 	if (tb[IFLA_IFNAME]) {
-		ifname = (char *)RTA_DATA(tb[IFLA_IFNAME]);
+		strncpy(ifname, (char *)RTA_DATA(tb[IFLA_IFNAME]), IFNAMSIZ);
 	} else {
-		ifname = malloc(IFNAMSIZ);
 		ifinfo = (struct ifinfomsg *)NLMSG_DATA(nlh);
 		LLDPAD_DBG("interface index: %d\n", ifinfo->ifi_index);
 		if (!if_indextoname(ifinfo->ifi_index, ifname)) {
@@ -675,7 +674,7 @@ struct nl_msg *event_if_constructResponse(int ifindex)
 	struct vdp_data *vd;
 	uint32_t pid = peer_nlmsg.nlmsg_pid;
 	uint32_t seq = peer_nlmsg.nlmsg_seq;
-	char *ifname = malloc(IFNAMSIZ);
+	char ifname[IFNAMSIZ];
 	struct vsi_profile *p;
 
 	nl_msg = nlmsg_alloc();
@@ -696,8 +695,6 @@ struct nl_msg *event_if_constructResponse(int ifindex)
 		       ifname);
 		return NULL;
 	}
-
-	free(ifname);
 
 	if (nlmsg_put(nl_msg, pid, seq, NLMSG_DONE, 0, 0) == NULL)
 		goto err_exit;
