@@ -633,7 +633,17 @@ int save_dcbx_version(int dcbx_version)
 
 int set_persistent(char *device_name, full_dcb_attrib_ptrs *attribs)
 {
-	return _set_persistent(device_name, true, attribs->pg, attribs->pfc, 
+	int enabled = 0;
+	int not_present = get_dcb_enable_state(device_name, &enabled);
+
+	/* When the 'dcb_enable' config param does not exist put DCBX
+	 * into DEFAULT mode. This will cause DCBX to be enabled when
+	 * a DCBX TLV is received
+	 */
+	if (not_present)
+		enabled = LLDP_DCBX_DEFAULT;
+
+	return _set_persistent(device_name, enabled, attribs->pg, attribs->pfc,
 			attribs->pgid, attribs->app, attribs->app_subtype, 
 			attribs->llink, LLINK_FCOE_STYPE);
 }

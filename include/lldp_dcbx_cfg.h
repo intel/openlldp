@@ -29,6 +29,17 @@
 
 #define DCBX_SETTING "dcbx"
 
+/* Enumerations used to set 'dcb_enable' configuration values.
+ * The DCBX default case is to enable DCBX and configure hardware
+ * when receiving a DCBX TLV from the peer. DISABLED and ENABLED
+ * bits are provided to force a preferred strategy.
+ */
+enum {
+	LLDP_DCBX_DISABLED	= 0,
+	LLDP_DCBX_ENABLED	= 1,
+	LLDP_DCBX_DEFAULT	= 2
+};
+
 void dcbx_default_cfg_file(void);
 int get_dcb_enable_state(char *device_name, int *result);
 int save_dcb_enable_state(char *device_name, int dcb_enable);

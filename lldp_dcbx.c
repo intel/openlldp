@@ -508,6 +508,10 @@ void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 	/* Abort initialization on hardware that does not support
 	 * querying the DCB state. We assume this means the driver
 	 * does not support DCB.
+	 *
+	 * dcb_enable falls through and makes CEE active if
+	 * it is already enabled AND configuration file does not
+	 * have an entry for the dcb_enable field.
 	 */
 	if (get_hw_state(ifname, &dcb_enable) < 0)
 		return;
@@ -595,14 +599,14 @@ initialized:
 
 	/* if the dcbx field is not filled in by the capabilities
 	 * query, then the kernel is older and does not support
-	 * IEEE mode, so make CEE DCBX active by default. Unless
-	 * the dcb state has been disabled from command line.
+	 * IEEE mode, lacking any specified behavior in the cfg
+	 * file DCBX is put in a default mode and will be enabled
+	 * if a peer DCBX TLV is received.
 	 */
 	get_dcb_capabilities(ifname, &dcb_support);
+	get_dcb_enable_state(ifname, &dcb_enable);
 
-	exists = get_dcb_enable_state(ifname, &dcb_enable);
-
-	if ((exists < 0 || dcb_enable) &&
+	if ((dcb_enable == LLDP_DCBX_ENABLED) &&
 	    (!dcb_support.dcbx || (gdcbx_subtype & ~MASK_DCBX_FORCE) ||
 	    (lldpad_shm_get_dcbx(ifname)))) {
 		set_dcbx_mode(tlvs->ifname,
@@ -765,11 +769,10 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 
 	if (tlv->type == TYPE_0) {
 		int enabled;
-		int exists = get_dcb_enable_state(dcbx->ifname, &enabled);
+		int not_present = get_dcb_enable_state(dcbx->ifname, &enabled);
 
 		if (!dcbx->active && !ieee8021qaz_tlvs_rxed(dcbx->ifname) &&
-		    dcbx->rxed_tlvs &&
-		    (exists < 0 || enabled)) {
+		    dcbx->rxed_tlvs && (not_present || enabled)) {
 			LLDPAD_DBG("CEE DCBX %s going ACTIVE\n", dcbx->ifname);
 			set_dcbx_mode(port->ifname,
 				      DCB_CAP_DCBX_HOST | DCB_CAP_DCBX_VER_CEE);
