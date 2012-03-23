@@ -70,7 +70,6 @@ const char * const vsi_states[] = {
 
 int vdp_start_localchange_timer(struct vsi_profile *p);
 int vdp_remove_profile(struct vsi_profile *profile);
-static bool vdp_profile_equal(struct vsi_profile *p1, struct vsi_profile *p2);
 
 void vdp_trace_profile(struct vsi_profile *p)
 {
@@ -1018,47 +1017,42 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 
 	if (vd->role == VDP_ROLE_STATION) {
 		/* do we have the profile already ? */
-		LIST_FOREACH(p, &vd->profile_head, profile) {
-			if (vdp_profile_equal(p, profile)) {
-				LLDPAD_DBG("%s: station profile found, "
-					   "localChange %i ackReceived %i\n",
-					   __func__,
-					   p->localChange, p->ackReceived);
+		p = vdp_find_profile(vd, profile);
 
-				p->ackReceived = true;
-				p->keepaliveTimer = VDP_KEEPALIVE_TIMER_DEFAULT;
-				if (profile->mode != p->mode) {
-					p->mode = profile->mode;
-					p->remoteChange = true;
-					LLDPAD_DBG("%s: station remoteChange %i\n",
-						   __func__, p->remoteChange);
-				}
-				p->response = profile->response;
+		if (p) {
+			LLDPAD_DBG("%s: station profile found, "
+				   "localChange %i ackReceived %i\n",
+				   __func__,
+				   p->localChange, p->ackReceived);
 
-				if (vdp_vsi_negative_response(p))
-					p->mode = VDP_MODE_DEASSOCIATE;
-
-				LLDPAD_DBG("%s: profile response: %s (%i) "
-					   "for profile %#02x at state %s\n",
-					   __func__,
-					   vdp_response2str(p->response),
-					   p->response, p->instance[15],
-					   vsi_states[p->state]);
-			} else {
-				LLDPAD_DBG("%s: station profile not found\n",
-					   __func__);
+			p->ackReceived = true;
+			p->keepaliveTimer = VDP_KEEPALIVE_TIMER_DEFAULT;
+			if (profile->mode != p->mode) {
+				p->mode = profile->mode;
+				p->remoteChange = true;
+				LLDPAD_DBG("%s: station remoteChange %i\n",
+					   __func__, p->remoteChange);
 			}
+			p->response = profile->response;
+
+			if (vdp_vsi_negative_response(p))
+				p->mode = VDP_MODE_DEASSOCIATE;
+
+			LLDPAD_DBG("%s: profile response: %s (%i) "
+				   "for profile %#02x at state %s\n",
+				   __func__,
+				   vdp_response2str(p->response),
+				   p->response, p->instance[15],
+				   vsi_states[p->state]);
+		} else {
+			LLDPAD_DBG("%s: station profile not found\n", __func__);
 		}
 		vdp_delete_profile(profile);
 	}
 
 	if (vd->role == VDP_ROLE_BRIDGE) {
 		/* do we have the profile already ? */
-		LIST_FOREACH(p, &vd->profile_head, profile) {
-			if (vdp_profile_equal(p, profile)) {
-				break;
-			}
-		}
+		p = vdp_find_profile(vd, profile);
 
 		if (p) {
 			LLDPAD_DBG("%s: bridge profile found\n", __func__);
@@ -1067,7 +1061,7 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 			LLDPAD_DBG("%s: bridge profile not found\n", __func__);
 			/* put it in the list  */
 			profile->state = VSI_UNASSOCIATED;
-			LIST_INSERT_HEAD(&vd->profile_head, profile, profile );
+			LIST_INSERT_HEAD(&vd->profile_head, profile, profile);
 		}
 
 		vdp_vsi_sm_bridge(profile);
@@ -1076,7 +1070,6 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 	return 0;
 
 out_err:
-	LLDPAD_ERR("%s: error\n", __func__);
 	return 1;
 
 }
@@ -1242,32 +1235,6 @@ out_err:
 	return NULL;
 }
 
-/* vdp_profile_equal - checks for equality of 2 profiles
- * @p1: profile 1
- * @p2: profile 2
- *
- * returns true if equal, false if not
- *
- * compares mgrid, id, version, instance 2 vsi profiles to find
- * out if they are equal.
- */
-static bool vdp_profile_equal(struct vsi_profile *p1, struct vsi_profile *p2)
-{
-	if (p1->mgrid != p2->mgrid)
-		return false;
-
-	if (p1->id != p2->id)
-		return false;
-
-	if (p1->version != p2->version)
-		return false;
-
-	if (memcmp(p1->instance, p2->instance, 16))
-		return false;
-
-	return true;
-}
-
 /* vdp_macvlan_equal - checks for equality of 2 mac/vlan pairs
  * @mv1: mac/vlan pair 1
  * @mv2: mac/vlan pair 2
@@ -1363,30 +1330,28 @@ struct vsi_profile *vdp_add_profile(struct vsi_profile *profile)
 
 	vdp_trace_profile(profile);
 
-	/* loop over all existing profiles and check if
-	 * one for this combination already exists. If yes, check,
-	 * if the MAC/VLAN pair already exists. If not, add it. */
-	LIST_FOREACH(p, &vd->profile_head, profile) {
-		if (vdp_profile_equal(p, profile)) {
-			LLDPAD_DBG("%s: profile already exists\n", __func__);
+	/*
+	 * Search this profile. If found check,
+	 * if the MAC/VLAN pair already exists. If not, add it.
+	 */
+	p = vdp_find_profile(vd, profile);
+	if (p) {
+		LLDPAD_DBG("%s: profile already exists\n", __func__);
 
-			vdp_takeover_macvlans(p, profile);
+		vdp_takeover_macvlans(p, profile);
 
-			if (p->mode != profile->mode) {
-				LLDPAD_DBG("%s: new mode %i\n",
-					   __func__, profile->mode);
-				p->mode = profile->mode;
-			}
-
-			vdp_somethingChangedLocal(p, true);
-
-			return p;
+		if (p->mode != profile->mode) {
+			LLDPAD_DBG("%s: new mode %i\n",
+				   __func__, profile->mode);
+			p->mode = profile->mode;
 		}
+		profile = p;
+	} else {
+
+		profile->response = VDP_RESPONSE_NO_RESPONSE;
+
+		LIST_INSERT_HEAD(&vd->profile_head, profile, profile);
 	}
-
-	profile->response = VDP_RESPONSE_NO_RESPONSE;
-
-	LIST_INSERT_HEAD(&vd->profile_head, profile, profile );
 
 	vdp_somethingChangedLocal(profile, true);
 
@@ -1416,14 +1381,12 @@ int vdp_remove_profile(struct vsi_profile *profile)
 			   profile->port->ifname);
 		return -1;
 	}
-	/* loop over all existing profiles and check if
-	 * it exists. If yes, remove it. */
-	LIST_FOREACH(p, &vd->profile_head, profile) {
-		if (vdp_profile_equal(p, profile)) {
-			LIST_REMOVE(p, profile);
-			vdp_delete_profile(p);
-			return 0;
-		}
+	/* Check if profile exists. If yes, remove it. */
+	p = vdp_find_profile(vd, profile);
+	if (p) {
+		LIST_REMOVE(p, profile);
+		vdp_delete_profile(p);
+		return 0;
 	}
 	return -1;	/* Not found */
 }

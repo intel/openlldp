@@ -61,3 +61,47 @@ void vdp_delete_profile(struct vsi_profile *prof)
 	vdp_remove_macvlan(prof);
 	free(prof);
 }
+
+/* vdp_profile_equal - checks for equality of 2 profiles
+ * @p1: profile 1
+ * @p2: profile 2
+ *
+ * returns true if equal, false if not
+ *
+ * compares mgrid, id, version, instance 2 vsi profiles to find
+ * out if they are equal.
+ */
+static bool vdp_profile_equal(struct vsi_profile *p1, struct vsi_profile *p2)
+{
+	if (p1->mgrid != p2->mgrid)
+		return false;
+
+	if (p1->id != p2->id)
+		return false;
+
+	if (p1->version != p2->version)
+		return false;
+
+	if (memcmp(p1->instance, p2->instance, 16))
+		return false;
+
+	return true;
+}
+
+/*
+ * vdp_find_profile - Find a profile in the list of profiles already allocated
+ *
+ * Returns pointer to already allocated profile in list, 0 if not.
+ */
+
+struct vsi_profile *vdp_find_profile(struct vdp_data *vd,
+				     struct vsi_profile *thisone)
+{
+	struct vsi_profile *p;
+
+	LIST_FOREACH(p, &vd->profile_head, profile) {
+		if (vdp_profile_equal(p, thisone))
+			return p;
+	}
+	return 0;
+}
