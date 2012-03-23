@@ -882,8 +882,10 @@ static void vdp_vsi_sm_bridge(struct vsi_profile *profile)
  *
  * checks the contents of an already decoded vsi tlv for inconsistencies
  */
-static int vdp_validate_tlv(struct tlv_info_vdp *vdp)
+static int vdp_validate_tlv(struct tlv_info_vdp *vdp, struct unpacked_tlv *tlv)
 {
+	int pairs = (tlv->length - sizeof *vdp) / sizeof(struct mac_vlan_p);
+
 	if (ntoh24(vdp->oui) != OUI_IEEE_8021Qbg) {
 		LLDPAD_DBG("vdp->oui %#06x\n", ntoh24(vdp->oui));
 		goto out_err;
@@ -915,10 +917,58 @@ static int vdp_validate_tlv(struct tlv_info_vdp *vdp)
 		goto out_err;
 	}
 
+	/* Check for number of entries of MAC,VLAN pairs */
+	if (ntohs(vdp->entries) != pairs) {
+		LLDPAD_DBG("mismatching # of entries %#x/%#x in vsi tlv\n",
+			   ntohs(vdp->entries), pairs);
+		goto out_err;
+	}
 	return 0;
 
 out_err:
 	return 1;
+}
+
+/*
+ * Create a VSI profile structure from switch response.
+ */
+static void make_profile(struct vsi_profile *new, struct tlv_info_vdp *vdp,
+			 struct unpacked_tlv *tlv)
+{
+	int i;
+	u8 *pos = tlv->info + sizeof *vdp;
+
+	new->mode = vdp->mode;
+	new->response = vdp->response;
+	new->mgrid = vdp->mgrid;
+	new->id = ntoh24(vdp->id);
+	new->version = vdp->version;
+	memcpy(&new->instance, &vdp->instance, sizeof new->instance);
+	new->format = vdp->format;
+	new->entries = ntohs(vdp->entries);
+	LLDPAD_DBG("%s: MAC/VLAN filter info format %u, # of entries %u\n",
+		   __func__, new->format, new->entries);
+
+	/* Add MAC,VLAN to list */
+	for (i = 0; i < new->entries; ++i) {
+		struct mac_vlan *mac_vlan = calloc(1, sizeof(struct mac_vlan));
+		u16 vlan;
+		char macbuf[MAC_ADDR_STRLEN + 1];
+
+		if (!mac_vlan) {
+			new->entries = i;
+			return;
+		}
+		memcpy(&mac_vlan->mac, pos, ETH_ALEN);
+		pos += ETH_ALEN;
+		mac2str(mac_vlan->mac, macbuf, MAC_ADDR_STRLEN);
+		memcpy(&vlan, pos, 2);
+		pos += 2;
+		mac_vlan->vlan = ntohs(vlan);
+		LLDPAD_DBG("%s: mac %s vlan %d\n", __func__, macbuf,
+			   mac_vlan->vlan);
+		LIST_INSERT_HEAD(&new->macvid_head, mac_vlan, entry);
+	}
 }
 
 /*
@@ -933,7 +983,7 @@ out_err:
  */
 int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 {
-	struct tlv_info_vdp *vdp;
+	struct tlv_info_vdp vdp;
 	struct vsi_profile *p, *profile;
 	struct port *port = port_find_by_name(vd->ifname);
 
@@ -947,41 +997,22 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 		goto out_err;
 	}
 
-	vdp = malloc(sizeof(struct tlv_info_vdp));
-
-	if (!vdp) {
-		LLDPAD_ERR("%s: unable to allocate vdp\n", __func__);
-		goto out_err;
-	}
-
-	memset(vdp, 0, sizeof(struct tlv_info_vdp));
+	memset(&vdp, 0, sizeof vdp);
 	/* copy only vdp header w/o list of mac/vlan/groupid pairs */
-	memcpy(vdp, tlv->info, sizeof(struct tlv_info_vdp));
+	memcpy(&vdp, tlv->info, sizeof vdp);
 
-	if (vdp_validate_tlv(vdp)) {
+	if (vdp_validate_tlv(&vdp, tlv)) {
 		LLDPAD_ERR("%s: invalid TLV received\n", __func__);
-		goto out_vdp;
+		goto out_err;
 	}
 
 	profile = vdp_alloc_profile();
 
 	if (!profile) {
 		LLDPAD_ERR("%s: unable to allocate profile\n", __func__);
-		goto out_vdp;
+		goto out_err;
 	}
-
-	profile->mode = vdp->mode;
-	profile->response = vdp->response;
-
-	profile->mgrid = vdp->mgrid;
-	profile->id = ntoh24(vdp->id);
-	profile->version = vdp->version;
-	memcpy(&profile->instance, &vdp->instance, 16);
-	profile->format = vdp->format;
-	profile->entries = ntohs(vdp->entries);
-
-	LLDPAD_DBG("%s: MAC/VLAN filter info format %u, # of entries %u\n",
-		   __func__, profile->format, profile->entries);
+	make_profile(profile, &vdp, tlv);
 
 	profile->port = port;
 
@@ -989,20 +1020,20 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 		/* do we have the profile already ? */
 		LIST_FOREACH(p, &vd->profile_head, profile) {
 			if (vdp_profile_equal(p, profile)) {
-				LLDPAD_DBG("%s: station: profile found, "
+				LLDPAD_DBG("%s: station profile found, "
 					   "localChange %i ackReceived %i\n",
 					   __func__,
 					   p->localChange, p->ackReceived);
 
 				p->ackReceived = true;
 				p->keepaliveTimer = VDP_KEEPALIVE_TIMER_DEFAULT;
-				if (vdp->mode != p->mode) {
-					p->mode = vdp->mode;
+				if (profile->mode != p->mode) {
+					p->mode = profile->mode;
 					p->remoteChange = true;
 					LLDPAD_DBG("%s: station remoteChange %i\n",
 						   __func__, p->remoteChange);
 				}
-				p->response = vdp->response;
+				p->response = profile->response;
 
 				if (vdp_vsi_negative_response(p))
 					p->mode = VDP_MODE_DEASSOCIATE;
@@ -1013,13 +1044,12 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 					   vdp_response2str(p->response),
 					   p->response, p->instance[15],
 					   vsi_states[p->state]);
-				vdp_delete_profile(profile);
 			} else {
-				LLDPAD_DBG("%s: station: profile not found\n",
+				LLDPAD_DBG("%s: station profile not found\n",
 					   __func__);
-				/* ignore profile */
 			}
 		}
+		vdp_delete_profile(profile);
 	}
 
 	if (vd->role == VDP_ROLE_BRIDGE) {
@@ -1045,8 +1075,6 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 
 	return 0;
 
-out_vdp:
-	free(vdp);
 out_err:
 	LLDPAD_ERR("%s: error\n", __func__);
 	return 1;
