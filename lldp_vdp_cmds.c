@@ -354,7 +354,7 @@ static struct vsi_profile *vdp_parse_mode_line(char * argvalue)
 	char *cmdstring, *parsed;
 	struct vsi_profile *profile;
 
-	profile = calloc(1, sizeof(struct vsi_profile));
+	profile = vdp_alloc_profile();
 	if (!profile)
 		return NULL;
 
@@ -389,8 +389,10 @@ static struct vsi_profile *vdp_parse_mode_line(char * argvalue)
 		str2mac(parsed, &mac_vlan->mac[0], MAC_ADDR_LEN);
 
 		parsed = strtok(NULL, ",");
-		if (parsed == NULL)
+		if (parsed == NULL) {
+			free(mac_vlan);
 			goto out_free;
+		}
 
 		mac_vlan->vlan = atoi(parsed);
 		LIST_INSERT_HEAD(&profile->macvid_head, mac_vlan, entry);
@@ -403,13 +405,7 @@ static struct vsi_profile *vdp_parse_mode_line(char * argvalue)
 
 out_free:
 	free(cmdstring);
-	while (profile->entries-- > 0) {
-		struct mac_vlan *mac_vlan = LIST_FIRST(&profile->macvid_head);
-
-		LIST_REMOVE(mac_vlan, entry);
-		free(mac_vlan);
-	}
-	free(profile);
+	vdp_delete_profile(profile);
 	return NULL;
 }
 
@@ -436,21 +432,24 @@ static int _set_arg_mode(struct cmd *cmd, char *argvalue, bool test)
 	profile->port = port_find_by_name(cmd->ifname);
 
 	if (!profile->port) {
-		free(profile);
+		vdp_delete_profile(profile);
 		return cmd_invalid;
 	}
 
 	if (test) {
-		free(profile);
+		vdp_delete_profile(profile);
 		return cmd_success;
 	}
 
 	p = vdp_add_profile(profile);
 
 	if (!p) {
-		free(profile);
+		vdp_delete_profile(profile);
 		return cmd_invalid;
 	}
+
+	if (profile != p)
+		vdp_delete_profile(profile);
 
 	return cmd_success;
 }
