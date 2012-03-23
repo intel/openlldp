@@ -80,13 +80,16 @@ struct mac_vlan_p {
 	u16 vlan;
 } __attribute__ ((__packed__));
 
-struct mac_vlan {
+struct mac_vlan {		/* MAC,VLAN entry anchored by profiles */
 	u8 mac[6];
 	u16 vlan;
+	u8 qos;			/* QOS field */
+	pid_t req_pid;		/* PID of requester for this profile */
+	u32 req_seq;		/* Seq # of requester for this profile */
 	LIST_ENTRY(mac_vlan) entry;
 };
 
-struct tlv_info_vdp {
+struct tlv_info_vdp {		/* VSI information in packet format */
 	u8 oui[3];
 	u8 sub;
 	u8 mode;
@@ -100,15 +103,15 @@ struct tlv_info_vdp {
 } __attribute__ ((__packed__));
 
 struct vsi_profile {
-	int mode;
-	int response;
+	int mode;		/* Requested VSI profile mode */
+	int response;		/* ACK from switch */
 	u8 no_nlmsg;		/* Don't send netlink msg on VSI_EXIT */
-	u8 mgrid;
-	int id;
-	u8 version;
-	u8 instance[16];
-	u8 format;
-	u16 entries;
+	u8 mgrid;		/* Profile mgr id */
+	int id;			/* Profile id */
+	u8 version;		/* Profile id version number */
+	u8 instance[16];	/* Profile UUID */
+	u8 format;		/* Format of MAC,VLAN list */
+	u16 entries;		/* Number of MAC,VLAN entries in macvid_head */
 	LIST_HEAD(macvid_head, mac_vlan) macvid_head;
 	struct port *port;
 	int ackTimer;

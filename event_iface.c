@@ -66,8 +66,6 @@
 extern unsigned int if_nametoindex(const char *);
 extern char *if_indextoname(unsigned int, char *);
 
-/* nlmsg struct to save data related to communication with a peer */
-static struct nlmsghdr peer_nlmsg;
 static int peer_sock;
 
 static struct nla_policy ifla_vf_policy[IFLA_VF_MAX + 1] =
@@ -468,6 +466,9 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 			goto out_err;
 		}
 		mac_vlan->vlan = (u16) vlan->vlan;
+		mac_vlan->qos = (u8) vlan->qos;
+		mac_vlan->req_pid = (pid_t) nlh->nlmsg_pid;
+		mac_vlan->req_seq = (u32) nlh->nlmsg_seq;
 	}
 
 	LIST_INSERT_HEAD(&profile->macvid_head, mac_vlan, entry);
@@ -582,7 +583,7 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 	return ret;
 
 out_err:
-	free(profile);
+	vdp_delete_profile(profile);
 	return ret;
 }
 
@@ -663,14 +664,12 @@ static void event_if_parseResponseMsg(struct nlmsghdr *nlh)
 	}
 }
 
-struct nl_msg *event_if_constructResponse(int ifindex)
+struct nl_msg *event_if_constructResponse(int ifindex, struct nlmsghdr *from)
 {
 	struct nl_msg *nl_msg;
 	struct nlattr *vf_ports = NULL, *vf_port;
 	struct ifinfomsg ifinfo;
 	struct vdp_data *vd;
-	uint32_t pid = peer_nlmsg.nlmsg_pid;
-	uint32_t seq = peer_nlmsg.nlmsg_seq;
 	char ifname[IFNAMSIZ];
 	struct vsi_profile *p;
 
@@ -693,7 +692,7 @@ struct nl_msg *event_if_constructResponse(int ifindex)
 		return NULL;
 	}
 
-	if (nlmsg_put(nl_msg, pid, seq, NLMSG_DONE, 0, 0) == NULL)
+	if (nlmsg_put(nl_msg, from->nlmsg_pid, from->nlmsg_seq, NLMSG_DONE, 0, 0) == NULL)
 		goto err_exit;
 
 	ifinfo.ifi_index = ifindex;
@@ -752,12 +751,12 @@ static int add_pair(struct mac_vlan *mymac, struct nl_msg *nl_msg)
 	struct nlattr *vfinfo;
 	struct ifla_vf_mac ifla_vf_mac = {
 		.vf = PORT_SELF_VF,
-		.mac = { 0, },
+		.mac = { 0, }
 	};
 	struct ifla_vf_vlan ifla_vf_vlan = {
 		.vf = PORT_SELF_VF,
 		.vlan = mymac->vlan,
-		.qos = 0,
+		.qos = mymac->qos
 	};
 
 
@@ -818,14 +817,18 @@ int event_if_indicate_profile(struct vsi_profile *profile)
 	struct sockaddr_nl dest_addr;
 	struct iovec iov;
 	struct vdp_data *vd;
-	uint32_t pid = peer_nlmsg.nlmsg_pid;
-	uint32_t seq = peer_nlmsg.nlmsg_seq;
 	char *ifname;
 	int result;
 	struct ifla_port_vsi portvsi;
+	struct mac_vlan *macp = 0;
 
 	LLDPAD_DBG("%s: no_nlmsg:%d\n", __func__, profile->no_nlmsg);
 	if (profile->no_nlmsg)
+		return 0;
+	if (LIST_EMPTY(&profile->macvid_head))
+		return 0;
+	macp = LIST_FIRST(&profile->macvid_head);
+	if (!macp->req_pid)
 		return 0;
 	nl_msg = nlmsg_alloc();
 	if (!nl_msg) {
@@ -846,7 +849,7 @@ int event_if_indicate_profile(struct vsi_profile *profile)
 			   __func__, ifname);
 		goto err_exit;
 	}
-	if (nlmsg_put(nl_msg, getpid(), seq, NLMSG_DONE, 0, 0) == NULL)
+	if (nlmsg_put(nl_msg, getpid(), macp->req_seq, NLMSG_DONE, 0, 0) == NULL)
 		goto err_exit;
 	ifinfo.ifi_index = if_nametoindex(ifname);
 	if (ifinfo.ifi_index == 0) {
@@ -893,7 +896,7 @@ int event_if_indicate_profile(struct vsi_profile *profile)
 	memset(&msg, 0, sizeof(msg));
 
 	dest_addr.nl_family = AF_NETLINK;
-	dest_addr.nl_pid = pid;
+	dest_addr.nl_pid = macp->req_pid;
 
 	nlh = nlmsg_hdr(nl_msg);
 	nlh->nlmsg_type = RTM_SETLINK;
@@ -913,7 +916,7 @@ int event_if_indicate_profile(struct vsi_profile *profile)
 	LLDPAD_DBG("nlh_len: 0x%x\n", nlh->nlmsg_len);
 	result = sendmsg(peer_sock, &msg, 0);
 	LLDPAD_DBG("%s result:%d pid:%d sender-pid:%d\n",
-		   __func__, result, pid, nlh->nlmsg_pid);
+		   __func__, result, macp->req_pid, nlh->nlmsg_pid);
 	if (result < 0)
 		LLDPAD_ERR("%s error %i: (len:%u) send on netlink socket %i\n",
 			   __func__, errno, peer_sock, nlh->nlmsg_len);
@@ -927,19 +930,17 @@ err_exit:
 	return -EINVAL;
 }
 
-struct nl_msg *event_if_simpleResponse(int err)
+struct nl_msg *event_if_simpleResponse(int err, struct nlmsghdr *from)
 {
 	struct nl_msg *nl_msg = nlmsg_alloc();
 	struct nlmsgerr nlmsgerr;
-	uint32_t pid = peer_nlmsg.nlmsg_pid;
-	uint32_t seq = peer_nlmsg.nlmsg_seq;
 
 	memset(&nlmsgerr, 0x0, sizeof(nlmsgerr));
 
 	nlmsgerr.error = err;
 	LLDPAD_DBG("RESPONSE error code: %d\n",err);
 
-	if (nlmsg_put(nl_msg, pid, seq, NLMSG_ERROR, 0, 0) == NULL)
+	if (nlmsg_put(nl_msg, from->nlmsg_pid, from->nlmsg_seq, NLMSG_ERROR, 0, 0) == NULL)
 		goto err_exit;
 
 	if (nlmsg_append(nl_msg, &nlmsgerr, sizeof(nlmsgerr), NLMSG_ALIGNTO) < 0)
@@ -1002,8 +1003,6 @@ event_iface_receive_user_space(int sock,
 	LLDPAD_DBG("nlh_seq: 0x%x\n", nlh->nlmsg_seq);
 	LLDPAD_DBG("nlh_len: 0x%x\n", nlh->nlmsg_len);
 
-	peer_nlmsg.nlmsg_pid = nlh->nlmsg_pid;
-	peer_nlmsg.nlmsg_seq = nlh->nlmsg_seq;
 
 	switch (nlh->nlmsg_type) {
 		case RTM_SETLINK:
@@ -1013,7 +1012,7 @@ event_iface_receive_user_space(int sock,
 
 			/* send simple response wether profile was accepted
 			 * or not */
-			nl_msg = event_if_simpleResponse(err);
+			nl_msg = event_if_simpleResponse(err, nlh);
 			nlh2 = nlmsg_hdr(nl_msg);
 			break;
 		case RTM_GETLINK:
@@ -1021,12 +1020,12 @@ event_iface_receive_user_space(int sock,
 
 			err = event_if_parse_getmsg(nlh, &ifindex);
 			if (err) {
-				nl_msg = event_if_simpleResponse(err);
+				nl_msg = event_if_simpleResponse(err, nlh);
 				nlh2 = nlmsg_hdr(nl_msg);
 				break;
 			}
 
-			nl_msg = event_if_constructResponse(ifindex);
+			nl_msg = event_if_constructResponse(ifindex, nlh);
 			if (!nl_msg) {
 				LLDPAD_ERR("%s: Unable to construct response\n",
 				       __func__);

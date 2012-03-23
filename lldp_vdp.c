@@ -88,8 +88,9 @@ void vdp_trace_profile(struct vsi_profile *p)
 		char macbuf[MAC_ADDR_STRLEN + 1];
 
 		mac2str(mac_vlan->mac, macbuf, MAC_ADDR_STRLEN);
-		LLDPAD_DBG("profile:%p mac:%s vlan:%d\n", p, macbuf,
-			   mac_vlan->vlan);
+		LLDPAD_DBG("profile:%p mac:%s vlan:%d qos:%d pid:%d seq:%d\n",
+			   p, macbuf, mac_vlan->vlan, mac_vlan->qos,
+			   mac_vlan->req_pid, mac_vlan->req_seq);
 	}
 }
 
@@ -962,14 +963,12 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 		goto out_vdp;
 	}
 
-	profile = malloc(sizeof(struct vsi_profile));
+	profile = vdp_alloc_profile();
 
-	 if (!profile) {
+	if (!profile) {
 		LLDPAD_ERR("%s: unable to allocate profile\n", __func__);
 		goto out_vdp;
-	 }
-
-	memset(profile, 0, sizeof(struct vsi_profile));
+	}
 
 	profile->mode = vdp->mode;
 	profile->response = vdp->response;
@@ -1014,7 +1013,7 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 					   vdp_response2str(p->response),
 					   p->response, p->instance[15],
 					   vsi_states[p->state]);
-				free(profile);
+				vdp_delete_profile(profile);
 			} else {
 				LLDPAD_DBG("%s: station: profile not found\n",
 					   __func__);
@@ -1033,6 +1032,7 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 
 		if (p) {
 			LLDPAD_DBG("%s: bridge profile found\n", __func__);
+			vdp_delete_profile(profile);
 		} else {
 			LLDPAD_DBG("%s: bridge profile not found\n", __func__);
 			/* put it in the list  */
@@ -1070,7 +1070,7 @@ static int vdp_bld_vsi_tlv(struct vdp_data *vd, struct vsi_profile *profile)
 	int rc = 0;
 	struct unpacked_tlv *tlv = NULL;
 	int size = sizeof(struct tlv_info_vdp) +
-		profile->entries*sizeof(struct mac_vlan_p);
+		profile->entries * sizeof(struct mac_vlan_p);
 
 	vdp = malloc(size);
 
@@ -1103,8 +1103,10 @@ static int vdp_bld_vsi_tlv(struct vdp_data *vd, struct vsi_profile *profile)
 	}
 
 	tlv = create_tlv();
-	if (!tlv)
+	if (!tlv) {
+		rc = ENOMEM;
 		goto out_free;
+	}
 
 	tlv->type = ORG_SPECIFIC_TLV;
 	tlv->length = size;
@@ -1257,6 +1259,28 @@ bool vdp_macvlan_equal(struct mac_vlan *mv1, struct mac_vlan *mv2)
 	return true;
 }
 
+/*
+ * Check if the current profile already has this entry. If so take over
+ * PID and other fields. If not add this MAC,VLAN to our list.
+ *
+ * Returns 1 it the entry already exist, 0 if not.
+ */
+static int have_macvlan(struct vsi_profile *p1, struct mac_vlan *new)
+{
+	struct mac_vlan *mv1;
+
+	LIST_FOREACH(mv1, &p1->macvid_head, entry)
+		if (vdp_macvlan_equal(mv1, new) == true) {
+			mv1->req_pid = new->req_pid;
+			mv1->req_seq = new->req_seq;
+			mv1->qos = new->qos;
+			return 1;
+		}
+	LIST_INSERT_HEAD(&p1->macvid_head, new, entry);
+	p1->entries++;
+	return 0;
+}
+
 /* vdp_takeover_macvlans - take over macvlan pairs from p2 into p1
  * @p1: profile 1
  * @p2: profile 2
@@ -1269,23 +1293,18 @@ bool vdp_macvlan_equal(struct mac_vlan *mv1, struct mac_vlan *mv2)
  */
 void vdp_takeover_macvlans(struct vsi_profile *p1, struct vsi_profile *p2)
 {
-	struct mac_vlan *mv1, *mv2;
+	struct mac_vlan *mv2;
 	int count = 0;
 
 	LLDPAD_DBG("%s: taking over mac/vlan pairs\n", __func__);
 
-	LIST_FOREACH(mv2, &p2->macvid_head, entry) {
-		LIST_FOREACH(mv1, &p1->macvid_head, entry) {
-			if (vdp_macvlan_equal(mv1, mv2) == false) {
-				struct mac_vlan *new;
-				new = malloc(sizeof(struct mac_vlan));
-				memcpy(new->mac, mv2->mac, ETH_ALEN);
-				new->vlan = mv2->vlan;
-				LIST_INSERT_HEAD(&p1->macvid_head, new, entry);
-				count++;
-				p1->entries++;
-			}
-		}
+	while ((mv2 = LIST_FIRST(&p2->macvid_head))) {
+		LIST_REMOVE(mv2, entry);
+		p2->entries--;
+		if (have_macvlan(p1, mv2))
+			free(mv2);
+		else
+			count++;
 	}
 
 	LLDPAD_DBG("%s: %u mac/vlan pairs taken over\n", __func__, count);
@@ -1320,23 +1339,20 @@ struct vsi_profile *vdp_add_profile(struct vsi_profile *profile)
 	 * one for this combination already exists. If yes, check,
 	 * if the MAC/VLAN pair already exists. If not, add it. */
 	LIST_FOREACH(p, &vd->profile_head, profile) {
-		if (p) {
-			if (vdp_profile_equal(p, profile)) {
-				LLDPAD_DBG("%s: profile already exists\n",
-					   __func__);
+		if (vdp_profile_equal(p, profile)) {
+			LLDPAD_DBG("%s: profile already exists\n", __func__);
 
-				vdp_takeover_macvlans(p, profile);
+			vdp_takeover_macvlans(p, profile);
 
-				if (p->mode != profile->mode) {
-					LLDPAD_DBG("%s: new mode %i\n",
-						   __func__, profile->mode);
-					p->mode = profile->mode;
-				}
-
-				vdp_somethingChangedLocal(p, true);
-
-				return p;
+			if (p->mode != profile->mode) {
+				LLDPAD_DBG("%s: new mode %i\n",
+					   __func__, profile->mode);
+				p->mode = profile->mode;
 			}
+
+			vdp_somethingChangedLocal(p, true);
+
+			return p;
 		}
 	}
 
@@ -1364,6 +1380,7 @@ int vdp_remove_profile(struct vsi_profile *profile)
 
 	LLDPAD_DBG("%s: removing vdp profile on %s\n", __func__,
 		   profile->port->ifname);
+	vdp_trace_profile(profile);
 
 	vd = vdp_data(profile->port->ifname);
 	if (!vd) {
@@ -1375,7 +1392,6 @@ int vdp_remove_profile(struct vsi_profile *profile)
 	 * it exists. If yes, remove it. */
 	LIST_FOREACH(p, &vd->profile_head, profile) {
 		if (vdp_profile_equal(p, profile)) {
-			vdp_trace_profile(p);
 			LIST_REMOVE(p, profile);
 			vdp_delete_profile(p);
 			return 0;

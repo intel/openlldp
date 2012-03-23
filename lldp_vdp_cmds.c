@@ -92,7 +92,7 @@ char *print_profile(char *s, size_t length, struct vsi_profile *p)
 	if (!s)
 		return r;
 
-	c = snprintf(s, length, "id: %i (0x%x)\n", p->id, p->id);
+	c = snprintf(s, length, "id: %i (%#x)\n", p->id, p->id);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
 		return r;
@@ -112,7 +112,7 @@ char *print_profile(char *s, size_t length, struct vsi_profile *p)
 	if (!s)
 		return r;
 
-	c = snprintf(s, length, "format: 0x%x\n", p->format);
+	c = snprintf(s, length, "format: %#x\n", p->format);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
 		return r;
@@ -132,6 +132,21 @@ char *print_profile(char *s, size_t length, struct vsi_profile *p)
 			return r;
 
 		c = snprintf(s, length, "vlan: %i\n", mac_vlan->vlan);
+		s = check_and_update(&total, &length, s, c);
+		if (!s)
+			return r;
+
+		c = snprintf(s, length, "qos: %i\n", mac_vlan->qos);
+		s = check_and_update(&total, &length, s, c);
+		if (!s)
+			return r;
+
+		c = snprintf(s, length, "pid: %i\n", mac_vlan->req_pid);
+		s = check_and_update(&total, &length, s, c);
+		if (!s)
+			return r;
+
+		c = snprintf(s, length, "seq: %i\n", mac_vlan->req_seq);
 		s = check_and_update(&total, &length, s, c);
 		if (!s)
 			return r;
@@ -367,7 +382,7 @@ static struct vsi_profile *vdp_parse_mode_line(char * argvalue)
 	while (parsed != NULL) {
 		struct mac_vlan *mac_vlan;
 
-		mac_vlan = malloc(sizeof(struct mac_vlan));
+		mac_vlan = calloc(1, sizeof(struct mac_vlan));
 		if (mac_vlan == NULL)
 			goto out_free;
 

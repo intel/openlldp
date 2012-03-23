@@ -50,7 +50,7 @@ static void vdp_remove_macvlan(struct vsi_profile *profile)
 {
 	struct mac_vlan *p;
 
-	LIST_FOREACH(p, &profile->macvid_head, entry) {
+	while ((p = LIST_FIRST(&profile->macvid_head))) {
 		LIST_REMOVE(p, entry);
 		free(p);
 	}
