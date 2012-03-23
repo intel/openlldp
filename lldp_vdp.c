@@ -1044,6 +1044,8 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 				   vdp_response2str(p->response),
 				   p->response, p->instance[15],
 				   vsi_states[p->state]);
+			if (p->remoteChange && p->mode == VDP_MODE_DEASSOCIATE)
+				vdp_vsi_sm_station(p);
 		} else {
 			LLDPAD_DBG("%s: station profile not found\n", __func__);
 		}
