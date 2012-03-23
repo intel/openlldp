@@ -573,7 +573,7 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 	if (!p)
 		goto out_err;
 
-	vdp_print_profile(p);
+	vdp_trace_profile(p);
 
 	if (p != profile) {
 		/* Check on dis-associate command */
@@ -713,7 +713,7 @@ struct nl_msg *event_if_constructResponse(int ifindex)
 	 * put them into the nested IFLA_VF_PORT structure */
 	LIST_FOREACH(p, &vd->profile_head, profile) {
 		if (p) {
-			vdp_print_profile(p);
+			vdp_trace_profile(p);
 
 			vf_port  = nla_nest_start(nl_msg, IFLA_VF_PORT);
 
@@ -839,7 +839,7 @@ int event_if_indicate_profile(struct vsi_profile *profile)
 	if (!profile->port || !profile->port->ifname) {
 		LLDPAD_ERR("%s: No ifname found for profile %p:\n",
 			   __func__, profile);
-		vdp_print_profile(profile);
+		vdp_trace_profile(profile);
 		goto err_exit;
 	}
 	ifname = profile->port->ifname;
@@ -863,7 +863,7 @@ int event_if_indicate_profile(struct vsi_profile *profile)
 	if (nla_put_string(nl_msg, IFLA_IFNAME, ifname) < 0)
 		goto err_exit;
 
-	vdp_print_profile(profile);
+	vdp_trace_profile(profile);
 
 	if (add_mac_vlan(profile, nl_msg))
 		goto err_exit;

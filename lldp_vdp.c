@@ -72,6 +72,27 @@ int vdp_start_localchange_timer(struct vsi_profile *p);
 int vdp_remove_profile(struct vsi_profile *profile);
 static bool vdp_profile_equal(struct vsi_profile *p1, struct vsi_profile *p2);
 
+void vdp_trace_profile(struct vsi_profile *p)
+{
+	char instance[INSTANCE_STRLEN + 2];
+	struct mac_vlan *mac_vlan;
+
+	instance2str(p->instance, instance, sizeof(instance));
+
+	LLDPAD_DBG("profile:%p mode:%d response:%d state:%d"
+		   " mgrid:%d id:%d(%#x) version:%d %s format:%d entries:%d\n",
+		   p, p->mode, p->response, p->state,
+		   p->mgrid, p->id, p->id, p->version, instance, p->format,
+		   p->entries);
+	LIST_FOREACH(mac_vlan, &p->macvid_head, entry) {
+		char macbuf[MAC_ADDR_STRLEN + 1];
+
+		mac2str(mac_vlan->mac, macbuf, MAC_ADDR_STRLEN);
+		LLDPAD_DBG("profile:%p mac:%s vlan:%d\n", p, macbuf,
+			   mac_vlan->vlan);
+	}
+}
+
 /* vdp_data - searches vdp_data in the list of modules for this port
  * @ifname: interface name to search for
  *
@@ -147,30 +168,6 @@ const char *vdp_response2str(int response)
 		return vsi_responses[VDP_RESPONSE_NO_RESPONSE];
 
 	return vsi_responses[VDP_RESPONSE_UNKNOWN];
-}
-
-/* vdp_print_profile - print a vsi profile
- * @profile: profile to print
- *
- * no return value
- *
- * prints the contents of a profile first to a string using the PRINT_PROFILE
- * macro, and then to the screen. Used for debug purposes.
- */
-void vdp_print_profile(struct vsi_profile *profile)
-{
-	char *buf;
-
-	buf = malloc(VDP_BUF_SIZE);
-	if (!buf)
-		return;
-	memset(buf, 0, VDP_BUF_SIZE);
-
-	print_profile(buf, VDP_BUF_SIZE, profile);
-
-	LLDPAD_DBG("profile %p:%s\n", profile, buf);
-
-	free(buf);
 }
 
 /* vdp_ack_profiles - set ackReceived for all profiles with seqnr
@@ -1317,7 +1314,7 @@ struct vsi_profile *vdp_add_profile(struct vsi_profile *profile)
 		return NULL;
 	}
 
-	vdp_print_profile(profile);
+	vdp_trace_profile(profile);
 
 	/* loop over all existing profiles and check if
 	 * one for this combination already exists. If yes, check,
@@ -1394,7 +1391,7 @@ int vdp_remove_profile(struct vsi_profile *profile)
 	 * it exists. If yes, remove it. */
 	LIST_FOREACH(p, &vd->profile_head, profile) {
 		if (vdp_profile_equal(p, profile)) {
-			vdp_print_profile(p);
+			vdp_trace_profile(p);
 			vdp_remove_macvlan(p);
 			LIST_REMOVE(p, profile);
 			free(p);
