@@ -442,12 +442,9 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 		}
 	}
 
-	/* TODO: vdp_create_profile */
-	profile = malloc(sizeof(struct vsi_profile));
+	profile = vdp_alloc_profile();
 	if (!profile)
 		return -ENOMEM;
-	memset(profile, 0, sizeof(struct vsi_profile));
-	LIST_INIT(&profile->macvid_head);
 
 	if (tb_vfinfo[IFLA_VF_MAC]) {
 		struct ifla_vf_mac *mac = RTA_DATA(tb_vfinfo[IFLA_VF_MAC]);

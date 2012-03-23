@@ -157,6 +157,8 @@ void ecp_somethingChangedLocal(struct vdp_data *, bool);
 void ecp_rx_send_ack_frame(struct vdp_data *);
 int instance2str(const u8 *, char *, size_t);
 int event_if_indicate_profile(struct vsi_profile *);
+struct vsi_profile *vdp_alloc_profile(void);
+void vdp_delete_profile(struct vsi_profile *);
 
 #define MAC_ADDR_STRLEN		18
 #define INSTANCE_STRLEN		36

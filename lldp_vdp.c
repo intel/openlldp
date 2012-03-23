@@ -1349,22 +1349,6 @@ struct vsi_profile *vdp_add_profile(struct vsi_profile *profile)
 	return profile;
 }
 
-/*
- * vdp_remove_macvlan - remove all mac/vlan pairs in the profile
- * @profile: profile to remove
- *
- * Remove all allocated <mac,vlan> pairs on the profile.
- */
-static void vdp_remove_macvlan(struct vsi_profile *profile)
-{
-	struct mac_vlan *p;
-
-	LIST_FOREACH(p, &profile->macvid_head, entry) {
-		LIST_REMOVE(p, entry);
-		free(p);
-	}
-}
-
 /* vdp_remove_profile - remove a profile from a per port list
  * @profile: profile to remove
  *
@@ -1392,12 +1376,12 @@ int vdp_remove_profile(struct vsi_profile *profile)
 	LIST_FOREACH(p, &vd->profile_head, profile) {
 		if (vdp_profile_equal(p, profile)) {
 			vdp_trace_profile(p);
-			vdp_remove_macvlan(p);
 			LIST_REMOVE(p, profile);
-			free(p);
+			vdp_delete_profile(p);
+			return 0;
 		}
 	}
-	return 0;
+	return -1;	/* Not found */
 }
 
 /* vdp_ifdown - tear down vdp structures for a interface
