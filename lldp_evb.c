@@ -593,8 +593,6 @@ static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
 
-	LLDPAD_DBG("%s:port %s agent %d\n", __func__, port->ifname,
-		   agent->type);
 	if (!is_tlv_txenabled(port->ifname, agent->type,
 			      TLVID_8021Qbg(LLDP_EVB_SUBTYPE))) {
 		goto out_err;
