@@ -1025,6 +1025,16 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 				   __func__,
 				   p->localChange, p->ackReceived);
 
+			if (profile->mode == VDP_MODE_DEASSOCIATE &&
+			    (p->response == VDP_RESPONSE_NO_RESPONSE ||
+			     p->response == VDP_RESPONSE_SUCCESS) &&
+			    p->mode == VDP_MODE_PREASSOCIATE) {
+				LLDPAD_DBG("%s: ignore dis-associate request "
+					   "in pre-association\n", __func__);
+				vdp_delete_profile(profile);
+				return 0;
+			}
+
 			p->ackReceived = true;
 			p->keepaliveTimer = VDP_KEEPALIVE_TIMER_DEFAULT;
 			if (profile->mode != p->mode) {
