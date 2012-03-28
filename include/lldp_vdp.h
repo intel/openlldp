@@ -47,7 +47,6 @@
 #define VDP_RESPONSE_UNKNOWN		0xfe
 #define VDP_RESPONSE_NO_RESPONSE	0xff
 
-extern const char * const vsi_responses[];
 extern const char * const vsi_states[];
 
 #define VDP_FILTER_INFO_FORMAT_VID		0x1

@@ -46,7 +46,7 @@
 #include "lldp_vdp_clif.h"
 #include "lldp_mand_clif.h"
 
-const char * const vsi_responses[] = {
+static const char * const vsi_responses[] = {
 	[VDP_RESPONSE_SUCCESS] = "success",
 	[VDP_RESPONSE_INVALID_FORMAT] = "invalid format",
 	[VDP_RESPONSE_INSUFF_RESOURCES] = "insufficient resources",
