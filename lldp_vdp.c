@@ -569,6 +569,7 @@ static bool vdp_vsi_set_station_state(struct vsi_profile *profile)
 			vdp_vsi_change_station_state(profile, VSI_EXIT);
 			return true;
 		} else if (vdp_keepaliveTimer_expired(profile)) {
+			profile->no_nlmsg = 0;
 			vdp_stop_keepaliveTimer(profile);
 			vdp_somethingChangedLocal(profile, true);
 			vdp_vsi_change_station_state(profile, VSI_ASSOC_PROCESSING);
