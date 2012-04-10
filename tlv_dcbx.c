@@ -1110,22 +1110,21 @@ void  mibUpdateObjects(struct port *port, struct lldp_agent *agent)
 	}
 
 	if (tlvs->manifest->dcbx_app) {
-		if (process_dcbx_app_tlv(port, agent) != true) {
-			/* mark feature not present */
-			if (check_feature_not_present(port->ifname, 0,
-				EventFlag, DCB_REMOTE_CHANGE_APPTLV(0))) {
-				DCB_SET_FLAGS(EventFlag,
-					DCB_REMOTE_CHANGE_APPTLV(0));
-			}
-		} else {
+		bool ret = process_dcbx_app_tlv(port, agent);
+
+		if (ret) {
 			for (i = 0; i < DCB_MAX_APPTLV; i++)
 				DCB_SET_FLAGS(EventFlag,
-					DCB_REMOTE_CHANGE_APPTLV(i));
+					      DCB_REMOTE_CHANGE_APPTLV(i));
 		}
 	} else {
-		if (check_feature_not_present(port->ifname, 0,
-			EventFlag, DCB_REMOTE_CHANGE_APPTLV(0))) {
-			DCB_SET_FLAGS(EventFlag, DCB_REMOTE_CHANGE_APPTLV(0));
+		app_attribs peer_app;
+
+		memset(&peer_app, 0, sizeof(app_attribs));
+		for (i = 0; i < DCB_MAX_APPTLV; i++) {
+			put_peer_app(port->ifname, i, &peer_app);
+			DCB_SET_FLAGS(EventFlag,
+				      DCB_REMOTE_CHANGE_APPTLV(i));
 		}
 	}
 
@@ -1423,8 +1422,10 @@ bool process_dcbx_app_tlv(struct port *port, struct lldp_agent *agent)
 	u16         peer_proto=0;
 	u8          oui[DCB_OUI_LEN]=INIT_DCB_OUI;
 	u8          peer_oui[DCB_OUI_LEN];
+	bool	fcoe, fip, iscsi;
 	struct dcbx_tlvs *tlvs;
 
+	fcoe = fip = iscsi = false;
 	tlvs = dcbx_data(port->ifname);
 
 	if (agent == NULL)
@@ -1481,8 +1482,8 @@ bool process_dcbx_app_tlv(struct port *port, struct lldp_agent *agent)
 		len -= DCBX2_APP_DATA_OFFSET;
 		pBuf = &pBuf[DCBX2_APP_DATA_OFFSET];
 		while (len >= DCBX2_APP_SIZE) {
-			sel_field = (u8)(pBuf[DCBX2_APP_BYTE1_OFFSET]
-				& PROTO_ID_SF_TYPE);
+			sel_field = (u8)(pBuf[DCBX2_APP_BYTE1_OFFSET] &
+					 PROTO_ID_SF_TYPE);
 			if (sel_field != PROTO_ID_L2_ETH_TYPE &&
 			    sel_field != PROTO_ID_SOCK_NUM) {
 				sel_field = 0;
@@ -1492,16 +1493,16 @@ bool process_dcbx_app_tlv(struct port *port, struct lldp_agent *agent)
 			}
 			peer_proto = *((u16*)(&(pBuf[0])));
 			if ((peer_proto != PROTO_ID_FCOE) && 
-				(peer_proto != PROTO_ID_ISCSI) &&
-				(peer_proto != PROTO_ID_FIP)) {
+			    (peer_proto != PROTO_ID_ISCSI) &&
+			    (peer_proto != PROTO_ID_FIP)) {
 				sel_field = 0;
 				peer_proto = 0;
 				len -= DCBX2_APP_SIZE;
 				pBuf += DCBX2_APP_SIZE;
 				continue;
 			}
-			peer_oui[0] = (u8)(pBuf[DCBX2_APP_BYTE1_OFFSET]
-				& PROTO_ID_OUI_MASK);
+			peer_oui[0] = (u8)(pBuf[DCBX2_APP_BYTE1_OFFSET] &
+					   PROTO_ID_OUI_MASK);
 			peer_oui[1] = pBuf[DCBX2_APP_LOW_OUI_OFFSET1];
 			peer_oui[2] = pBuf[DCBX2_APP_LOW_OUI_OFFSET2];
 			if (memcmp(peer_oui, oui, DCB_OUI_LEN) != 0) {
@@ -1512,17 +1513,39 @@ bool process_dcbx_app_tlv(struct port *port, struct lldp_agent *agent)
 				pBuf += DCBX2_APP_SIZE;
 				continue;
 			}
+
+			if (sel_field == PROTO_ID_L2_ETH_TYPE &&
+			    peer_proto == PROTO_ID_FCOE) {
+				sub_type = APP_FCOE_STYPE;
+				fcoe = true;
+			} else if (sel_field == PROTO_ID_SOCK_NUM &&
+				   peer_proto == PROTO_ID_ISCSI) {
+				sub_type = APP_ISCSI_STYPE;
+				iscsi = true;
+			} else if (sel_field == PROTO_ID_L2_ETH_TYPE &&
+				   peer_proto == PROTO_ID_FIP) {
+				sub_type = APP_FIP_STYPE;
+				fip = true;
+			}
+
 			peer_app.protocol.TLVPresent = true;
 			peer_app.Length = APP_STYPE_LEN;
 			memcpy (&(peer_app.AppData[0]), 
 				&(pBuf[DCBX2_APP_UP_MAP_OFFSET]),
 				peer_app.Length);
-			put_peer_app(port->ifname, sel_field, &peer_app);
+			put_peer_app(port->ifname, sub_type, &peer_app);
 			len -= DCBX2_APP_SIZE;
 			pBuf += DCBX2_APP_SIZE;
 		}
-		return(true);
-	} else {
+		/* NULL APP entry if not in TLV */
+		memset(&peer_app, 0, sizeof(app_attribs));
+		if (!fcoe)
+			put_peer_app(port->ifname, APP_FCOE_STYPE, &peer_app);
+		if (!iscsi)
+			put_peer_app(port->ifname, APP_ISCSI_STYPE, &peer_app);
+		if (!fip)
+			put_peer_app(port->ifname, APP_FIP_STYPE, &peer_app);
+	} else if (agent->rx.dcbx_st == dcbx_subtype1) {
 		sub_type = pBuf[DCBX_HDR_SUB_TYPE_OFFSET];
 		len = tlvs->manifest->dcbx_app->length -
 			sizeof(struct  dcbx_tlv_header);
@@ -1536,8 +1559,11 @@ bool process_dcbx_app_tlv(struct port *port, struct lldp_agent *agent)
 		peer_app.protocol.TLVPresent = true;
 		put_peer_app(port->ifname, sub_type, &peer_app);
 		return(true);
+	} else {
+		return false;
 	}
-	return(false);
+
+	return true;
 }
 
 bool process_dcbx_llink_tlv(struct port *port, struct lldp_agent *agent)
