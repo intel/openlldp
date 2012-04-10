@@ -241,14 +241,18 @@ indicates that the corresponding priority is configured to transmit
 priority pause.
 
 .PP
+.TP
 Feature specific arguments for \fBapp:\fR<\fIsubtype\fR>:
+The app features uses global enable and willing bits for all subtypes. To
+remove or add subtypes to the TLV set the advertise bit.
+
 .TP
 .BI "appcfg:" "xx"
 .I xx
 is a hexadecimal value representing an 8 bit bitmap where
 1 bits indicate the priorities which frames for the applications specified by
 .I subtype
-should use.  The lowest order bit maps to priority 0.
+should use. The lowest order bit maps to priority 0.
 
 .PP
 Feature specific arguments for \fBll:\fR<\fIsubtype\fR>:

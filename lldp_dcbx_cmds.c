@@ -381,6 +381,68 @@ static dcb_result set_bwg_desc(char *port_id, char *ibuf, int ilen)
 	return rval;
 }
 
+static void set_app_protocol_data(char *ifname, char *ibuf, int plen, int ilen,
+				  int subtype, int agenttype)
+{
+	u8 aflag, eflag, wflag;
+	int status, last, i;
+	app_attribs app_data;
+	feature_protocol_attribs *protocol;
+
+	status = get_app(ifname, (u32)subtype, &app_data);
+	if (status != dcb_success) {
+		printf("%s %s: error[%d] getting APP data.\n",
+			__func__, ifname, status);
+		return;
+	}
+
+	protocol = &app_data.protocol;
+	last = protocol->Advertise;
+
+	aflag = *(ibuf+DCB_PORT_OFF+plen+CFG_ADVERTISE);
+	if (aflag == '0' || aflag == '1')
+		protocol->Advertise = aflag & 0x01;
+
+	status = set_app_config(&app_data,
+				ifname,
+				(u32)subtype,
+				ibuf,
+				ilen);
+
+	if (status != dcb_success)
+		printf("%s %s: error[%d] set_app_config failed\n",
+			__func__, ifname, status);
+
+	if (last != protocol->Advertise && protocol->Advertise) {
+		tlv_enabletx(ifname, agenttype, (OUI_CEE_DCBX << 8) |
+			     protocol->dcbx_st);
+	}
+
+	eflag = *(ibuf+DCB_PORT_OFF+plen+CFG_ENABLE);
+	wflag = *(ibuf+DCB_PORT_OFF+plen+CFG_WILLING);
+
+	for (i = 0; i < DCB_MAX_APPTLV; i++) {
+		status = get_app(ifname, (u32)i, &app_data);
+		if (status != dcb_success)
+			continue;
+
+		protocol = &app_data.protocol;
+
+		if (eflag == '0' || eflag == '1')
+			protocol->Enable = eflag & 0x01;
+
+		if (wflag == '0' || wflag == '1')
+			protocol->Willing = wflag & 0x01;
+
+		status = put_app(ifname, i, &app_data);
+		if (status != dcb_success)
+			printf("%s %s: error[%d] set_app_config failed\n",
+				__func__, ifname, status);
+	}
+
+	somethingChangedLocal(ifname, agenttype);
+}
+
 static void set_protocol_data(feature_protocol_attribs *protocol, char *ifname,
 			      char *ibuf, int plen, int agenttype)
 {
@@ -632,10 +694,8 @@ int dcbx_clif_cmd(void *data,
 				printf("set command too short\n");
 				status = dcb_failed;
 			} else {
-				set_protocol_data(&app_data.protocol, port_id,
-						  ibuf, plen, NEAREST_BRIDGE);
-				status = set_app_config(&app_data, port_id,
-					(u32)subtype, ibuf, ilen);
+				set_app_protocol_data(port_id, ibuf, plen, ilen,
+						      subtype, NEAREST_BRIDGE);
 			}
 		} else {
 			status = get_cmd_protocol_data(&app_data.protocol, cmd,
