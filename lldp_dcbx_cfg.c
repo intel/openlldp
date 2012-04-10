@@ -667,7 +667,7 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 	config_setting_t *setting_array = NULL;
 	config_setting_t *setting_traffic = NULL;
 	config_setting_t *setting_value = NULL;
-	full_dcb_attrib_ptrs attrib_ptrs;
+	full_dcb_attrib_ptrs attrib_ptrs = {0, 0, 0, 0, 0, 0, 0};
 	int result = dcb_failed, i;
 	int results[MAX_USER_PRIORITIES];
 	int len;
@@ -942,6 +942,7 @@ set_default:
 
 	if (!result) {
 		attrib_ptrs.pg = &attribs->pg;
+		attrib_ptrs.pfc = &attribs->pfc;
 		result = dcb_check_config(&attrib_ptrs);
 	}
 
