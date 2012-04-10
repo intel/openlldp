@@ -937,7 +937,7 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 	return 0;
 
 set_default:
-	LLDPAD_WARN("Error read config file.\n");
+	LLDPAD_DBG("Error read config file.\n");
 	result = get_default_persistent(device_name, attribs);
 
 	if (!result) {

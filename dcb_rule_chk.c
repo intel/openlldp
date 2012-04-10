@@ -156,10 +156,8 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 	}
 
 	/* Require at least as many traffic classes as traffic types */
-	if (fixpg->num_tcs < (!!be + !!strict + !!pfc)) {
-		LLDPAD_WARN("DCBX: num_tcs %i!!!\n", fixpg->num_tcs);
+	if (fixpg->num_tcs < (!!be + !!strict + !!pfc))
 		return -1;
-	}
 
 	/* Map traffic class counts onto devices max number traffic classes */
 	if (strict > fixpg->num_tcs - !!be - !!pfc)
@@ -324,7 +322,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 
 		err = dcb_fixup_pg(pg, attribs->pfc);
 		if (err) {
-			LLDPAD_WARN("dcb_fixup_pg returned error %i\n", err);
+			LLDPAD_DBG("dcb_fixup_pg returned error %i\n", err);
 			return dcb_failed;
 		}
 
