@@ -1420,7 +1420,7 @@ bool add_app_defaults(u32 subtype)
 
 	memset(&app_data, 0, sizeof(app_attribs));
 
-	app_data.protocol.Enable = 0;
+	app_data.protocol.Enable = 1;
 	app_data.protocol.Willing = 1;
 	app_data.protocol.Advertise = 1;
 
