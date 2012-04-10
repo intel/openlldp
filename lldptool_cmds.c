@@ -523,7 +523,9 @@ void print_cmd_response(char *ibuf, int status)
 	int ioff;
 
 	if (status != cmd_success) {
-		printf("%s\n", print_status(status));
+		printf("%s %s\n",
+		       print_status(status),
+		       ibuf + CMD_IF + CMD_IF_LEN);
 		return;
 	}
 

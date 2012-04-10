@@ -455,17 +455,55 @@ _set_arg_up2tc(struct cmd *cmd, char *args, const char *arg_value,
 		toked_maps = strtok(parse, ",");
 
 		while (toked_maps) {
+			char *end;
 			int tc, prio;
 			u32 mask;
 
-			if (toked_maps[1] != ':') {
+			errno = 0;
+			prio = strtol(toked_maps, &end, 10);
+
+			if (*end != ':') {
+				snprintf(obuf, obuf_len - 1,
+					 ": error: %s", toked_maps);
 				err = cmd_invalid;
 				goto invalid;
 			}
 
-			prio = 0x7 & atoi(toked_maps);
-			tc = 0x7 & atoi(&toked_maps[2]);
+			if (errno || prio < 0) {
+				snprintf(obuf, obuf_len - 1,
+					 ": error: negative prio(%i)", prio);
+				err = cmd_invalid;
+				goto invalid;
+			}
+
+			if (prio > 7) {
+				snprintf(obuf, obuf_len - 1,
+					 ": error: prio(%i) > 7", prio);
+				err = cmd_invalid;
+				goto invalid;
+			}
+
+			errno = 0;
+			tc = strtol(&toked_maps[2], &end, 10);
+
+			if (end == &toked_maps[2] || *end != '\0') {
+				snprintf(obuf, obuf_len - 1,
+					 ": error: %s", toked_maps);
+				err = cmd_invalid;
+				goto invalid;
+			}
+
+			if (errno || tc < 0) {
+				snprintf(obuf, obuf_len - 1,
+					 ": error: negative tc(%i)", tc);
+				err = cmd_invalid;
+				goto invalid;
+			}
+
 			if (tc > (max - 1)) {
+				snprintf(obuf, obuf_len - 1,
+					 ": error: tc(%i) > max tc(%i)",
+					 tc, max - 1);
 				err = cmd_invalid;
 				goto invalid;
 			}
