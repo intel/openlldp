@@ -236,7 +236,7 @@ int dcbx_bld_tlv(struct port *newport, struct lldp_agent *agent)
 	}
 
 	if (tlvs->dcbx_st == dcbx_subtype2) {
-		tlvs->app2 = bld_dcbx2_app_tlv(tlvs, 0, &success);
+		tlvs->app2 = bld_dcbx2_app_tlv(tlvs, &success);
 		if (!success) {
 			LLDPAD_INFO("bld_dcbx2_app_tlv: failed\n");
 			goto fail_add;
@@ -446,7 +446,7 @@ struct lldp_module * dcbx_register(void)
 
 	for (i = 0; i < DCB_MAX_LLKTLV; i++) {
 		if (!add_llink_defaults(i)) {
-			LLDPAD_INFO("failed to add default APP data %i", i);
+			LLDPAD_INFO("failed to add default LLKTLV data %i", i);
 			goto out_err;
 		}
 	}
@@ -851,16 +851,13 @@ u8 dcbx_mibDeleteObjects(struct port *port, struct lldp_agent *agent)
 	}
 
 	for (i = 0; i < DCB_MAX_APPTLV; i++) {
-		if (get_peer_app(port->ifname, i, &peer_app) ==
-			dcb_success) {
+		if (get_peer_app(port->ifname, i, &peer_app) == dcb_success) {
 			if (peer_app.protocol.TLVPresent == true) {
 				peer_app.protocol.TLVPresent = false;
 				peer_app.Length = 0;
 				put_peer_app(port->ifname, i, &peer_app);
 				DCB_SET_FLAGS(EventFlag, DCB_REMOTE_CHANGE_APPTLV(i));
 			}
-		} else {
-			return (u8)-1;
 		}
 	}
 

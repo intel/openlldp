@@ -475,10 +475,10 @@ bool valid_subtype(dcbx_state *state, u32 Subtype)
 
 	case APP_FCOE_STYPE:
 		return state->FCoEenable;
-
 	case APP_ISCSI_STYPE:
 		return state->iSCSIenable;
-
+	case APP_FIP_STYPE:
+		return state->FIPenable;
 	default:
 		return 0;
 
@@ -1273,6 +1273,17 @@ static int dcbx_free_app_config(char *device_name)
 		set_hw_app(device_name, &app_data);
 	}
 
+	/* Free FIP APP data */
+	Oper = apptlv_find(&oper_apptlv, device_name, APP_FIP_STYPE);
+	Local = apptlv_find(&apptlv, device_name, APP_FIP_STYPE);
+	if (Oper || Local) {
+		app_data.dcb_app_idtype = DCB_APP_IDTYPE_ETHTYPE;
+		app_data.dcb_app_id = APP_FIP_ETHTYPE;
+		app_data.dcb_app_priority = 0;
+
+		set_hw_app(device_name, &app_data);
+	}
+
 	return 0;
 }
 
@@ -1424,6 +1435,9 @@ bool add_app_defaults(u32 subtype)
 		app_data.Length = 1;
 		app_data.AppData[0] = APP_ISCSI_DEFAULT_DATA;
 		break;
+	case APP_FIP_STYPE:  /* FIP subtype */
+		app_data.Length = 1;
+		app_data.AppData[0] = APP_FIP_DEFAULT_DATA;
 	default:
 		break;
 	}
@@ -2722,6 +2736,30 @@ int set_configuration(char *device_name, u32 EventFlag)
 
 		app_data.dcb_app_idtype = DCB_APP_IDTYPE_ETHTYPE;
 		app_data.dcb_app_id = APP_FCOE_ETHTYPE;
+		app_data.dcb_app_priority = Oper->second->AppData[0];
+		return set_hw_app(device_name, &app_data);
+	} else if (DCB_TEST_FLAGS(EventFlag,
+				  DCB_LOCAL_CHANGE_APPTLV(APP_FIP_STYPE),
+				  DCB_LOCAL_CHANGE_APPTLV(APP_FIP_STYPE)) ||
+		DCB_TEST_FLAGS(EventFlag,
+			       DCB_REMOTE_CHANGE_APPTLV(APP_FIP_STYPE),
+			       DCB_REMOTE_CHANGE_APPTLV(APP_FIP_STYPE))) {
+		appgroup_attribs app_data;
+
+		/* Get Oper store */
+		app_it Oper = apptlv_find(&oper_apptlv, device_name,
+					  APP_FIP_STYPE);
+
+		/* FIP subtype is only sent to kernel if Operational this
+		 * way the FCoE stack and applications use the FCoE APP
+		 * entry until FIP is operational.
+		 */
+		if (Oper == NULL ||
+		    (Oper->second && Oper->second->protocol.OperMode == false))
+			return dcb_success;
+
+		app_data.dcb_app_idtype = DCB_APP_IDTYPE_ETHTYPE;
+		app_data.dcb_app_id = APP_FIP_ETHTYPE;
 		app_data.dcb_app_priority = Oper->second->AppData[0];
 		return set_hw_app(device_name, &app_data);
 	} else if (DCB_TEST_FLAGS(EventFlag, DCB_LOCAL_CHANGE_APPTLV(APP_ISCSI_STYPE),

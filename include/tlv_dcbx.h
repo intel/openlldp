@@ -236,8 +236,7 @@ struct unpacked_tlv *bld_dcbx1_pfc_tlv(struct dcbx_tlvs *, bool *success);
 struct unpacked_tlv *bld_dcbx2_pfc_tlv(struct dcbx_tlvs *, bool *success);
 struct unpacked_tlv *bld_dcbx1_app_tlv(struct dcbx_tlvs *dcbx, u32 sub_type,
 					bool *success);
-struct unpacked_tlv *bld_dcbx2_app_tlv(struct dcbx_tlvs *, u32 sub_type,
-					bool *success);
+struct unpacked_tlv *bld_dcbx2_app_tlv(struct dcbx_tlvs *, bool *success);
 struct unpacked_tlv *bld_dcbx_llink_tlv(struct dcbx_tlvs *, u32 sub_type,
 					bool *success);
 

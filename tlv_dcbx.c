@@ -647,47 +647,60 @@ void set_proto(struct dcbx2_app_cfg *app_cfg, int subtype)
 	u8 oui[DCB_OUI_LEN] = INIT_DCB_OUI;
 
 	switch (subtype) {
-
 	case APP_FCOE_STYPE:
 		app_cfg->prot_id = PROTO_ID_FCOE;
 		app_cfg->byte1 = (oui[0] & PROTO_ID_OUI_MASK)
 			| (PROTO_ID_L2_ETH_TYPE & PROTO_ID_SF_TYPE);
 		break;
-
 	case APP_ISCSI_STYPE:
 		app_cfg->prot_id = PROTO_ID_ISCSI;
 		app_cfg->byte1 = (oui[0] & PROTO_ID_OUI_MASK)
 			| (PROTO_ID_SOCK_NUM & PROTO_ID_SF_TYPE);
 		break;
-
+	case APP_FIP_STYPE:
+		app_cfg->prot_id = PROTO_ID_FIP;
+		app_cfg->byte1 = (oui[0] & PROTO_ID_OUI_MASK)
+			| (PROTO_ID_L2_ETH_TYPE & PROTO_ID_SF_TYPE);
+		break;
 	}
 	app_cfg->low_oui = (oui[2]<<8) | oui[1];
 }
 
 struct unpacked_tlv *bld_dcbx2_app_tlv(struct dcbx_tlvs *dcbx,
-					u32 sub_type,
 					bool *success)
 {
 	struct dcbx2_app_info *app_info;
 	struct unpacked_tlv *tlv = create_tlv();
 	app_attribs     app_cfg;
-	int i, result;
+	int i, offset, result;
+	bool advertise = false;
 
 	*success = false;
 	if (!tlv)
 		return NULL;
 
-	memset(&app_cfg, 0, sizeof(app_cfg));
-	result = get_app(dcbx->ifname, sub_type, &app_cfg);
-	if (result != dcb_success) {
-		free(tlv);
-		return NULL;
-	} else if (!(app_cfg.protocol.Advertise)) {
-			free(tlv);
-			*success = true;
-			return NULL;
+	/* Verify there is something to advertise before building APP data */
+	for (i = 0; i < DCB_MAX_APPTLV; i++) {
+		memset(&app_cfg, 0, sizeof(app_cfg));
+		result = get_app(dcbx->ifname, i, &app_cfg);
+		if (result != dcb_success) {
+			continue;
+		} else if ((app_cfg.protocol.Advertise)) {
+			advertise = true;
+			break;
+		}
 	}
 
+	if (!advertise) {
+		free(tlv);
+		*success = true;
+		return NULL;
+	}
+
+	/* At least one APP entry exists so build the header and entries hdr
+	 * values are taken from the first APP entry found. The APP order is
+	 * set in dcb_types.h
+	 */
 	app_info = (struct dcbx2_app_info *)malloc(DCBX2_APP_LEN);
 	tlv->length = DCBX2_APP_LEN;
 	if (app_info) {
@@ -705,7 +718,7 @@ struct unpacked_tlv *bld_dcbx2_app_tlv(struct dcbx_tlvs *dcbx,
 			app_info->hdr.ewe |= BIT5;
 		app_info->hdr.sub_type = 0;
 
-		for (i = 0; i < DCB_MAX_APPTLV; i++) {
+		for (offset = 0; i < DCB_MAX_APPTLV; i++) {
 			result = get_app(dcbx->ifname, i, &app_cfg);
 			if (result == dcb_success) {
 				mark_app_sent(dcbx->ifname);
@@ -719,19 +732,10 @@ struct unpacked_tlv *bld_dcbx2_app_tlv(struct dcbx_tlvs *dcbx,
 				free(tlv);
 				return NULL;
 			}
-			app_data = &(app_info->data[i]);
+			app_data = &(app_info->data[offset++]);
 			set_proto(app_data, i);
 			memcpy (&app_data->up_map, &(app_cfg.AppData[0]),
 				APP_STYPE_LEN);
-		}
-		if (tlv->length == DCBX2_APP_LEN) {
-			/*
-			 *  No apps to advertise, no point in sending the
-			 *    app tlv.
-			 */
-			free(tlv);
-			*success = true;
-			return NULL;
 		}
 	} else {
 		LLDPAD_DBG("bld_dcbx2_app_tlv: Failed to malloc app_info\n");

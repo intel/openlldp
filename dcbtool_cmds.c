@@ -530,6 +530,9 @@ void print_dcb_cmd_response(char *buf, int status)
 		case APP_ISCSI_STYPE:
 			printf("iSCSI\n");
 			break;
+		case APP_FIP_STYPE:
+			printf("FIP\n");
+			break;
 		default:
 			printf("unknown\n");
 			break;
@@ -712,15 +715,11 @@ void print_dcb_cmd_response(char *buf, int status)
 	case FEATURE_APP:
 		switch (subtype) {
 		case APP_FCOE_STYPE:
-			printf("appcfg:     \t");
-			n = hex2int(buf+doff+APP_LEN);
-			printf("%*.*s\n", n, n, buf+doff+APP_DATA);
-			break;
 		case APP_ISCSI_STYPE:
+		case APP_FIP_STYPE:
 			printf("appcfg:     \t");
 			n = hex2int(buf+doff+APP_LEN);
 			printf("%*.*s\n", n, n, buf+doff+APP_DATA);
-			break;
 		default:
 			printf("unknown subtype for ");
 			break;

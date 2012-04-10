@@ -135,6 +135,7 @@ static const char *commands_help =
 "  'subtype' can be:\n"
 "     [0|fcoe]                  FCoE\n\n"
 "     [1|iscsi]                 iSCSI\n\n"
+"     [2|fip]                   FIP\n\n"
 "  'args' can include:\n"
 "     [e:<0|1>]                 controls feature enable\n"
 "     [a:<0|1>]                 controls feature advertise via DCBX\n"
