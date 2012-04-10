@@ -720,6 +720,7 @@ void print_dcb_cmd_response(char *buf, int status)
 			printf("appcfg:     \t");
 			n = hex2int(buf+doff+APP_LEN);
 			printf("%*.*s\n", n, n, buf+doff+APP_DATA);
+			break;
 		default:
 			printf("unknown subtype for ");
 			break;
