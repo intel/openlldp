@@ -65,7 +65,17 @@ config_setting_add_app_default(config_setting_t *eth_setting, int subtype)
 
 	tmp2_setting = config_setting_add(tmp_setting, "app_cfg",
 		CONFIG_TYPE_STRING);
-	config_setting_set_string(tmp2_setting, "03");
+
+	if (subtype == APP_FCOE_STYPE)
+		snprintf(abuf, sizeof(abuf), "%i", APP_FCOE_DEFAULT_DATA);
+	else if (subtype == APP_ISCSI_STYPE)
+		snprintf(abuf, sizeof(abuf), "%i", APP_ISCSI_DEFAULT_DATA);
+	else if (subtype == APP_FIP_STYPE)
+		snprintf(abuf, sizeof(abuf), "%i", APP_FIP_DEFAULT_DATA);
+	else
+		snprintf(abuf, sizeof(abuf), "%i", 0x03);
+
+	config_setting_set_string(tmp2_setting, abuf);
 	return;
 }
 
