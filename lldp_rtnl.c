@@ -250,7 +250,7 @@ int get_operstate(char *ifname)
 	int s, ifq;
 	int ifindex = 0;
 	struct ifreq ifr;
-	__u8 operstate;
+	__u8 operstate = IF_OPER_UNKNOWN;
 
 	/* fill in ifr_ifindex for kernel versions that require it */
 	ifq = socket(PF_PACKET, SOCK_DGRAM, 0);
