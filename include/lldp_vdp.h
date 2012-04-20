@@ -102,8 +102,8 @@ struct tlv_info_vdp {		/* VSI information in packet format */
 } __attribute__ ((__packed__));
 
 struct vsi_profile {
-	int mode;		/* Requested VSI profile mode */
-	int response;		/* ACK from switch */
+	int mode;		/* VSI profile association command */
+	int response;		/* Response from switch */
 	u8 no_nlmsg;		/* Don't send netlink msg on VSI_EXIT */
 	u8 mgrid;		/* Profile mgr id */
 	int id;			/* Profile id */
@@ -113,13 +113,14 @@ struct vsi_profile {
 	u16 entries;		/* Number of MAC,VLAN entries in macvid_head */
 	LIST_HEAD(macvid_head, mac_vlan) macvid_head;
 	struct port *port;
-	int ackTimer;
-	int ackReceived;
-	int keepaliveTimer;
-	int state;
-	int seqnr;
-	bool localChange;
-	bool remoteChange;
+	int ackTimer;		/* VDP ACK timer interval */
+	int ackReceived;	/* VDP ACK received for this profile */
+	int keepaliveTimer;	/* VDP keepalive timer interval */
+	int state;		/* State of VDP state machine for profile */
+	int seqnr;		/* Seqnr of ECP packet this profile was sent */
+	bool localChange;	/* True when state needs change */
+	bool remoteChange;	/* True when switch caused profile change */
+	bool txmit;		/* Profile transmitted */
 	LIST_ENTRY(vsi_profile) profile;
 };
 
