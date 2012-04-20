@@ -670,7 +670,7 @@ struct nl_msg *event_if_constructResponse(int ifindex, struct nlmsghdr *from)
 	struct ifinfomsg ifinfo;
 	struct vdp_data *vd;
 	char ifname[IFNAMSIZ];
-	struct vsi_profile *p, *gone = NULL;
+	struct vsi_profile *p;
 
 	nl_msg = nlmsg_alloc();
 
@@ -726,7 +726,7 @@ struct nl_msg *event_if_constructResponse(int ifindex, struct nlmsghdr *from)
 						p->response) < 0)
 					goto err_exit;
 				if (p->state == VSI_EXIT)
-					gone = p;
+					vdp_remove_profile(p);
 			}
 
 			nla_nest_end(nl_msg, vf_port);
@@ -736,8 +736,6 @@ struct nl_msg *event_if_constructResponse(int ifindex, struct nlmsghdr *from)
 	if (vf_ports)
 		nla_nest_end(nl_msg, vf_ports);
 
-	if (gone)
-		vdp_remove_profile(gone);
 	return nl_msg;
 
 err_exit:
@@ -833,6 +831,7 @@ int event_if_indicate_profile(struct vsi_profile *profile)
 	macp = LIST_FIRST(&profile->macvid_head);
 	if (!macp->req_pid)
 		return 0;
+	sleep(1);		/* Delay message notification */
 	nl_msg = nlmsg_alloc();
 	if (!nl_msg) {
 		LLDPAD_ERR("%s: Unable to allocate netlink message\n",

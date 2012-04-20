@@ -1068,15 +1068,14 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 			if (profile->mode != p->mode) {
 				p->mode = profile->mode;
 				p->remoteChange = true;
-				if (p->response == VDP_RESPONSE_NO_RESPONSE &&
-				    profile->mode == VDP_MODE_DEASSOCIATE)
-					p->no_nlmsg = 1;
-				LLDPAD_DBG("%s: station remoteChange %i"
-					   " no_nlmsg:%d\n", __func__,
-					   p->remoteChange, p->no_nlmsg);
-			}
+				if (profile->mode == VDP_MODE_DEASSOCIATE)
+					p->no_nlmsg = 0;
+			} else
+				p->remoteChange = false;
 			p->response = profile->response;
-
+			LLDPAD_DBG("%s: remoteChange %i no_nlmsg %d mode %d\n",
+				   __func__, p->remoteChange, p->no_nlmsg,
+				   p->mode);
 			if (vdp_vsi_negative_response(p))
 				p->mode = VDP_MODE_DEASSOCIATE;
 
