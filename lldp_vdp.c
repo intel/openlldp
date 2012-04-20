@@ -1386,6 +1386,7 @@ struct vsi_profile *vdp_add_profile(struct vsi_profile *profile)
 			LLDPAD_DBG("%s: new mode %i\n",
 				   __func__, profile->mode);
 			p->mode = profile->mode;
+			p->response = VDP_RESPONSE_NO_RESPONSE;
 		}
 		profile = p;
 	} else {

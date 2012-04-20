@@ -575,7 +575,6 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 
 	p->no_nlmsg = 1;
 	p->txmit = false;
-	p->response = VDP_RESPONSE_NO_RESPONSE;
 	vdp_trace_profile(p);
 	if (p != profile)
 		goto out_err;
