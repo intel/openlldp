@@ -78,9 +78,11 @@ void vdp_trace_profile(struct vsi_profile *p)
 
 	instance2str(p->instance, instance, sizeof(instance));
 
-	LLDPAD_DBG("profile:%p mode:%d response:%d state:%d"
+	LLDPAD_DBG("profile:%p mode:%d response:%d state:%d (%s) no_nlmsg:%d"
+		   " txmit:%i"
 		   " mgrid:%d id:%d(%#x) version:%d %s format:%d entries:%d\n",
-		   p, p->mode, p->response, p->state,
+		   p, p->mode, p->response, p->state, vsi_states[p->state],
+		   p->no_nlmsg, p->txmit,
 		   p->mgrid, p->id, p->id, p->version, instance, p->format,
 		   p->entries);
 	LIST_FOREACH(mac_vlan, &p->macvid_head, entry) {
@@ -170,14 +172,14 @@ const char *vdp_response2str(int response)
 	return vsi_responses[VDP_RESPONSE_UNKNOWN];
 }
 
-/* vdp_ack_profiles - set ackReceived for all profiles with seqnr
+/* vdp_ack_profiles - clear ackReceived for all profiles with seqnr
  * @vd: vd for the interface
  * @seqnr: seqnr the ack has been received with
  *
  * no return value
  *
- * set the ackReceived for all profiles which have been sent out with
- * the seqnr that we now have received the ack for.
+ * clear the ackReceived for all profiles which have been sent out with
+ * the seqnr that we now have received the ecp ack for.
  */
 void vdp_ack_profiles(struct vdp_data *vd, int seqnr)
 {
@@ -185,8 +187,8 @@ void vdp_ack_profiles(struct vdp_data *vd, int seqnr)
 
 	LIST_FOREACH(p, &vd->profile_head, profile) {
 		if (p->seqnr == seqnr) {
-			p->ackReceived = true;
-			vdp_start_localchange_timer(p);
+			p->ackReceived = false;
+			p->txmit = true;
 		}
 	}
 
@@ -230,7 +232,7 @@ int vdp_vsis_pending(struct vdp_data *vd)
 	int count = 0;
 
 	LIST_FOREACH(p, &vd->profile_head, profile) {
-		if (p->localChange && (p->ackReceived == false))
+		if (p->localChange && (p->txmit == false))
 			count++;
 	}
 
@@ -283,7 +285,7 @@ static bool vdp_ackTimer_expired(struct vsi_profile *profile)
 	return (profile->ackTimer == 0);
 }
 
-/* vdp_localchange_handler - triggers in case of ackReceived or on vdp
+/* vdp_localchange_handler - triggers in case of vdp_ack or on vdp
  *				localchange
  * @eloop_data: data structure of event loop
  * @user_ctx: user context, vdp_data here
@@ -409,8 +411,9 @@ void vdp_keepalive_timeout_handler(UNUSED void *eloop_data, void *user_ctx)
 
 	if (vdp_keepaliveTimer_expired(p)) {
 		LLDPAD_DBG("%s: profile %#02x vdp_keepaliveTimer_expired %i"
-			   " p->ackReceived %i\n", __func__, p->instance[15],
-			   vdp_keepaliveTimer_expired(p), p->ackReceived);
+			   " p->ackReceived %i p->ackReceived %i\n", __func__,
+			   p->instance[15], vdp_keepaliveTimer_expired(p),
+			   p->ackReceived, p->ackReceived);
 		vdp_vsi_sm_station(p);
 	}
 }
@@ -551,7 +554,10 @@ static bool vdp_vsi_set_station_state(struct vsi_profile *profile)
 		return false;
 	case VSI_ASSOC_PROCESSING:
 		if (profile->ackReceived) {
-			vdp_vsi_change_station_state(profile, VSI_ASSOCIATED);
+			if (profile->response == 0)
+				vdp_vsi_change_station_state(profile, VSI_ASSOCIATED);
+			else
+				vdp_vsi_change_station_state(profile, VSI_EXIT);
 			return true;
 		} else if (!profile->ackReceived && vdp_ackTimer_expired(profile)) {
 			vdp_vsi_change_station_state(profile, VSI_EXIT);
@@ -569,7 +575,6 @@ static bool vdp_vsi_set_station_state(struct vsi_profile *profile)
 			vdp_vsi_change_station_state(profile, VSI_EXIT);
 			return true;
 		} else if (vdp_keepaliveTimer_expired(profile)) {
-			profile->no_nlmsg = 0;
 			vdp_stop_keepaliveTimer(profile);
 			vdp_somethingChangedLocal(profile, true);
 			vdp_vsi_change_station_state(profile, VSI_ASSOC_PROCESSING);
@@ -580,7 +585,10 @@ static bool vdp_vsi_set_station_state(struct vsi_profile *profile)
 		LLDPAD_DBG("%s: profile->ackReceived %i, vdp_ackTimer %i\n",
 			   __func__, profile->ackReceived, profile->ackTimer);
 		if (profile->ackReceived) {
-			vdp_vsi_change_station_state(profile, VSI_PREASSOCIATED);
+			if (profile->response == 0)
+				vdp_vsi_change_station_state(profile, VSI_PREASSOCIATED);
+			else
+				vdp_vsi_change_station_state(profile, VSI_EXIT);
 			return true;
 		} else if (!profile->ackReceived && vdp_ackTimer_expired(profile)) {
 			vdp_vsi_change_station_state(profile, VSI_EXIT);
@@ -681,7 +689,6 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			vdp_stop_ackTimer(profile);
 			vdp_stop_keepaliveTimer(profile);
 			event_if_indicate_profile(profile);
-			vdp_remove_profile(profile);
 			break;
 		default:
 			LLDPAD_ERR("%s: ERROR VSI state machine in invalid state %d\n",
@@ -689,6 +696,26 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 		}
 	} while (vdp_vsi_set_station_state(profile) == true);
 
+}
+
+/* vdp_advance_sm - advance state machine after update from switch
+ *
+ * no return value
+ */
+void vdp_advance_sm(struct vdp_data *vd)
+{
+	struct vsi_profile *p;
+
+	LIST_FOREACH(p, &vd->profile_head, profile) {
+		LLDPAD_DBG("%s: %s station for %#02x - %s ackReceived %i\n",
+			   __func__, p->port->ifname,
+			   p->instance[15], vsi_states[p->state],
+			   p->ackReceived);
+		if (p->ackReceived) {
+			vdp_vsi_sm_station(p);
+			p->ackReceived = false;
+		}
+	}
 }
 
 /* vdp_vsi_change_bridge_state - changes the VDP bridge sm state
@@ -1021,10 +1048,10 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 		p = vdp_find_profile(vd, profile);
 
 		if (p) {
-			LLDPAD_DBG("%s: station profile found, "
-				   "localChange %i ackReceived %i\n",
-				   __func__,
-				   p->localChange, p->ackReceived);
+			LLDPAD_DBG("%s: station profile found localChange %i "
+				   "ackReceived %i no_nlmsg:%d\n",
+				   __func__, p->localChange, p->ackReceived,
+				   p->no_nlmsg);
 
 			if (profile->mode == VDP_MODE_DEASSOCIATE &&
 			    (p->response == VDP_RESPONSE_NO_RESPONSE ||

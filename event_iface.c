@@ -326,6 +326,8 @@ static void event_if_decode_nlmsg(int route_type, void *data, int len)
 			oper_add_device(device_name);
 			break;
 		default:
+			LLDPAD_DBG("******* LINK STATUS %d: %s\n",
+				   link_status, device_name);
 			break;
 		}
 		break;
@@ -571,14 +573,12 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 	if (!p)
 		goto out_err;
 
+	p->no_nlmsg = 1;
+	p->txmit = false;
+	p->response = VDP_RESPONSE_NO_RESPONSE;
 	vdp_trace_profile(p);
-
-	if (p != profile) {
-		/* Check on dis-associate command */
-		if (profile->mode == VDP_MODE_DEASSOCIATE)
-			p->no_nlmsg = 1;
+	if (p != profile)
 		goto out_err;
-	}
 
 	return ret;
 
@@ -671,7 +671,7 @@ struct nl_msg *event_if_constructResponse(int ifindex, struct nlmsghdr *from)
 	struct ifinfomsg ifinfo;
 	struct vdp_data *vd;
 	char ifname[IFNAMSIZ];
-	struct vsi_profile *p;
+	struct vsi_profile *p, *gone = NULL;
 
 	nl_msg = nlmsg_alloc();
 
@@ -726,6 +726,8 @@ struct nl_msg *event_if_constructResponse(int ifindex, struct nlmsghdr *from)
 				if (nla_put_u16(nl_msg, IFLA_PORT_RESPONSE,
 						p->response) < 0)
 					goto err_exit;
+				if (p->state == VSI_EXIT)
+					gone = p;
 			}
 
 			nla_nest_end(nl_msg, vf_port);
@@ -735,6 +737,8 @@ struct nl_msg *event_if_constructResponse(int ifindex, struct nlmsghdr *from)
 	if (vf_ports)
 		nla_nest_end(nl_msg, vf_ports);
 
+	if (gone)
+		vdp_remove_profile(gone);
 	return nl_msg;
 
 err_exit:
@@ -923,9 +927,11 @@ int event_if_indicate_profile(struct vsi_profile *profile)
 	else
 		LLDPAD_DBG("%s(%i): sent %d bytes !\n",
 			   __func__, __LINE__, result);
+	vdp_remove_profile(profile);
 	return 0;
 
 err_exit:
+	vdp_remove_profile(profile);
 	nlmsg_free(nl_msg);
 	return -EINVAL;
 }

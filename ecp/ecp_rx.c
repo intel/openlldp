@@ -345,8 +345,9 @@ static void ecp_rx_ProcessFrame(struct vdp_data *vd)
 	u16 tlv_offset = 0;
 	u16 *tlv_head_ptr = NULL;
 	u8  frame_error = 0;
-	bool tlv_stored     = false;
+	bool tlv_stored = false;
 	struct ecp_hdr *ecp_hdr;
+	int vdp_called;
 
 	LLDPAD_DBG("%s-%s: processing frame\n", __func__, vd->ifname);
 
@@ -367,6 +368,7 @@ static void ecp_rx_ProcessFrame(struct vdp_data *vd)
 
 	tlv_offset += sizeof(struct ecp_hdr);
 
+	vdp_called = 0;
 	do {
 		tlv_cnt++;
 
@@ -431,9 +433,10 @@ static void ecp_rx_ProcessFrame(struct vdp_data *vd)
 
 		if (tlv->type == TYPE_127) { /* private TLV */
 			/* give VSI TLV to VDP */
-			if (!vdp_indicate(vd, tlv))
+			if (!vdp_indicate(vd, tlv)) {
 				tlv_stored = true;
-			else {
+				++vdp_called;
+			} else {
 				/* TODO
 				 * put it in a list and try again later until
 				 * timer and retries have expired
@@ -460,6 +463,8 @@ out:
 		vd->ecp.stats.statsFramesInErrorsTotal++;
 		vd->ecp.rx.badFrame = true;
 	}
+	if (vdp_called)
+		vdp_advance_sm(vd);
 }
 
 /* ecp_rx_change_state - changes the ecp rx sm state

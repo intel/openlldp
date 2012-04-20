@@ -151,6 +151,7 @@ int vdp_remove_profile(struct vsi_profile *);
 void vdp_somethingChangedLocal(struct vsi_profile *, bool);
 
 void vdp_ack_profiles(struct vdp_data *, int);
+void vdp_advance_sm(struct vdp_data *);
 int vdp_indicate(struct vdp_data *, struct unpacked_tlv *);
 int vdp_vsis_pending(struct vdp_data *);
 int vdp_vsis(char *);
