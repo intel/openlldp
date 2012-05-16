@@ -79,8 +79,8 @@ typedef enum {
 typedef pfc_type dcb_pfc_list_type[MAX_USER_PRIORITIES];
 
 typedef struct dcb_user_priority_attribs {
-	__u8 tcmap;
 	__u8 pgid;
+	__u8 bwgid;
 	__u8 percent_of_pg_cap;
 	dcb_strict_priority_type   strict_priority;
 } dcb_user_priority_attribs_type;

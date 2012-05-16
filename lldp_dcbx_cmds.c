@@ -785,7 +785,7 @@ static dcb_result get_pg_data(pg_attribs *pg_data, int cmd, char *port_id,
 	}
 
 	for (i = 0; i < MAX_USER_PRIORITIES; i++)
-		sprintf(rbuf+PG_UP2TC(i), "%1x", pg_data->tx.up[i].tcmap);
+		sprintf(rbuf+PG_UP2TC(i), "%1x", pg_data->tx.up[i].pgid);
 	for (i = 0; i < MAX_BANDWIDTH_GROUPS; i++)
 		sprintf(rbuf+PG_PG_PCNT(i), "%02x", pg_data->tx.pg_percent[i]);
 	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
@@ -961,8 +961,8 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 			if ((flag & 0x07) >= pg_data->num_tcs)
 				return dcb_bad_params;
 
-			pg_data->tx.up[i].tcmap = flag & 0x07;
-			pg_data->rx.up[i].tcmap = flag & 0x07;
+			pg_data->tx.up[i].pgid = flag & 0x07;
+			pg_data->rx.up[i].pgid = flag & 0x07;
 		}
 		memset(used, false, sizeof(used));
 		for (i = 0; i < MAX_BANDWIDTH_GROUPS; i++) {

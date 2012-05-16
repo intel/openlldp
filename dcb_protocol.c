@@ -1341,11 +1341,10 @@ bool add_pg_defaults()
 		}
 	}
 	for (index=0; index < MAX_USER_PRIORITIES; index++) {
-		pg_data.tx.up[index].pgid = (u8)index;
-		pg_data.tx.up[index].percent_of_pg_cap =
-			BW_PERCENT;
+		pg_data.tx.up[index].pgid = (u8)(index);
+		pg_data.tx.up[index].bwgid = (u8)index;
+		pg_data.tx.up[index].percent_of_pg_cap = BW_PERCENT;
 		pg_data.tx.up[index].strict_priority = dcb_none;
-		pg_data.tx.up[index].tcmap = (u8)(index);
 	}
 	temp = rmndr;
 	for (index=0; index < MAX_BANDWIDTH_GROUPS; index++) {
@@ -1356,11 +1355,10 @@ bool add_pg_defaults()
 		}
 	}
 	for (index=0; index < MAX_USER_PRIORITIES; index++) {
-		pg_data.rx.up[index].pgid = (u8)index;
-		pg_data.rx.up[index].percent_of_pg_cap =
-			BW_PERCENT;
+		pg_data.rx.up[index].pgid = (u8)(index);
+		pg_data.rx.up[index].bwgid = (u8)index;
+		pg_data.rx.up[index].percent_of_pg_cap = BW_PERCENT;
 		pg_data.rx.up[index].strict_priority = dcb_none;
-		pg_data.rx.up[index].tcmap = (u8)(index);
 	}
 
 	snprintf(sTmp, MAX_DESCRIPTION_LEN, DEF_CFG_STORE);
@@ -2404,10 +2402,10 @@ void CopyConfigToOper(char *device_name, u32 SrcFlag, u32 EventFlag,
 
 		/* Copy Src to Oper. */
 		for (i = 0; i < MAX_USER_PRIORITIES; i++) {
-			Oper->second->tx.up[i].pgid =
-				Src->second->tx.up[i].pgid;
-			Oper->second->rx.up[i].pgid =
-				Src->second->rx.up[i].pgid;
+			Oper->second->tx.up[i].bwgid =
+				Src->second->tx.up[i].bwgid;
+			Oper->second->rx.up[i].bwgid =
+				Src->second->rx.up[i].bwgid;
 
 			Oper->second->tx.up[i].strict_priority =
 				Src->second->tx.up[i].strict_priority;
@@ -2420,15 +2418,15 @@ void CopyConfigToOper(char *device_name, u32 SrcFlag, u32 EventFlag,
 				Src->second->rx.up[i].percent_of_pg_cap;
 
 			if (SrcFlag == PEER_STORE) {
-				Oper->second->tx.up[i].tcmap =
-					Src->second->tx.up[i].tcmap;
-				Oper->second->rx.up[i].tcmap =
-					Src->second->rx.up[i].tcmap;
+				Oper->second->tx.up[i].pgid =
+					Src->second->tx.up[i].pgid;
+				Oper->second->rx.up[i].pgid =
+					Src->second->rx.up[i].pgid;
 			} else {
-				Oper->second->tx.up[i].tcmap =
-					localSrc->second->tx.up[i].tcmap;
-				Oper->second->rx.up[i].tcmap =
-					localSrc->second->rx.up[i].tcmap;
+				Oper->second->tx.up[i].pgid =
+					localSrc->second->tx.up[i].pgid;
+				Oper->second->rx.up[i].pgid =
+					localSrc->second->rx.up[i].pgid;
 			}
 		}
 
@@ -2580,8 +2578,8 @@ bool LocalPeerCompatible(char *device_name, u32 EventFlag, u32 Subtype)
 		match = true;
 		if (ppg->protocol.dcbx_st == dcbx_subtype1) {
 			for (i = 0; i < MAX_USER_PRIORITIES; i++) {
-				if (lpg->tx.up[i].pgid !=
-					ppg->tx.up[i].pgid)
+				if (lpg->tx.up[i].bwgid !=
+					ppg->tx.up[i].bwgid)
 					match = false;
 				if (lpg->tx.up[i].strict_priority !=
 					ppg->tx.up[i].strict_priority)

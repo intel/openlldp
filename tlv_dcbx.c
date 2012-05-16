@@ -383,7 +383,7 @@ struct unpacked_tlv *bld_dcbx1_pg_tlv(struct dcbx_tlvs *dcbx, bool *success)
 		}
 		for (i = 0; i < MAX_USER_PRIORITIES; i++) {
 			tmpbyte = 0;
-			tmpbyte = pg_cfg.tx.up[i].pgid;
+			tmpbyte = pg_cfg.tx.up[i].bwgid;
 			tmpbyte = tmpbyte << 5;
 			u8 tmpprio = 0;
 			tmpprio = (u8)pg_cfg.tx.up[i].strict_priority;
@@ -1279,6 +1279,11 @@ bool process_dcbx_pg_tlv(struct port *port, struct lldp_agent *agent)
 			} else {
 				used[peer_pg.tx.up[k].pgid] = true;
 			}
+
+			peer_pg.tx.up[k+1].bwgid = k + 1;
+			peer_pg.rx.up[k+1].bwgid = k + 1;
+			peer_pg.tx.up[k].bwgid = k;
+			peer_pg.rx.up[k].bwgid = k;
 		}
 		/* assign LINK_STRICT_PGID's to an unused pgid value */
 		for (j = 0; j < MAX_BANDWIDTH_GROUPS; j++)
@@ -1314,8 +1319,8 @@ bool process_dcbx_pg_tlv(struct port *port, struct lldp_agent *agent)
 			u8 tmp_bwg_id = tlvs->manifest->dcbx_pg->info
 				[DCBX1_PG_SETTINGS_OFFSET + 2*i +BYTE1_OFFSET];
 			tmp_bwg_id = tmp_bwg_id >> 5;
-			peer_pg.tx.up[i].pgid = tmp_bwg_id;
-			peer_pg.rx.up[i].pgid = tmp_bwg_id;
+			peer_pg.tx.up[i].bwgid = tmp_bwg_id;
+			peer_pg.rx.up[i].bwgid = tmp_bwg_id;
 
 			u8 tmp_strict_prio =
 				tlvs->manifest->dcbx_pg->info
@@ -1335,8 +1340,8 @@ bool process_dcbx_pg_tlv(struct port *port, struct lldp_agent *agent)
 				[DCBX1_PG_SETTINGS_OFFSET + 2*i +BYTE2_OFFSET];
 			tmp_bwg_id = tmp_strict_prio = 0;
 
-			peer_pg.tx.up[i].tcmap = 0;
-			peer_pg.rx.up[i].tcmap = 0;
+			peer_pg.tx.up[i].pgid = i;
+			peer_pg.rx.up[i].pgid = i;
 		}
 	}
 	put_peer_pg(port->ifname, &peer_pg);

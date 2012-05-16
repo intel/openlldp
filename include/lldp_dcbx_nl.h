@@ -152,7 +152,7 @@ enum strict_prio_type {
 };
 
 struct tc_config {
-	__u8 pgid;
+	__u8 bwgid;
 	__u8 up_to_tc_bitmap;
 	__u8 prio_type;
 	__u8 tc_percent;

@@ -379,7 +379,7 @@ static int _set_persistent(char *device_name, int dcb_enable,
 				if (!config_setting_get_elem(setting, i))
 					goto set_error;
 				if (!config_setting_set_int_elem(setting, i,
-					pg->tx.up[i].tcmap))
+					pg->tx.up[i].pgid))
 					goto set_error;
 			}
 
@@ -391,7 +391,7 @@ static int _set_persistent(char *device_name, int dcb_enable,
 				if (!config_setting_get_elem(setting, i))
 					goto set_error;
 				if (!config_setting_set_int_elem(setting, i,
-					pg->tx.up[i].pgid))
+					pg->tx.up[i].bwgid))
 					goto set_error;
 			}
 
@@ -446,7 +446,7 @@ static int _set_persistent(char *device_name, int dcb_enable,
 				if (!config_setting_get_elem(setting, i))
 					goto set_error;
 				if (!config_setting_set_int_elem(setting, i,
-					pg->rx.up[i].tcmap))
+					pg->rx.up[i].pgid))
 					goto set_error;
 			}
 
@@ -458,7 +458,7 @@ static int _set_persistent(char *device_name, int dcb_enable,
 				if (!config_setting_get_elem(setting, i))
 					goto set_error;
 				if (!config_setting_set_int_elem(setting, i,
-					pg->rx.up[i].pgid))
+					pg->rx.up[i].bwgid))
 					goto set_error;
 			}
 
@@ -749,7 +749,7 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 		if (get_array_config(setting_traffic, "traffic_class_mapping",
 			TYPE_CHAR, &results[0]))
 			for (i = 0; i < MAX_USER_PRIORITIES; i++)
-				attribs->pg.tx.up[i].tcmap =
+				attribs->pg.tx.up[i].pgid =
 					results[i];
 		else
 			goto set_default;
@@ -758,7 +758,7 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 		if (get_array_config(setting_traffic, "bandwidth_group_mapping",
 			TYPE_CHAR, &results[0]))
 			for (i = 0; i < MAX_USER_PRIORITIES; i++)
-				attribs->pg.tx.up[i].pgid =
+				attribs->pg.tx.up[i].bwgid =
 					results[i];
 		else
 			goto set_default;
@@ -802,7 +802,7 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 		if (get_array_config(setting_traffic, "traffic_class_mapping",
 			TYPE_CHAR, &results[0]))
 			for (i = 0; i < MAX_USER_PRIORITIES; i++)
-				attribs->pg.rx.up[i].tcmap =
+				attribs->pg.rx.up[i].pgid =
 					results[i];
 		else
 			goto set_default;
@@ -811,7 +811,7 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 		if (get_array_config(setting_traffic, "bandwidth_group_mapping",
 			TYPE_CHAR, &results[0]))
 			for (i = 0; i < MAX_USER_PRIORITIES; i++)
-				attribs->pg.rx.up[i].pgid =
+				attribs->pg.rx.up[i].bwgid =
 					results[i];
 		else
 			goto set_default;
