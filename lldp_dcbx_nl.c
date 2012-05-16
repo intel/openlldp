@@ -672,14 +672,15 @@ int set_hw_pg(char *ifname, pgroup_attribs *pg_data, bool oper_mode)
 
 	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
 		for (j = 0; j < MAX_TRAFFIC_CLASSES; j++) {
-			if (pg_temp->tx.up[i].pgid == j)
+			if (pg_temp->tx.up[i].pgid == j) {
 				tc[j].up_to_tc_bitmap |= (1 << i);
+				tc[j].prio_type = pg_temp->tx.up[i].strict_priority;
+			}
 		}
 	}
 
 	for (i = 0; i < MAX_TRAFFIC_CLASSES; i++) {
 		tc[i].bwgid = pg_temp->tx.up[i].bwgid;
-		tc[i].prio_type = pg_temp->tx.up[i].strict_priority;
 		tc[i].tc_percent = pg_temp->tx.up[i].percent_of_pg_cap;
 		bwg[i] = pg_temp->tx.pg_percent[i];
 		LLDPAD_DBG("%s %s: (%i) TX bwgid %i up_to_tc %i "
@@ -698,8 +699,10 @@ int set_hw_pg(char *ifname, pgroup_attribs *pg_data, bool oper_mode)
 
 	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
 		for (j = 0; j < MAX_TRAFFIC_CLASSES; j++) {
-			if (pg_temp->tx.up[i].pgid == j)
+			if (pg_temp->tx.up[i].pgid == j) {
 				tc[j].up_to_tc_bitmap |= (1 << i);
+				tc[j].prio_type = pg_temp->tx.up[i].strict_priority;
+			}
 		}
 	}
 
