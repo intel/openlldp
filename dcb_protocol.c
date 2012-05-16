@@ -2381,8 +2381,8 @@ void CopyConfigToOper(char *device_name, u32 SrcFlag, u32 EventFlag,
 		pg_it localSrc = NULL;
 
 		if (SrcFlag == LOCAL_STORE) {
-			Src = pg_find(&pg, device_name);
-			if (Src == NULL)
+			Src = localSrc = pg_find(&pg, device_name);
+			if (localSrc == NULL)
 				return;
 		} else if (SrcFlag == PEER_STORE) {
 			Src = pg_find(&peer_pg, device_name);
@@ -2421,14 +2421,14 @@ void CopyConfigToOper(char *device_name, u32 SrcFlag, u32 EventFlag,
 
 			if (SrcFlag == PEER_STORE) {
 				Oper->second->tx.up[i].tcmap =
-					localSrc->second->tx.up[i].tcmap;
-				Oper->second->rx.up[i].tcmap =
-					localSrc->second->rx.up[i].tcmap;
-			} else {
-				Oper->second->tx.up[i].tcmap =
 					Src->second->tx.up[i].tcmap;
 				Oper->second->rx.up[i].tcmap =
 					Src->second->rx.up[i].tcmap;
+			} else {
+				Oper->second->tx.up[i].tcmap =
+					localSrc->second->tx.up[i].tcmap;
+				Oper->second->rx.up[i].tcmap =
+					localSrc->second->rx.up[i].tcmap;
 			}
 		}
 
