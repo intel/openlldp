@@ -140,12 +140,12 @@ static void evb_print_cfg_tlv(u16 len, char *info)
 		printf("Unable to decode ccap !\n");
 
 	if (!hexstr2bin(info+8, (u8 *)&svsi, sizeof(svsi)))
-		printf("\tno. of supported VSIs: %04i\n",svsi);
+		printf("\tno. of supported VSIs: %04i\n", htons(svsi));
 	else
 		printf("Unable to decode svsi !\n");
 
 	if (!hexstr2bin(info+12, (u8 *)&cvsi, sizeof(cvsi)))
-		printf("\tno. of configured VSIs: %04i\n",cvsi);
+		printf("\tno. of configured VSIs: %04i\n", htons(cvsi));
 	else
 		printf("Unable to decode cvsi !\n");
 
