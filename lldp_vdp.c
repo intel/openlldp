@@ -1014,7 +1014,7 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 	struct vsi_profile *p, *profile;
 	struct port *port = port_find_by_name(vd->ifname);
 
-	LLDPAD_DBG("%s: indicating vdp of length %u (%lu) for %s\n",
+	LLDPAD_DBG("%s: indicating vdp of length %u (%zu) for %s\n",
 		   __func__, tlv->length, sizeof(struct tlv_info_vdp),
 		   vd->ifname);
 
@@ -1518,7 +1518,7 @@ void vdp_ifup(char *ifname, struct lldp_agent *agent)
 	/* not found, alloc/init per-port module data */
 	vd = (struct vdp_data *) calloc(1, sizeof(struct vdp_data));
 	if (!vd) {
-		LLDPAD_ERR("%s: %s malloc %ld failed\n",
+		LLDPAD_ERR("%s: %s malloc %zu failed\n",
 			 __func__, ifname, sizeof(*vd));
 		goto out_err;
 	}

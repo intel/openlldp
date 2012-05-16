@@ -912,7 +912,7 @@ void med_ifup(char *ifname, struct lldp_agent *agent)
 	/* not found, alloc/init per-port tlv data */
 	md = (struct med_data *) malloc(sizeof(*md));
 	if (!md) {
-		LLDPAD_DBG("%s:%s malloc %ld failed\n",
+		LLDPAD_DBG("%s:%s malloc %zu failed\n",
 			__func__, ifname, sizeof(*md));
 		goto out_err;
 	}

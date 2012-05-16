@@ -594,7 +594,7 @@ void mand_ifup(char *ifname, struct lldp_agent *agent)
 		/* not found, alloc/init per-port tlv data */
 		md = (struct mand_data *) malloc(sizeof(*md));
 		if (!md) {
-			LLDPAD_WARN("%s:%s malloc %lu failed\n",
+			LLDPAD_WARN("%s:%s malloc %zu failed\n",
 				     __func__, ifname, sizeof(*md));
 			goto out_err;
 		}

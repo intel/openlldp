@@ -562,7 +562,7 @@ static void evb_ifup(char *ifname, struct lldp_agent *agent)
 	/* not found, alloc/init per-port tlv data */
 	ed = (struct evb_data *) calloc(1, sizeof(struct evb_data));
 	if (!ed) {
-		LLDPAD_ERR("%s:%s malloc %ld failed\n",
+		LLDPAD_ERR("%s:%s malloc %zu failed\n",
 			   __func__, ifname, sizeof(*ed));
 		return;
 	}

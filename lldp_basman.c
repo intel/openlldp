@@ -678,7 +678,7 @@ void basman_ifup(char *ifname, struct lldp_agent *agent)
 	/* not found, alloc/init per-port tlv data */
 	bd = (struct basman_data *) malloc(sizeof(*bd));
 	if (!bd) {
-		LLDPAD_DBG("%s:%s malloc %ld failed\n",
+		LLDPAD_DBG("%s:%s malloc %zu failed\n",
 			 __func__, ifname, sizeof(*bd));
 		goto out_err;
 	}

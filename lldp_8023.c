@@ -450,7 +450,7 @@ void ieee8023_ifup(char *ifname, struct lldp_agent *agent)
 	/* not found, alloc/init per-port tlv data */
 	bd = (struct ieee8023_data *) malloc(sizeof(*bd));
 	if (!bd) {
-		LLDPAD_INFO("%s:%s malloc %ld failed\n",
+		LLDPAD_INFO("%s:%s malloc %zu failed\n",
 			 __func__, ifname, sizeof(*bd));
 		goto out_err;
 	}
