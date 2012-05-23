@@ -188,17 +188,20 @@ static int basman_bld_sysname_tlv(struct basman_data *bd,
 				    TLVID_NOUI(SYSTEM_NAME_TLV),
 				    desc, sizeof(desc))) {
 		/* use what's in the config */
-		length = strlen(desc);
 		LLDPAD_DBG("%s:%s:configed as %s\n",
 			__func__, bd->ifname, desc);
 	} else {
+		const char *node_name;
+
 		if (uname(&uts))
-			length = snprintf(desc, sizeof(desc), SYSNAME_DEFAULT);
+			node_name = SYSNAME_DEFAULT;
 		else
-			length = snprintf(desc, sizeof(desc), uts.nodename);
-		LLDPAD_DBG("%s:%s:built as %s\n",
-			__func__, bd->ifname, desc);
+			node_name = uts.nodename;
+		strncpy(desc, node_name, sizeof(desc));
+		desc[sizeof(desc) - 1] = 0;
+		LLDPAD_DBG("%s:%s:built as %s\n", __func__, bd->ifname, desc);
 	}
+	length = strlen(desc);
 	if (length >= sizeof(desc))
 		length = sizeof(desc) - 1;
 
