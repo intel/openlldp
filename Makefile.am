@@ -2,7 +2,9 @@
 sbin_PROGRAMS = lldpad dcbtool lldptool
 
 # package nltest, but do not install it anywhere
+if BUILD_DEBUG
 noinst_PROGRAMS = nltest
+endif
 
 # look for header files in the include directory
 # pass the value of ${sysconfdir} to the C pre-processor as SYSCONFDIR
@@ -75,7 +77,9 @@ lldptool_SOURCES = lldptool.c clif.c lldptool_cmds.c lldp_rtnl.c \
 		   weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
 lldptool_LDFLAGS = -ldl
 
-nltest_SOURCES = nltest.c nltest.h
+if BUILD_DEBUG
+nltest_SOURCES = test/nltest.c test/nltest.h
+endif
 
 ## man pages
 dist_man_MANS = docs/lldpad.8 docs/dcbtool.8 docs/lldptool.8 \

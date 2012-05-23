@@ -1,6 +1,14 @@
 AC_INIT([lldpad], [0.9.44])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
+AC_ARG_ENABLE(debug, 
+	AS_HELP_STRING([--enable-debug],[compile debug programs]),
+	[enable_debug=yes], [enable_debug=no])
+if test "$enable_debug" = "yes" ; then
+	AC_DEFINE_UNQUOTED([BUILD_DEBUG], 1, [whether debug code is enabled])
+fi
+AM_CONDITIONAL([BUILD_DEBUG], [test "$enable_debug" = "yes"])
+
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_LEX
