@@ -1229,24 +1229,45 @@ int check_link_status(const char *ifname)
 	return retval;
 }
 
+#define NUM_ARGS 8
+
 int get_arg_val_list(char *ibuf, int ilen, int *ioff,
 			    char **args, char **argvals)
 {
 	u8 arglen;
 	u16 argvalue_len;
-	int arglens[8];
-	int argvallens[8];
+	int *arglens = NULL;
+	int *argvallens = NULL;
+	int *p;
 	int numargs;
 	int i;
 
 	/* parse out args and argvals */
 	for (i = 0; ilen - *ioff > 2 * (int)sizeof(arglen); i++) {
+		if (!(i % NUM_ARGS)) {
+			p = (int *) realloc(arglens,
+				(i/NUM_ARGS + 1) * NUM_ARGS * sizeof(int));
+			if (!p) {
+				free(arglens);
+				return 0;
+			} else {
+				arglens = p;
+			}
+			p = (int *) realloc(argvallens,
+				(i/NUM_ARGS + 1) * NUM_ARGS * sizeof(int));
+			if (!p) {
+				free(argvallens);
+				return 0;
+			} else {
+				argvallens = p;
+			}
+		}
 		hexstr2bin(ibuf+*ioff, &arglen, sizeof(arglen));
 		*ioff += 2 * (int)sizeof(arglen);
 		if (ilen - *ioff >= arglen) {
 			args[i] = ibuf+*ioff;
 			*ioff += arglen;
-			arglens[i] = arglen;
+			*(arglens+i) = arglen;
 
 			if (ilen - *ioff > 2 * (int)sizeof(argvalue_len)) {
 				hexstr2bin(ibuf+*ioff, (u8 *)&argvalue_len,
@@ -1256,46 +1277,65 @@ int get_arg_val_list(char *ibuf, int ilen, int *ioff,
 				if (ilen - *ioff >= argvalue_len) {
 					argvals[i] = ibuf+*ioff;
 					*ioff += argvalue_len;
-					argvallens[i] = argvalue_len;
+					*(argvallens+i) = argvalue_len;
 				}
 			} else {
+				free(arglens);
+				free(argvallens);
 				return 0;
 			}
 		} else {
+			free(arglens);
+			free(argvallens);
 			return 0;
 		}
 	}
 	numargs = i;
 	for (i = 0; i < numargs; i++) {
-		args[i][arglens[i]] = '\0';
-		argvals[i][argvallens[i]] = '\0';
+		args[i][*(arglens+i)] = '\0';
+		argvals[i][*(argvallens+i)] = '\0';
 	}
+	free(arglens);
+	free(argvallens);
 	return numargs;
 }
 
 int get_arg_list(char *ibuf, int ilen, int *ioff, char **args)
 {
 	u8 arglen;
-	int arglens[8];
+	int *arglens = NULL;
+	int *p;
 	int numargs;
 	int i;
 
 	/* parse out args */
 	for (i = 0; (ilen - *ioff > 2 * (int)sizeof(arglen)); i++) {
+		if (!(i % NUM_ARGS)) {
+			p = (int *) realloc(arglens,
+				(i/NUM_ARGS + 1) * NUM_ARGS * sizeof(int));
+			if (!p) {
+				free(arglens);
+				return 0;
+			} else {
+				arglens = p;
+			}
+		}
 		hexstr2bin(ibuf+(*ioff), &arglen, sizeof(arglen));
 		*ioff += 2*sizeof(arglen);
 		if (ilen - *ioff >= arglen) {
 			args[i] = ibuf+(*ioff);
 			*ioff += arglen;
-			arglens[i] = arglen;
+			*(arglens+i) = arglen;
 		} else {
+			free(arglens);
 			return 0;
 		}
 	}
 	numargs = i;
 
 	for (i = 0; i < numargs; i++)
-		args[i][arglens[i]] = '\0';
+		args[i][*(arglens+i)] = '\0';
 
+	free(arglens);
 	return numargs;
 }
