@@ -611,7 +611,7 @@ initialized:
 	get_dcb_capabilities(ifname, &dcb_support);
 	get_dcb_enable_state(ifname, &dcb_enable);
 
-	if ((dcb_enable == LLDP_DCBX_ENABLED) &&
+	if ((dcb_enable != LLDP_DCBX_DISABLED) &&
 	    (!dcb_support.dcbx || (gdcbx_subtype & ~MASK_DCBX_FORCE) ||
 	    (lldpad_shm_get_dcbx(ifname)))) {
 		set_dcbx_mode(tlvs->ifname,
