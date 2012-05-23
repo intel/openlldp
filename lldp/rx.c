@@ -64,16 +64,12 @@ void rxReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf, size_t len)
 	u8  frame_error = 0;
 	struct l2_ethhdr *hdr;
 	struct l2_ethhdr example_hdr,*ex;
-	char msg[2] = "";
 
 	/* Drop and ignore zero length frames */
 	if (!len)
 		return;
 
 	port = (struct port *)ctx;
-
-	snprintf(msg, sizeof(msg), "%i", LLDP_RCHANGE);
-	send_event(MSG_EVENT, LLDP_MOD_MAND, msg);
 
 	/* walk through the list of agents for this interface and see if we
 	 * can find a matching agent */
