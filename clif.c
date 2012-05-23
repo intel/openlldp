@@ -124,7 +124,10 @@ int clif_request(struct clif *clif, const char *cmd, size_t cmd_len,
 				printf("less then zero\n");
 				return res;
 			}
-			if (res > 0 && reply[MSG_TYPE] == EVENT_MSG) {
+			if ((res > 0 && reply[MSG_TYPE] == EVENT_MSG) ||
+			   ((reply[MSG_TYPE] == MOD_CMD) &&
+			    (res > MOD_MSG_TYPE) &&
+			    (reply[MOD_MSG_TYPE] == EVENT_MSG))) {
 				/* This is an unsolicited message from
 				 * lldpad, not the reply to the
 				 * request. Use msg_cb to report this to the
