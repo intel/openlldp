@@ -220,7 +220,7 @@ void print_raw_message(char *msg, int print)
 		return;
 
 	if (!(print & SHOW_RAW_ONLY)) {
-		switch (msg[0]) {
+		switch (msg[MSG_TYPE]) {
 		case EVENT_MSG:
 			printf("event: ");
 			break;
@@ -246,9 +246,9 @@ int parse_print_message(char *msg, int print)
 	if (print & SHOW_RAW_ONLY)
 		return status;
 
-	if (msg[0] == CMD_RESPONSE)
+	if (msg[MSG_TYPE] == CMD_RESPONSE)
 		print_response(msg, status);
-	else if (msg[0] == EVENT_MSG)
+	else if (msg[MSG_TYPE] == EVENT_MSG)
 		print_event_msg(msg);
 
 	return status;

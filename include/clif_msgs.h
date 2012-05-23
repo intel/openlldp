@@ -66,6 +66,10 @@
  */
 #define	MOD_ID 1
 
+/* Generic client interface field offsets */
+#define MSG_TYPE        0
+#define MOD_MSG_TYPE    9  /* location of MSG_TYPE in a module message */
+
 /* Client interface event message field offsets */
 #define EV_MSG_OFF      0
 #define EV_LEVEL_OFF    1
