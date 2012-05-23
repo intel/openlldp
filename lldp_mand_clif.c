@@ -32,9 +32,9 @@
 #include <arpa/inet.h>
 #include "lldp.h"
 #include "lldp_mod.h"
-#include "lldptool.h"
 #include "lldp_mand.h"
 #include "lldp_mand_clif.h"
+#include "clif_msgs.h"
 
 void print_port_id(u16, char *info);
 void print_chassis_id(u16, char *info);

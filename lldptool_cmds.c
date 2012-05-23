@@ -37,6 +37,7 @@
 #include "lldp_mod.h"
 #include "messages.h"
 #include "lldp_util.h"
+#include "lldpad_status.h"
 
 static char *print_status(cmd_status status);
 

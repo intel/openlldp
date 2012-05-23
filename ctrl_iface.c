@@ -47,6 +47,7 @@
 #include "list.h"
 #include "lldp_mod.h"
 #include "clif_msgs.h"
+#include "lldpad_status.h"
 #include "lldp/ports.h"
 #include "lldp_dcbx.h"
 #include "lldp_util.h"
@@ -318,7 +319,7 @@ static void process_clif_cmd(  struct clif_data *cd,
 
 	/* setup minimum command response message
 	 * status will be updated at end */
-	snprintf(rbuf, rsize, "%c%02x", CMD_RESPONSE, dcb_failed);
+	snprintf(rbuf, rsize, "%c%02x", CMD_RESPONSE, cmd_failed);
 	status = cmd_tbl[find_cmd_entry((int)ibuf[0])].cmd_handler(
 					 cd, from, fromlen, ibuf, ilen,
 					 rbuf + strlen(rbuf),

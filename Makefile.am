@@ -27,7 +27,8 @@ include/clif_msgs.h include/lldp_basman_cmds.h include/lldp_8023_cmds.h \
 include/lldp_med_cmds.h include/lldp_util.h \
 include/lldp_evb_cmds.h include/lldp_vdp_cmds.h include/lldp_8021qaz_cmds.h \
 include/clif_sock.h include/linux/dcbnl.h \
-include/linux/netlink.h include/linux/rtnetlink.h
+include/linux/netlink.h include/linux/rtnetlink.h \
+include/lldpad_status.h
 
 noinst_HEADERS = include/config.h include/ctrl_iface.h \
 include/dcb_driver_interface.h \

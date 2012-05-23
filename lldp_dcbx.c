@@ -40,7 +40,7 @@
 #include "lldpad.h"
 #include "libconfig.h"
 #include "config.h"
-#include "clif_msgs.h"
+#include "lldpad_status.h"
 #include "lldp_mod.h"
 #include "lldp_mand_clif.h"
 #include "lldp_dcbx_nl.h"
@@ -835,7 +835,7 @@ u8 dcbx_mibDeleteObjects(struct port *port, struct lldp_agent *agent)
 		return 0;
 
 	/* Set any stored values for this TLV to !Present */
-	if (get_peer_pg(port->ifname, &peer_pg) == dcb_success) {
+	if (get_peer_pg(port->ifname, &peer_pg) == cmd_success) {
 		if (peer_pg.protocol.TLVPresent == true) {
 			peer_pg.protocol.TLVPresent = false;
 			put_peer_pg(port->ifname, &peer_pg);
@@ -845,7 +845,7 @@ u8 dcbx_mibDeleteObjects(struct port *port, struct lldp_agent *agent)
 		return (u8)-1;
 	}
 
-	if (get_peer_pfc(port->ifname, &peer_pfc) == dcb_success) {
+	if (get_peer_pfc(port->ifname, &peer_pfc) == cmd_success) {
 		if (peer_pfc.protocol.TLVPresent == true) {
 			peer_pfc.protocol.TLVPresent = false;
 			put_peer_pfc(port->ifname, &peer_pfc);
@@ -856,7 +856,7 @@ u8 dcbx_mibDeleteObjects(struct port *port, struct lldp_agent *agent)
 	}
 
 	for (i = 0; i < DCB_MAX_APPTLV; i++) {
-		if (get_peer_app(port->ifname, i, &peer_app) == dcb_success) {
+		if (get_peer_app(port->ifname, i, &peer_app) == cmd_success) {
 			if (peer_app.protocol.TLVPresent == true) {
 				peer_app.protocol.TLVPresent = false;
 				peer_app.Length = 0;
@@ -866,7 +866,7 @@ u8 dcbx_mibDeleteObjects(struct port *port, struct lldp_agent *agent)
 		}
 	}
 
-	if (get_peer_llink(port->ifname, subtype, &peer_llink) == dcb_success) {
+	if (get_peer_llink(port->ifname, subtype, &peer_llink) == cmd_success) {
 		if (peer_llink.protocol.TLVPresent == true) {
 			peer_llink.protocol.TLVPresent = false;
 			put_peer_llink(port->ifname, subtype, &peer_llink);
@@ -876,8 +876,7 @@ u8 dcbx_mibDeleteObjects(struct port *port, struct lldp_agent *agent)
 		return (u8)-1;
 	}
 
-	if (get_peer_control(port->ifname, &peer_control) ==
-		dcb_success) {
+	if (get_peer_control(port->ifname, &peer_control) == cmd_success) {
 		peer_control.RxDCBTLVState = DCB_PEER_EXPIRED;
 		put_peer_control(port->ifname, &peer_control);
 	} else {

@@ -29,18 +29,7 @@
 
 #include "lldp.h"
 #include "dcb_types.h"
-
-
-typedef enum {
-	dcb_success = 0,
-	dcb_failed,
-	dcb_device_not_found,
-	dcb_invalid_cmd,
-	dcb_bad_params,
-	dcb_peer_not_present,
-	dcb_ctrl_vers_not_compatible,
-	dcb_not_capable
-} dcb_result;
+#include "lldpad_status.h"
 
 /* Feature State Machine Error definitions */
 #define FEAT_ERR_NONE       0x00 /* no error */
@@ -66,7 +55,7 @@ int dcbx_remove_adapter(char *device_name);
 int dcbx_remove_all(void);
 
 bool init_dcb_support(char *device_name, full_dcb_attribs *attribs);
-dcb_result get_dcb_support(char *device_name, struct feature_support *dcb_capabilites);
+cmd_status get_dcb_support(char *device_name, struct feature_support *dcb_capabilites);
 void remove_dcb_support(void);
 
 /* unique strings for default data storage */
@@ -84,51 +73,51 @@ void mark_app_sent(char *device_name);
 bool add_llink_defaults(u32 subtype);
 void mark_llink_sent(char *device_name, u32 subtype);
 
-dcb_result get_control(char *device_name,
+cmd_status get_control(char *device_name,
 	control_protocol_attribs *control_data);
-dcb_result get_peer_control(char *device_name,
+cmd_status get_peer_control(char *device_name,
 	control_protocol_attribs *control_data);
-dcb_result put_peer_control(char *, control_protocol_attribs *);
+cmd_status put_peer_control(char *, control_protocol_attribs *);
 
-dcb_result get_pg(char *device_name, pg_attribs *pg_data);
-dcb_result put_pg(char *device_name, pg_attribs *pg_data,
+cmd_status get_pg(char *device_name, pg_attribs *pg_data);
+cmd_status put_pg(char *device_name, pg_attribs *pg_data,
 		  pfc_attribs *pfc_data);
-dcb_result put_peer_pg(char *,  pg_attribs *);
-dcb_result get_oper_pg(char *device_name, pg_attribs *pg_data);
-dcb_result get_peer_pg(char *device_name, pg_attribs *pg_data);
+cmd_status put_peer_pg(char *,  pg_attribs *);
+cmd_status get_oper_pg(char *device_name, pg_attribs *pg_data);
+cmd_status get_peer_pg(char *device_name, pg_attribs *pg_data);
 
-dcb_result get_pfc(char *device_name, pfc_attribs *pfc_data);
-dcb_result put_pfc(char *device_name, pfc_attribs *pfc_data);
-dcb_result put_peer_pfc(char *, pfc_attribs *);
-dcb_result get_oper_pfc(char *device_name, pfc_attribs *pfc_data);
-dcb_result get_peer_pfc(char *device_name, pfc_attribs *pfc_data);
+cmd_status get_pfc(char *device_name, pfc_attribs *pfc_data);
+cmd_status put_pfc(char *device_name, pfc_attribs *pfc_data);
+cmd_status put_peer_pfc(char *, pfc_attribs *);
+cmd_status get_oper_pfc(char *device_name, pfc_attribs *pfc_data);
+cmd_status get_peer_pfc(char *device_name, pfc_attribs *pfc_data);
 
-dcb_result get_all_bwg_descrpts(char *device_name, pg_info *names);
-dcb_result get_bwg_descrpt(char *device_name, u8 bwgid, char **name);
-dcb_result put_bwg_descrpt(char *device_name, u8 bwgid, char *name);
+cmd_status get_all_bwg_descrpts(char *device_name, pg_info *names);
+cmd_status get_bwg_descrpt(char *device_name, u8 bwgid, char **name);
+cmd_status put_bwg_descrpt(char *device_name, u8 bwgid, char *name);
 
-dcb_result get_app(char *device_name, u32 subtype, app_attribs *app_data); 
-dcb_result put_app(char *device_name, u32 subtype, app_attribs *app_data);
-dcb_result put_peer_app(char *device_name, u32 subtype, app_attribs *);
-dcb_result get_oper_app(char *device_name, u32 subtype, app_attribs *app_data);
-dcb_result get_peer_app(char *device_name, u32 subtype, app_attribs *app_data);
+cmd_status get_app(char *device_name, u32 subtype, app_attribs *app_data);
+cmd_status put_app(char *device_name, u32 subtype, app_attribs *app_data);
+cmd_status put_peer_app(char *device_name, u32 subtype, app_attribs *);
+cmd_status get_oper_app(char *device_name, u32 subtype, app_attribs *app_data);
+cmd_status get_peer_app(char *device_name, u32 subtype, app_attribs *app_data);
 
-dcb_result get_llink(char *device_name, u32 subtype, llink_attribs *llink_data);
-dcb_result put_llink(char *device_name, u32 subtype, llink_attribs *llink_data);
-dcb_result put_peer_llink(char *, u32 subtype, llink_attribs *);
-dcb_result get_oper_llink(char *device_name, u32 subtype,
+cmd_status get_llink(char *device_name, u32 subtype, llink_attribs *llink_data);
+cmd_status put_llink(char *device_name, u32 subtype, llink_attribs *llink_data);
+cmd_status put_peer_llink(char *, u32 subtype, llink_attribs *);
+cmd_status get_oper_llink(char *device_name, u32 subtype,
 				llink_attribs *llink_data);
-dcb_result get_peer_llink(char *device_name, u32 subtype,
+cmd_status get_peer_llink(char *device_name, u32 subtype,
 				llink_attribs *llink_data);
 
-dcb_result dcb_check_config(full_dcb_attrib_ptrs *attribs);
+cmd_status dcb_check_config(full_dcb_attrib_ptrs *attribs);
 void rebalance_uppcts(pg_attribs *pg);
 
-dcb_result run_feature_protocol(char *device_name, u32 EventFlag, u32 Subtype);
-dcb_result run_control_protocol(char *device_name, u32 EventFlag);
-dcb_result run_dcb_protocol(char *device_name, u32 EventFlag, u32 Subtype);
+cmd_status run_feature_protocol(char *device_name, u32 EventFlag, u32 Subtype);
+cmd_status run_control_protocol(char *device_name, u32 EventFlag);
+cmd_status run_dcb_protocol(char *device_name, u32 EventFlag, u32 Subtype);
 
-dcb_result save_dcbx_state(const char *device_name);
+cmd_status save_dcbx_state(const char *device_name);
 int set_dcbx_state(const char *device_name, dcbx_state *state);
 int get_dcbx_state(const char *device_name, dcbx_state *state);
 int clear_dcbx_state();

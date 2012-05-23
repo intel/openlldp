@@ -32,6 +32,7 @@
 #include "lldp.h"
 #include "lldp_mod.h"
 #include "lldptool.h"
+#include "clif_msgs.h"
 #include "lldp_med.h"
 #include "lldp_med_clif.h"
 

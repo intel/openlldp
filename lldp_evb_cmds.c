@@ -44,6 +44,7 @@
 #include "libconfig.h"
 #include "config.h"
 #include "clif_msgs.h"
+#include "lldpad_status.h"
 #include "lldp/states.h"
 #include "messages.h"
 

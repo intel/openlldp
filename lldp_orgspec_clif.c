@@ -29,7 +29,7 @@
 #include <sys/un.h>
 #include <sys/stat.h>
 #include "lldp_mod.h"
-#include "lldptool.h"
+#include "clif_msgs.h"
 #include "lldp.h"
 #include "lldp_orgspec_clif.h"
 

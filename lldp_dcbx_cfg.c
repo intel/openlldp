@@ -270,24 +270,24 @@ static int _set_persistent(char *device_name, int dcb_enable,
 	/* init the internal data store for device_name */
 	if (NULL == eth_settings) {
 
-		result = dcb_success;
-		if (result == dcb_success && pg == NULL) {
+		result = cmd_success;
+		if (result == cmd_success && pg == NULL) {
 			result = get_pg(device_name, &attribs.pg);
 			pg = &attribs.pg;
 		}
-		if (result == dcb_success && pfc == NULL) {
+		if (result == cmd_success && pfc == NULL) {
 			result = get_pfc(device_name, &attribs.pfc);
 			pfc = &attribs.pfc;
 		}
-		if (result == dcb_success && app == NULL) {
+		if (result == cmd_success && app == NULL) {
 			result = get_app(device_name,app_subtype,&attribs.app[app_subtype]);
 			app = &attribs.app[app_subtype];
 		}
-		if (result == dcb_success && llink == NULL) {
+		if (result == cmd_success && llink == NULL) {
 			result = get_llink(device_name,0,&attribs.llink[0]);
 			llink = &attribs.llink[0];
 		}
-		if (result != dcb_success)	
+		if (result != cmd_success)
 			goto set_error;
 
 		eth_settings = construct_new_setting(device_name);
@@ -589,29 +589,29 @@ static int _set_persistent(char *device_name, int dcb_enable,
 
 set_error:
 	LLDPAD_ERR("update of config file failed %s", cfg_file_name);
-	return dcb_failed;
+	return cmd_failed;
 }
 
 static int get_default_persistent(const char *ifname, full_dcb_attribs *attribs)
 {
 	int i;
 
-	if (get_pg(DEF_CFG_STORE, &attribs->pg) != dcb_success)
+	if (get_pg(DEF_CFG_STORE, &attribs->pg) != cmd_success)
 		return 1;
 
-	if (get_pfc(DEF_CFG_STORE, &attribs->pfc) != dcb_success)
+	if (get_pfc(DEF_CFG_STORE, &attribs->pfc) != cmd_success)
 		return 1;
 
 	get_dcb_numtcs(ifname, &attribs->pg.num_tcs, &attribs->pfc.num_tcs);
 
 	for (i = 0; i < DCB_MAX_APPTLV; i++) {
-		if (get_app(DEF_CFG_STORE, i, &attribs->app[i]) != dcb_success)
+		if (get_app(DEF_CFG_STORE, i, &attribs->app[i]) != cmd_success)
 			return 1;
 	}
 
 	for (i = 0; i < DCB_MAX_LLKTLV; i++) {
 		if (get_llink(DEF_CFG_STORE, i,
-			&attribs->llink[i]) != dcb_success)
+			&attribs->llink[i]) != cmd_success)
 			return 1;
 	}
 
@@ -668,7 +668,7 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 	config_setting_t *setting_traffic = NULL;
 	config_setting_t *setting_value = NULL;
 	full_dcb_attrib_ptrs attrib_ptrs = {0, 0, 0, 0, 0, 0, 0};
-	int result = dcb_failed, i;
+	int result = cmd_failed, i;
 	int results[MAX_USER_PRIORITIES];
 	int len;
 	char abuf[32];

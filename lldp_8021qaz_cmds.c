@@ -35,6 +35,7 @@
 #include "lldp_mand_clif.h"
 #include "lldp_8021qaz_cmds.h"
 #include "clif_msgs.h"
+#include "lldpad_status.h"
 #include "config.h"
 #include "lldp/ports.h"
 #include "lldp/states.h"

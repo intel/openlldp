@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 #include "lldp_mod.h"
 #include "lldptool.h"
+#include "clif_msgs.h"
 #include "lldp.h"
 #include "lldp_8023.h"
 #include "lldp_8023_clif.h"

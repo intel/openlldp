@@ -36,7 +36,7 @@
 #include "lldp.h"
 #include "config.h"
 #include "messages.h"
-#include "clif_msgs.h"
+#include "lldpad_status.h"
 #include "lldp_rtnl.h"
 #include "lldp_dcbx_nl.h"
 #include "agent.h"

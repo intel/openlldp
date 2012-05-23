@@ -49,7 +49,7 @@
 #include "dcb_persist_store.h"
 #include "messages.h"
 #include "config.h"
-#include "clif_msgs.h"
+#include "lldpad_status.h"
 #include "lldp_mod.h"
 #include "event_iface.h"
 

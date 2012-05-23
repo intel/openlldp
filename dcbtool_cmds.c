@@ -30,7 +30,7 @@
 #include "clif.h"
 #include "dcbtool.h"
 #include "lldp_dcbx_cmds.h"
-#include "clif_msgs.h"
+#include "lldpad_status.h"
 #include "dcb_types.h"
 #include "parse_cli.h"
 #include "messages.h"

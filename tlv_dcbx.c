@@ -65,14 +65,14 @@ static u32 check_feature_not_present(char *device_name, u32 subtype,
 
 	switch (feature) {
 	case DCB_REMOTE_CHANGE_PG:
-		if ((get_peer_pg(device_name, &peer_pg) == dcb_success)
+		if ((get_peer_pg(device_name, &peer_pg) == cmd_success)
 			&& (peer_pg.protocol.TLVPresent == true)) {
 			peer_pg.protocol.TLVPresent = false;
 			put_peer_pg(device_name, &peer_pg);
 		}
 		break;
 	case DCB_REMOTE_CHANGE_PFC:
-		if ((get_peer_pfc(device_name, &peer_pfc) == dcb_success)
+		if ((get_peer_pfc(device_name, &peer_pfc) == cmd_success)
 			 && (peer_pfc.protocol.TLVPresent == true)) {
 			peer_pfc.protocol.TLVPresent = false;
 			put_peer_pfc(device_name, &peer_pfc);
@@ -80,7 +80,7 @@ static u32 check_feature_not_present(char *device_name, u32 subtype,
 		break;
 	case DCB_REMOTE_CHANGE_LLINK:
 		if ((get_peer_llink(device_name, subtype, &peer_llink) ==
-			dcb_success) && (peer_llink.protocol.TLVPresent ==
+			cmd_success) && (peer_llink.protocol.TLVPresent ==
 			true)) {
 			peer_llink.protocol.TLVPresent = false;
 			put_peer_llink(device_name, subtype, &peer_llink);
@@ -89,7 +89,7 @@ static u32 check_feature_not_present(char *device_name, u32 subtype,
 	default:
 		if (feature & DCB_REMOTE_CHANGE_APPTLV(subtype)) {
 			if ((get_peer_app(device_name, subtype, &peer_app) ==
-				dcb_success) &&
+				cmd_success) &&
 				(peer_app.protocol.TLVPresent == true)) {
 				peer_app.protocol.TLVPresent = false;
 				peer_app.Length = 0;
@@ -352,7 +352,7 @@ struct unpacked_tlv *bld_dcbx1_pg_tlv(struct dcbx_tlvs *dcbx, bool *success)
 		return NULL;
 	}
 	result = get_pg(dcbx->ifname, &pg_cfg);
-	if (result == dcb_success) {
+	if (result == cmd_success) {
 		mark_pg_sent(dcbx->ifname);
 		if (!(pg_cfg.protocol.Advertise)) {
 			free(tlv);
@@ -420,7 +420,7 @@ struct unpacked_tlv *bld_dcbx2_pg_tlv(struct dcbx_tlvs *dcbx, bool *success)
 		return NULL;
 	}
 	result = get_pg(dcbx->ifname, &pg_cfg);
-	if (result == dcb_success) {
+	if (result == cmd_success) {
 		mark_pg_sent(dcbx->ifname);
 		if (!(pg_cfg.protocol.Advertise)) {
 			free(tlv);
@@ -489,7 +489,7 @@ struct unpacked_tlv *bld_dcbx1_pfc_tlv(struct dcbx_tlvs *dcbx, bool *success)
 	if (!tlv)
 		return NULL;
 	result = get_pfc(dcbx->ifname, &pfc_cfg);
-	if (result == dcb_success) {
+	if (result == cmd_success) {
 		mark_pfc_sent(dcbx->ifname);
 		if (!(pfc_cfg.protocol.Advertise)) {
 			free(tlv);
@@ -543,7 +543,7 @@ struct unpacked_tlv *bld_dcbx2_pfc_tlv(struct dcbx_tlvs *dcbx, bool *success)
 	if (!tlv)
 		return NULL;
 	result = get_pfc(dcbx->ifname, &pfc_cfg);
-	if (result == dcb_success) {
+	if (result == cmd_success) {
 		mark_pfc_sent(dcbx->ifname);
 		if (!(pfc_cfg.protocol.Advertise)) {
 			free(tlv);
@@ -603,7 +603,7 @@ struct unpacked_tlv *bld_dcbx1_app_tlv(struct dcbx_tlvs *dcbx,
 
 	memset(&app_cfg, 0, sizeof(app_cfg));
 	result = get_app(dcbx->ifname, sub_type, &app_cfg);
-	if (result == dcb_success) {
+	if (result == cmd_success) {
 		mark_app_sent(dcbx->ifname);
 		if (!(app_cfg.protocol.Advertise)) {
 			free(tlv);
@@ -683,7 +683,7 @@ struct unpacked_tlv *bld_dcbx2_app_tlv(struct dcbx_tlvs *dcbx,
 	for (i = 0; i < DCB_MAX_APPTLV; i++) {
 		memset(&app_cfg, 0, sizeof(app_cfg));
 		result = get_app(dcbx->ifname, i, &app_cfg);
-		if (result != dcb_success) {
+		if (result != cmd_success) {
 			continue;
 		} else if ((app_cfg.protocol.Advertise)) {
 			advertise = true;
@@ -720,7 +720,7 @@ struct unpacked_tlv *bld_dcbx2_app_tlv(struct dcbx_tlvs *dcbx,
 
 		for (offset = 0; i < DCB_MAX_APPTLV; i++) {
 			result = get_app(dcbx->ifname, i, &app_cfg);
-			if (result == dcb_success) {
+			if (result == cmd_success) {
 				mark_app_sent(dcbx->ifname);
 				if (!(app_cfg.protocol.Advertise))
 					continue;
@@ -764,7 +764,7 @@ struct unpacked_tlv *bld_dcbx_llink_tlv(struct dcbx_tlvs *dcbx, u32 sub_type,
 		return NULL;
 	}
 	result = get_llink(dcbx->ifname, sub_type, &llk_cfg);
-	if (result == dcb_success) {
+	if (result == cmd_success) {
 		mark_llink_sent(dcbx->ifname, sub_type);
 		if (!(llk_cfg.protocol.Advertise)) {
 			free(tlv);

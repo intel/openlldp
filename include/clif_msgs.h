@@ -117,20 +117,6 @@ enum {
 
 #define MSG_DCB MSG_EVENT
 
-typedef enum {
-    cmd_success = 0,
-    cmd_failed,
-    cmd_device_not_found,
-    cmd_agent_not_found,
-    cmd_invalid,
-    cmd_bad_params,
-    cmd_peer_not_present,
-    cmd_ctrl_vers_not_compatible,
-    cmd_not_capable,
-    cmd_not_applicable,
-    cmd_no_access,
-} cmd_status;
-
 #define SHOW_NO_OUTPUT 0x00
 #define SHOW_OUTPUT    0x01
 #define SHOW_RAW       0x02

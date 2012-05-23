@@ -61,6 +61,7 @@
 #include "version.h"
 #include "lldpad.h"
 #include "lldp_util.h"
+#include "lldpad_status.h"
 
 static int show_raw;
 

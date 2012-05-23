@@ -27,6 +27,8 @@
 #ifndef _LLDPTOOL_CLI_H_
 #define _LLDPTOOL_CLI_H_
 
+#include "clif_msgs.h"
+
 int cli_cmd_getstats(struct clif *, int, char **, struct cmd *, int);
 int cli_cmd_gettlv(struct clif *, int, char **, struct cmd *, int);
 int cli_cmd_settlv(struct clif *, int, char **, struct cmd *, int);

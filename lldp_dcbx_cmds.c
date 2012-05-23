@@ -34,7 +34,7 @@
 #include "lldp_mand_clif.h"
 #include "lldp_dcbx_cmds.h"
 #include "lldp_dcbx_cfg.h"
-#include "clif_msgs.h"
+#include "lldpad_status.h"
 #include "dcb_protocol.h"
 #include "lldp/ports.h"
 #include "config.h"
@@ -51,10 +51,10 @@ static char *hexlist = "0123456789abcdef";
 static char *hexlistcaps = "0123456789ABCDEF";
 
 static int get_dcb_state(char *port_id, char *rbuf);
-static dcb_result set_dcb_state(char *port_id, char *ibuf, int ilen);
+static cmd_status set_dcb_state(char *port_id, char *ibuf, int ilen);
 static int get_dcbx_config(u8 cmd, char *rbuf);
-static dcb_result set_dcbx_config(char *ibuf, int ilen);
-static dcb_result get_pg_data(pg_attribs *pg_data, int cmd, char *port_id,
+static cmd_status set_dcbx_config(char *ibuf, int ilen);
+static cmd_status get_pg_data(pg_attribs *pg_data, int cmd, char *port_id,
 		int dcbx_st, char *rbuf);
 static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 		int ilen);
@@ -70,11 +70,11 @@ static int set_llink_config(llink_attribs *app_data, char *port_id, u32 subtype,
 		char *ibuf, int ilen);
 static int get_llink_data(llink_attribs *llink_data, int cmd, char *port_id,
 		u32 subtype, char *rbuf);
-static dcb_result get_bwg_desc(char *port_id, char *ibuf, int ilen, char *rbuf);
-static dcb_result set_bwg_desc(char *port_id, char *ibuf, int ilen);
+static cmd_status get_bwg_desc(char *port_id, char *ibuf, int ilen, char *rbuf);
+static cmd_status set_bwg_desc(char *port_id, char *ibuf, int ilen);
 static void set_protocol_data(feature_protocol_attribs *protocol, char *ifname,
 		char *ibuf, int plen, int agenttype);
-static dcb_result get_cmd_protocol_data(feature_protocol_attribs *protocol,
+static cmd_status get_cmd_protocol_data(feature_protocol_attribs *protocol,
 	u8 cmd, char *rbuf);
 
 static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
@@ -138,20 +138,20 @@ void dont_advertise_dcbx_all(char *ifname, bool ad)
 
 	is_pfc = get_pfc(ifname, &pfc_data);
 
-	if (get_pg(ifname, &pg_data) == dcb_success) {
+	if (get_pg(ifname, &pg_data) == cmd_success) {
 		pg_data.protocol.Advertise = ad;
 		put_pg(ifname, &pg_data, &pfc_data);
 		event_flag |= DCB_LOCAL_CHANGE_PG;
 	}
 
-	if (is_pfc == dcb_success) {
+	if (is_pfc == cmd_success) {
 		pfc_data.protocol.Advertise = ad;
 		put_pfc(ifname, &pfc_data);
 		event_flag |= DCB_LOCAL_CHANGE_PFC;
 	}
 
 	for (i = 0; i < DCB_MAX_APPTLV ; i++) {
-		if (get_app(ifname, (u32)i, &app_data) == dcb_success) {
+		if (get_app(ifname, (u32)i, &app_data) == cmd_success) {
 			app_data.protocol.Advertise = ad;
 			put_app(ifname, (u32)i, &app_data);
 			event_flag |= DCB_LOCAL_CHANGE_APPTLV(i);
@@ -159,7 +159,7 @@ void dont_advertise_dcbx_all(char *ifname, bool ad)
 	}
 
 	for (i = 0; i < DCB_MAX_LLKTLV ; i++) {
-		if (get_llink(ifname, (u32)i, &llink_data) == dcb_success) {
+		if (get_llink(ifname, (u32)i, &llink_data) == cmd_success) {
 			llink_data.protocol.Advertise = ad;
 			put_llink(ifname, (u32)i, &llink_data);
 			event_flag |= DCB_LOCAL_CHANGE_LLINK;
@@ -237,22 +237,22 @@ struct arg_handlers *dcbx_get_arg_handlers()
 static int get_dcb_state(char *port_id, char *rbuf)
 {
 	int state = 0;
-	dcb_result rval = dcb_success;
+	cmd_status rval = cmd_success;
 	
 	if (get_hw_state(port_id, &state))
-		rval = dcb_failed;
+		rval = cmd_failed;
 	else
 		sprintf(rbuf, "%01x", state);
 
 	return (rval);
 }
 
-static dcb_result set_dcb_state(char *port_id, char *ibuf, int ilen)
+static cmd_status set_dcb_state(char *port_id, char *ibuf, int ilen)
 {
 	bool state;
 	int off;
 	int plen;
-	dcb_result rval = dcb_success;
+	cmd_status rval = cmd_success;
 
 	plen=strlen(port_id);
 	off = DCB_PORT_OFF + plen;
@@ -263,7 +263,7 @@ static dcb_result set_dcb_state(char *port_id, char *ibuf, int ilen)
 		rval = save_dcb_enable_state(port_id, state);
 	} else {
 		printf("error - setcommand has invalid argument length\n");
-		rval = dcb_bad_params;
+		rval = cmd_bad_params;
 	}
 
 	return rval;
@@ -271,27 +271,27 @@ static dcb_result set_dcb_state(char *port_id, char *ibuf, int ilen)
 
 static int get_dcbx_config(u8 cmd, char *rbuf)
 {
-	dcb_result rval = dcb_success;
+	cmd_status rval = cmd_success;
 	int dcbx_version;
 	
 	if (cmd == CMD_GET_CONFIG) {
 		if (!get_dcbx_version(&dcbx_version))
-			rval = dcb_failed;
+			rval = cmd_failed;
 	} else {
 		dcbx_version = gdcbx_subtype;
 	}
 
-	if (rval == dcb_success)
+	if (rval == cmd_success)
 		sprintf(rbuf, "%01x", dcbx_version);
 
 	return (rval);
 }
 
-static dcb_result set_dcbx_config(char *ibuf, int ilen)
+static cmd_status set_dcbx_config(char *ibuf, int ilen)
 {
 	int version;
 	int off;
-	dcb_result rval = dcb_success;
+	cmd_status rval = cmd_success;
 
 	off = DCBX_CFG_OFF;
 
@@ -305,36 +305,36 @@ static dcb_result set_dcbx_config(char *ibuf, int ilen)
 			rval = save_dcbx_version(version);
 			break;
 		default:
-			rval = dcb_bad_params;
+			rval = cmd_bad_params;
 			break;
 		}
 	} else {
 		printf("error - setcommand has invalid argument length\n");
-		rval = dcb_bad_params;
+		rval = cmd_bad_params;
 	}
 
 	return rval;
 }
 
-static dcb_result get_bwg_desc(char *port_id, char *ibuf, int ilen, char *rbuf)
+static cmd_status get_bwg_desc(char *port_id, char *ibuf, int ilen, char *rbuf)
 {
 	u8 pgid;
 	int plen;
 	char *desc_str = NULL;
-	dcb_result rval = dcb_success;
+	cmd_status rval = cmd_success;
 
 	plen = strlen(port_id);
 
 	if (ilen !=  DCB_PORT_OFF + plen + PG_DESC_GET_DLEN) {
-		rval = dcb_bad_params;
+		rval = cmd_bad_params;
 	} else {
 		pgid = *(ibuf + DCB_PORT_OFF + plen + PG_DESC_PGID) & 0x0f;
 
 		if (pgid < 1 || pgid > 8) {
-			rval = dcb_bad_params;
+			rval = cmd_bad_params;
 		} else {
 			rval = get_bwg_descrpt(port_id, pgid-1, &desc_str);
-			if (rval == dcb_success && desc_str) {
+			if (rval == cmd_success && desc_str) {
 				sprintf(rbuf, "%01x%02x%s", pgid,
 					(unsigned int) strlen(desc_str),
 					desc_str);
@@ -346,12 +346,12 @@ static dcb_result get_bwg_desc(char *port_id, char *ibuf, int ilen, char *rbuf)
 	return rval;
 }
 
-static dcb_result set_bwg_desc(char *port_id, char *ibuf, int ilen)
+static cmd_status set_bwg_desc(char *port_id, char *ibuf, int ilen)
 {
 	u8 pgid;
 	u8 desc_len = 0;
 	int plen;
-	dcb_result rval = dcb_success;
+	cmd_status rval = cmd_success;
 
 	plen = strlen(port_id);
 	if (ilen >=  DCB_PORT_OFF + plen + PG_DESC_SET_DLEN) {
@@ -361,13 +361,13 @@ static dcb_result set_bwg_desc(char *port_id, char *ibuf, int ilen)
 	} else {
 		printf("ilen[%d] < %d\n", ilen, DCB_PORT_OFF + plen +
 			PG_DESC_SET_DLEN);
-		return dcb_bad_params;
+		return cmd_bad_params;
 	}
 
 	if (ilen ==  DCB_PORT_OFF + plen + PG_DESC_SET_DLEN + desc_len) {
 		if (pgid < 1 || pgid > 8 || desc_len > 100) {
 			printf("pgid = %d, desc_len = %d\n", pgid, desc_len);
-			rval = dcb_bad_params;
+			rval = cmd_bad_params;
 		} else {
 			rval = put_bwg_descrpt(port_id, pgid-1,
 				ibuf+DCB_PORT_OFF+plen+PG_DESC_DATA);
@@ -375,7 +375,7 @@ static dcb_result set_bwg_desc(char *port_id, char *ibuf, int ilen)
 	} else {
 		printf("ilen[%d] != %d\n", ilen, DCB_PORT_OFF + plen +
 			PG_DESC_SET_DLEN + desc_len);
-		rval = dcb_bad_params;
+		rval = cmd_bad_params;
 	}
 
 	return rval;
@@ -390,7 +390,7 @@ static void set_app_protocol_data(char *ifname, char *ibuf, int plen, int ilen,
 	feature_protocol_attribs *protocol;
 
 	status = get_app(ifname, (u32)subtype, &app_data);
-	if (status != dcb_success) {
+	if (status != cmd_success) {
 		printf("%s %s: error[%d] getting APP data.\n",
 			__func__, ifname, status);
 		return;
@@ -409,7 +409,7 @@ static void set_app_protocol_data(char *ifname, char *ibuf, int plen, int ilen,
 				ibuf,
 				ilen);
 
-	if (status != dcb_success)
+	if (status != cmd_success)
 		printf("%s %s: error[%d] set_app_config failed\n",
 			__func__, ifname, status);
 
@@ -423,7 +423,7 @@ static void set_app_protocol_data(char *ifname, char *ibuf, int plen, int ilen,
 
 	for (i = 0; i < DCB_MAX_APPTLV; i++) {
 		status = get_app(ifname, (u32)i, &app_data);
-		if (status != dcb_success)
+		if (status != cmd_success)
 			continue;
 
 		protocol = &app_data.protocol;
@@ -435,7 +435,7 @@ static void set_app_protocol_data(char *ifname, char *ibuf, int plen, int ilen,
 			protocol->Willing = wflag & 0x01;
 
 		status = put_app(ifname, i, &app_data);
-		if (status != dcb_success)
+		if (status != cmd_success)
 			printf("%s %s: error[%d] set_app_config failed\n",
 				__func__, ifname, status);
 	}
@@ -470,10 +470,10 @@ static void set_protocol_data(feature_protocol_attribs *protocol, char *ifname,
 }
 
 /* rbuf points to correct destination location */
-static dcb_result get_cmd_protocol_data(feature_protocol_attribs *protocol,
+static cmd_status get_cmd_protocol_data(feature_protocol_attribs *protocol,
 	u8 cmd, char *rbuf)
 {
-	dcb_result rval = dcb_success;
+	cmd_status rval = cmd_success;
 
 	switch(cmd) {
 	case CMD_GET_CONFIG:
@@ -500,7 +500,7 @@ static dcb_result get_cmd_protocol_data(feature_protocol_attribs *protocol,
 				protocol->Error,
 				protocol->dcbx_st);
 		else
-			rval = dcb_peer_not_present;
+			rval = cmd_peer_not_present;
 		break;
 	}
 	return rval;
@@ -508,10 +508,10 @@ static dcb_result get_cmd_protocol_data(feature_protocol_attribs *protocol,
 
 static int handle_dcbx_cmd(u8 cmd, u8 feature, char *ibuf, int ilen, char *rbuf)
 {
-	int status = dcb_success;
+	int status = cmd_success;
 
 	if (ilen < DCBX_CFG_OFF)
-		return dcb_invalid_cmd;
+		return cmd_invalid;
 
 	/* append standard dcb command response content */
 	sprintf(rbuf , "%*.*s", DCBX_CFG_OFF, DCBX_CFG_OFF, ibuf);
@@ -523,7 +523,7 @@ static int handle_dcbx_cmd(u8 cmd, u8 feature, char *ibuf, int ilen, char *rbuf)
 		} else if (cmd != CMD_GET_PEER) {
 			status = get_dcbx_config(cmd, rbuf+strlen(rbuf));
 		} else {
-			status = dcb_invalid_cmd;
+			status = cmd_invalid;
 		}
 		break;
 	default:
@@ -539,7 +539,7 @@ int dcbx_clif_cmd(void *data,
 		  char *ibuf, int ilen,
 		  char *rbuf, int rlen)
 {
-	u8 status=dcb_success;
+	u8 status = cmd_success;
 	u8 cmd;
 	u8 feature;
 	u8 subtype;
@@ -556,27 +556,27 @@ int dcbx_clif_cmd(void *data,
 
 	if (hexstr2bin(ibuf+DCB_CMD_OFF, &cmd, sizeof(cmd)) ||
 		hexstr2bin(ibuf+DCB_FEATURE_OFF, &feature, sizeof(feature)))
-		return dcb_invalid_cmd;
+		return cmd_invalid;
 
 	if (feature == FEATURE_DCBX)
 		return handle_dcbx_cmd(cmd, feature, ibuf, ilen, rbuf);
 
 	if (hexstr2bin(ibuf+DCB_SUBTYPE_OFF, &subtype, sizeof(subtype)) ||
 		hexstr2bin(ibuf+DCB_PORTLEN_OFF, &plen, sizeof(plen)))
-		return dcb_invalid_cmd;
+		return cmd_invalid;
 
 	if (ilen < DCB_PORT_OFF)
-		return dcb_invalid_cmd;
+		return cmd_invalid;
 	
 	if (ibuf[DCB_VER_OFF] < (CLIF_DCBMSG_VERSION | 0x30)) {
 		printf("unsupported client interface message version %x %x\n",
 			ibuf[DCB_VER_OFF], CLIF_DCBMSG_VERSION | 0x30);
-		return dcb_ctrl_vers_not_compatible;
+		return cmd_ctrl_vers_not_compatible;
 	}
 
 	if (ilen < DCB_PORT_OFF+plen) {
 		printf("command too short\n");
-		return dcb_invalid_cmd;
+		return cmd_invalid;
 	}
 
 	/* append standard dcb command response content */
@@ -589,11 +589,11 @@ int dcbx_clif_cmd(void *data,
 	/* Confirm port is a lldpad managed port */
 	port = port_find_by_name(port_id);
 	if (!port)
-		return dcb_device_not_found;
+		return cmd_device_not_found;
 
 	dcbx = dcbx_data(port->ifname);
 	if (!dcbx)
-		return dcb_device_not_found;
+		return cmd_device_not_found;
 
 	/* OPER and PEER cmd not applicable while in IEEE-DCBX modes */
 	if (dcbx->active == 0 && (cmd == CMD_GET_PEER || cmd == CMD_GET_OPER))
@@ -606,7 +606,7 @@ int dcbx_clif_cmd(void *data,
 		else if (cmd == CMD_GET_CONFIG)
 			status = get_dcb_state(port_id, rbuf+strlen(rbuf));
 		else
-			status = dcb_invalid_cmd;
+			status = cmd_invalid;
 		break;
 
 	case FEATURE_PG:
@@ -616,7 +616,7 @@ int dcbx_clif_cmd(void *data,
 			status = get_pg(port_id, &pg_data);
 		}
 
-		if (status != dcb_success) {
+		if (status != cmd_success) {
 			printf("error[%d] getting PG data for %s\n",
 				status, port_id);
 			return status;
@@ -625,7 +625,7 @@ int dcbx_clif_cmd(void *data,
 		if (cmd == CMD_SET_CONFIG) {
 			if (ilen < (DCB_PORT_OFF + plen + CFG_LEN)) {
 				printf("set command too short\n");
-				status = dcb_invalid_cmd;
+				status = cmd_invalid;
 			} else {
 				set_protocol_data(&pg_data.protocol, port_id,
 						  ibuf, plen, NEAREST_BRIDGE);
@@ -635,7 +635,7 @@ int dcbx_clif_cmd(void *data,
 		} else {
 			status = get_cmd_protocol_data(&pg_data.protocol, cmd,
 					rbuf+strlen(rbuf));
-			if (status == dcb_success)
+			if (status == cmd_success)
 				status = get_pg_data(&pg_data, cmd, port_id,
 					pg_data.protocol.dcbx_st,
 					rbuf+strlen(rbuf));
@@ -649,7 +649,7 @@ int dcbx_clif_cmd(void *data,
 			status = get_pfc(port_id, &pfc_data);
 		}
 
-		if (status != dcb_success) {
+		if (status != cmd_success) {
 			printf("error[%d] getting PFC data for %s\n",
 					status, port_id);
 			return status;
@@ -658,7 +658,7 @@ int dcbx_clif_cmd(void *data,
 		if (cmd == CMD_SET_CONFIG) {
 			if (ilen < (DCB_PORT_OFF + plen + CFG_LEN)) {
 				printf("set command too short\n");
-				status = dcb_failed;
+				status = cmd_failed;
 			} else {
 				set_protocol_data(&pfc_data.protocol, port_id,
 						  ibuf, plen, NEAREST_BRIDGE);
@@ -668,7 +668,7 @@ int dcbx_clif_cmd(void *data,
 		} else {
 			status = get_cmd_protocol_data(&pfc_data.protocol,
 				cmd, rbuf+strlen(rbuf));
-			if (status == dcb_success)
+			if (status == cmd_success)
 				status = get_pfc_data(&pfc_data, cmd,
 					port_id, pfc_data.protocol.dcbx_st,
 					rbuf+strlen(rbuf));
@@ -683,7 +683,7 @@ int dcbx_clif_cmd(void *data,
 			status = get_app(port_id, (u32)subtype, &app_data);
 		}
 
-		if (status != dcb_success) {
+		if (status != cmd_success) {
 			printf("error[%d] getting APP data for %s\n", status,
 				port_id);
 			return status;
@@ -692,7 +692,7 @@ int dcbx_clif_cmd(void *data,
 		if (cmd == CMD_SET_CONFIG) {
 			if (ilen < (DCB_PORT_OFF + plen + CFG_LEN)) {
 				printf("set command too short\n");
-				status = dcb_failed;
+				status = cmd_failed;
 			} else {
 				set_app_protocol_data(port_id, ibuf, plen, ilen,
 						      subtype, NEAREST_BRIDGE);
@@ -700,7 +700,7 @@ int dcbx_clif_cmd(void *data,
 		} else {
 			status = get_cmd_protocol_data(&app_data.protocol, cmd,
 				rbuf+strlen(rbuf));
-			if (status == dcb_success)
+			if (status == cmd_success)
 				status = get_app_data(&app_data, cmd, port_id,
 					subtype, rbuf + strlen(rbuf));
 		}
@@ -714,7 +714,7 @@ int dcbx_clif_cmd(void *data,
 			status = get_llink(port_id, (u32)subtype, &llink_data);
 		}
 
-		if (status != dcb_success) {
+		if (status != cmd_success) {
 			printf("error[%d] getting APP data for %s\n", status,
 				port_id);
 			return status;
@@ -723,7 +723,7 @@ int dcbx_clif_cmd(void *data,
 		if (cmd == CMD_SET_CONFIG) {
 			if (ilen < (DCB_PORT_OFF + plen + CFG_LEN)) {
 				printf("set command too short\n");
-				status = dcb_failed;
+				status = cmd_failed;
 			} else {
 				set_protocol_data(&llink_data.protocol, port_id,
 						  ibuf, plen, NEAREST_BRIDGE);
@@ -733,7 +733,7 @@ int dcbx_clif_cmd(void *data,
 		} else {
 			status = get_cmd_protocol_data(&llink_data.protocol,
 				cmd, rbuf+strlen(rbuf));
-			if (status == dcb_success)
+			if (status == cmd_success)
 				status = get_llink_data(&llink_data, cmd,
 					port_id, subtype, rbuf + strlen(rbuf));
 		}
@@ -744,7 +744,7 @@ int dcbx_clif_cmd(void *data,
 			status = get_bwg_desc(port_id, ibuf, ilen,
 					      rbuf+strlen(rbuf));
 
-			if (status != dcb_success) {
+			if (status != cmd_success) {
 				printf("error[%d] getting BWG desc for %s\n",
 					status, port_id);
 				return status;
@@ -763,7 +763,7 @@ int dcbx_clif_cmd(void *data,
 
 
 /* rbuf points to correct destination location */
-static dcb_result get_pg_data(pg_attribs *pg_data, int cmd, char *port_id,
+static cmd_status get_pg_data(pg_attribs *pg_data, int cmd, char *port_id,
 	int dcbx_st, char *rbuf)
 {
 	int i;
@@ -776,7 +776,7 @@ static dcb_result get_pg_data(pg_attribs *pg_data, int cmd, char *port_id,
 		break;
 	case CMD_GET_OPER:
 		status = get_oper_pg(port_id, pg_data);
-		if (status != dcb_success) {
+		if (status != cmd_success) {
 			printf("error[%d] getting oper PG data for %s\n",
 				status, port_id);
 			return status;
@@ -823,7 +823,7 @@ static dcb_result get_pg_data(pg_attribs *pg_data, int cmd, char *port_id,
 	else
 		sprintf(rbuf+PG_UP_NUM_TC, "%1x", pg_data->num_tcs);
 
-	return dcb_success;
+	return cmd_success;
 }
 
 /* rbuf points to correct destination location */
@@ -838,7 +838,7 @@ static int get_pfc_data(pfc_attribs *pfc_data, int cmd, char *port_id,
 		break;
 	case CMD_GET_OPER:
 		status = get_oper_pfc(port_id, pfc_data);
-		if (status != dcb_success) {
+		if (status != cmd_success) {
 			printf("error[%d] getting oper PFC data for %s\n",
 				status, port_id);
 			return status;
@@ -846,7 +846,7 @@ static int get_pfc_data(pfc_attribs *pfc_data, int cmd, char *port_id,
 		break;
 	case CMD_GET_PEER:
 		status = get_peer_pfc(port_id, pfc_data);
-		if (status != dcb_success) {
+		if (status != cmd_success) {
 			printf("error[%d] getting peer PFC data for %s\n",
 				status, port_id);
 			return status;
@@ -864,7 +864,7 @@ static int get_pfc_data(pfc_attribs *pfc_data, int cmd, char *port_id,
 	else
 		sprintf(rbuf+PFC_NUM_TC, "%1x", pfc_data->num_tcs);
 
-	return dcb_success;
+	return cmd_success;
 }
 
 /* rbuf points to correct destination location */
@@ -879,7 +879,7 @@ static int get_app_data(app_attribs *app_data, int cmd, char *port_id,
 		break;
 	case CMD_GET_OPER:
 		status = get_oper_app(port_id, subtype, app_data);
-		if (status != dcb_success) {
+		if (status != cmd_success) {
 			printf("error[%d] getting oper App data for %s\n",
 				status, port_id);
 			return status;
@@ -887,7 +887,7 @@ static int get_app_data(app_attribs *app_data, int cmd, char *port_id,
 		break;
 	case CMD_GET_PEER:
 		status = get_peer_app(port_id, subtype, app_data);
-		if (status != dcb_success) {
+		if (status != cmd_success) {
 			printf("error[%d] getting peer app data for %s\n",
 				status, port_id);
 			return status;
@@ -900,7 +900,7 @@ static int get_app_data(app_attribs *app_data, int cmd, char *port_id,
 	for (i=0; i<app_data->Length; i++)
 		sprintf(rbuf+APP_DATA+2*i, "%02x", *(app_data->AppData+i));
 
-	return dcb_success;
+	return cmd_success;
 }
 
 /* rbuf points to correct destination location */
@@ -914,7 +914,7 @@ static int get_llink_data(llink_attribs *llink_data, int cmd, char *port_id,
 		break;
 	case CMD_GET_OPER:
 		status = get_oper_llink(port_id, subtype, llink_data);
-		if (status != dcb_success) {
+		if (status != cmd_success) {
 			printf("error[%d] getting oper logical link data "
 				"for %s\n", status, port_id);
 			return status;
@@ -922,7 +922,7 @@ static int get_llink_data(llink_attribs *llink_data, int cmd, char *port_id,
 		break;
 	case CMD_GET_PEER:
 		status = get_peer_llink(port_id, subtype, llink_data);
-		if (status != dcb_success) {
+		if (status != cmd_success) {
 			printf("error[%d] getting peer logical link data "
 				"for %s\n", status, port_id);
 			return status;
@@ -932,7 +932,7 @@ static int get_llink_data(llink_attribs *llink_data, int cmd, char *port_id,
 	
 	sprintf(rbuf+LLINK_STATUS, "%1x", llink_data->llink.llink_status);
 
-	return dcb_success;
+	return cmd_success;
 }
 
 
@@ -942,7 +942,7 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 	pfc_attribs pfc_data;
 	full_dcb_attrib_ptrs dcb_data;
 	u8 flag;
-	dcb_result status = dcb_success;
+	cmd_status status = cmd_success;
 	int i, is_pfc;
 	int plen;
 	int off;
@@ -959,7 +959,7 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 				continue;
 
 			if ((flag & 0x07) >= pg_data->num_tcs)
-				return dcb_bad_params;
+				return cmd_bad_params;
 
 			pg_data->tx.up[i].pgid = flag & 0x07;
 			pg_data->rx.up[i].pgid = flag & 0x07;
@@ -970,7 +970,7 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 				continue;
 			if (hexstr2bin(ibuf+off+PG_PG_PCNT(i),
 				&flag, sizeof(flag)))
-				return dcb_bad_params;
+				return cmd_bad_params;
 			pg_data->tx.pg_percent[i] = flag;
 			pg_data->rx.pg_percent[i] = flag;
 		}
@@ -1005,7 +1005,7 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 			uppcts_changed = true;
 			if (hexstr2bin(ibuf+off+PG_UP_PCNT(i),
 				&flag, sizeof(flag)))
-				return dcb_bad_params;
+				return cmd_bad_params;
 			pg_data->tx.up[i].percent_of_pg_cap = flag;
 			pg_data->rx.up[i].percent_of_pg_cap = flag;
 		}
@@ -1052,7 +1052,7 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 		}
 	} else if (ilen != off) {
 		printf("error - setcommand has invalid argument length\n");
-		return dcb_bad_params;
+		return cmd_bad_params;
 	}
 
 	memset((void *)&dcb_data, 0, sizeof(dcb_data));
@@ -1063,23 +1063,23 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 	 * user priority percentages, then compute new percentages
 	 * and try one more time.
 	*/
-	if (status == dcb_bad_params && !uppcts_changed) {
+	if (status == cmd_bad_params && !uppcts_changed) {
 		rebalance_uppcts(pg_data);
 		status = dcb_check_config(&dcb_data);
 	}
 
-	if (status != dcb_success) {
+	if (status != cmd_success) {
 		printf("invalid DCB settings\n");
 		return status;
 	}
 
 	is_pfc = get_pfc(port_id, &pfc_data);
-	if (is_pfc == dcb_success)
+	if (is_pfc == cmd_success)
 		status = put_pg(port_id, pg_data, &pfc_data);
 	else
 		status = put_pg(port_id, pg_data, NULL);
 
-	if (status != dcb_success)
+	if (status != cmd_success)
 		printf("error[%d] setting PG data for %s\n", status, port_id);
 	
 
@@ -1090,7 +1090,7 @@ static int set_pfc_config(pfc_attribs *pfc_data, char *port_id, char *ibuf,
 	int ilen)
 {
 	u8 flag;
-	dcb_result status = dcb_success;
+	cmd_status status = cmd_success;
 	int i;
 	int off;
 	int plen;
@@ -1111,11 +1111,11 @@ static int set_pfc_config(pfc_attribs *pfc_data, char *port_id, char *ibuf,
 	} else if (ilen != off) {
 		/* at least needs to include the protocol settings */
 		printf("error - setcommand has invalid argument length\n");
-		return dcb_failed;
+		return cmd_failed;
 	}
 
 	status = put_pfc(port_id, pfc_data);
-	if (status != dcb_success)
+	if (status != cmd_success)
 		printf("error[%d] setting PFC data for %s\n", status, port_id);
 
 	return status;
@@ -1124,7 +1124,7 @@ static int set_pfc_config(pfc_attribs *pfc_data, char *port_id, char *ibuf,
 static int set_app_config(app_attribs *app_data, char *port_id, u32 subtype,
 		char *ibuf, int ilen)
 {
-	dcb_result status = dcb_success;
+	cmd_status status = cmd_success;
 	int off;
 	int plen;
 	u8 applen = 0;
@@ -1137,16 +1137,16 @@ static int set_app_config(app_attribs *app_data, char *port_id, u32 subtype,
 	if (ilen == (off + APP_DATA + applen)) {
 		app_data->Length = applen/2;
 		if (hexstr2bin(ibuf+off+APP_DATA, app_data->AppData, applen/2))
-			return dcb_bad_params;
+			return cmd_bad_params;
 	} else if (ilen != off) {
 		/* at least needs to include the protocol settings */
 		printf("error - setcommand has invalid argument length\n");
-		return dcb_failed;
+		return cmd_failed;
 	}
 
 	status = put_app(port_id, subtype, app_data);
 
-	if (status != dcb_success)
+	if (status != cmd_success)
 		printf("error[%d] setting APP data for %s\n", status, port_id);
 
 	return status;
@@ -1155,7 +1155,7 @@ static int set_app_config(app_attribs *app_data, char *port_id, u32 subtype,
 static int set_llink_config(llink_attribs *llink_data, char *port_id,
 		u32 subtype, char *ibuf, int ilen)
 {
-	dcb_result status = dcb_success;
+	cmd_status status = cmd_success;
 	int off;
 	int value;
 	
@@ -1164,7 +1164,7 @@ static int set_llink_config(llink_attribs *llink_data, char *port_id,
 	if (ilen != off + LLINK_DLEN) {
 		/* at least needs to include the protocol settings */
 		printf("error - setcommand has invalid argument length\n");
-		return dcb_failed;
+		return cmd_failed;
 	}
 
 	value = *(ibuf+off+LLINK_STATUS);
@@ -1173,7 +1173,7 @@ static int set_llink_config(llink_attribs *llink_data, char *port_id,
 
 	status = put_llink(port_id, subtype, llink_data);
 
-	if (status != dcb_success)
+	if (status != cmd_success)
 		printf("error[%d] setting logical link data for %s\n",
 			status, port_id);
 

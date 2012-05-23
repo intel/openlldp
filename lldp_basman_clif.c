@@ -32,6 +32,7 @@
 #include <arpa/inet.h>
 #include "lldp_mod.h"
 #include "lldptool.h"
+#include "clif_msgs.h"
 #include "lldp_basman.h"
 #include "lldp_basman_clif.h"
 

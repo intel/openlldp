@@ -28,7 +28,6 @@
 #define _LLDPTOOL_H
 
 #include "clif.h"
-#include "clif_msgs.h"
 
 struct lldp_head lldp_cli_head;
 

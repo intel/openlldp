@@ -42,6 +42,7 @@
 #include "libconfig.h"
 #include "config.h"
 #include "clif_msgs.h"
+#include "lldpad_status.h"
 #include "lldp/states.h"
 
 static const char * const vsi_modes[] = {

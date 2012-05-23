@@ -39,7 +39,7 @@
 #include "lldp_dcbx_nl.h"
 #include "lldp/l2_packet.h"
 #include "lldp/ports.h"
-#include "clif_msgs.h"
+#include "lldpad_status.h"
 #include "lldp_8021qaz_cmds.h"
 #include "lldp_mand_clif.h"
 #include "include/linux/dcbnl.h"
