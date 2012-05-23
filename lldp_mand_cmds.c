@@ -459,7 +459,7 @@ int _set_arg_adminstatus(struct cmd *cmd, char *arg, char *argvalue,
 
 	set_lldp_agent_admin(cmd->ifname, cmd->type, value);
 
-	sprintf(obuf + strlen(obuf), "adminStatus = %s\n", argvalue);
+	sprintf(obuf, "adminStatus = %s\n", argvalue);
 
 	return cmd_success;
 }

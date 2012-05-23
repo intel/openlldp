@@ -132,7 +132,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		    CONFIG_TYPE_BOOL))
 		return cmd_failed;
 
-	sprintf(obuf + strlen(obuf), "enableTx = %s\n", value ? "yes" : "no");
+	sprintf(obuf, "enableTx = %s\n", value ? "yes" : "no");
 	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
