@@ -530,7 +530,7 @@ static void evb_ifdown(char *ifname, struct lldp_agent *agent)
 
 	ed = evb_data(ifname, agent->type);
 	if (!ed) {
-		LLDPAD_ERR("%s:port %s agent %d remove failed\n", __func__,
+		LLDPAD_DBG("%s:port %s agent %d does not exist.\n", __func__,
 			   ifname, agent->type);
 		return;
 	}
