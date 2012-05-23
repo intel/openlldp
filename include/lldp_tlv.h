@@ -104,9 +104,6 @@ struct packed_tlv *pack_tlv(struct unpacked_tlv *tlv);
 struct unpacked_tlv *unpack_tlv(struct packed_tlv *tlv);
 int pack_tlv_after(struct unpacked_tlv *, struct packed_tlv *, int);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 struct unpacked_tlv *free_unpkd_tlv(struct unpacked_tlv *tlv);
 struct packed_tlv *free_pkd_tlv(struct packed_tlv *tlv);
 struct unpacked_tlv *create_tlv(void);
@@ -115,10 +112,6 @@ struct unpacked_tlv *bld_end_tlv(void);
 struct packed_tlv *pack_end_tlv(void);
 
 int tlv_ok(struct unpacked_tlv *tlv);
-
-#ifdef __cplusplus
-}
-#endif
 
 #define FREE_UNPKD_TLV(d, f) \
 { \

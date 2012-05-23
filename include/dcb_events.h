@@ -27,10 +27,6 @@
 #ifndef _DCB_EVENTS_H_
 #define _DCB_EVENTS_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define EVENT_OPERMODE 0x0001    /* Operational mode changed */
 #define EVENT_OPERATTR 0x0002    /* Operational configuration changed */
 
@@ -38,9 +34,5 @@ void pg_event(char *dn, u32 events);
 void pfc_event(char *dn, u32 events);
 void app_event(char *dn, u32 subtype, u32 events);
 void llink_event(char *dn, u32 subtype, u32 events);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif   /* _DCB_EVENTS_H_ */

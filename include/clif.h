@@ -35,10 +35,6 @@
 #include <sys/un.h>
 #include "clif_sock.h"
 
-#ifdef  __cplusplus
-extern "C" {
-#endif
-
 /**
  * struct clif - Internal structure for client interface library
  *
@@ -174,11 +170,5 @@ int clif_pending(struct clif *clif);
  * clif_recv() must be used for this.
  */
 int clif_get_fd(struct clif *clif);
-
-
-
-#ifdef  __cplusplus
-}
-#endif
 
 #endif /* CLIF_H */

@@ -69,13 +69,7 @@ struct dcbd_user_data {
 	LIST_HEAD(dcbx_head, dcbx_tlvs) head;
 };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 struct dcbx_tlvs *dcbx_data(const char *);
-#ifdef __cplusplus
-}
-#endif
 
 int dcbx_tlvs_rxed(const char *ifname, struct lldp_agent *);
 int dcbx_check_active(const char *ifname);

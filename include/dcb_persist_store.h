@@ -28,16 +28,8 @@
 #define _DCB_PERSIST_STORE_H_
 #include "lldp.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 dcb_result get_persistent(char *device_name, full_dcb_attribs *attribs);
 dcb_result set_persistent(char *device_name, full_dcb_attrib_ptrs *attribs);
-
-#ifdef  __cplusplus
-}
-#endif
 
 #endif /* _DCB_PERSIST_STORE_H_ */
 
