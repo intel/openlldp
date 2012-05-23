@@ -40,7 +40,7 @@ enum {
 	LLDP_DCBX_DEFAULT	= 2
 };
 
-void dcbx_default_cfg_file(void);
+int dcbx_default_cfg_file(void);
 int get_dcb_enable_state(char *device_name, int *result);
 int save_dcb_enable_state(char *device_name, int dcb_enable);
 int get_dcbx_version(int *result);

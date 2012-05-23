@@ -399,7 +399,10 @@ struct lldp_module * dcbx_register(void)
 	int dcbx_version;
 	int i;
 
-	dcbx_default_cfg_file();
+	if (dcbx_default_cfg_file()) {
+		LLDPAD_INFO("failed to create default config file\n");
+		goto out_err;
+	}
 
 	/* Get the DCBX version */
 	if (get_dcbx_version(&dcbx_version)) {
