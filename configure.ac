@@ -14,7 +14,7 @@ AC_PROG_CXX
 AC_PROG_LEX
 AC_PROG_LIBTOOL
 
-AC_LIBTOOL_DLOPEN
+LT_INIT([dlopen])
 
 AC_CHECK_PROGS(FLEX, flex, none)
 if test "$FLEX" = "none"
