@@ -1,9 +1,9 @@
 # target programs to be installed in ${sbindir}
 sbin_PROGRAMS = lldpad dcbtool lldptool
 
-# package nltest, but do not install it anywhere
+# package nltest and vdptest, but do not install it anywhere
 if BUILD_DEBUG
-noinst_PROGRAMS = nltest
+noinst_PROGRAMS = nltest vdptest
 endif
 
 # look for header files in the include directory
@@ -79,6 +79,7 @@ lldptool_LDFLAGS = -ldl
 
 if BUILD_DEBUG
 nltest_SOURCES = test/nltest.c test/nltest.h
+vdptest_SOURCES = test/vdptest.c
 endif
 
 ## man pages

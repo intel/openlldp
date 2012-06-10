@@ -1,0 +1,467 @@
+.PU
+.TH vdptest 1 "LLDPAD" "Revision: 0.1"
+.SH NAME
+vdptest \(en VDP/VSI Protocol Test Program for LLDPAD
+.SH SYNOPSIS
+.ll +8
+.B vdptest
+[ \(enSvV ] [ \(eni\ interface] [ \(ene text ] [ \(enE cmd ] [ \(enX defaults ] [ \(enadprsg\ \fIcmd\fP ] [ \(enACDF\ \fIprofile\fP ]
+.br
+.ll -8
+.SH DESCRIPTION
+.B vdptest
+sends command messages to
+llpdad(8) .
+.B vdptest
+behaves the same way as 
+libvirtd(8)
+does.
+Each command message is sent as a 
+.I RTM_SETLINK
+message.
+This message is confirmed by 
+lldpad(8)
+with a netlink message of type
+.IR NLMSG_ERROR .
+The error status indicates if the message parsing was successful (zero) or not
+(non-zero).
+Each command message is followed by one or more
+.I RTM_GETLINK
+messages.
+The 
+.I RTM_GETLINK
+message is used to query the switch status and 
+lldpad(8)
+responds with one netlink  message of type NLMSG_DONE.
+The wait time and number of 
+.I RTM_GETLINK
+messages sent can be fine tuned.
+The message flow is:
+.sp 1
+.EX
+	vdptest --- SETLINK(ifname,command,VSI) ---> lldpad
+
+	vdptest <-- NLMSG_ERROR(Error code) -------- lldpad
+
+	vdptest --- GETLINK(Request status) -------> lldpad
+
+	vdptest <-- NLMSG_DONE(Response) ----------- lldpad
+.EE
+.sp 1
+If the
+.I RTM_SETLINK
+netlink message can not be parsed correctly by lldpad(8),
+a negative error code is returned and no
+.I RTM_GETLINK
+netlink messages are sent.
+If the netlink message parsing succeeds, lldpad(8) returns
+zero in the
+.I NLMSG_ERROR
+netlink message.
+.B vdptest
+then sends out
+.I RTM_GETLINK
+status requests.
+lldpad(8) immediately responds to the status requests
+with an
+.I NLMSG_DONE 
+netlink message.
+It returns the value of 255 for pending operation and
+the values 0..3 for the switch status.
+Only when the returned status value is 255 (no status available
+from switch)
+.B vdptest 
+retries sending of
+.I RTM_GETLINK
+messages a predefined number of times
+employing a predefined wait time between
+each send.
+.br
+The process identifier for 
+lldpad(8)
+is read from file
+.IR /var/run/lldpad.pid .
+If this file does not exist, 
+lldpad(8)
+is not running and
+.B vdptest
+terminates.
+.br
+.B vdptest
+should be used for testing and debug purposes only.
+.SS Profiles
+.br
+Profile is a comma separated list of key '=' value
+pairs describing the VSI profile data.
+Profiles consists of the following keywords,
+they are all mandatory:
+.TP
+name:
+Defines the name of the entry.
+Commands refer to a profile entry by this name.
+The value is an alphanumeric word
+including dash ('-') and underscore ('_')
+starting
+with a character.
+.TP
+mgrid:
+Defines the manager identifier for this entry.
+The value should be a number in the
+range of 0..255 inclusive.
+.TP
+typeid:
+Defines the type identifier for this entry.
+The value should be a number in the
+range of 0..16777215 (2^24-1)
+inclusive.
+.TP
+typeidver:
+Defines the type identifier version for this entry.
+The value should be a number in the
+range of 0..255 inclusive.
+.TP
+uuid:
+Defines the UUID identifier version for this entry.
+The value is a 16 byte identifier following this format:
+.EX
+aabbccdd-eeff-gghh-iijj-kkllmmnn
+.EE
+The string is converted into 16 byte UUID
+with 2 nibbles converted into one byte.
+.TP
+map:
+Defines a VLAN-MAC address pair for this entry.
+The value is of the following format:
+.EX
+vlanid-aa:bb:cc:dd:ee:ff
+.EE
+Vlandid is converted into a number ranging
+from 0..4095.
+Following the vlanid is a dash (\(en) and
+an MAC address. 
+The MAC address is a 6 byte value, each byte
+delimited by a colon (':').
+This keyword can be listed several times to allow
+multiple MAC-VLAN pairs per entry.
+.TP
+Example:
+Here is an example of a profile definition:
+.EX
+name=thomas2,mgrid=1,typeid=123452,typeidver=1,\(rs
+	uuid=a1412857-60f7-4ce1-e95a-2164943f53dd,\(rs
+	map=2-52:54:00:8e:50:53
+.EE
+.SS Commands
+Command is  an option character followed
+by a comma separated list of modifiers.
+Each modifier is a character followed
+by an equal sign ('=') and a number.
+The following modifiers are supported and their
+meaning varies slightly, depending on the command.
+Not all commands allow all modifiers.
+The following modifiers are supported:
+.TP
+.B d=no
+Specify the delay time (in milli seconds) to
+wait after a
+.I RTM_SETLINK
+command has been sent and
+before a 
+.I RTM_GETLINK
+message will be sent to query
+lldpad(8) for status.
+Default is one second.
+.TP
+.B e=no
+Specify the expected status code returned from
+lldpad(8)
+for this command.
+This modifier can be given multiple times to allow
+for different status values.
+If this modifier is not specified, the expected status
+code is zero.
+.TP
+.B r=no
+Specify the maximum number of
+.I RTM_GETLINK
+messages sent out by
+.B vdptest
+to
+lldpad(8)
+for the expected status from the switch.
+Default value is one.
+.TP
+.B w=no
+Specify the maximum wait time
+.B vdptest
+waits to receive a
+.I NLMSG_DONE
+or
+.I NLMSG_ERROR
+netlink message from lldpad(8).
+This allows for some delay in the response
+from lldpad(8)
+for acknowledgement of message parsing
+and expected status code from the switch.
+Default value is one.
+.SH OPTIONS
+The options are applied from left to right and are accumulated
+before being exexcuted.
+Capital letter options operate on profiles. Profiles can be
+defined, copied, deleted and read from a configuration
+file.
+.br
+Lower case letter options define operations send to 
+lldpad(8) using netlink
+.I RTM_SETLINK
+messages.
+Here is the list of possible options:
+.TP
+.B "\(env"
+Enables verbose mode. This option can be applied more
+than once.
+Each time specified, the output is more verbose.
+If set once, 
+.B vdptest
+displays the progress of  sent and received messages.
+If set twice,
+the message contents is also displayed.
+Furthermore a command summary list is displayed.
+The list is shown twice.
+Before command execution begins
+without return codes and after command execution
+with actual return codes.
+If set three times,
+the netlink attributes in the 
+message contents is also displayed.
+.TP
+.B "\(ene\fItext\fP"
+The string
+.I text
+is printed on stdout.
+If text contains spaces it has to be
+quoted.
+No modifiers are possible for this option.
+.TP
+.B "\(enE\fItext\fP"
+Run external command
+.IR text .
+The string
+.I text
+is given as is to the system(3) library function.
+If text contains spaces it has to be
+quoted.
+No modifiers are possible for this option.
+.TP
+.B "\(eni\fIinterface\fP"
+Specifies the interface name of 
+lldpad(8)
+to operate on.
+This option is mandatory and must be set.
+.TP
+.B "\(enA\fIlist\fP"
+Define a profile using above mentioned profile
+keywords. Since this is a definition,
+all keywords are mandatory.
+If an error is encountered during keyword parsing
+or the values are not in the allowed range, the
+profile definition is ignored.
+.I Name
+has to be unique.
+Several definitions using the same
+.I name
+are not allowed.
+.TP
+.B "\(enC\fIname,new=new-name,changes\fP"
+Copy the profile entry named
+.I name
+and assign it
+.IR new-name.
+After the first comma, list the fields which 
+are to be changed using the same syntax as in 
+the profile definition.
+If an error is encountered during keyword parsing
+or the values are not in the allowed range, the
+profile definition is ignored.
+Only the modified keys need to be listed.
+Also
+.I new-name
+has to be unique.
+.TP
+.B "\(enD\fIname\fP"
+Delete the profile definition assigned to
+.IR name .
+.TP
+.B "\(enF\fIconfiguration file\fP"
+Read profile definitions from a configuration file.
+The file can contain comments, any characters between
+the hash sign ('#') and a newline.
+Empty lines are silently discarded and long lines can be
+split using the backslash ('\(rs') newline syntax.
+.sp 0
+To copy an entry in the configuration file,
+use the keyword
+.I new=newname
+at the beginning of the line:
+.sp 1
+.EX
+# Copy entry thomas2 and add new mac address
+new=mac54,name=thomas2,map=2-52:54:00:8e:50:54
+.EE
+.sp 1
+.TP
+.B "\(enS[key]"
+Show all profiles defined if the option key is missing.
+If the key is specified just show the data associated with key.
+.TP
+.B "\(enV"
+Displays the version number.
+.TP
+.B "\(ena\fIname\fP[,e=E][,w=W][,r=R][d=D]"
+Send an associate command and use the VSI profile data 
+stored under
+.IR name .
+After D milli seconds delay send out the 
+.I RTM_GETLINK
+status query up to 
+.B R 
+times and wait
+.B W
+seconds for a response from 
+lldpad(8).
+The expected status from the switch is
+.BR E .
+.TP
+.B "\(end\fIname\fP[,e=E][,w=W][,r=R][d=D]"
+Send a dis-associate command and use the VSI profile data
+stored under
+.IR name .
+For the modifier meanings see option 
+.BR "\(ena" .
+.TP
+.B "\(enp\fIname\fP[,e=E][,w=W][,r=R][d=D]"
+Send an pre-associate command and use the VSI profile data
+stored under
+.IR name .
+For the modifier meanings see option 
+.BR "\(ena" .
+.TP
+.B "\(enr\fIname\fP[,e=E][,w=W][,r=R][d=D]"
+Send an pre-associate 
+with resource restrictions command  and use the VSI profile data
+stored under
+.IR name .
+For the modifier meanings see option 
+.BR "\(ena" .
+.TP
+.B "\(ens[,w=W][,r=R]"
+Sleep command. Wait for 
+.B W
+seconds
+.B R
+times to kill some time.
+If both modifiers are omitted, it defaults to one second delay.
+As this option has optional parameters, no whitespace is allowed
+between the option character and the comma.
+.TP
+.B "\(eng[,e=E][,w=W][,r=R]"
+Message wait command. Wait for up to
+.B W
+seconds
+.B R
+times 
+for
+.B one
+unsolicited message from
+lldpad(8).
+This is useful for testing scenarios where  lldpad(8)
+sends DIS-ASSOCIATE messages.
+Modifier
+.B e=0
+stands for time out expected. No message should be received. If one is
+received, it is treated as an error and the program terminates.
+Modifier
+.B e=1
+stands for one message  expected. A message has to be received. If none is
+received, it is treated as an error and the program terminates.
+Use 
+.B e=0,e=1
+to allow an optional message reception. This is the default.
+.TP
+.B "\(enX[,d=D][,w=W][,r=R]"
+Specifies different default value for the modifiers
+delaytime, waittime and number of aknowledgement reads.
+The new default values are applied for each command specified on
+the command line, regardless or the sequence specified.
+If specified several times, the last one wins.
+If no modifiers are specified with the VDP action,
+use the defaults specified with the 
+.B "\(enX" 
+flag. If this option is not set then the following default values
+are used: delaytime (1 second), waittime (1 second) and number of acknowledgements
+reads (1).
+.SH "EXAMPLES"
+.EX
+vdptest -Aname=thomas2,mgrid=1,typeid=123452,typeidver=1,
+	uuid=a1412857-60f7-4ce1-e95a-2164943f53dd,map=2-52:54:00:8e:50:53 -S
+.EE
+.sp 1
+Define a profile and show its definition.
+.sp 1
+.EX
+vdptest -C thomas2,new=unknown,typeid=99999
+.EE
+.sp 1
+Copies the entry named
+.I thomas2
+and assigns its contents to the name
+.IR unknown .
+The difference between both entries
+.I thomas2 
+and
+.I unknown
+is the
+.I typeid
+field.
+.sp 1
+.EX
+vdptest -i eth2 -F vdptest.cfg -a unknown,w=10,r=2,e=3 -s
+.EE
+.sp 1
+Use interface eth2 and read the VSI configuration from file
+.IR vdptest.cfg .
+Use the VSI definition named
+.I unknown
+and send an ASSOCIATION command to the switch.
+Wait up to 10 seconds for the status confirmation 2
+times and expected the error code 3 from the switch.
+Wait one second before termintation.
+.sp 1
+.EX
+vdptest -i eth2 -F vdptest.cfg -Cthomas2,new=x1,mgrid=2 \(rs
+	-athomas2,w=10,r=2,e=3 -s -a x1,w=5
+.EE
+.sp 1
+Use interface eth2 and read the VSI configuration from file
+.IR vdptest.cfg .
+Create a new profile definition named
+.I x1
+by copying from 
+.I thomas2
+and change the the
+.IR mgrid .
+Send an ASSOCIATION command with parameters stored in 
+.IR thomas2 ,
+wait one second and
+send an ASSOCIATION command with parameters stored in 
+.IR x1 .
+.SH FILES
+/var/run/lldpad.pid
+.SH "ENVIRONMENT"
+Linux RHEL
+.SH "SEE ALSO"
+lldpad(8), lldptool(8)
+.SH DIAGNOSTICS
+Exit status is zero on success and non zero on failure or mismatch.
+.SH AUTHOR
+Thomas Richter, IBM Research and Development GmbH, Germany.
