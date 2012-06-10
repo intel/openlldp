@@ -16,8 +16,7 @@ AC_PROG_LIBTOOL
 
 LT_INIT([dlopen])
 
-AC_CHECK_PROGS(FLEX, flex, none)
-if test "$FLEX" = "none"
+if test "x$LEX" = x:
 then
  AC_MSG_ERROR([no suitable flex found. Please install the 'flex' package.])
 fi
