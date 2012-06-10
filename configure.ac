@@ -1,4 +1,4 @@
-AC_INIT([lldpad], [0.9.44])
+AC_INIT([lldpad], [0.9.44], [lldp-devel@open-lldp.org])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 AC_ARG_ENABLE(debug, 
