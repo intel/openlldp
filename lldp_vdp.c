@@ -635,6 +635,7 @@ static bool vdp_vsi_set_station_state(struct vsi_profile *profile)
 void vdp_vsi_sm_station(struct vsi_profile *profile)
 {
 	struct vdp_data *vd = vdp_data(profile->port->ifname);
+	int bye = 0;
 
 	vdp_vsi_set_station_state(profile);
 	do {
@@ -686,9 +687,15 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			}
 			break;
 		case VSI_EXIT:
+			if (profile->no_nlmsg && !profile->ackReceived &&
+			    vdp_ackTimer_expired(profile))
+				bye = 1;
 			vdp_stop_ackTimer(profile);
 			vdp_stop_keepaliveTimer(profile);
-			event_if_indicate_profile(profile);
+			if (bye)
+				vdp_remove_profile(profile);
+			else
+				event_if_indicate_profile(profile);
 			break;
 		default:
 			LLDPAD_ERR("%s: ERROR VSI state machine in invalid state %d\n",
