@@ -421,6 +421,10 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 		LLDPAD_ERR("interface %s has not yet been configured !\n", ifname);
 		return -ENXIO;
 	}
+	if (!vd->vdpbit_on) {
+		LLDPAD_ERR("interface %s has VDP disabled!\n", ifname);
+		return -ENXIO;
+	}
 
 	if (!tb[IFLA_VFINFO_LIST]) {
 		LLDPAD_ERR("IFLA_VFINFO_LIST missing.\n");

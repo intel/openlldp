@@ -471,6 +471,16 @@ out_err:
 	return NULL;
 }
 
+static void update_vdp_module(char *ifname, u8 ccap)
+{
+	struct vdp_data *vdp = vdp_data(ifname);
+
+	if (vdp) {
+		vdp->vdpbit_on = ccap & LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+		LLDPAD_DBG("%s vdpbit_on %d\n", __func__, vdp->vdpbit_on);
+	}
+}
+
 /*
  * evb_rchange: process RX TLV LLDPDU
  *
@@ -516,6 +526,7 @@ static int evb_rchange(struct port *port, struct lldp_agent *agent,
 
 		LLDPAD_DBG("%s: new tlv:\n", __func__);
 		evb_print_tlvinfo(ed->tie);
+		update_vdp_module(port->ifname, ed->tie->ccap);
 	}
 
 	return TLV_OK;

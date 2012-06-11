@@ -127,6 +127,7 @@ struct vsi_profile {
 struct vdp_data {
 	char ifname[IFNAMSIZ];
 	u8 enabletx;
+	u8 vdpbit_on;		/* Enable VDP Protocol */
 	struct ecp ecp;
 	struct unpacked_tlv *vdp;
 	int role;
