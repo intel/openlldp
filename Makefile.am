@@ -65,17 +65,22 @@ lldp_8023.c include/lldp_8023.h \
 lldp_8021qaz.c include/lldp_8021qaz.h \
 lldp_8021qaz_cmds.c include/lldp_8021qaz_cmds.h
 
-dcbtool_SOURCES = dcbtool.c clif.c dcbtool_cmds.c parse_cli.l \
-weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
-dcbtool_LDFLAGS = -ldl
+lib_LTLIBRARIES = liblldp_clif.la
+liblldp_clif_la_LDFLAGS = -version-info 1:0:0
+liblldp_clif_includedir = ${srcdir}/include
+liblldp_clif_la_SOURCES = clif.c
 
-lldptool_SOURCES = lldptool.c clif.c lldptool_cmds.c lldp_rtnl.c \
+dcbtool_SOURCES = dcbtool.c dcbtool_cmds.c parse_cli.l \
+weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
+dcbtool_LDFLAGS = -ldl -llldp_clif
+
+lldptool_SOURCES = lldptool.c lldptool_cmds.c lldp_rtnl.c \
 		   lldp_mand_clif.c lldp_basman_clif.c lldp_med_clif.c \
 		   lldp_8023_clif.c lldp_dcbx_clif.c lldp_util.c \
 		   lldp_8021qaz_clif.c lldp_evb_clif.c lldp_vdp_clif.c \
 		   lldp_orgspec_clif.c lldp_cisco_clif.c \
 		   weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
-lldptool_LDFLAGS = -ldl
+lldptool_LDFLAGS = -ldl -llldp_clif
 
 if BUILD_DEBUG
 nltest_SOURCES = test/nltest.c test/nltest.h
