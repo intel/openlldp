@@ -1,11 +1,11 @@
 .PU
 .TH vdptest 1 "LLDPAD" "Revision: 0.1"
 .SH NAME
-vdptest \(en VDP/VSI Protocol Test Program for LLDPAD
+vdptest \- VDP/VSI Protocol Test Program for LLDPAD
 .SH SYNOPSIS
 .ll +8
 .B vdptest
-[ \(enSvV ] [ \(eni\ interface] [ \(ene text ] [ \(enE cmd ] [ \(enX defaults ] [ \(enadprsg\ \fIcmd\fP ] [ \(enACDF\ \fIprofile\fP ]
+[ \-SvV ] [ \-i\ interface] [ \-e text ] [ \-E cmd ] [ \-X defaults ] [ \-adprsg\ \fIcmd\fP ] [ \-ACDF\ \fIprofile\fP ]
 .br
 .ll -8
 .SH DESCRIPTION
@@ -137,7 +137,7 @@ vlanid-aa:bb:cc:dd:ee:ff
 .EE
 Vlandid is converted into a number ranging
 from 0..4095.
-Following the vlanid is a dash (\(en) and
+Following the vlanid is a dash (\-) and
 an MAC address. 
 The MAC address is a 6 byte value, each byte
 delimited by a colon (':').
@@ -217,7 +217,7 @@ lldpad(8) using netlink
 messages.
 Here is the list of possible options:
 .TP
-.B "\(env"
+.B "\-v"
 Enables verbose mode. This option can be applied more
 than once.
 Each time specified, the output is more verbose.
@@ -235,7 +235,7 @@ If set three times,
 the netlink attributes in the 
 message contents is also displayed.
 .TP
-.B "\(ene\fItext\fP"
+.B "\-e\fItext\fP"
 The string
 .I text
 is printed on stdout.
@@ -243,7 +243,7 @@ If text contains spaces it has to be
 quoted.
 No modifiers are possible for this option.
 .TP
-.B "\(enE\fItext\fP"
+.B "\-E\fItext\fP"
 Run external command
 .IR text .
 The string
@@ -253,13 +253,13 @@ If text contains spaces it has to be
 quoted.
 No modifiers are possible for this option.
 .TP
-.B "\(eni\fIinterface\fP"
+.B "\-i\fIinterface\fP"
 Specifies the interface name of 
 lldpad(8)
 to operate on.
 This option is mandatory and must be set.
 .TP
-.B "\(enA\fIlist\fP"
+.B "\-A\fIlist\fP"
 Define a profile using above mentioned profile
 keywords. Since this is a definition,
 all keywords are mandatory.
@@ -272,7 +272,7 @@ Several definitions using the same
 .I name
 are not allowed.
 .TP
-.B "\(enC\fIname,new=new-name,changes\fP"
+.B "\-C\fIname,new=new-name,changes\fP"
 Copy the profile entry named
 .I name
 and assign it
@@ -288,11 +288,11 @@ Also
 .I new-name
 has to be unique.
 .TP
-.B "\(enD\fIname\fP"
+.B "\-D\fIname\fP"
 Delete the profile definition assigned to
 .IR name .
 .TP
-.B "\(enF\fIconfiguration file\fP"
+.B "\-F\fIconfiguration file\fP"
 Read profile definitions from a configuration file.
 The file can contain comments, any characters between
 the hash sign ('#') and a newline.
@@ -310,14 +310,14 @@ new=mac54,name=thomas2,map=2-52:54:00:8e:50:54
 .EE
 .sp 1
 .TP
-.B "\(enS[key]"
+.B "\-S[key]"
 Show all profiles defined if the option key is missing.
 If the key is specified just show the data associated with key.
 .TP
-.B "\(enV"
+.B "\-V"
 Displays the version number.
 .TP
-.B "\(ena\fIname\fP[,e=E][,w=W][,r=R][d=D]"
+.B "\-a\fIname\fP[,e=E][,w=W][,r=R][d=D]"
 Send an associate command and use the VSI profile data 
 stored under
 .IR name .
@@ -332,29 +332,29 @@ lldpad(8).
 The expected status from the switch is
 .BR E .
 .TP
-.B "\(end\fIname\fP[,e=E][,w=W][,r=R][d=D]"
+.B "\-d\fIname\fP[,e=E][,w=W][,r=R][d=D]"
 Send a dis-associate command and use the VSI profile data
 stored under
 .IR name .
 For the modifier meanings see option 
-.BR "\(ena" .
+.BR "\-a" .
 .TP
-.B "\(enp\fIname\fP[,e=E][,w=W][,r=R][d=D]"
+.B "\-p\fIname\fP[,e=E][,w=W][,r=R][d=D]"
 Send an pre-associate command and use the VSI profile data
 stored under
 .IR name .
 For the modifier meanings see option 
-.BR "\(ena" .
+.BR "\-a" .
 .TP
-.B "\(enr\fIname\fP[,e=E][,w=W][,r=R][d=D]"
+.B "\-r\fIname\fP[,e=E][,w=W][,r=R][d=D]"
 Send an pre-associate 
 with resource restrictions command  and use the VSI profile data
 stored under
 .IR name .
 For the modifier meanings see option 
-.BR "\(ena" .
+.BR "\-a" .
 .TP
-.B "\(ens[,w=W][,r=R]"
+.B "\-s[,w=W][,r=R]"
 Sleep command. Wait for 
 .B W
 seconds
@@ -364,7 +364,7 @@ If both modifiers are omitted, it defaults to one second delay.
 As this option has optional parameters, no whitespace is allowed
 between the option character and the comma.
 .TP
-.B "\(eng[,e=E][,w=W][,r=R]"
+.B "\-g[,e=E][,w=W][,r=R]"
 Message wait command. Wait for up to
 .B W
 seconds
@@ -388,7 +388,7 @@ Use
 .B e=0,e=1
 to allow an optional message reception. This is the default.
 .TP
-.B "\(enX[,d=D][,w=W][,r=R]"
+.B "\-X[,d=D][,w=W][,r=R]"
 Specifies different default value for the modifiers
 delaytime, waittime and number of aknowledgement reads.
 The new default values are applied for each command specified on
@@ -396,7 +396,7 @@ the command line, regardless or the sequence specified.
 If specified several times, the last one wins.
 If no modifiers are specified with the VDP action,
 use the defaults specified with the 
-.B "\(enX" 
+.B "\-X"
 flag. If this option is not set then the following default values
 are used: delaytime (1 second), waittime (1 second) and number of acknowledgements
 reads (1).
