@@ -65,7 +65,9 @@
 #define CMD_EXTERN	'E'	/* External command */
 #define CMD_SETDF	'X'	/* Change defaults */
 
-//#define       MYDEBUG
+/*
+ * Set the define MYDEBUG to any value for detailed debugging
+ */
 
 enum {
 	f_map,
