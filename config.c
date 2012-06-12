@@ -170,7 +170,8 @@ void scan_port(UNUSED void *eloop_data, UNUSED void *user_ctx)
 		}
 
 		if (port && check_link_status(ifname)) {
-				oper_add_device(ifname);
+			set_port_oper_delay(ifname);
+			oper_add_device(ifname);
 		} else if (port) {
 			LIST_FOREACH(agent, &port->agent_head, entry) {
 				LLDPAD_DBG("%s: calling ifdown for agent %p.\n",
