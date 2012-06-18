@@ -100,7 +100,7 @@ lldpadconfig_DATA =
 
 ## pkg-config data file, for client interface software to find headers
 pkgconfigdir = ${libdir}/pkgconfig
-pkgconfig_DATA = lldpad.pc
+pkgconfig_DATA = lldpad.pc liblldp_clif.pc
 
 ## put a spec file and documentation in the distribution archive
 dist_noinst_DATA = lldpad.spec README COPYING ChangeLog

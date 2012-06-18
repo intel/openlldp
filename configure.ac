@@ -91,6 +91,6 @@ AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT8_T
 
-AC_CONFIG_FILES([Makefile include/version.h lldpad.spec lldpad.pc])
+AC_CONFIG_FILES([Makefile include/version.h lldpad.spec lldpad.pc liblldp_clif.pc])
 AC_CONFIG_MACRO_DIR([m4])
 AC_OUTPUT
