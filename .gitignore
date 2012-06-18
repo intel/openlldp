@@ -3,6 +3,7 @@ parse_cli.c
 *.lo
 *.tab.c
 .deps/
+.libs/
 .pc/
 Makefile
 Makefile.in
@@ -18,6 +19,7 @@ configure.scan
 depcomp
 include/version.h
 install-sh
+liblldp_clif.*
 libtool
 lldpad.pc
 lldpad.spec
