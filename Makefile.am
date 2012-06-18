@@ -72,6 +72,7 @@ liblldp_clif_la_SOURCES = clif.c
 
 dcbtool_SOURCES = dcbtool.c dcbtool_cmds.c parse_cli.l \
 weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
+dcbtool_LDADD = ${srcdir}/liblldp_clif.la
 dcbtool_LDFLAGS = -ldl -llldp_clif
 
 lldptool_SOURCES = lldptool.c lldptool_cmds.c lldp_rtnl.c \
@@ -80,6 +81,7 @@ lldptool_SOURCES = lldptool.c lldptool_cmds.c lldp_rtnl.c \
 		   lldp_8021qaz_clif.c lldp_evb_clif.c lldp_vdp_clif.c \
 		   lldp_orgspec_clif.c lldp_cisco_clif.c \
 		   weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
+lldptool_LDADD = ${srcdir}/liblldp_clif.la
 lldptool_LDFLAGS = -ldl -llldp_clif
 
 if BUILD_DEBUG
