@@ -59,6 +59,7 @@ struct tlv_info_evb {
 struct evb_data {
 	char ifname[IFNAMSIZ];
 	enum agent_type agenttype;
+	bool txmit;			/* True when EVB transmits enabled */
 	struct unpacked_tlv *evb;	/* EVB settings to be sent */
 	struct tlv_info_evb *tie;	/* currently supported */
 	struct tlv_info_evb *last;	/* last received */

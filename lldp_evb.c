@@ -269,6 +269,7 @@ static int evb_init_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
 	ed->policy->svsi = htons(LLDP_EVB_DEFAULT_SVSI);
 	ed->policy->rte = LLDP_EVB_DEFAULT_RTE;
 
+	ed->txmit = evb_conf_enabletx(ed->ifname, agent->type);
 	/* Get fmode/capabilities/rte/vsi from configuration file into policy */
 	ed->policy->smode = evb_conf_fmode(ed->ifname, agent->type);
 	ed->policy->scap = evb_conf_capa(ed->ifname, agent->type);
