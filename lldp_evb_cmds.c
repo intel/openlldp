@@ -308,7 +308,7 @@ static int _set_arg_fmode(struct cmd *cmd, const char *argvalue, bool test)
 		    CONFIG_TYPE_STRING)) {
 		LLDPAD_ERR("%s: saving EVB forwarding mode failed\n",
 			   ed->ifname);
-		return cmd_invalid;
+		return cmd_failed;
 	}
 
 	ed->policy->smode = smode;
@@ -426,7 +426,7 @@ _set_arg_capabilities(struct cmd *cmd, const char *argvalue, bool test)
 		    CONFIG_TYPE_STRING)) {
 		LLDPAD_ERR("%s: saving EVB capabilities (%#x) failed\n",
 			ed->ifname, scap);
-		return cmd_invalid;
+		return cmd_failed;
 	}
 
 	ed->policy->scap = scap;
@@ -567,10 +567,10 @@ static int _set_arg_vsis(struct cmd *cmd, const char *argvalue, bool test)
 		    CONFIG_TYPE_STRING)){
 		LLDPAD_ERR("%s: error saving EVB vsi (%d)\n", ed->ifname,
 			   value);
-		return cmd_invalid;
+		return cmd_failed;
 	}
 
-	ed->policy->svsi = value;
+	ed->policy->svsi = htons(value);
 	LLDPAD_INFO("%s: changed EVB vsis (%#x)\n", ed->ifname, value);
 	somethingChangedLocal(cmd->ifname, cmd->type);
 
