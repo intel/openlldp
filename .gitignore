@@ -30,5 +30,6 @@ dcbtool
 lldpad
 lldptool
 nltest
+vdptest
 patches/
 tags
