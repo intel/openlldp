@@ -1,9 +1,10 @@
 /*******************************************************************************
 
-  implementation of EVB TLVs for LLDP
-  (c) Copyright IBM Corp. 2010
+  Implementation of EVB TLVs for LLDP
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens at linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -26,6 +27,6 @@
 #ifndef _LLDP_EVB_CMDS_H
 #define _LLDP_EVB_CMDS_H
 
-struct arg_handlers *evb_get_arg_handlers();
+struct arg_handlers *evb_get_arg_handlers(void);
 
 #endif
