@@ -286,8 +286,7 @@ int get_perm_hwaddr(const char *ifname, u8 *buf_perm, u8 *buf_san)
 		struct dcbmsg d;
 		union {
 			struct rtattr rta;
-			char attrbuf[RTA_SPACE(DCB_ATTR_IFNAME) +
-				     RTA_SPACE(DCB_ATTR_PERM_HWADDR)];
+			char attrbuf[RTA_SPACE(2 * IFNAMSIZ)];
 		} u;
 	} req = {
 		.nh = {
