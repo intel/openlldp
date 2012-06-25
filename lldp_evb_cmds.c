@@ -25,27 +25,17 @@
 ******************************************************************************/
 
 #define _GNU_SOURCE
-#include <string.h>
 
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <syslog.h>
-#include <sys/un.h>
-#include <sys/stat.h>
-#include <arpa/inet.h>
-#include "lldpad.h"
-#include "ctrl_iface.h"
+
 #include "lldp.h"
 #include "lldp_evb.h"
 #include "lldp_tlv.h"
 #include "lldp_mand_clif.h"
-#include "lldp_evb_clif.h"
-#include "lldp/ports.h"
-#include "libconfig.h"
 #include "config.h"
 #include "clif_msgs.h"
-#include "lldpad_status.h"
-#include "lldp/states.h"
 #include "messages.h"
 
 #define EVB_BUF_SIZE			256
