@@ -247,8 +247,8 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		return cmd_failed;
 	}
 	ed->txmit = value;
-	somethingChangedLocal(cmd->ifname, cmd->type);
 	LLDPAD_INFO("%s: changed EVB enabletx (%s)\n", ed->ifname, argvalue);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }
@@ -322,9 +322,9 @@ static int _set_arg_fmode(struct cmd *cmd, const char *argvalue, bool test)
 	}
 
 	ed->policy->smode = smode;
-	somethingChangedLocal(cmd->ifname, cmd->type);
 	LLDPAD_INFO("%s: changed EVB forwarding mode (%s)\n", ed->ifname,
 		    argvalue);
+	somethingChangedLocal(cmd->ifname, cmd->type);
 	return cmd_success;
 }
 
@@ -551,52 +551,40 @@ static int get_arg_vsis(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 	return cmd_success;
 }
 
-static int _set_arg_vsis(struct cmd *cmd, char *argvalue, bool test)
+static int _set_arg_vsis(struct cmd *cmd, const char *argvalue, bool test)
 {
-	int value, err;
+	int value;
 	char arg_path[EVB_BUF_SIZE];
-	char svalue[10];
-	const char *sv;
-	struct evb_data *ed = NULL;
+	struct evb_data *ed;
 	cmd_status good_cmd = evb_cmdok(cmd, cmd_settlv);
 
 	if (good_cmd != cmd_success)
 		return good_cmd;
 
 	value = atoi(argvalue);
-
 	if ((value < 0) || (value > LLDP_EVB_DEFAULT_MAX_VSI))
-		goto out_err;
+		return cmd_invalid;
 
 	if (test)
 		return cmd_success;
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
+	if (!ed)
+		return cmd_invalid;
+
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.vsis", TLVID_PREFIX,
+		 cmd->tlvid);
+	if (set_cfg(ed->ifname, cmd->type, arg_path, &argvalue,
+		    CONFIG_TYPE_STRING)){
+		LLDPAD_ERR("%s: error saving EVB vsi (%d)\n", ed->ifname,
+			   value);
+		return cmd_invalid;
+	}
 
 	ed->policy->svsi = value;
-
-	err = snprintf(arg_path, sizeof(arg_path), "%s%08x.vsis",
-		       TLVID_PREFIX, cmd->tlvid);
-
-	if (err < 0)
-		goto out_err;
-
-	err = snprintf(svalue, sizeof(svalue), "%i", value);
-
-	if (err < 0)
-		goto out_err;
-
-	sv = &svalue[0];
-
-	if (set_cfg(ed->ifname, cmd->type, arg_path, &sv,
-		    CONFIG_TYPE_STRING))
-		goto out_err;
-
+	LLDPAD_INFO("%s: changed EVB vsis (%#x)\n", ed->ifname, value);
 	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
-
-out_err:
-	LLDPAD_ERR("%s:%s: saving EVB vsis failed.\n", __func__, ed->ifname);
-	return cmd_invalid;
 }
 
 static int set_arg_vsis(struct cmd *cmd, UNUSED char *arg, char *argvalue,
