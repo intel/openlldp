@@ -483,8 +483,9 @@ gp	{ if (!cmd) {
 				BEGIN(getllargs);
 				}
 
-<getdcbargs,getpfcargs,getpgargs,getappargs,getpgdescargs>[[:alnum:][:punct:][:cntrl:]]	{ if (!badarg) badarg = strdup(yytext);
-					error = 1;
+<getdcbargs,getpfcargs,getpgargs,getappargs,getpgdescargs>[[:alnum:][:punct:][:cntrl:]]	{
+					BEGIN(cmddone);
+					yyless(0);
 					}
 
 <getup2tc>[0-7]			{ up2tc_a[up2tc_idx++] = atoi(yytext);
@@ -550,7 +551,7 @@ gp	{ if (!cmd) {
 				if (!badarg) badarg = strdup(yytext);
 				}
 
-<cmddone>[^[:blank:]]		{ if (!badarg) badarg = strdup(yytext);
+<cmddone>[^[:blank:]]+		{ if (!badarg) badarg = strdup(yytext);
 					error = 1;
 				}
 
