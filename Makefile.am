@@ -13,7 +13,7 @@ AM_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR="\"${sysconfdir}\"" \
 
 ACLOCAL_AMFLAGS = -I m4
 
-parse_cli.o: CFLAGS=-U_FORTIFY_SOURCE -Wno-error
+parse_cli.o: CFLAGS+=-U_FORTIFY_SOURCE -Wno-error
 
 ## system requires a shared libconfig
 AM_CFLAGS = -Wall -Werror -Wextra -Wformat=2 $(LIBCONFIG_CFLAGS)
