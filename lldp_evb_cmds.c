@@ -192,20 +192,17 @@ static int
 get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		    char *obuf, int obuf_len)
 {
-	int value;
+	struct evb_data *ed;
 	char *s;
-	char arg_path[EVB_BUF_SIZE];
 	cmd_status good_cmd = evb_cmdok(cmd, cmd_gettlv);
 
 	if (good_cmd != cmd_success)
 		return good_cmd;
 
-	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
-			 TLVID_PREFIX, cmd->tlvid, arg);
-	if (get_cfg(cmd->ifname, cmd->type, arg_path, &value,
-					CONFIG_TYPE_BOOL))
-			value = false;
-	if (value)
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
+	if (!ed)
+		return cmd_invalid;
+	if (ed->txmit)
 		s = VAL_YES;
 	else
 		s = VAL_NO;
@@ -221,6 +218,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 {
 	int value;
 	char arg_path[EVB_BUF_SIZE];
+	struct evb_data *ed;
 	cmd_status good_cmd = evb_cmdok(cmd, cmd_settlv);
 
 	if (good_cmd != cmd_success)
@@ -235,14 +233,22 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 
 	if (test)
 		return cmd_success;
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
+	if (!ed)
+		return cmd_invalid;
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 		 TLVID_PREFIX, cmd->tlvid, arg);
 
-	if (set_cfg(cmd->ifname, cmd->type, arg_path, &value, CONFIG_TYPE_BOOL))
+	if (set_cfg(cmd->ifname, cmd->type, arg_path, &value,
+		    CONFIG_TYPE_BOOL)){
+		LLDPAD_ERR("%s: error saving EVB enabletx (%s)\n", ed->ifname,
+			   argvalue);
 		return cmd_failed;
-
+	}
+	ed->txmit = value;
 	somethingChangedLocal(cmd->ifname, cmd->type);
+	LLDPAD_INFO("%s: changed EVB enabletx (%s)\n", ed->ifname, argvalue);
 
 	return cmd_success;
 }
