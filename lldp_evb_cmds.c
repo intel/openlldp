@@ -48,6 +48,18 @@
 #include "lldp/states.h"
 #include "messages.h"
 
+#define EVB_BUF_SIZE			256
+#define ARG_EVB_FORWARDING_MODE		"fmode"
+#define VAL_EVB_FMODE_BRIDGE		"bridge"
+#define VAL_EVB_FMODE_REFLECTIVE_RELAY	"reflectiverelay"
+#define ARG_EVB_CAPABILITIES		"capabilities"
+#define VAL_EVB_CAPA_RTE		"rte"
+#define VAL_EVB_CAPA_ECP		"ecp"
+#define VAL_EVB_CAPA_VDP		"vdp"
+#define VAL_EVB_CAPA_NONE		"none"
+#define ARG_EVB_VSIS			"vsis"
+#define ARG_EVB_RTE			"rte"
+
 /*
  * Read EVB specific data from the configuration file.
  */
