@@ -48,50 +48,6 @@
 #include "lldp/states.h"
 #include "messages.h"
 
-static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
-static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
-static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
-
-static int get_arg_fmode(struct cmd *, char *, char *, char *, int);
-static int set_arg_fmode(struct cmd *, char *, char *, char *, int);
-static int test_arg_fmode(struct cmd *, char *, char *, char *, int);
-
-static int get_arg_rte(struct cmd *, char *, char *, char *, int);
-static int set_arg_rte(struct cmd *, char *, char *, char *, int);
-static int test_arg_rte(struct cmd *, char *, char *, char *, int);
-
-static int get_arg_vsis(struct cmd *, char *, char *, char *, int);
-static int set_arg_vsis(struct cmd *, char *, char *, char *, int);
-static int test_arg_vsis(struct cmd *, char *, char *, char *, int);
-
-static int get_arg_capabilities(struct cmd *, char *, char *, char *, int);
-static int set_arg_capabilities(struct cmd *, char *, char *, char *, int);
-static int test_arg_capabilities(struct cmd *, char *, char *, char *, int);
-
-static struct arg_handlers arg_handlers[] = {
-	{	.arg = ARG_EVB_FORWARDING_MODE, .arg_class = TLV_ARG,
-		.handle_get = get_arg_fmode,
-		.handle_set = set_arg_fmode,
-		.handle_test = test_arg_fmode, },
-	{	.arg = ARG_EVB_CAPABILITIES, .arg_class = TLV_ARG,
-		.handle_get = get_arg_capabilities,
-		.handle_set = set_arg_capabilities,
-		.handle_test = test_arg_capabilities, },
-	{	.arg = ARG_EVB_VSIS, .arg_class = TLV_ARG,
-		.handle_get = get_arg_vsis,
-		.handle_set = set_arg_vsis,
-		.handle_test = test_arg_vsis, },
-	{	.arg = ARG_EVB_RTE, .arg_class = TLV_ARG,
-		.handle_get = get_arg_rte,
-		.handle_set = set_arg_rte,
-		.handle_test = test_arg_rte, },
-	{	.arg = ARG_TLVTXENABLE, .arg_class = TLV_ARG,
-		.handle_get = get_arg_tlvtxenable,
-		.handle_set = set_arg_tlvtxenable,
-		.handle_test = test_arg_tlvtxenable, },
-	{	.arg = 0 }
-};
-
 static int
 get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		    char *obuf, int obuf_len)
@@ -607,6 +563,46 @@ static int test_arg_vsis(struct cmd *cmd, UNUSED char *arg, char *argvalue,
 {
 	return _set_arg_vsis(cmd, argvalue, true);
 }
+
+static struct arg_handlers arg_handlers[] = {
+	{
+		.arg = ARG_EVB_FORWARDING_MODE,
+		.arg_class = TLV_ARG,
+		.handle_get = get_arg_fmode,
+		.handle_set = set_arg_fmode,
+		.handle_test = test_arg_fmode
+	},
+	{
+		.arg = ARG_EVB_CAPABILITIES,
+		.arg_class = TLV_ARG,
+		.handle_get = get_arg_capabilities,
+		.handle_set = set_arg_capabilities,
+		.handle_test = test_arg_capabilities
+	},
+	{
+		.arg = ARG_EVB_VSIS,
+		.arg_class = TLV_ARG,
+		.handle_get = get_arg_vsis,
+		.handle_set = set_arg_vsis,
+		.handle_test = test_arg_vsis
+	},
+	{	.arg = ARG_EVB_RTE,
+		.arg_class = TLV_ARG,
+		.handle_get = get_arg_rte,
+		.handle_set = set_arg_rte,
+		.handle_test = test_arg_rte
+	},
+	{
+		.arg = ARG_TLVTXENABLE,
+		.arg_class = TLV_ARG,
+		.handle_get = get_arg_tlvtxenable,
+		.handle_set = set_arg_tlvtxenable,
+		.handle_test = test_arg_tlvtxenable
+	},
+	{
+		.arg = 0
+	}
+};
 
 struct arg_handlers *evb_get_arg_handlers()
 {
