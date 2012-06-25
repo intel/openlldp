@@ -38,10 +38,15 @@
 static void evb_print_cfg_tlv(u16, char *);
 
 static struct type_name_info evb_tlv_names[] = {
-	{	.type = (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE,
-		.name = "EVB Configuration TLV", .key = "evbCfg",
-		.print_info = evb_print_cfg_tlv, },
-	{	.type = INVALID_TLVID, }
+	{
+		.type = TLVID_8021Qbg(LLDP_EVB_SUBTYPE),
+		.name = "EVB Configuration TLV",
+		.key = "evbCfg",
+		.print_info = evb_print_cfg_tlv
+	},
+	{
+		.type = INVALID_TLVID
+	}
 };
 
 static int evb_print_help()
@@ -203,7 +208,7 @@ struct lldp_module *evb_cli_register(void)
 {
 	struct lldp_module *mod;
 
-	mod = malloc(sizeof(*mod));
+	mod = calloc(1, sizeof(*mod));
 	if (!mod) {
 		fprintf(stderr, "%s failed to malloc module data\n", __func__);
 		return NULL;
