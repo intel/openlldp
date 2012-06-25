@@ -316,8 +316,8 @@ static int _set_arg_fmode(struct cmd *cmd, const char *argvalue, bool test)
 
 	if (set_cfg(ed->ifname, cmd->type, arg_path, &argvalue,
 		    CONFIG_TYPE_STRING)) {
-		LLDPAD_ERR("%s:%s: saving EVB forwarding mode failed.\n",
-			__func__, ed->ifname);
+		LLDPAD_ERR("%s: saving EVB forwarding mode failed\n",
+			   ed->ifname);
 		return cmd_invalid;
 	}
 
@@ -344,47 +344,36 @@ static int
 get_arg_capabilities(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		     char *obuf, int obuf_len)
 {
-	int c;
-	char *s, *t;
+	int comma = 0;
+	char t[EVB_BUF_SIZE];
 	struct evb_data *ed;
 	cmd_status good_cmd = evb_cmdok(cmd, cmd_gettlv);
 
 	if (good_cmd != cmd_success)
 		return good_cmd;
-
-	s = t = calloc(EVB_BUF_SIZE, sizeof *s);
-	if (!s)
-		goto out_free;
-
 	ed = evb_data((char *) &cmd->ifname, cmd->type);
 	if (!ed)
-		goto out_free;
+		return cmd_invalid;
+
+	memset(t, 0, sizeof t);
 	if (ed->policy->scap & LLDP_EVB_CAPABILITY_PROTOCOL_RTE) {
-		c = sprintf(s, "%s ", VAL_EVB_CAPA_RTE);
-		if (c <= 0)
-			goto out_free;
-		s += c;
+		strcat(t, VAL_EVB_CAPA_RTE);
+		comma = 1;
 	}
 	if (ed->policy->scap & LLDP_EVB_CAPABILITY_PROTOCOL_ECP) {
-		c = sprintf(s, "%s ", VAL_EVB_CAPA_ECP);
-		if (c <= 0)
-			goto out_free;
-		s += c;
+		if (comma)
+			strcat(t, " ");
+		strcat(t, VAL_EVB_CAPA_ECP);
+		comma = 1;
 	}
 	if (ed->policy->scap & LLDP_EVB_CAPABILITY_PROTOCOL_VDP) {
-		c = sprintf(s, "%s ", VAL_EVB_CAPA_VDP);
-		if (c <= 0)
-			goto out_free;
-		s += c;
+		if (comma)
+			strcat(t, " ");
+		strcat(t, VAL_EVB_CAPA_VDP);
 	}
 	snprintf(obuf, obuf_len, "%02x%s%04x%s",
 		 (unsigned int) strlen(arg), arg, (unsigned int) strlen(t), t);
-	free(t);
 	return cmd_success;
-
-out_free:
-	free(t);
-	return cmd_invalid;
 }
 
 /*
@@ -440,18 +429,18 @@ _set_arg_capabilities(struct cmd *cmd, const char *argvalue, bool test)
 	if (test)
 		return cmd_success;
 
-	ed->policy->scap = scap;
-
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.capabilities",
 		 TLVID_PREFIX, cmd->tlvid);
 
 	if (set_cfg(ed->ifname, cmd->type, arg_path, &argvalue,
 		    CONFIG_TYPE_STRING)) {
-		LLDPAD_ERR("%s: saving EVB capabilities (%#x) failed.\n",
+		LLDPAD_ERR("%s: saving EVB capabilities (%#x) failed\n",
 			ed->ifname, scap);
 		return cmd_invalid;
 	}
 
+	ed->policy->scap = scap;
+	LLDPAD_INFO("%s: changed EVB capabilities (%#x)\n", ed->ifname, scap);
 	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
