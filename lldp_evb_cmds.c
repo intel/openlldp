@@ -32,6 +32,7 @@
 
 #include "lldp.h"
 #include "lldp_evb.h"
+#include "lldp_vdp.h"
 #include "lldp_tlv.h"
 #include "lldp_mand_clif.h"
 #include "config.h"
@@ -219,7 +220,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	else if (!strcasecmp(argvalue, VAL_NO))
 		value = 0;
 	else
-		return cmd_invalid;
+		return cmd_bad_params;
 
 	if (test)
 		return cmd_success;
@@ -297,7 +298,7 @@ static int _set_arg_fmode(struct cmd *cmd, const char *argvalue, bool test)
 		smode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
 
 	if (smode == 0)
-		return cmd_invalid;
+		return cmd_bad_params;
 	else if (test)
 		return cmd_success;
 
@@ -415,7 +416,7 @@ _set_arg_capabilities(struct cmd *cmd, const char *argvalue, bool test)
 	if (!ed)
 		return cmd_invalid;
 	if (check_capabilities(argvalue, &scap) < 0)
-		return cmd_invalid;
+		return cmd_bad_params;
 	if (test)
 		return cmd_success;
 
@@ -553,7 +554,7 @@ static int _set_arg_vsis(struct cmd *cmd, const char *argvalue, bool test)
 
 	value = atoi(argvalue);
 	if ((value < 0) || (value > LLDP_EVB_DEFAULT_MAX_VSI))
-		return cmd_invalid;
+		return cmd_bad_params;
 
 	if (test)
 		return cmd_success;
