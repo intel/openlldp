@@ -29,6 +29,7 @@
 
 #include <asm/types.h>
 #include "clif_sock.h"
+#include "lldpad_status.h"
 
 #ifndef IFNAMSIZ
 #define IFNAMSIZ	16
