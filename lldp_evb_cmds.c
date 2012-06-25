@@ -485,7 +485,7 @@ static int get_arg_rte(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 
 static int _set_arg_rte(struct cmd *cmd, const char *argvalue, bool test)
 {
-	int value, err;
+	int value;
 	char arg_path[EVB_BUF_SIZE];
 	struct evb_data *ed = NULL;
 	cmd_status good_cmd = evb_cmdok(cmd, cmd_settlv);
@@ -494,36 +494,29 @@ static int _set_arg_rte(struct cmd *cmd, const char *argvalue, bool test)
 		return good_cmd;
 
 	ed = evb_data((char *) &cmd->ifname, cmd->type);
-
 	if (!ed)
 		return cmd_invalid;
 
 	value = atoi(argvalue);
 	if ((value < 0) || value > LLDP_EVB_DEFAULT_MAX_RTE)
 		return cmd_bad_params;
-
 	if (test)
 		return cmd_success;
 
-	ed->policy->rte = value;
-
-	err = snprintf(arg_path, sizeof(arg_path), "%s%08x.rte",
-		       TLVID_PREFIX, cmd->tlvid);
-
-	if (err < 0)
-		goto out_err;
-
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.rte", TLVID_PREFIX,
+		 cmd->tlvid);
 	if (set_cfg(ed->ifname, cmd->type, arg_path, &argvalue,
-		    CONFIG_TYPE_STRING))
-		goto out_err;
+		    CONFIG_TYPE_STRING)){
+		LLDPAD_ERR("%s: error saving EVB rte (%d)\n", ed->ifname,
+			   value);
+		return cmd_failed;
+	}
 
+	ed->policy->rte = value;
+	LLDPAD_INFO("%s: changed EVB rte (%#x)\n", ed->ifname, value);
 	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
-
-out_err:
-	LLDPAD_ERR("%s:%s: saving EVB rte failed.\n", __func__, ed->ifname);
-	return cmd_invalid;
 }
 
 static int set_arg_rte(struct cmd *cmd, UNUSED char *arg, char *argvalue,
