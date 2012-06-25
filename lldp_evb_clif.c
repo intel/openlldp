@@ -100,7 +100,7 @@ static void evb_print_cfg_tlv(u16 len, char *info)
 		printf("Unable to decode smode !\n");
 
 	if (!hexstr2bin(info+2, &scap, sizeof(scap))) {
-		printf("\tsupported capabilities: (0x%02hhx)", scap);
+		printf("\tsupported capabilities: (%#02hhx)", scap);
 
 		if ( scap & LLDP_EVB_CAPABILITY_PROTOCOL_RTE)
 		     printf(" RTE");
@@ -116,7 +116,7 @@ static void evb_print_cfg_tlv(u16 len, char *info)
 		printf("Unable to decode scap !\n");
 
 	if (!hexstr2bin(info+4, &cmode, sizeof(cmode))) {
-		printf("\tconfigured forwarding mode: (0x%02hhx)", cmode);
+		printf("\tconfigured forwarding mode: (%#02hhx)", cmode);
 
 		if (cmode & LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY)
 			printf(" reflective relay");
@@ -129,7 +129,7 @@ static void evb_print_cfg_tlv(u16 len, char *info)
 		printf("Unable to decode cmode !\n");
 
 	if (!hexstr2bin(info+6, &ccap, sizeof(ccap))) {
-		printf("\tconfigured capabilities: (0x%02hhx)", ccap);
+		printf("\tconfigured capabilities: (%#02hhx)", ccap);
 
 		if ( ccap & LLDP_EVB_CAPABILITY_PROTOCOL_RTE)
 		     printf(" RTE");
@@ -145,12 +145,12 @@ static void evb_print_cfg_tlv(u16 len, char *info)
 		printf("Unable to decode ccap !\n");
 
 	if (!hexstr2bin(info+8, (u8 *)&svsi, sizeof(svsi)))
-		printf("\tno. of supported VSIs: %04i\n", htons(svsi));
+		printf("\tno. of supported VSIs: %04i\n", ntohs(svsi));
 	else
 		printf("Unable to decode svsi !\n");
 
 	if (!hexstr2bin(info+12, (u8 *)&cvsi, sizeof(cvsi)))
-		printf("\tno. of configured VSIs: %04i\n", htons(cvsi));
+		printf("\tno. of configured VSIs: %04i\n", ntohs(cvsi));
 	else
 		printf("Unable to decode cvsi !\n");
 
