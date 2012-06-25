@@ -222,11 +222,13 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	else
 		return cmd_bad_params;
 
-	if (test)
-		return cmd_success;
 	ed = evb_data((char *) &cmd->ifname, cmd->type);
 	if (!ed)
 		return cmd_invalid;
+	if (vdp_vsis(ed->ifname))
+		return cmd_failed;
+	if (test)
+		return cmd_success;
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 		 TLVID_PREFIX, cmd->tlvid, arg);
@@ -288,18 +290,19 @@ static int _set_arg_fmode(struct cmd *cmd, const char *argvalue, bool test)
 	if (good_cmd != cmd_success)
 		return good_cmd;
 
-	ed = evb_data((char *) &cmd->ifname, cmd->type);
-	if (!ed)
-		return cmd_invalid;
-
 	if (!strcasecmp(argvalue, VAL_EVB_FMODE_BRIDGE))
 		smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
 	if (!strcasecmp(argvalue, VAL_EVB_FMODE_REFLECTIVE_RELAY))
 		smode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
-
 	if (smode == 0)
 		return cmd_bad_params;
-	else if (test)
+
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
+	if (!ed)
+		return cmd_invalid;
+	if (vdp_vsis(ed->ifname))
+		return cmd_failed;
+	if (test)
 		return cmd_success;
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.fmode",
@@ -410,13 +413,14 @@ _set_arg_capabilities(struct cmd *cmd, const char *argvalue, bool test)
 
 	if (good_cmd != cmd_success)
 		return good_cmd;
-
-	ed = evb_data((char *) &cmd->ifname, cmd->type);
-
-	if (!ed)
-		return cmd_invalid;
 	if (check_capabilities(argvalue, &scap) < 0)
 		return cmd_bad_params;
+
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
+	if (!ed)
+		return cmd_invalid;
+	if (vdp_vsis(ed->ifname))
+		return cmd_failed;
 	if (test)
 		return cmd_success;
 
@@ -484,13 +488,15 @@ static int _set_arg_rte(struct cmd *cmd, const char *argvalue, bool test)
 	if (good_cmd != cmd_success)
 		return good_cmd;
 
-	ed = evb_data((char *) &cmd->ifname, cmd->type);
-	if (!ed)
-		return cmd_invalid;
-
 	value = atoi(argvalue);
 	if ((value < 0) || value > LLDP_EVB_DEFAULT_MAX_RTE)
 		return cmd_bad_params;
+
+	ed = evb_data((char *) &cmd->ifname, cmd->type);
+	if (!ed)
+		return cmd_invalid;
+	if (vdp_vsis(ed->ifname))
+		return cmd_failed;
 	if (test)
 		return cmd_success;
 
@@ -556,11 +562,13 @@ static int _set_arg_vsis(struct cmd *cmd, const char *argvalue, bool test)
 	if ((value < 0) || (value > LLDP_EVB_DEFAULT_MAX_VSI))
 		return cmd_bad_params;
 
-	if (test)
-		return cmd_success;
 	ed = evb_data((char *) &cmd->ifname, cmd->type);
 	if (!ed)
 		return cmd_invalid;
+	if (vdp_vsis(ed->ifname))
+		return cmd_failed;
+	if (test)
+		return cmd_success;
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.vsis", TLVID_PREFIX,
 		 cmd->tlvid);
