@@ -745,32 +745,34 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 		if ((memcmp(tlv->info, &oui, DCB_OUI_LEN) != 0))
 			return SUBTYPE_INVALID;
 
-		if (dcbx->dcbx_st == dcbx_subtype2) {
-			if ((tlv->info[DCB_OUI_LEN] == dcbx_subtype2)
-				&& (agent->lldpdu & RCVD_LLDP_DCBX2_TLV)){
-				LLDPAD_INFO("Received duplicate DCBX TLVs\n");
-				return TLV_ERR;
-			}
+		if ((tlv->info[DCB_OUI_LEN] == dcbx_subtype2)
+			&& (agent->lldpdu & RCVD_LLDP_DCBX2_TLV)) {
+			LLDPAD_INFO("Received duplicate DCBX2 TLVs\n");
+			return TLV_ERR;
 		}
 		if ((tlv->info[DCB_OUI_LEN] == dcbx_subtype1)
 			&& (agent->lldpdu & RCVD_LLDP_DCBX1_TLV)) {
-			LLDPAD_INFO("Received duplicate DCBX TLVs\n");
+			LLDPAD_INFO("Received duplicate DCBX1 TLVs\n");
 			return TLV_ERR;
 		}
 
-		if ((dcbx->dcbx_st == dcbx_subtype2) &&
-			(tlv->info[DCB_OUI_LEN] == dcbx_subtype2)) {
+		/* Only store a legacy (CIN or CEE) DCBX TLV which matches
+		 * the currently configured legacy dcbx mode.
+		 * However, capture if any legacy DCBX TLVs are recieved.
+		*/
+		if (tlv->info[DCB_OUI_LEN] == dcbx_subtype2) {
+			if (dcbx->dcbx_st == dcbx_subtype2)
+				dcbx->manifest->dcbx2 = tlv;
 			agent->lldpdu |= RCVD_LLDP_DCBX2_TLV;
-			dcbx->manifest->dcbx2 = tlv;
 			dcbx->rxed_tlvs = true;
 			return TLV_OK;
 		} else if (tlv->info[DCB_OUI_LEN] == dcbx_subtype1) {
+			if (dcbx->dcbx_st == dcbx_subtype1)
+				dcbx->manifest->dcbx1 = tlv;
 			agent->lldpdu |= RCVD_LLDP_DCBX1_TLV;
-			dcbx->manifest->dcbx1 = tlv;
 			dcbx->rxed_tlvs = true;
 			return TLV_OK;
 		} else {
-			/* not a DCBX subtype we support */
 			return SUBTYPE_INVALID;
 		}
 	}
@@ -781,7 +783,12 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 
 		if (!dcbx->active && !ieee8021qaz_tlvs_rxed(dcbx->ifname) &&
 		    dcbx->rxed_tlvs && (not_present || enabled)) {
-			LLDPAD_DBG("CEE DCBX %s going ACTIVE\n", dcbx->ifname);
+			if (dcbx->dcbx_st == dcbx_subtype2)
+				LLDPAD_DBG("CEE DCBX %s going ACTIVE\n",
+					   dcbx->ifname);
+			else if (dcbx->dcbx_st == dcbx_subtype1)
+				LLDPAD_DBG("CIN DCBX %s going ACTIVE\n",
+					   dcbx->ifname);
 			set_dcbx_mode(port->ifname,
 				      DCB_CAP_DCBX_HOST | DCB_CAP_DCBX_VER_CEE);
 			set_hw_state(port->ifname, 1);
@@ -790,11 +797,6 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 			somethingChangedLocal(port->ifname, agent->type);
 		}
 
-		/* Only process DCBXv2 or DCBXv1 but not both this
-		 * is required because processing both could be
-		 * problamatic. Specifically if the DCB attributes do
-		 * not match across versions.
-		 */
 		if (dcbx->manifest->dcbx2) {
 			res = unpack_dcbx2_tlvs(port, agent, dcbx->manifest->dcbx2);
 			if (!res) {

@@ -4,7 +4,7 @@
 .\"
 .\" * Other names and brands may be claimed as the property of others.
 .\"
-.TH lldpad 8 "November 2, 2011"
+.TH lldpad 8 "March 23, 2012"
 .SH NAME
 lldpad \- Link Layer Discovery Protocol (LLDP) agent daemon
 .SH SYNOPSIS
@@ -82,9 +82,11 @@ IEEE DCBX
 See the IEEE 802.1Qaz-2011 specification for details.
 .PP
 IEEE DCBX is the default DCBX mode for a DCB capable interface so the default and configured IEEE DCBX TLV's will be
-transmitted when the interface comes up.  If the remote LLDP agent does not transmit any IEEE DCBX TLV's and does
-transmit a legacy DCBX
-(CEE or CIN) TLV, then the DCBX mode will drop back to the locally configured legacy DCBX mode.  It will not transition
+transmitted when the interface comes up.
+.B lldpad
+can be globally configured to support one of the legacy DCBX versions (CIN or CEE).  If the remote LLDP agent does not
+transmit any IEEE DCBX TLV's and does transmit a legacy DCBX TLV which matches the configured legacy DCBX version, then the
+DCBX mode will drop back to legacy DCBX mode.  It will not transition
 back to IEEE DCBX mode until the next link reset.  If 
 .B lldpad
 has dropped back to legacy DCBX mode for a given interface and the daemon is stopped and restarted, the
@@ -147,7 +149,7 @@ remove lldpad state records from shared memory
 .SH COPYRIGHT
 lldpad - LLDP agent daemon with DCBX support
 .br
-Copyright(c) 2007-2011 Intel Corporation.
+Copyright(c) 2007-2012 Intel Corporation.
 .BR
 Portions of lldpad  are based on:
 .IP hostapd-0.5.7
