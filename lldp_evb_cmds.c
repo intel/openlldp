@@ -48,6 +48,120 @@
 #include "lldp/states.h"
 #include "messages.h"
 
+/*
+ * Read EVB specific data from the configuration file.
+ */
+static const char *evb_conf_string(char *ifname, enum agent_type type,
+				   char *ext, int def)
+{
+	char arg_path[EVB_BUF_SIZE];
+	const char *param = NULL;
+
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
+		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE), ext);
+
+	if (get_cfg(ifname, type, arg_path, &param, CONFIG_TYPE_STRING)) {
+		LLDPAD_INFO("%s:%s agent %d loading EVB policy for %s"
+			    " failed, using default (%d)\n", __func__,
+			    ifname, type, ext, def);
+		return 0;
+	}
+	return param;
+}
+
+/*
+ * Read forwarding mode from configuration file.
+ */
+u8 evb_conf_fmode(char *ifname, enum agent_type type)
+{
+	u8 smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
+	const char *value;
+
+	value = evb_conf_string(ifname, type, ARG_EVB_FORWARDING_MODE, smode);
+	if (value) {
+		if (strstr(value, VAL_EVB_FMODE_BRIDGE))
+			smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
+		if (strstr(value, VAL_EVB_FMODE_REFLECTIVE_RELAY))
+			smode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
+		LLDPAD_DBG("%s:%s agent %d policy %s %s(%#x)\n", __func__,
+			   ifname, type, ARG_EVB_FORWARDING_MODE, value, smode);
+	}
+	return smode;
+}
+
+/*
+ * Read maximum number of VSIs from configuration file.
+ */
+u16 evb_conf_vsis(char *ifname, enum agent_type type)
+{
+	u16 svsi = LLDP_EVB_DEFAULT_SVSI;
+	const char *value;
+
+	value = evb_conf_string(ifname, type, ARG_EVB_VSIS, svsi);
+	if (value) {
+		svsi = atoi(value);
+		LLDPAD_DBG("%s:%s agent %d policy %s %s(%#x)\n", __func__,
+			   ifname, type, ARG_EVB_VSIS, value, svsi);
+	}
+	return svsi;
+}
+
+/*
+ * Read capabilities from configuration file.
+ */
+u8 evb_conf_capa(char *ifname, enum agent_type type)
+{
+	u8 scap = LLDP_EVB_CAPABILITY_PROTOCOL_RTE |
+			   LLDP_EVB_CAPABILITY_PROTOCOL_ECP |
+			   LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+	const char *value;
+
+	value = evb_conf_string(ifname, type, ARG_EVB_CAPABILITIES, scap);
+	if (value) {
+		if (strstr(value, VAL_EVB_CAPA_RTE))
+			scap = LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
+
+		if (strstr(value, VAL_EVB_CAPA_ECP))
+			scap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
+
+		if (strstr(value, VAL_EVB_CAPA_VDP))
+			scap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+
+		if (strstr(value, VAL_EVB_CAPA_NONE))
+			scap = 0;
+
+		LLDPAD_DBG("%s:%s agent %d policy %s %s(%#x)\n",
+			   __func__, ifname, type, ARG_EVB_CAPABILITIES, value,
+			   scap);
+	}
+	return scap;
+}
+
+/*
+ * Read RTE value from configuration file.
+ */
+u8 evb_conf_rte(char *ifname, enum agent_type type)
+{
+	u8 rte = LLDP_EVB_DEFAULT_RTE;
+	const char *value;
+
+	value = evb_conf_string(ifname, type, ARG_EVB_RTE, rte);
+	if (value) {
+		rte = atoi(value);
+		LLDPAD_DBG("%s:%s agent %d policy %s %s(%#x)\n", __func__,
+			   ifname, type, ARG_EVB_RTE, value, rte);
+	}
+	return rte;
+}
+
+/*
+ * Read transmit status from configuration file.
+ */
+int evb_conf_enabletx(char *ifname, enum agent_type type)
+{
+	return is_tlv_txenabled(ifname, type, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
+}
+
 static int evb_cmdok(struct cmd *cmd, cmd_status expected)
 {
 	if (cmd->cmd != expected)

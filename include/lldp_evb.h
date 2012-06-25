@@ -29,7 +29,7 @@
 
 #include "lldp_mod.h"
 
-#define LLDP_MOD_EVB	OUI_IEEE_8021Qbg
+#define LLDP_MOD_EVB		OUI_IEEE_8021Qbg
 #define LLDP_OUI_SUBTYPE	{ 0x00, 0x1b, 0x3f, 0x00 }
 
 typedef enum {
@@ -72,6 +72,12 @@ struct evb_user_data {
 
 struct lldp_module *evb_register(void);
 void evb_unregister(struct lldp_module *);
+
+u8 evb_conf_fmode(char *, enum agent_type);
+u8 evb_conf_capa(char *, enum agent_type);
+u8 evb_conf_rte(char *, enum agent_type);
+u16 evb_conf_vsis(char *, enum agent_type);
+int evb_conf_enabletx(char *, enum agent_type);
 struct evb_data *evb_data(char *, enum agent_type);
 
 #endif /* _LLDP_EVB_H */
