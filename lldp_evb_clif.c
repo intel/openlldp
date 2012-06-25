@@ -26,11 +26,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <syslog.h>
-#include <sys/un.h>
-#include <sys/stat.h>
-#include "lldp_mod.h"
+
+#include "lldp_tlv.h"
 #include "clif_msgs.h"
+#include "lldp_mod.h"
+#include "lldptool.h"
 #include "lldp.h"
 #include "lldp_evb.h"
 #include "lldp_evb_clif.h"
