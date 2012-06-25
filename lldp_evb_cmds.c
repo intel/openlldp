@@ -48,6 +48,20 @@
 #include "lldp/states.h"
 #include "messages.h"
 
+static int evb_cmdok(struct cmd *cmd, cmd_status expected)
+{
+	if (cmd->cmd != expected)
+		return cmd_invalid;
+	switch (cmd->tlvid) {
+	case TLVID_8021Qbg(LLDP_EVB_SUBTYPE):
+		return cmd_success;
+	case INVALID_TLVID:
+		return cmd_invalid;
+	default:
+		return cmd_not_applicable;
+	}
+}
+
 static int
 get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		    char *obuf, int obuf_len)
@@ -55,27 +69,16 @@ get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 	int value;
 	char *s;
 	char arg_path[EVB_BUF_SIZE];
+	cmd_status good_cmd = evb_cmdok(cmd, cmd_gettlv);
 
-	LLDPAD_DBG("%s:\n", __func__);
+	if (good_cmd != cmd_success)
+		return good_cmd;
 
-	if (cmd->cmd != cmd_gettlv)
-		return cmd_invalid;
-
-	switch (cmd->tlvid) {
-	case (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE:
-		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 			 TLVID_PREFIX, cmd->tlvid, arg);
-
-		if (get_cfg(cmd->ifname, cmd->type, arg_path, &value,
+	if (get_cfg(cmd->ifname, cmd->type, arg_path, &value,
 					CONFIG_TYPE_BOOL))
 			value = false;
-		break;
-	case INVALID_TLVID:
-		return cmd_invalid;
-	default:
-		return cmd_not_applicable;
-	}
-
 	if (value)
 		s = VAL_YES;
 	else
@@ -92,17 +95,10 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 {
 	int value;
 	char arg_path[EVB_BUF_SIZE];
+	cmd_status good_cmd = evb_cmdok(cmd, cmd_settlv);
 
-	if (cmd->cmd != cmd_settlv)
-		return cmd_invalid;
-	switch (cmd->tlvid) {
-	case (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE:
-		break;
-	case INVALID_TLVID:
-		return cmd_invalid;
-	default:
-		return cmd_not_applicable;
-	}
+	if (good_cmd != cmd_success)
+		return good_cmd;
 
 	if (!strcasecmp(argvalue, VAL_YES))
 		value = 1;
@@ -142,17 +138,11 @@ static int get_arg_fmode(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 {
 	char *s;
 	struct evb_data *ed;
+	cmd_status good_cmd = evb_cmdok(cmd, cmd_gettlv);
 
-	if (cmd->cmd != cmd_gettlv)
-		return cmd_invalid;
-	switch (cmd->tlvid) {
-	case (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE:
-		break;
-	case INVALID_TLVID:
-		return cmd_invalid;
-	default:
-		return cmd_not_applicable;
-	}
+	if (good_cmd != cmd_success)
+		return good_cmd;
+
 	ed = evb_data((char *) &cmd->ifname, cmd->type);
 	if (!ed)
 		return cmd_invalid;
@@ -170,17 +160,10 @@ static int _set_arg_fmode(struct cmd *cmd, const char *argvalue, bool test)
 	u8 smode;
 	char arg_path[EVB_BUF_SIZE];
 	struct evb_data *ed;
+	cmd_status good_cmd = evb_cmdok(cmd, cmd_settlv);
 
-	if (cmd->cmd != cmd_settlv)
-		return cmd_invalid;
-	switch (cmd->tlvid) {
-	case (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE:
-		break;
-	case INVALID_TLVID:
-		return cmd_invalid;
-	default:
-		return cmd_not_applicable;
-	}
+	if (good_cmd != cmd_success)
+		return good_cmd;
 
 	ed = evb_data((char *) &cmd->ifname, cmd->type);
 
@@ -236,21 +219,14 @@ get_arg_capabilities(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 	int c;
 	char *s, *t;
 	struct evb_data *ed;
+	cmd_status good_cmd = evb_cmdok(cmd, cmd_gettlv);
+
+	if (good_cmd != cmd_success)
+		return good_cmd;
 
 	s = t = calloc(EVB_BUF_SIZE, sizeof *s);
 	if (!s)
 		goto out_free;
-	if (cmd->cmd != cmd_gettlv)
-		goto out_free;
-	switch (cmd->tlvid) {
-	case (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE:
-		break;
-	case INVALID_TLVID:
-		goto out_free;
-	default:
-		free(t);
-		return cmd_not_applicable;
-	}
 
 	ed = evb_data((char *) &cmd->ifname, cmd->type);
 	if (!ed)
@@ -322,17 +298,10 @@ _set_arg_capabilities(struct cmd *cmd, const char *argvalue, bool test)
 	u8 scap = 0;
 	char arg_path[EVB_BUF_SIZE];
 	struct evb_data *ed;
+	cmd_status good_cmd = evb_cmdok(cmd, cmd_settlv);
 
-	if (cmd->cmd != cmd_settlv)
-		return cmd_invalid;
-	switch (cmd->tlvid) {
-	case (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE:
-		break;
-	case INVALID_TLVID:
-		return cmd_invalid;
-	default:
-		return cmd_not_applicable;
-	}
+	if (good_cmd != cmd_success)
+		return good_cmd;
 
 	ed = evb_data((char *) &cmd->ifname, cmd->type);
 
@@ -379,18 +348,10 @@ static int get_arg_rte(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 {
 	char s[EVB_BUF_SIZE];
 	struct evb_data *ed;
+	cmd_status good_cmd = evb_cmdok(cmd, cmd_gettlv);
 
-	if (cmd->cmd != cmd_gettlv)
-		return cmd_invalid;
-
-	switch (cmd->tlvid) {
-	case (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE:
-		break;
-	case INVALID_TLVID:
-		return cmd_invalid;
-	default:
-		return cmd_not_applicable;
-	}
+	if (good_cmd != cmd_success)
+		return good_cmd;
 
 	ed = evb_data((char *) &cmd->ifname, cmd->type);
 	if (!ed)
@@ -410,18 +371,10 @@ static int _set_arg_rte(struct cmd *cmd, const char *argvalue, bool test)
 	int value, err;
 	char arg_path[EVB_BUF_SIZE];
 	struct evb_data *ed = NULL;
+	cmd_status good_cmd = evb_cmdok(cmd, cmd_settlv);
 
-	if (cmd->cmd != cmd_settlv)
-		goto out_err;
-
-	switch (cmd->tlvid) {
-	case (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE:
-		break;
-	case INVALID_TLVID:
-		goto out_err;
-	default:
-		return cmd_not_applicable;
-	}
+	if (good_cmd != cmd_success)
+		return good_cmd;
 
 	ed = evb_data((char *) &cmd->ifname, cmd->type);
 
@@ -473,17 +426,11 @@ static int get_arg_vsis(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 {
 	char s[EVB_BUF_SIZE];
 	struct evb_data *ed;
+	cmd_status good_cmd = evb_cmdok(cmd, cmd_gettlv);
 
-	if (cmd->cmd != cmd_gettlv)
-		return cmd_invalid;
-	switch (cmd->tlvid) {
-	case (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE:
-		break;
-	case INVALID_TLVID:
-		return cmd_invalid;
-	default:
-		return cmd_not_applicable;
-	}
+	if (good_cmd != cmd_success)
+		return good_cmd;
+
 	ed = evb_data((char *) &cmd->ifname, cmd->type);
 	if (!ed)
 		return cmd_invalid;
@@ -501,20 +448,10 @@ static int _set_arg_vsis(struct cmd *cmd, char *argvalue, bool test)
 	char svalue[10];
 	const char *sv;
 	struct evb_data *ed = NULL;
+	cmd_status good_cmd = evb_cmdok(cmd, cmd_settlv);
 
-	ed = evb_data((char *) &cmd->ifname, cmd->type);
-	if (!ed)
-		return cmd_invalid;
-	if (cmd->cmd != cmd_settlv)
-		goto out_err;
-	switch (cmd->tlvid) {
-	case (LLDP_MOD_EVB << 8) | LLDP_EVB_SUBTYPE:
-		break;
-	case INVALID_TLVID:
-		goto out_err;
-	default:
-		return cmd_not_applicable;
-	}
+	if (good_cmd != cmd_success)
+		return good_cmd;
 
 	value = atoi(argvalue);
 
