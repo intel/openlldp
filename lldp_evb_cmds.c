@@ -289,7 +289,7 @@ static int get_arg_fmode(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 
 static int _set_arg_fmode(struct cmd *cmd, const char *argvalue, bool test)
 {
-	u8 smode;
+	u8 smode = 0;
 	char arg_path[EVB_BUF_SIZE];
 	struct evb_data *ed;
 	cmd_status good_cmd = evb_cmdok(cmd, cmd_settlv);
@@ -298,15 +298,11 @@ static int _set_arg_fmode(struct cmd *cmd, const char *argvalue, bool test)
 		return good_cmd;
 
 	ed = evb_data((char *) &cmd->ifname, cmd->type);
-
 	if (!ed)
 		return cmd_invalid;
 
-	smode = 0;
-
 	if (!strcasecmp(argvalue, VAL_EVB_FMODE_BRIDGE))
 		smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
-
 	if (!strcasecmp(argvalue, VAL_EVB_FMODE_REFLECTIVE_RELAY))
 		smode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
 
@@ -314,8 +310,6 @@ static int _set_arg_fmode(struct cmd *cmd, const char *argvalue, bool test)
 		return cmd_invalid;
 	else if (test)
 		return cmd_success;
-	else
-		ed->policy->smode = smode;
 
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.fmode",
 		 TLVID_PREFIX, cmd->tlvid);
@@ -327,8 +321,10 @@ static int _set_arg_fmode(struct cmd *cmd, const char *argvalue, bool test)
 		return cmd_invalid;
 	}
 
+	ed->policy->smode = smode;
 	somethingChangedLocal(cmd->ifname, cmd->type);
-
+	LLDPAD_INFO("%s: changed EVB forwarding mode (%s)\n", ed->ifname,
+		    argvalue);
 	return cmd_success;
 }
 
