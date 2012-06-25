@@ -251,8 +251,6 @@ static void evb_free_tlv(struct evb_data *ed)
  */
 static int evb_init_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
 {
-	char arg_path[EVB_BUF_SIZE];
-	const char *param = NULL;
 
 	/* load policy from config */
 	ed->policy = calloc(1, sizeof(struct tlv_info_evb));
@@ -271,90 +269,11 @@ static int evb_init_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
 	ed->policy->svsi = htons(LLDP_EVB_DEFAULT_SVSI);
 	ed->policy->rte = LLDP_EVB_DEFAULT_RTE;
 
-	/* pull forwarding mode into policy */
-	snprintf(arg_path, sizeof(arg_path), "%s%08x.fmode",
-		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
-
-	if (get_cfg(ed->ifname, agent->type, arg_path,
-		    &param, CONFIG_TYPE_STRING)) {
-		LLDPAD_INFO("%s:%s: loading EVB policy for forwarding mode"
-			    " failed, using default\n", __func__, ed->ifname);
-	} else {
-		if (strstr(param, VAL_EVB_FMODE_BRIDGE))
-			ed->policy->smode =
-				LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
-
-		if (strstr(param, VAL_EVB_FMODE_REFLECTIVE_RELAY))
-			ed->policy->smode =
-				LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
-
-		LLDPAD_DBG("%s:%s: policy param fmode = %s\n", __func__,
-			   ed->ifname, param);
-		LLDPAD_DBG("%s:%s: policy param smode = %x\n", __func__,
-			   ed->ifname, ed->policy->smode);
-	}
-
-	/* pull capabilities into policy */
-	snprintf(arg_path, sizeof(arg_path), "%s%08x.capabilities",
-		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
-
-	if (get_cfg(ed->ifname, agent->type, arg_path,
-		    &param, CONFIG_TYPE_STRING)) {
-		LLDPAD_INFO("%s:%s: loading EVB policy for capabilities"
-			    " failed, using default\n",
-			    __func__, ed->ifname);
-	} else {
-		if (strstr(param, VAL_EVB_CAPA_RTE))
-			ed->policy->scap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
-
-		if (strstr(param, VAL_EVB_CAPA_ECP))
-			ed->policy->scap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
-
-		if (strstr(param, VAL_EVB_CAPA_VDP))
-			ed->policy->scap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
-
-		if (strstr(param, VAL_EVB_CAPA_NONE))
-			ed->policy->scap = 0;
-
-		LLDPAD_DBG("%s:%s: policy param capabilities = %s\n", __func__,
-			   ed->ifname, param);
-		LLDPAD_DBG("%s:%s: policy param scap = %#x\n", __func__,
-			   ed->ifname, ed->policy->scap);
-	}
-
-	/* pull rte into policy */
-	snprintf(arg_path, sizeof(arg_path), "%s%08x.rte",
-		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
-
-	if (get_cfg(ed->ifname, NEAREST_CUSTOMER_BRIDGE, arg_path,
-				&param, CONFIG_TYPE_STRING))
-		LLDPAD_INFO("%s:%s: loading EVB policy for rte failed,"
-			    " using default\n", __func__, ed->ifname);
-	else {
-		ed->policy->rte = atoi(param);
-
-		LLDPAD_DBG("%s:%s: policy param rte = %s\n", __func__,
-			   ed->ifname, param);
-		LLDPAD_DBG("%s:%s: policy param rte = %i\n", __func__,
-			   ed->ifname, ed->policy->rte);
-	}
-
-	/* pull vsis into policy */
-	snprintf(arg_path, sizeof(arg_path), "%s%08x.vsis",
-		 TLVID_PREFIX, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
-
-	if (get_cfg(ed->ifname, agent->type, arg_path,
-		    &param, CONFIG_TYPE_STRING))
-		LLDPAD_INFO("%s:%s: loading EVB policy for vsis failed,"
-			    " using default\n", __func__, ed->ifname);
-	else {
-		ed->policy->svsi = htons(atoi(param));
-
-		LLDPAD_DBG("%s:%s: policy param vsis = %s\n", __func__,
-			   ed->ifname, param);
-		LLDPAD_DBG("%s:%s: policy param vsis = %i\n", __func__,
-			   ed->ifname, ntohs(ed->policy->svsi));
-	}
+	/* Get fmode/capabilities/rte/vsi from configuration file into policy */
+	ed->policy->smode = evb_conf_fmode(ed->ifname, agent->type);
+	ed->policy->scap = evb_conf_capa(ed->ifname, agent->type);
+	ed->policy->rte = evb_conf_rte(ed->ifname, agent->type);
+	ed->policy->svsi = htons(evb_conf_vsis(ed->ifname, agent->type));
 
 	ed->tie = (struct tlv_info_evb *)
 			calloc(1, sizeof(struct tlv_info_evb));
