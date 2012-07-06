@@ -88,87 +88,65 @@ static void evb_dump_tlv(struct unpacked_tlv *tlv)
 		   __func__, tlv->type, tlv->length, buffer);
 }
 
-/* evb_check_and_fill
- *
- * checks values received in TLV and takes over some values
+/*
+ * Checks values received in TLV and takes over some values.
+ * Sets the new suggestion in member tie to be send out to switch.
  */
-static int evb_check_and_fill(struct evb_data *ed, struct tlv_info_evb *tie)
+static void evb_update_tlv(struct evb_data *ed)
 {
-	/* sanity check of received data in tie */
-	if ((tie->smode & (LLDP_EVB_CAPABILITY_FORWARD_STANDARD |
-			  LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY)) == 0) {
+	struct tlv_info_evb *recv = ed->last;
+	u8 valid = recv->smode &
+		   (LLDP_EVB_CAPABILITY_FORWARD_STANDARD |
+		    LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY);
+
+	/*
+	 * Waiting for valid packets to pour in if valid packet was received,
+	 * - check parameters with what we have offered for this interface,
+	 * - fill structure with data,
+	 * - enable local tx
+	 */
+	if (!valid) {
 		LLDPAD_ERR("Neither standard nor rr set as forwarding modes\n");
-		return TLV_ERR;
+		return;
 	}
 
-	/* check bridge capabilities against local policy*/
-	/* if bridge supports RR and we support it as well, request it
-	 * by setting smode in tlv to be sent out (ed->tie->smode) */
-	if ((tie->smode & LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY) &&
-	    (ed->policy->smode & LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY))
-		ed->tie->smode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
+	/*
+	 * Check bridge capabilities against local policy
+	 * if bridge supports RR and we support it as well, request it
+	 * by setting smode in tlv to be sent out (ed->tie->smode)
+	 */
+	if ((recv->smode & ed->policy->smode) &
+	    LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY)
+		ed->tie->cmode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
 	else
-		ed->tie->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
-
-	/* maybe switch has already set the mode based on the saved info sent
-	 * out on ifup */
-	if (tie->cmode == ed->tie->smode)
-		ed->tie->cmode = tie->cmode;
-
-	ed->tie->scap = ed->policy->scap;
+		ed->tie->cmode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
 
 	/* If both sides support RTE, support and configure it */
-	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_RTE)
+	if ((recv->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_RTE)
 		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
 	else
 		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
 
+	if ((ed->tie->scap & LLDP_EVB_CAPABILITY_PROTOCOL_RTE) &&
+	    (recv->rte > 0) && (ed->policy->rte > 0))
+		ed->tie->rte = MAX(ed->policy->rte, recv->rte);
+
 	/* If both sides support ECP, set it */
-	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_ECP)
+	if ((recv->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_ECP)
 		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
 	else
 		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
 
-	/* If both sides support VDP, set it */
-	if ((tie->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_VDP)
+	/* If both sides support VDP, set it. Also set number of VSIs */
+	if ((recv->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_VDP) {
 		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
-	else
-		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
-
-	/* If supported caps include VDP take over min value of both */
-	if (ed->tie->scap & LLDP_EVB_CAPABILITY_PROTOCOL_VDP) {
-		ed->tie->svsi = tie->svsi;
 		ed->tie->cvsi = htons(vdp_vsis(ed->ifname));
+		ed->tie->svsi = ed->policy->svsi;
 	} else {
-		ed->tie->svsi = 0;
+		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
 		ed->tie->cvsi = 0;
+		ed->tie->svsi = 0;
 	}
-
-	/* If both sides support RTE and value offer is > 0, set it */
-	if ((ed->tie->scap & LLDP_EVB_CAPABILITY_PROTOCOL_RTE) &&
-		(tie->rte > 0) && (ed->policy->rte > 0))
-		ed->tie->rte = MAX(ed->policy->rte, tie->rte);
-
-	return TLV_OK;
-}
-
-/* evb_process_tlv - processes the tlv
- * @ed: evb_data for the interface
- * @tie: incoming tlv
- *
- * checks the received tlv and takes over values as needed.
- *
- */
-static void evb_update_tlv(struct evb_data *ed)
-{
-	/* waiting for valid packets to pour in
-	 * if valid packet was received,
-	 * - check parameters with what we have offered for this if,
-	 * - fill structure with data,
-	 * - enable local tx
-	 */
-	if (evb_check_and_fill(ed, ed->last) != TLV_OK)
-		LLDPAD_ERR("Invalid contents of EVB Cfg TLV\n");
 }
 
 /*
