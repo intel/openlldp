@@ -394,7 +394,7 @@ static void update_vdp_module(char *ifname, u8 ccap)
 }
 
 /*
- * evb_rchange: process RX TLV LLDPDU
+ * evb_rchange: process received EVB TLV LLDPDU
  *
  * TLV not consumed on error
  */
@@ -411,24 +411,22 @@ static int evb_rchange(struct port *port, struct lldp_agent *agent,
 
 	if (tlv->type == TYPE_127) {
 		/* check for length */
-		if (tlv->length < (OUI_SUB_SIZE)) {
+		if (tlv->length < OUI_SUB_SIZE)
 			return TLV_ERR;
-		}
 
 		/* check for oui */
-		if (memcmp(tlv->info, &oui_subtype, OUI_SUB_SIZE)) {
+		if (memcmp(tlv->info, &oui_subtype, OUI_SUB_SIZE))
 			return SUBTYPE_INVALID;
-		}
 
 		/* disable rx if tx has been disabled by administrator */
-		if (!is_tlv_txenabled(ed->ifname, agent->type,
-				      TLVID_8021Qbg(LLDP_EVB_SUBTYPE))) {
-			LLDPAD_WARN("%s:%s:EVB Config disabled\n",
-				__func__, ed->ifname);
+		if (!ed->txmit) {
+			LLDPAD_WARN("%s:%s agent %d EVB Config disabled\n",
+				__func__, ed->ifname, agent->type);
 			return TLV_OK;
 		}
 
-		LLDPAD_DBG("%s: received tlv:\n", __func__);
+		LLDPAD_DBG("%s: %s agent %d received tlv:\n", __func__,
+			   port->ifname, agent->type);
 		evb_dump_tlv(tlv);
 		memcpy(ed->last, tlv->info, tlv->length);
 		evb_print_tlvinfo(ed->last);
@@ -436,11 +434,11 @@ static int evb_rchange(struct port *port, struct lldp_agent *agent,
 		evb_update_tlv(ed);
 		somethingChangedLocal(ed->ifname, agent->type);
 
-		LLDPAD_DBG("%s: new tlv:\n", __func__);
+		LLDPAD_DBG("%s: %s agent %d new tlv:\n", __func__,
+			   port->ifname, agent->type);
 		evb_print_tlvinfo(ed->tie);
 		update_vdp_module(port->ifname, ed->tie->ccap);
 	}
-
 	return TLV_OK;
 }
 
