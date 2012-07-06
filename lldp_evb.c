@@ -313,48 +313,50 @@ static int evb_bld_tlv(struct evb_data *ed, struct lldp_agent *agent)
 	return rc;
 }
 
-static struct packed_tlv *evb_gettlv(struct port *port,
-		struct lldp_agent *agent)
+/*
+ * Build the packed EVB TLV.
+ * Returns a pointer to the packed tlv or 0 on failure.
+ */
+static struct packed_tlv *build_evb_tlv(struct evb_data *ed)
 {
-	int size;
+	struct packed_tlv *ptlv = 0;
+	u8 infobuf[sizeof(struct tlv_info_evb)];
+	struct unpacked_tlv tlv = {
+		.type = ORG_SPECIFIC_TLV,
+		.length = sizeof(struct tlv_info_evb),
+		.info = infobuf
+	};
+
+	if (!ed->txmit)
+		return ptlv;
+	evb_update_tlv(ed);
+
+	memcpy(tlv.info, &ed->tie, tlv.length);
+	ptlv = pack_tlv(&tlv);
+	if (ptlv) {
+		LLDPAD_DBG("%s: TLV about to be sent out:\n", __func__);
+		evb_dump_tlv(&tlv);
+	} else
+		LLDPAD_DBG("%s: failed to pack EVB TLV\n", __func__);
+	return ptlv;
+}
+
+/*
+ * Function call to build and return module specific packed EVB TLV.
+ * Returned packed_tlv is free'ed by caller of this function.
+ */
+static struct packed_tlv *evb_gettlv(struct port *port,
+				     struct lldp_agent *agent)
+{
 	struct evb_data *ed;
-	struct packed_tlv *ptlv = NULL;
 
 	ed = evb_data(port->ifname, agent->type);
-	if (!ed)
-		goto out_err;
-
-	evb_free_tlv(ed);
-
-	if (evb_bld_tlv(ed, agent)) {
-		LLDPAD_DBG("%s:%s evb_bld_tlv failed\n",
-			__func__, port->ifname);
-		goto disabled;
+	if (!ed) {
+		LLDPAD_ERR("%s:%s agent %d failed\n", __func__, port->ifname,
+			   agent->type);
+		return 0;
 	}
-
-	size = TLVSIZE(ed->evb);
-
-	if (!size)
-		goto out_err;
-
-	ptlv = create_ptlv();
-	if (!ptlv)
-		goto out_err;
-
-	ptlv->tlv = malloc(size);
-	if (!ptlv->tlv)
-		goto out_free;
-
-	ptlv->size = 0;
-	PACK_TLV_AFTER(ed->evb, ptlv, size, out_free);
-disabled:
-	return ptlv;
-out_free:
-	/* FIXME: free function returns pointer ? */
-	ptlv = free_pkd_tlv(ptlv);
-out_err:
-	LLDPAD_ERR("%s:%s: failed\n", __func__, port->ifname);
-	return NULL;
+	return build_evb_tlv(ed);
 }
 
 static void update_vdp_module(char *ifname, u8 ccap)
