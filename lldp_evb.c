@@ -321,24 +321,6 @@ static int evb_bld_tlv(struct evb_data *ed, struct lldp_agent *agent)
 	return rc;
 }
 
-static void evb_free_data(struct evb_user_data *ud)
-{
-	struct evb_data *ed;
-	if (ud) {
-		while (!LIST_EMPTY(&ud->head)) {
-			ed = LIST_FIRST(&ud->head);
-			LIST_REMOVE(ed, entry);
-
-			free(ed->tie);
-			free(ed->last);
-			free(ed->policy);
-			evb_free_tlv(ed);
-
-			free(ed);
-		}
-	}
-}
-
 static struct packed_tlv *evb_gettlv(struct port *port,
 		struct lldp_agent *agent)
 {
@@ -540,6 +522,39 @@ out_err:
 	return 0;
 }
 
+
+/*
+ * Remove all interface/agent specific evb data.
+ */
+static void evb_free_data(struct evb_user_data *ud)
+{
+	struct evb_data *ed;
+	if (ud) {
+		while (!LIST_EMPTY(&ud->head)) {
+			ed = LIST_FIRST(&ud->head);
+			LIST_REMOVE(ed, entry);
+
+			free(ed->tie);
+			free(ed->last);
+			free(ed->policy);
+			evb_free_tlv(ed);
+
+			free(ed);
+		}
+	}
+}
+
+
+void evb_unregister(struct lldp_module *mod)
+{
+	if (mod->data) {
+		evb_free_data((struct evb_user_data *) mod->data);
+		free(mod->data);
+	}
+	free(mod);
+	LLDPAD_DBG("%s:done", __func__);
+}
+
 static const struct lldp_mod_ops evb_ops =  {
 	.lldp_mod_register	= evb_register,
 	.lldp_mod_unregister	= evb_unregister,
@@ -573,14 +588,4 @@ struct lldp_module *evb_register(void)
 	mod->data = ud;
 	LLDPAD_DBG("%s:done\n", __func__);
 	return mod;
-}
-
-void evb_unregister(struct lldp_module *mod)
-{
-	if (mod->data) {
-		evb_free_data((struct evb_user_data *) mod->data);
-		free(mod->data);
-	}
-	free(mod);
-	LLDPAD_DBG("%s:done", __func__);
 }
