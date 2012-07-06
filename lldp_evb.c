@@ -150,148 +150,6 @@ static void evb_update_tlv(struct evb_data *ed)
 }
 
 /*
- * evb_bld_cfg_tlv - build the EVB TLV
- * @ed: the evb data struct
- *
- * Returns 0 on success
- */
-static int evb_bld_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
-{
-	int rc = 0;
-	struct unpacked_tlv *tlv = NULL;
-
-	/* free ed->evb if it exists */
-	FREE_UNPKD_TLV(ed, evb);
-
-	if (!is_tlv_txenabled(ed->ifname, agent->type,
-			      TLVID_8021Qbg(LLDP_EVB_SUBTYPE))) {
-		LLDPAD_DBG("%s:%s:EVB tx is currently disabled\n",
-			__func__, ed->ifname);
-		rc = EINVAL;
-		goto out_err;
-	}
-
-	if (ed->tie->smode != ed->policy->smode)
-		ed->tie->smode = ed->policy->smode;
-
-	evb_update_tlv(ed);
-
-	tlv = create_tlv();
-	if (!tlv) {
-		rc = ENOMEM;
-		goto out_err;
-	}
-
-	tlv->type = ORG_SPECIFIC_TLV;
-	tlv->length = sizeof(struct tlv_info_evb);
-	tlv->info = (u8 *)malloc(tlv->length);
-	if(!tlv->info) {
-		free(tlv);
-		tlv = NULL;
-		rc = ENOMEM;
-		goto out_err;
-	}
-	memcpy(tlv->info, ed->tie, tlv->length);
-
-	LLDPAD_DBG("%s: TLV about to be sent out:\n", __func__);
-	evb_dump_tlv(tlv);
-
-	ed->evb = tlv;
-out_err:
-	return rc;
-}
-
-static void evb_free_tlv(struct evb_data *ed)
-{
-	if (ed)
-		FREE_UNPKD_TLV(ed, evb);
-}
-
-/* evb_init_cfg_tlv:
- *
- * fill up tlv_info_evb structure with reasonable info
- */
-static int evb_init_cfg_tlv(struct evb_data *ed, struct lldp_agent *agent)
-{
-
-	/* load policy from config */
-	ed->policy = calloc(1, sizeof(struct tlv_info_evb));
-
-	if (!ed->policy)
-		return ENOMEM;
-
-	/* set defaults */
-	hton24(ed->policy->oui, LLDP_MOD_EVB);
-	ed->policy->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
-	ed->policy->scap = LLDP_EVB_CAPABILITY_PROTOCOL_RTE |
-			   LLDP_EVB_CAPABILITY_PROTOCOL_ECP |
-			   LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
-	ed->policy->cmode = 0;
-	ed->policy->ccap = 0;
-	ed->policy->svsi = htons(LLDP_EVB_DEFAULT_SVSI);
-	ed->policy->rte = LLDP_EVB_DEFAULT_RTE;
-
-	ed->txmit = evb_conf_enabletx(ed->ifname, agent->type);
-	/* Get fmode/capabilities/rte/vsi from configuration file into policy */
-	ed->policy->smode = evb_conf_fmode(ed->ifname, agent->type);
-	ed->policy->scap = evb_conf_capa(ed->ifname, agent->type);
-	ed->policy->rte = evb_conf_rte(ed->ifname, agent->type);
-	ed->policy->svsi = htons(evb_conf_vsis(ed->ifname, agent->type));
-
-	ed->tie = (struct tlv_info_evb *)
-			calloc(1, sizeof(struct tlv_info_evb));
-
-	if (!ed->tie) {
-		free(ed->policy);
-		ed->policy = NULL;
-		return ENOMEM;
-	}
-
-	hton24(ed->tie->oui, LLDP_MOD_EVB);
-	ed->tie->smode = ed->policy->smode;
-	ed->tie->cmode = 0x0;
-	ed->tie->scap  = ed->policy->scap;
-	ed->tie->ccap = 0x0;
-	ed->tie->svsi = htons(LLDP_EVB_DEFAULT_SVSI);
-	ed->tie->cvsi = htons(0x0);
-	ed->tie->rte = LLDP_EVB_DEFAULT_RTE;
-
-	LLDPAD_INFO("%s:%s: filling last used EVB TLV, using default\n",
-		__func__, ed->ifname);
-	ed->last = (struct tlv_info_evb *)
-			calloc(1, sizeof(struct tlv_info_evb));
-
-	if (!ed->last) {
-		free(ed->policy);
-		free(ed->tie);
-		ed->policy = NULL;
-		ed->tie = NULL;
-		return ENOMEM;
-	}
-
-	ed->last->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD |
-			  LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
-	return 0;
-}
-
-static int evb_bld_tlv(struct evb_data *ed, struct lldp_agent *agent)
-{
-	int rc = 0;
-
-	if (!port_find_by_name(ed->ifname)) {
-		rc = EEXIST;
-		return rc;
-	}
-
-	if (evb_bld_cfg_tlv(ed, agent)) {
-		LLDPAD_DBG("%s:%s:evb_bld_cfg_tlv() failed\n",
-				__func__, ed->ifname);
-		rc = EINVAL;
-	}
-	return rc;
-}
-
-/*
  * Build the packed EVB TLV.
  * Returns a pointer to the packed tlv or 0 on failure.
  */
@@ -400,12 +258,11 @@ static void evb_ifdown(char *ifname, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
 
-	LLDPAD_DBG("%s port %s agent %d called\n", __func__, ifname,
-		   agent->type);
+	LLDPAD_DBG("%s:%s agent %d called\n", __func__, ifname, agent->type);
 
 	ed = evb_data(ifname, agent->type);
 	if (!ed) {
-		LLDPAD_DBG("%s:port %s agent %d does not exist.\n", __func__,
+		LLDPAD_DBG("%s:%s agent %d does not exist.\n", __func__,
 			   ifname, agent->type);
 		return;
 	}
@@ -414,10 +271,45 @@ static void evb_ifdown(char *ifname, struct lldp_agent *agent)
 	free(ed->tie);
 	free(ed->last);
 	LIST_REMOVE(ed, entry);
-	evb_free_tlv(ed);
 	free(ed);
-	LLDPAD_INFO("%s:port %s agent %d removed\n", __func__, ifname,
-		    agent->type);
+	LLDPAD_INFO("%s:%s agent %d removed\n", __func__, ifname, agent->type);
+}
+
+/*
+ * Fill up evb structure with reasonable info from the configuration file.
+ */
+static void evb_init_tlv(struct evb_data *ed, struct lldp_agent *agent)
+{
+	memset(&ed->last, 0, sizeof ed->last);
+	memset(&ed->tie, 0, sizeof ed->tie);
+	memset(&ed->policy, 0, sizeof ed->policy);
+
+	ed->txmit = evb_conf_enabletx(ed->ifname, agent->type);
+	if (!ed->txmit)
+		LLDPAD_DBG("%s:%s agent %d EVB tx is currently disabled\n",
+			   __func__, ed->ifname, agent->type);
+
+	hton24(ed->policy->oui, LLDP_MOD_EVB);
+	/* Get fmode/capabilities/rte/vsi from configuration file into policy */
+	ed->policy->smode = evb_conf_fmode(ed->ifname, agent->type);
+	ed->policy->scap = evb_conf_capa(ed->ifname, agent->type);
+	ed->policy->rte = evb_conf_rte(ed->ifname, agent->type);
+	ed->policy->svsi = htons(evb_conf_vsis(ed->ifname, agent->type));
+	ed->policy->cmode = 0;
+	ed->policy->ccap = 0;
+
+	hton24(ed->tie->oui, LLDP_MOD_EVB);
+	ed->tie->smode = ed->policy->smode;
+	ed->tie->cmode = 0;
+	ed->tie->scap  = ed->policy->scap;
+	ed->tie->ccap = 0;
+	ed->tie->svsi = ed->policy->svsi;
+	ed->tie->cvsi = 0;
+	ed->tie->rte = ed->policy->rte;
+
+	ed->last->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD |
+			  LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
+	evb_update_tlv(ed);
 }
 
 static void evb_ifup(char *ifname, struct lldp_agent *agent)
@@ -425,53 +317,35 @@ static void evb_ifup(char *ifname, struct lldp_agent *agent)
 	struct evb_data *ed;
 	struct evb_user_data *ud;
 
-	LLDPAD_DBG("%s port %s agent %d called\n", __func__, ifname,
-		   agent->type);
+	LLDPAD_DBG("%s:%s agent %d called\n", __func__, ifname, agent->type);
 
 	ed = evb_data(ifname, agent->type);
 	if (ed) {
-		LLDPAD_DBG("%s:%s already exists\n", __func__, ifname);
+		LLDPAD_DBG("%s:%s agent %d already exists\n", __func__, ifname,
+			   agent->type);
 		return;
 	}
 
 	/* not found, alloc/init per-port tlv data */
 	ed = (struct evb_data *) calloc(1, sizeof(struct evb_data));
 	if (!ed) {
-		LLDPAD_ERR("%s:%s malloc %zu failed\n",
-			   __func__, ifname, sizeof(*ed));
+		LLDPAD_ERR("%s:%s agent %d  malloc %zu failed\n",
+			   __func__, ifname, agent->type, sizeof(*ed));
 		return;
 	}
 	strncpy(ed->ifname, ifname, IFNAMSIZ);
 	ed->agenttype = agent->type;
 
-	if (evb_init_cfg_tlv(ed, agent)) {
-		LLDPAD_ERR("%s:%s failed\n", __func__, ifname);
-		goto out_free;
-	}
-
-	evb_bld_tlv(ed, agent);
+	evb_init_tlv(ed, agent);
 
 	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_EVB);
 	LIST_INSERT_HEAD(&ud->head, ed, entry);
-	LLDPAD_DBG("%s:port %s agent %d added\n", __func__, ifname,
-		   agent->type);
-	return;
-
-out_free:
-	free(ed->tie);
-	free(ed->last);
-	free(ed->policy);
-	free(ed);
+	LLDPAD_DBG("%s:%s agent %d added\n", __func__, ifname, agent->type);
 }
 
 static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
-
-	if (!is_tlv_txenabled(port->ifname, agent->type,
-			      TLVID_8021Qbg(LLDP_EVB_SUBTYPE))) {
-		goto out_err;
-	}
 
 	ed = evb_data(port->ifname, agent->type);
 	if (!ed) {
@@ -483,17 +357,10 @@ static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 	free(ed->tie);
 	free(ed->last);
 	free(ed->policy);
-
-	if (evb_init_cfg_tlv(ed, agent))
-		LLDPAD_ERR("%s:%s agent %d evb_init_cfg_tlv failed\n", __func__,
-			   port->ifname, agent->type);
-	else
-		evb_bld_tlv(ed, agent);
-
+	update_vdp_module(port->ifname, 0);
 out_err:
 	return 0;
 }
-
 
 /*
  * Remove all interface/agent specific evb data.
@@ -501,6 +368,7 @@ out_err:
 static void evb_free_data(struct evb_user_data *ud)
 {
 	struct evb_data *ed;
+
 	if (ud) {
 		while (!LIST_EMPTY(&ud->head)) {
 			ed = LIST_FIRST(&ud->head);
@@ -509,13 +377,10 @@ static void evb_free_data(struct evb_user_data *ud)
 			free(ed->tie);
 			free(ed->last);
 			free(ed->policy);
-			evb_free_tlv(ed);
-
 			free(ed);
 		}
 	}
 }
-
 
 void evb_unregister(struct lldp_module *mod)
 {
@@ -535,7 +400,7 @@ static const struct lldp_mod_ops evb_ops =  {
 	.lldp_mod_ifup		= evb_ifup,
 	.lldp_mod_ifdown	= evb_ifdown,
 	.lldp_mod_mibdelete	= evb_mibdelete,
-	.get_arg_handler	= evb_get_arg_handlers,
+	.get_arg_handler	= evb_get_arg_handlers
 };
 
 struct lldp_module *evb_register(void)
