@@ -558,12 +558,12 @@ struct lldp_module *evb_register(void)
 	struct lldp_module *mod;
 	struct evb_user_data *ud;
 
-	mod = malloc(sizeof(*mod));
+	mod = calloc(1, sizeof *mod);
 	if (!mod) {
 		LLDPAD_ERR("%s: failed to malloc module data\n", __func__);
 		return NULL;
 	}
-	ud = malloc(sizeof(struct evb_user_data));
+	ud = calloc(1, sizeof(struct evb_user_data));
 	if (!ud) {
 		free(mod);
 		LLDPAD_ERR("%s failed to malloc module user data\n", __func__);
