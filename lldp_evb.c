@@ -198,7 +198,8 @@ static void update_vdp_module(char *ifname, u8 ccap)
 
 	if (vdp) {
 		vdp->vdpbit_on = ccap & LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
-		LLDPAD_DBG("%s vdpbit_on %d\n", __func__, vdp->vdpbit_on);
+		LLDPAD_DBG("%s:%s vdpbit_on %d\n", __func__, ifname,
+			   vdp->vdpbit_on);
 	}
 }
 
@@ -343,9 +344,9 @@ static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 
 	ed = evb_data(port->ifname, agent->type);
 	if (!ed)
-		LLDPAD_DBG("%s: port %s agent %d does not exist.\n", __func__,
+		LLDPAD_DBG("%s:%s agent %d does not exist\n", __func__,
 			   port->ifname, agent->type);
-	else {
+	else if (agent->type == NEAREST_CUSTOMER_BRIDGE) {
 		memset(&ed->last, 0, sizeof ed->last);
 		update_vdp_module(port->ifname, 0);
 	}
