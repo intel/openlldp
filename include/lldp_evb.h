@@ -32,7 +32,7 @@
 #define LLDP_MOD_EVB		OUI_IEEE_8021Qbg
 #define LLDP_OUI_SUBTYPE	{ 0x00, 0x1b, 0x3f, 0x00 }
 
-struct tlv_info_evb {
+struct tlv_info_evb {	/* EVB TLV definition */
 	u8 oui[3];
 	u8 sub;
 	u8 smode;	/* supported forwarding mode */
@@ -48,10 +48,9 @@ struct evb_data {
 	char ifname[IFNAMSIZ];
 	enum agent_type agenttype;
 	bool txmit;			/* True when EVB transmits enabled */
-	struct unpacked_tlv *evb;	/* EVB settings to be sent */
-	struct tlv_info_evb *tie;	/* currently supported */
-	struct tlv_info_evb *last;	/* last received */
-	struct tlv_info_evb *policy;	/* local policy */
+	struct tlv_info_evb tie;	/* Currently supported */
+	struct tlv_info_evb last;	/* Last received */
+	struct tlv_info_evb policy;	/* Local policy */
 	LIST_ENTRY(evb_data) entry;
 };
 

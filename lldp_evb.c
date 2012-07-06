@@ -27,7 +27,6 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 
 #include "lldp.h"
 #include "lldp_tlv.h"
@@ -37,9 +36,7 @@
 #include "messages.h"
 #include "config.h"
 
-
 extern struct lldp_head lldp_head;
-extern int vdp_vsis(char *ifname);
 
 struct evb_data *evb_data(char *ifname, enum agent_type type)
 {
@@ -94,7 +91,7 @@ static void evb_dump_tlv(struct unpacked_tlv *tlv)
  */
 static void evb_update_tlv(struct evb_data *ed)
 {
-	struct tlv_info_evb *recv = ed->last;
+	struct tlv_info_evb *recv = &ed->last;
 	u8 valid = recv->smode &
 		   (LLDP_EVB_CAPABILITY_FORWARD_STANDARD |
 		    LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY);
@@ -113,39 +110,39 @@ static void evb_update_tlv(struct evb_data *ed)
 	/*
 	 * Check bridge capabilities against local policy
 	 * if bridge supports RR and we support it as well, request it
-	 * by setting smode in tlv to be sent out (ed->tie->smode)
+	 * by setting smode in tlv to be sent out (ed->tie.smode)
 	 */
-	if ((recv->smode & ed->policy->smode) &
+	if ((recv->smode & ed->policy.smode) &
 	    LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY)
-		ed->tie->cmode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
+		ed->tie.cmode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
 	else
-		ed->tie->cmode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
+		ed->tie.cmode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
 
 	/* If both sides support RTE, support and configure it */
-	if ((recv->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_RTE)
-		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
+	if ((recv->scap & ed->policy.scap) & LLDP_EVB_CAPABILITY_PROTOCOL_RTE)
+		ed->tie.ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
 	else
-		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
+		ed->tie.ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
 
-	if ((ed->tie->scap & LLDP_EVB_CAPABILITY_PROTOCOL_RTE) &&
-	    (recv->rte > 0) && (ed->policy->rte > 0))
-		ed->tie->rte = MAX(ed->policy->rte, recv->rte);
+	if ((ed->tie.scap & LLDP_EVB_CAPABILITY_PROTOCOL_RTE) &&
+	    (recv->rte > 0) && (ed->policy.rte > 0))
+		ed->tie.rte = MAX(ed->policy.rte, recv->rte);
 
 	/* If both sides support ECP, set it */
-	if ((recv->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_ECP)
-		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
+	if ((recv->scap & ed->policy.scap) & LLDP_EVB_CAPABILITY_PROTOCOL_ECP)
+		ed->tie.ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
 	else
-		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
+		ed->tie.ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
 
 	/* If both sides support VDP, set it. Also set number of VSIs */
-	if ((recv->scap & ed->policy->scap) & LLDP_EVB_CAPABILITY_PROTOCOL_VDP) {
-		ed->tie->ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
-		ed->tie->cvsi = htons(vdp_vsis(ed->ifname));
-		ed->tie->svsi = ed->policy->svsi;
+	if ((recv->scap & ed->policy.scap) & LLDP_EVB_CAPABILITY_PROTOCOL_VDP) {
+		ed->tie.ccap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+		ed->tie.cvsi = htons(vdp_vsis(ed->ifname));
+		ed->tie.svsi = ed->policy.svsi;
 	} else {
-		ed->tie->ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
-		ed->tie->cvsi = 0;
-		ed->tie->svsi = 0;
+		ed->tie.ccap &= ~LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+		ed->tie.cvsi = 0;
+		ed->tie.svsi = 0;
 	}
 }
 
@@ -240,16 +237,16 @@ static int evb_rchange(struct port *port, struct lldp_agent *agent,
 		LLDPAD_DBG("%s: %s agent %d received tlv:\n", __func__,
 			   port->ifname, agent->type);
 		evb_dump_tlv(tlv);
-		memcpy(ed->last, tlv->info, tlv->length);
-		evb_print_tlvinfo(ed->last);
+		memcpy(&ed->last, tlv->info, tlv->length);
+		evb_print_tlvinfo(&ed->last);
 
 		evb_update_tlv(ed);
 		somethingChangedLocal(ed->ifname, agent->type);
 
 		LLDPAD_DBG("%s: %s agent %d new tlv:\n", __func__,
 			   port->ifname, agent->type);
-		evb_print_tlvinfo(ed->tie);
-		update_vdp_module(port->ifname, ed->tie->ccap);
+		evb_print_tlvinfo(&ed->tie);
+		update_vdp_module(port->ifname, ed->tie.ccap);
 	}
 	return TLV_OK;
 }
@@ -267,9 +264,6 @@ static void evb_ifdown(char *ifname, struct lldp_agent *agent)
 		return;
 	}
 
-	free(ed->policy);
-	free(ed->tie);
-	free(ed->last);
 	LIST_REMOVE(ed, entry);
 	free(ed);
 	LLDPAD_INFO("%s:%s agent %d removed\n", __func__, ifname, agent->type);
@@ -289,25 +283,25 @@ static void evb_init_tlv(struct evb_data *ed, struct lldp_agent *agent)
 		LLDPAD_DBG("%s:%s agent %d EVB tx is currently disabled\n",
 			   __func__, ed->ifname, agent->type);
 
-	hton24(ed->policy->oui, LLDP_MOD_EVB);
+	hton24(ed->policy.oui, LLDP_MOD_EVB);
 	/* Get fmode/capabilities/rte/vsi from configuration file into policy */
-	ed->policy->smode = evb_conf_fmode(ed->ifname, agent->type);
-	ed->policy->scap = evb_conf_capa(ed->ifname, agent->type);
-	ed->policy->rte = evb_conf_rte(ed->ifname, agent->type);
-	ed->policy->svsi = htons(evb_conf_vsis(ed->ifname, agent->type));
-	ed->policy->cmode = 0;
-	ed->policy->ccap = 0;
+	ed->policy.smode = evb_conf_fmode(ed->ifname, agent->type);
+	ed->policy.scap = evb_conf_capa(ed->ifname, agent->type);
+	ed->policy.rte = evb_conf_rte(ed->ifname, agent->type);
+	ed->policy.svsi = htons(evb_conf_vsis(ed->ifname, agent->type));
+	ed->policy.cmode = 0;
+	ed->policy.ccap = 0;
 
-	hton24(ed->tie->oui, LLDP_MOD_EVB);
-	ed->tie->smode = ed->policy->smode;
-	ed->tie->cmode = 0;
-	ed->tie->scap  = ed->policy->scap;
-	ed->tie->ccap = 0;
-	ed->tie->svsi = ed->policy->svsi;
-	ed->tie->cvsi = 0;
-	ed->tie->rte = ed->policy->rte;
+	hton24(ed->tie.oui, LLDP_MOD_EVB);
+	ed->tie.smode = ed->policy.smode;
+	ed->tie.cmode = 0;
+	ed->tie.scap  = ed->policy.scap;
+	ed->tie.ccap = 0;
+	ed->tie.svsi = ed->policy.svsi;
+	ed->tie.cvsi = 0;
+	ed->tie.rte = ed->policy.rte;
 
-	ed->last->smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD |
+	ed->last.smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD |
 			  LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
 	evb_update_tlv(ed);
 }
@@ -348,17 +342,13 @@ static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 	struct evb_data *ed;
 
 	ed = evb_data(port->ifname, agent->type);
-	if (!ed) {
+	if (!ed)
 		LLDPAD_DBG("%s: port %s agent %d does not exist.\n", __func__,
 			   port->ifname, agent->type);
-		goto out_err;
+	else {
+		memset(&ed->last, 0, sizeof ed->last);
+		update_vdp_module(port->ifname, 0);
 	}
-
-	free(ed->tie);
-	free(ed->last);
-	free(ed->policy);
-	update_vdp_module(port->ifname, 0);
-out_err:
 	return 0;
 }
 
@@ -373,10 +363,6 @@ static void evb_free_data(struct evb_user_data *ud)
 		while (!LIST_EMPTY(&ud->head)) {
 			ed = LIST_FIRST(&ud->head);
 			LIST_REMOVE(ed, entry);
-
-			free(ed->tie);
-			free(ed->last);
-			free(ed->policy);
 			free(ed);
 		}
 	}
