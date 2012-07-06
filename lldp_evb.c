@@ -25,25 +25,17 @@
 ******************************************************************************/
 
 #define _GNU_SOURCE
-
-#include <net/if.h>
-#include <sys/queue.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <sys/utsname.h>
-#include <linux/if_bridge.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+
 #include "lldp.h"
 #include "lldp_tlv.h"
 #include "lldp_evb.h"
+#include "lldp_evb_cmds.h"
 #include "lldp_vdp.h"
 #include "messages.h"
 #include "config.h"
-#include "lldp_mand_clif.h"
-#include "lldp_evb_clif.h"
-#include "lldp_evb_cmds.h"
 
 
 extern struct lldp_head lldp_head;
