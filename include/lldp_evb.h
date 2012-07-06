@@ -32,18 +32,6 @@
 #define LLDP_MOD_EVB		OUI_IEEE_8021Qbg
 #define LLDP_OUI_SUBTYPE	{ 0x00, 0x1b, 0x3f, 0x00 }
 
-typedef enum {
-	EVB_OFFER_CAPABILITIES = 0,
-	EVB_CONFIGURE,
-	EVB_CONFIRMATION
-} evb_state;
-
-#define	EVB_RTE		13
-/* retransmission granularity (RTG) in microseconds */
-#define EVB_RTG		10
-/* retransmission multiplier (RTM) */
-#define EVB_RTM(rte)	(2<<(rte-1))
-
 struct tlv_info_evb {
 	u8 oui[3];
 	u8 sub;
