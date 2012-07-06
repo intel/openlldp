@@ -65,21 +65,13 @@ struct evb_data *evb_data(char *ifname, enum agent_type type)
 	return NULL;
 }
 
-static void evb_print_tlvinfo(struct tlv_info_evb *tie)
+static void evb_print_tlvinfo(struct tlv_info_evb *tlv)
 {
-	LLDPAD_INFO("%s: supported forwarding mode: %#02x\n", __func__,
-		    tie->smode);
-	LLDPAD_INFO("%s: configured forwarding mode: %#02x\n", __func__,
-		    tie->cmode);
-	LLDPAD_INFO("%s: supported capabilities: %#02x\n", __func__,
-		    tie->scap);
-	LLDPAD_INFO("%s: configured capabilities: %#02x\n", __func__,
-		    tie->ccap);
-	LLDPAD_INFO("%s: supported no. of vsis: %04i\n", __func__,
-		    ntohs(tie->svsi));
-	LLDPAD_INFO("%s: configured no. of vsis: %04i\n", __func__,
-		    ntohs(tie->cvsi));
-	LLDPAD_INFO("%s: rte: %02i\n", __func__, tie->rte);
+	LLDPAD_INFO("EVB supported/configured forwarding mode: %#02x/%#02x "
+		    "capabilities: %#02x/%#02x vsis: %04i/%04i "
+		    "rte: %02i\n",
+		    tlv->smode, tlv->cmode, tlv->scap, tlv->ccap,
+		    ntohs(tlv->svsi), ntohs(tlv->cvsi), tlv->rte);
 }
 
 static void evb_dump_tlv(struct unpacked_tlv *tlv)
