@@ -237,7 +237,7 @@ struct l2_packet_data * l2_packet_init(
 	memcpy(mr.mr_address, &nearest_nontpmr_bridge, ETH_ALEN);
 	if (setsockopt(l2->fd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
 		       sizeof(mr)) < 0)
-		perror("setsockopt nearest_customer_bridge");
+		perror("setsockopt nearest_nontpmr_bridge");
 
 	int option = 1;
 	int option_size = sizeof(option);
