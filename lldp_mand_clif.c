@@ -73,7 +73,7 @@ int mand_print_help()
 	while (tn->type != INVALID_TLVID) {
 		if (tn->key && strlen(tn->key) && tn->name) {
 			printf("   %s", tn->key);
-			if (strlen(tn->key)+3 <= 8)
+			if (strlen(tn->key)+3 < 8)
 				printf("\t");
 			printf("\t: %s\n", tn->name);
 		}
