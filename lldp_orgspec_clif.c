@@ -196,7 +196,7 @@ static void orgspec_print_protoid_tlv(u16 len, char *info)
 	unsigned char protoid[PROTOID_SIZE] = {0};
 	int i;
 
-	if (len < 4) {
+	if (len < 1) {
 		printf("Bad Protocol Identity TLV: %s\n", info);
 		return;
 	}
