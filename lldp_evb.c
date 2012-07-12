@@ -54,16 +54,16 @@ struct evb_data *evb_data(char *ifname, enum agent_type type)
 	return NULL;
 }
 
-static void evb_print_tlvinfo(struct tlv_info_evb *tlv)
+static void evb_print_tlvinfo(char *ifname, struct tlv_info_evb *tlv)
 {
-	LLDPAD_INFO("EVB supported/configured forwarding mode: %#02x/%#02x "
+	LLDPAD_INFO("%s evb supported/configured forwarding mode: %#02x/%#02x "
 		    "capabilities: %#02x/%#02x vsis: %04i/%04i "
-		    "rte: %02i\n",
+		    "rte: %02i\n", ifname,
 		    tlv->smode, tlv->cmode, tlv->scap, tlv->ccap,
 		    ntohs(tlv->svsi), ntohs(tlv->cvsi), tlv->rte);
 }
 
-static void evb_dump_tlv(struct unpacked_tlv *tlv)
+static void evb_dump_tlv(char *ifname, struct unpacked_tlv *tlv)
 {
 	int i, left = 0;
 	char buffer[256];
@@ -81,8 +81,8 @@ static void evb_dump_tlv(struct unpacked_tlv *tlv)
 			left += c;
 	}
 
-	LLDPAD_DBG("%s:type %i length %i info %s\n",
-		   __func__, tlv->type, tlv->length, buffer);
+	LLDPAD_DBG("%s:%s type %i length %i info %s\n",
+		   __func__, ifname, tlv->type, tlv->length, buffer);
 }
 
 /*
@@ -150,7 +150,7 @@ static void evb_update_tlv(struct evb_data *ed)
  * Build the packed EVB TLV.
  * Returns a pointer to the packed tlv or 0 on failure.
  */
-static struct packed_tlv *build_evb_tlv(struct evb_data *ed)
+static struct packed_tlv *evb_build_tlv(struct evb_data *ed)
 {
 	struct packed_tlv *ptlv = 0;
 	u8 infobuf[sizeof(struct tlv_info_evb)];
@@ -167,10 +167,12 @@ static struct packed_tlv *build_evb_tlv(struct evb_data *ed)
 	memcpy(tlv.info, &ed->tie, tlv.length);
 	ptlv = pack_tlv(&tlv);
 	if (ptlv) {
-		LLDPAD_DBG("%s: TLV about to be sent out:\n", __func__);
-		evb_dump_tlv(&tlv);
+		LLDPAD_DBG("%s:%s TLV about to be sent out:\n", __func__,
+			   ed->ifname);
+		evb_dump_tlv(ed->ifname, &tlv);
 	} else
-		LLDPAD_DBG("%s: failed to pack EVB TLV\n", __func__);
+		LLDPAD_DBG("%s:%s failed to pack EVB TLV\n", __func__,
+			   ed->ifname);
 	return ptlv;
 }
 
@@ -191,7 +193,7 @@ static struct packed_tlv *evb_gettlv(struct port *port,
 			   agent->type);
 		return 0;
 	}
-	return build_evb_tlv(ed);
+	return evb_build_tlv(ed);
 }
 
 /*
@@ -228,18 +230,18 @@ static int evb_rchange(struct port *port, struct lldp_agent *agent,
 			return TLV_OK;
 		}
 
-		LLDPAD_DBG("%s: %s agent %d received tlv:\n", __func__,
+		LLDPAD_DBG("%s:%s agent %d received tlv:\n", __func__,
 			   port->ifname, agent->type);
-		evb_dump_tlv(tlv);
+		evb_dump_tlv(ed->ifname, tlv);
 		memcpy(&ed->last, tlv->info, tlv->length);
-		evb_print_tlvinfo(&ed->last);
+		evb_print_tlvinfo(ed->ifname, &ed->last);
 
 		evb_update_tlv(ed);
 		somethingChangedLocal(ed->ifname, agent->type);
 
-		LLDPAD_DBG("%s: %s agent %d new tlv:\n", __func__,
+		LLDPAD_DBG("%s:%s agent %d new tlv:\n", __func__,
 			   port->ifname, agent->type);
-		evb_print_tlvinfo(&ed->tie);
+		evb_print_tlvinfo(ed->ifname, &ed->tie);
 		vdp_update(port->ifname, ed->tie.ccap);
 	}
 	return TLV_OK;
