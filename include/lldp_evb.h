@@ -48,6 +48,7 @@ struct evb_data {
 	char ifname[IFNAMSIZ];
 	enum agent_type agenttype;
 	bool txmit;			/* True when EVB transmits enabled */
+	bool vdp_start;			/* True when VDP module started */
 	struct tlv_info_evb tie;	/* Currently supported */
 	struct tlv_info_evb last;	/* Last received */
 	struct tlv_info_evb policy;	/* Local policy */

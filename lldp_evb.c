@@ -247,6 +247,15 @@ static int evb_rchange(struct port *port, struct lldp_agent *agent,
 	return TLV_OK;
 }
 
+/*
+ * Stop all modules which depend on EVB capabilities.
+ */
+static void evb_stop_modules(char *ifname, struct lldp_agent *agent)
+{
+	LLDPAD_DBG("%s:%s agent %d STOP\n", __func__, ifname, agent->type);
+	vdp_ifdown(ifname, agent);
+}
+
 static void evb_ifdown(char *ifname, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
@@ -262,6 +271,7 @@ static void evb_ifdown(char *ifname, struct lldp_agent *agent)
 		return;
 	}
 
+	evb_stop_modules(ifname, agent);
 	LIST_REMOVE(ed, entry);
 	free(ed);
 	LLDPAD_INFO("%s:%s agent %d removed\n", __func__, ifname, agent->type);
@@ -350,6 +360,44 @@ static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 }
 
 /*
+ * Start all modules which depend on EVB capabilities: ECP, VDP, CDCP.
+ */
+static void evb_start_modules(char *ifname, struct lldp_agent *agent)
+{
+	LLDPAD_DBG("%s:%s agent %d START\n", __func__, ifname, agent->type);
+	vdp_ifup(ifname, agent);
+}
+
+/*
+ * Check for stable interfaces. When an interface goes up the carrier might
+ * come and go during a start up time. Define a window during which the port
+ * is considered unstable for EVB/VDP protocols.
+ *
+ * Use the dormantDelay counter of the port to determine a stable interface.
+ */
+int evb_timer(struct port *port, struct lldp_agent *agent)
+{
+	struct evb_data *ed;
+	int bits = LLDP_EVB_CAPABILITY_PROTOCOL_ECP |
+			LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+
+	if (agent->type != NEAREST_CUSTOMER_BRIDGE)
+		return 0;
+	ed = evb_data(port->ifname, agent->type);
+	if (!ed)
+		return 0;
+	if (!ed->vdp_start &&
+	    (port->dormantDelay == 1 || (bits & ed->tie.ccap) == bits)) {
+		ed->vdp_start = true;
+		evb_start_modules(port->ifname, agent);
+		vdp_update(port->ifname, ed->tie.ccap);
+	}
+	LLDPAD_DBG("%s:%s agent %d dormantDelay:%d\n",
+		   __func__, port->ifname, agent->type, port->dormantDelay);
+	return 0;
+}
+
+/*
  * Remove all interface/agent specific evb data.
  */
 static void evb_free_data(struct evb_user_data *ud)
@@ -383,6 +431,7 @@ static const struct lldp_mod_ops evb_ops =  {
 	.lldp_mod_ifup		= evb_ifup,
 	.lldp_mod_ifdown	= evb_ifdown,
 	.lldp_mod_mibdelete	= evb_mibdelete,
+	.timer			= evb_timer,
 	.get_arg_handler	= evb_get_arg_handlers
 };
 

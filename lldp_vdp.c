@@ -1583,8 +1583,6 @@ out_err:
 static const struct lldp_mod_ops vdp_ops =  {
 	.lldp_mod_register	= vdp_register,
 	.lldp_mod_unregister	= vdp_unregister,
-	.lldp_mod_ifup		= vdp_ifup,
-	.lldp_mod_ifdown	= vdp_ifdown,
 	.get_arg_handler	= vdp_get_arg_handlers,
 };
 
