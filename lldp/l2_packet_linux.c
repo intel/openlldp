@@ -214,6 +214,9 @@ struct l2_packet_data * l2_packet_init(
 		memcpy(l2->perm_mac_addr, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
 		memset(l2->san_mac_addr, 0xff, ETH_ALEN);
 	}
+	LLDPAD_DBG("%s mac:" MACSTR " perm:" MACSTR " san:" MACSTR "\n",
+		   ifname, MAC2STR(l2->curr_mac_addr),
+		   MAC2STR(l2->perm_mac_addr), MAC2STR(l2->san_mac_addr));
 
 	struct packet_mreq mr;
 	memset(&mr, 0, sizeof(mr));
