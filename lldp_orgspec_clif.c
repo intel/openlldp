@@ -160,8 +160,8 @@ static void orgspec_print_ppvid_tlv(u16 len, char *info)
 		return;
 	}
 	printf("PVID: %x,%s supported,%s enabled",
-	       ntohs(pvid), flags&1 ? "" : " not",
-	       flags & 2 ? "" : " not");
+	       ntohs(pvid), flags & 2 ? "" : " not",
+	       flags & 1 ? "" : " not");
 	printf("\n");
 }
 
