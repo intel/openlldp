@@ -183,6 +183,8 @@ static struct packed_tlv *evb_gettlv(struct port *port,
 {
 	struct evb_data *ed;
 
+	if (agent->type != NEAREST_CUSTOMER_BRIDGE)
+		return 0;
 	ed = evb_data(port->ifname, agent->type);
 	if (!ed) {
 		LLDPAD_ERR("%s:%s agent %d failed\n", __func__, port->ifname,
@@ -214,6 +216,8 @@ static int evb_rchange(struct port *port, struct lldp_agent *agent,
 	struct evb_data *ed;
 	u8 oui_subtype[OUI_SUB_SIZE] = LLDP_OUI_SUBTYPE;
 
+	if (agent->type != NEAREST_CUSTOMER_BRIDGE)
+		return 0;
 	ed = evb_data(port->ifname, agent->type);
 
 	if (!ed)
@@ -256,6 +260,8 @@ static void evb_ifdown(char *ifname, struct lldp_agent *agent)
 {
 	struct evb_data *ed;
 
+	if (agent->type != NEAREST_CUSTOMER_BRIDGE)
+		return;
 	LLDPAD_DBG("%s:%s agent %d called\n", __func__, ifname, agent->type);
 
 	ed = evb_data(ifname, agent->type);
@@ -312,6 +318,8 @@ static void evb_ifup(char *ifname, struct lldp_agent *agent)
 	struct evb_data *ed;
 	struct evb_user_data *ud;
 
+	if (agent->type != NEAREST_CUSTOMER_BRIDGE)
+		return;
 	LLDPAD_DBG("%s:%s agent %d called\n", __func__, ifname, agent->type);
 
 	ed = evb_data(ifname, agent->type);
@@ -343,10 +351,7 @@ static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 	struct evb_data *ed;
 
 	ed = evb_data(port->ifname, agent->type);
-	if (!ed)
-		LLDPAD_DBG("%s:%s agent %d does not exist\n", __func__,
-			   port->ifname, agent->type);
-	else if (agent->type == NEAREST_CUSTOMER_BRIDGE) {
+	if (ed && (agent->type == ed->agenttype)) {
 		memset(&ed->last, 0, sizeof ed->last);
 		update_vdp_module(port->ifname, 0);
 	}
