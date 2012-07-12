@@ -395,23 +395,26 @@ void print_power_mdi(u16 len, char *info)
 	hexstr2bin(info+2, (u8 *)&pse_power, sizeof(pse_power));
 	hexstr2bin(info+4, (u8 *)&power_class, sizeof(power_class));
 
-	printf("Port class %s", (mdi_power & 0x01) ? "PSE" : "PD");
-	printf(", PSE MDI power %ssupported", (mdi_power & 0x02) ? "" : "not ");
+	printf("Port class %s\n\t", (mdi_power & 0x01) ? "PSE" : "PD");
+	printf("PSE MDI power %ssupported\n\t",
+	       (mdi_power & 0x02) ? "" : "not ");
 	if (mdi_power & 0x02)
 		printf(" and %s", (mdi_power & 0x04) ? "enabled" : "disabled");
-	printf(", PSE pairs %scontrollable", (mdi_power & 0x08) ? "" : "not ");
+	printf("PSE pairs %scontrollable\n\t",
+	       (mdi_power & 0x08) ? "" : "not ");
 
 	/* pethPsePortPowerPair - IETF RFC 3621 */
-	printf(", PSE Power pair: ");
+	printf("PSE Power pair: ");
 	if (pse_power == 1)
 		printf("signal");
 	else if (pse_power == 2)
 		printf("spare");
 	else
 		printf("unkwown [%d]", pse_power);
+	printf("\n\t");
 
 	/* pethPsePortPowerClassifications - IETF RFC 3621 */
-	printf(", Power class %d\n", power_class+1);
+	printf("Power class %d\n", power_class+1);
 }
 
 void print_link_agg(u16 len, char *info)
