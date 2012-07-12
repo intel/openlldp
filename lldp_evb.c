@@ -194,17 +194,6 @@ static struct packed_tlv *evb_gettlv(struct port *port,
 	return build_evb_tlv(ed);
 }
 
-static void update_vdp_module(char *ifname, u8 ccap)
-{
-	struct vdp_data *vdp = vdp_data(ifname);
-
-	if (vdp) {
-		vdp->vdpbit_on = ccap & LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
-		LLDPAD_DBG("%s:%s vdpbit_on %d\n", __func__, ifname,
-			   vdp->vdpbit_on);
-	}
-}
-
 /*
  * evb_rchange: process received EVB TLV LLDPDU
  *
@@ -251,7 +240,7 @@ static int evb_rchange(struct port *port, struct lldp_agent *agent,
 		LLDPAD_DBG("%s: %s agent %d new tlv:\n", __func__,
 			   port->ifname, agent->type);
 		evb_print_tlvinfo(&ed->tie);
-		update_vdp_module(port->ifname, ed->tie.ccap);
+		vdp_update(port->ifname, ed->tie.ccap);
 	}
 	return TLV_OK;
 }
@@ -353,7 +342,7 @@ static u8 evb_mibdelete(struct port *port, struct lldp_agent *agent)
 	ed = evb_data(port->ifname, agent->type);
 	if (ed && (agent->type == ed->agenttype)) {
 		memset(&ed->last, 0, sizeof ed->last);
-		update_vdp_module(port->ifname, 0);
+		vdp_update(port->ifname, 0);
 	}
 	return 0;
 }

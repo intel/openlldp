@@ -1636,3 +1636,14 @@ void vdp_unregister(struct lldp_module *mod)
 	free(mod);
 	LLDPAD_DBG("%s: done\n", __func__);
 }
+
+void vdp_update(char *ifname, u8 ccap)
+{
+	struct vdp_data *vdp = vdp_data(ifname);
+
+	if (vdp) {
+		vdp->vdpbit_on = ccap & LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+		LLDPAD_DBG("%s:%s vdpbit_on %d\n", __func__, ifname,
+			   vdp->vdpbit_on);
+	}
+}

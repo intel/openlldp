@@ -150,6 +150,7 @@ void vdp_vsi_sm_station(struct vsi_profile *);
 struct vsi_profile *vdp_add_profile(struct vsi_profile *);
 int vdp_remove_profile(struct vsi_profile *);
 void vdp_somethingChangedLocal(struct vsi_profile *, bool);
+void vdp_update(char *, u8);
 
 void vdp_ack_profiles(struct vdp_data *, int);
 void vdp_advance_sm(struct vdp_data *);
