@@ -849,37 +849,6 @@ int get_maucaps(const char *ifname)
 	return caps;
 }
 
-/* IETF RFC 2668 dot3MauType: http://www.rfc-editor.org/rfc/rfc2668.txt */
-#define DOT3MAUTYPE_AUI 1
-#define DOT3MAUTYPE_10Base5 2
-#define DOT3MAUTYPE_Foirl 3
-#define DOT3MAUTYPE_10Base2 4
-#define DOT3MAUTYPE_10BaseT 5
-#define DOT3MAUTYPE_10BaseFP 6
-#define DOT3MAUTYPE_10BaseFB 7
-#define DOT3MAUTYPE_10BaseFL 8
-#define DOT3MAUTYPE_10Broad36 9
-#define DOT3MAUTYPE_10BaseTHD 10
-#define DOT3MAUTYPE_10BaseTFD 11
-#define DOT3MAUTYPE_10BaseFLHD 12
-#define DOT3MAUTYPE_10BaseFLFD 13
-#define DOT3MAUTYPE_100BaseT4 14
-#define DOT3MAUTYPE_100BaseTXHD 15
-#define DOT3MAUTYPE_100BaseTXFD 16
-#define DOT3MAUTYPE_100BaseFXHD 17
-#define DOT3MAUTYPE_100BaseFXFD 18
-#define DOT3MAUTYPE_100BaseT2HD 19
-#define DOT3MAUTYPE_100BaseT2FD 20
-#define DOT3MAUTYPE_1000BaseXHD 21
-#define DOT3MAUTYPE_1000BaseXFD 22
-#define DOT3MAUTYPE_1000BaseLXHD 23
-#define DOT3MAUTYPE_1000BaseLXFD 24
-#define DOT3MAUTYPE_1000BaseSXHD 25
-#define DOT3MAUTYPE_1000BaseSXFD 26
-#define DOT3MAUTYPE_1000BaseCXHD 27
-#define DOT3MAUTYPE_1000BaseCXFD 28
-#define DOT3MAUTYPE_1000BaseTHD 29
-#define DOT3MAUTYPE_1000BaseTFD 30
 int get_mautype(const char *ifname)
 {
 	int rc = 0;

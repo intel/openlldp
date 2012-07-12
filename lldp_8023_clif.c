@@ -35,6 +35,7 @@
 #include "lldp.h"
 #include "lldp_8023.h"
 #include "lldp_8023_clif.h"
+#include "lldp_util.h"
 
 void print_mac_phy(u16, char *info);
 void print_power_mdi(u16, char *info);
@@ -132,128 +133,243 @@ void print_mac_phy(u16 len, char *info)
 	printf("\tPMD auto-negotiation capabilities: 0x%04x\n",
 	       pmd_autoneg_cap);
 
-	/* See dot3MauType IETF RFC 3636 */
+	/* See dot3MauType IETF RFC 4836 && */
+	/*                 IANA MAU MIB     */
 	printf("\tMAU type:");
 	switch (mau_type) {
-	case 1:
+	case DOT3MAUTYPE_AUI:
 		printf(" AUI");
 		break;
-	case 2:
+	case DOT3MAUTYPE_10Base5:
 		printf(" 10 Base5");
 		break;
-	case 3:
+	case DOT3MAUTYPE_Foirl:
 		printf(" FOIRL");
 		break;
-	case 4:
+	case DOT3MAUTYPE_10Base2:
 		printf(" 10 Base2");
 		break;
-	case 5:
+	case DOT3MAUTYPE_10BaseT:
 		printf(" 10 BaseT");
 		break;
-	case 6:
+	case DOT3MAUTYPE_10BaseFP:
 		printf(" 10 BaseFP");
 		break;
-	case 7:
+	case DOT3MAUTYPE_10BaseFB:
 		printf(" 10 BaseFB");
 		break;
-	case 8:
+	case DOT3MAUTYPE_10BaseFL:
 		printf(" 10 BaseFL");
 		break;
-	case 9:
+	case DOT3MAUTYPE_10Broad36:
 		printf(" 10 Broad 36");
 		break;
-	case 10:
+	case DOT3MAUTYPE_10BaseTHD:
 		printf(" 100 BaseTHD");
 		break;
-	case 11:
+	case DOT3MAUTYPE_10BaseTFD:
 		printf(" 100 BaseTFD");
 		break;
-	case 12:
+	case DOT3MAUTYPE_10BaseFLHD:
 		printf(" 100 BaseFLHD");
 		break;
-	case 13:
+	case DOT3MAUTYPE_10BaseFLFD:
 		printf(" 100 BaseFLFD");
 		break;
-	case 14:
+	case DOT3MAUTYPE_100BaseT4:
 		printf(" 100 BaseT4");
 		break;
-	case 15:
+	case DOT3MAUTYPE_100BaseTXHD:
 		printf(" 100 BaseTXHD");
 		break;
-	case 16:
+	case DOT3MAUTYPE_100BaseTXFD:
 		printf(" 100 BaseTXFD");
 		break;
-	case 17:
+	case DOT3MAUTYPE_100BaseFXHD:
 		printf(" 100 BaseFXHD");
 		break;
-	case 18:
+	case DOT3MAUTYPE_100BaseFXFD:
 		printf(" 100 BaseFXFD");
 		break;
-	case 19:
+	case DOT3MAUTYPE_100BaseT2HD:
 		printf(" 100 BaseT2HD");
 		break;
-	case 20:
+	case DOT3MAUTYPE_100BaseT2FD:
 		printf(" 100 BaseT2FD");
 		break;
-	case 21:
+	case DOT3MAUTYPE_1000BaseXHD:
 		printf(" 1000 BaseXHD");
 		break;
-	case 22:
+	case DOT3MAUTYPE_1000BaseXFD:
 		printf(" 1000 BaseXFD");
 		break;
-	case 23:
+	case DOT3MAUTYPE_1000BaseLXHD:
 		printf(" 1000 BaseLXHD");
 		break;
-	case 24:
+	case DOT3MAUTYPE_1000BaseLXFD:
 		printf(" 1000 BaseLXFD");
 		break;
-	case 25:
+	case DOT3MAUTYPE_1000BaseSXHD:
 		printf(" 1000 BaseSXHD");
 		break;
-	case 26:
+	case DOT3MAUTYPE_1000BaseSXFD:
 		printf(" 1000 BaseSXFD");
 		break;
-	case 27:
+	case DOT3MAUTYPE_1000BaseCXHD:
 		printf(" 1000 BaseCXHD");
 		break;
-	case 28:
+	case DOT3MAUTYPE_1000BaseCXFD:
 		printf(" 1000 BaseCXFD");
 		break;
-	case 29:
+	case DOT3MAUTYPE_1000BaseTHD:
 		printf(" 1000 BaseTHD");
 		break;
-	case 30:
+	case DOT3MAUTYPE_1000BaseTFD:
 		printf(" 1000 BaseTFD");
 		break;
-	case 31:
+	case DOT3MAUTYPE_10GBaseX:
 		printf(" 10G BaseX");
 		break;
-	case 32:
+	case DOT3MAUTYPE_10GBaseLX4:
 		printf(" 10G BaseLX4");
 		break;
-	case 33:
+	case DOT3MAUTYPE_10GBaseR:
 		printf(" 10G BaseR");
 		break;
-	case 34:
+	case DOT3MAUTYPE_10GBaseER:
 		printf(" 10G BaseER");
 		break;
-	case 35:
+	case DOT3MAUTYPE_10GBaseLR:
 		printf(" 10G BaseLR");
 		break;
-	case 36:
+	case DOT3MAUTYPE_10GBaseSR:
 		printf(" 10G BaseSR");
 		break;
-	case 37:
+	case DOT3MAUTYPE_10GBaseW:
 		printf(" 10G BaseW");
 		break;
-	case 38:
+	case DOT3MAUTYPE_10GBaseEW:
 		printf(" 10G BaseEW");
 		break;
-	case 39:
+	case DOT3MAUTYPE_10GBaseLW:
 		printf(" 10G BaseLW");
 		break;
-	case 40:
+	case DOT3MAUTYPE_10GBaseSW:
 		printf(" 10G BaseSW");
+		break;
+	case DOT3MAUTYPE_10GBaseCX4:
+		printf(" 10G BaseCX4");
+		break;
+	case DOT3MAUTYPE_2BaseTL:
+		printf(" 2 BaseTL");
+		break;
+	case DOT3MAUTYPE_10PassTS:
+		printf(" 10 PassTS");
+		break;
+	case DOT3MAUTYPE_100BaseBX10D:
+		printf(" 100 BaseBX10D");
+		break;
+	case DOT3MAUTYPE_100BaseBX10U:
+		printf(" 100 BaseBX10U");
+		break;
+	case DOT3MAUTYPE_100BaseLX10:
+		printf(" 100 BaseLX10");
+		break;
+	case DOT3MAUTYPE_1000BaseBX10D:
+		printf(" 1000 BaseBX10D");
+		break;
+	case DOT3MAUTYPE_1000BaseBX10U:
+		printf(" 1000 BaseBX10U");
+		break;
+	case DOT3MAUTYPE_1000BaseLX10:
+		printf(" 1000 BaseLX10");
+		break;
+	case DOT3MAUTYPE_1000BasePX10D:
+		printf(" 1000 BasePX10D");
+		break;
+	case DOT3MAUTYPE_1000BasePX10U:
+		printf(" 1000 BasePX10U");
+		break;
+	case DOT3MAUTYPE_1000BasePX20D:
+		printf(" 1000 BasePX20D");
+		break;
+	case DOT3MAUTYPE_1000BasePX20U:
+		printf(" 1000 BasePX20U");
+		break;
+	case DOT3MAUTYPE_10GBaseT:
+		printf(" 10G BaseT");
+		break;
+	case DOT3MAUTYPE_10GBaseLRM:
+		printf(" 10G BaseLRM");
+		break;
+	case DOT3MAUTYPE_1000BaseKX:
+		printf(" 1000 BaseKX");
+		break;
+	case DOT3MAUTYPE_10GBaseKX4:
+		printf(" 10G BaseKX4");
+		break;
+	case DOT3MAUTYPE_10GBaseKR:
+		printf(" 10G BaseKR");
+		break;
+	case DOT3MAUTYPE_10_1GBasePRXD1:
+		printf(" 10/1G BasePRXD1");
+		break;
+	case DOT3MAUTYPE_10_1GBasePRXD2:
+		printf(" 10/1G BasePRXD2");
+		break;
+	case DOT3MAUTYPE_10_1GBasePRXD3:
+		printf(" 10/1G BasePRXD3");
+		break;
+	case DOT3MAUTYPE_10_1GBasePRXU1:
+		printf(" 10/1G BasePRXU1");
+		break;
+	case DOT3MAUTYPE_10_1GBasePRXU2:
+		printf(" 10/1G BasePRXU2");
+		break;
+	case DOT3MAUTYPE_10_1GBasePRXU3:
+		printf(" 10/1G BasePRXU3");
+		break;
+	case DOT3MAUTYPE_10GBasePRD1:
+		printf(" 10G BasePRD1");
+		break;
+	case DOT3MAUTYPE_10GBasePRD2:
+		printf(" 10G BasePRD2");
+		break;
+	case DOT3MAUTYPE_10GBasePRD3:
+		printf(" 10G BasePRD3");
+		break;
+	case DOT3MAUTYPE_10GBasePRU1:
+		printf(" 10G BasePRU1");
+		break;
+	case DOT3MAUTYPE_10GBasePRU3:
+		printf(" 10G BasePRU3");
+		break;
+	case DOT3MAUTYPE_40GBaseKR4:
+		printf(" 40G BaseKR4");
+		break;
+	case DOT3MAUTYPE_40GBaseCR4:
+		printf(" 40G BaseCR4");
+		break;
+	case DOT3MAUTYPE_40GBaseSR4:
+		printf(" 40G BaseSR4");
+		break;
+	case DOT3MAUTYPE_40GBaseFR:
+		printf(" 40G BaseFR");
+		break;
+	case DOT3MAUTYPE_40GBaseLR4:
+		printf(" 40G BaseLR4");
+		break;
+	case DOT3MAUTYPE_100GBaseCR10:
+		printf(" 100G BaseCR10");
+		break;
+	case DOT3MAUTYPE_100GBaseSR10:
+		printf(" 100G BaseSR10");
+		break;
+	case DOT3MAUTYPE_100GBaseLR4:
+		printf(" 100G BaseLR4");
+		break;
+	case DOT3MAUTYPE_100GBaseER4:
+		printf(" 100G BaseER4");
 		break;
 	default:
 		printf(" Unknown [0x%04x]", mau_type);
