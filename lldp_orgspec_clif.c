@@ -151,7 +151,7 @@ static void orgspec_print_ppvid_tlv(u16 len, char *info)
 		printf("Unable to decode PVID flags !\n");
 		return;
 	}
-	if (flags & 2 && !(flags & 1)) {
+	if (flags & 2 && (flags & 1) != 0) {
 		printf("Error decoding ppvid, discard\n");
 		return;
 	}
