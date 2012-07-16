@@ -67,8 +67,11 @@ fi
 %doc ChangeLog
 %{_sbindir}/*
 %dir /var/lib/lldpad
-/etc/init.d/lldpad
+%{_sysconfdir}/init.d/lldpad
+%{_sysconfdir}/bash_completion.d/lldpad
+%{_sysconfdir}/bash_completion.d/lldptool
 %{_mandir}/man8/*
+%{_libdir}/liblldp_clif.*
 
 %files devel
 %defattr(-,root,root,-)
