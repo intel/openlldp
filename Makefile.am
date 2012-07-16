@@ -117,14 +117,9 @@ BASH_COMPLETION_DIR=/etc/bash_completion.d/
 
 install-data-hook:
 	/sbin/chkconfig --add lldpad || true
-	## provide legacy support for apps that use the old dcbd interface.
-	test -e $(includedir)/dcbd || `ln -T -s $(includedir)/lldpad $(includedir)/dcbd`
-	test -e $(includedir)/dcbd/clif_cmds.h || `ln -T -s $(includedir)/lldpad/lldp_dcbx_cmds.h $(includedir)/dcbd/clif_cmds.h`
-	if [ ! -d "${BASH_COMPLETION_DIR}" ] ; then \
-		mkdir ${BASH_COMPLETION_DIR}; \
-	fi; \
-	cp -f ${srcdir}/contrib/bash_completion/* ${BASH_COMPLETION_DIR}
-
+	## provide support for bash completion
+	$(MKDIR_P) $(DESTDIR)/$(BASH_COMPLETION_DIR)
+	$(INSTALL_SCRIPT) ${srcdir}/contrib/bash_completion/* $(DESTDIR)/$(BASH_COMPLETION_DIR)
 
 uninstall-local:
 	/sbin/chkconfig --del lldpad || true
