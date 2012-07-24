@@ -392,8 +392,6 @@ int evb_timer(struct port *port, struct lldp_agent *agent)
 		evb_start_modules(port->ifname, agent);
 		vdp_update(port->ifname, ed->tie.ccap);
 	}
-	LLDPAD_DBG("%s:%s agent %d dormantDelay:%d\n",
-		   __func__, port->ifname, agent->type, port->dormantDelay);
 	return 0;
 }
 
