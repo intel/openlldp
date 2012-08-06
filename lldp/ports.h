@@ -80,6 +80,7 @@ struct port {
 	u8 hw_resetting;
 	u8 portEnabled;
 	u8 prevPortEnabled;
+	u8 bond_master;		/* True if a bond master */
 	struct porttimers *timers;
 
 	u16 dormantDelay;

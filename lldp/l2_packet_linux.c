@@ -67,9 +67,11 @@ int l2_packet_get_own_src_addr(struct l2_packet_data *l2, u8 *addr)
 		/* get an appropriate src MAC to use if the port is
 	 	* part of a bond.
 		*/
-		struct port *bond_port = bond_porthead;
+		struct port *bond_port = porthead;
 		while (bond_port != NULL) {
-			if (get_src_mac_from_bond(bond_port, l2->ifname, addr))
+			if (bond_port->bond_master
+			    && get_src_mac_from_bond(bond_port, l2->ifname,
+						     addr))
 				return 0;
 
 			bond_port = bond_port->next;

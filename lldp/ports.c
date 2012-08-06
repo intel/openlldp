@@ -41,6 +41,7 @@
 #include "lldp_dcbx_nl.h"
 #include "agent.h"
 #include "lldp_dcbx_nl.h"
+#include "lldp_util.h"
 
 struct port *porthead = NULL; /* port Head pointer */
 
@@ -291,6 +292,7 @@ struct port *add_port(const char *ifname)
 		goto fail;
 	}
 
+	newport->bond_master = is_bond(ifname);
 	/* Initialize relevant port variables */
 	newport->hw_resetting = false;
 	newport->portEnabled = false;
