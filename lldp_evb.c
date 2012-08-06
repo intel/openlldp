@@ -103,7 +103,9 @@ static void evb_update_tlv(struct evb_data *ed)
 	 * - enable local tx
 	 */
 	if (!valid) {
-		LLDPAD_ERR("Neither standard nor rr set as forwarding modes\n");
+		LLDPAD_ERR("Neither standard nor rr set as forwarding modes ");
+		LLDPAD_ERR("for interface - %s\n", ed->ifname);
+
 		return;
 	}
 
