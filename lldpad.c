@@ -168,7 +168,6 @@ lldpad_reconfig(UNUSED int sig, UNUSED void *eloop_ctx, UNUSED void *signal_ctx)
 	clean_lldp_agents();
 	deinit_modules();
 	remove_all_adapters();
-	remove_all_bond_ports();
 	destroy_cfg();
 
 	/* Reinit config file and modules */
@@ -424,7 +423,6 @@ int main(int argc, char *argv[])
 	clean_lldp_agents();
 	deinit_modules();
 	remove_all_adapters();
-	remove_all_bond_ports();
 	ctrl_iface_deinit(clifd);  /* free's clifd */
 	event_iface_deinit();
 	stop_lldp_agents();

@@ -144,9 +144,4 @@ int l2_packet_send(struct l2_packet_data *l2, const u8 *dst_addr, u16 proto,
 
 void l2_packet_get_port_state(struct l2_packet_data *, u8 *);
 
-struct port * add_bond_port(const char *ifname);
-int remove_bond_port(const char *ifname);
-void recv_on_bond(void *ctx, int ifindex, const u8 *buf, size_t len);
-void remove_all_bond_ports(void);
-
 #endif /* L2_PACKET_H */
