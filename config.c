@@ -162,12 +162,8 @@ void scan_port(UNUSED void *eloop_data, UNUSED void *user_ctx)
 		}
 
 		port = port_find_by_name(p->if_name);
-		if (!port) {
-			if (is_bond(p->if_name))
-				port = add_bond_port(p->if_name);
-			else
-				port = add_port(p->if_name);
-		}
+		if (!port)
+			port = add_port(p->if_name);
 
 		if (port && check_link_status(ifname)) {
 			set_port_oper_delay(ifname);
@@ -374,10 +370,7 @@ void init_ports(void)
 			continue;
 		}
 
-		if (is_bond(p->if_name))
-			port = add_bond_port(p->if_name);
-		else
-			port = add_port(p->if_name);
+		port = add_port(p->if_name);
 
 		if (port == NULL) {
 			LLDPAD_ERR("%s: Error adding device %s\n",

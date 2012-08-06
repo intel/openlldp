@@ -204,10 +204,7 @@ int oper_add_device(char *device_name)
 	}
 
 	if (!port) {
-		if (is_bond(device_name))
-			newport = add_bond_port(device_name);
-		else
-			newport = add_port(device_name);
+		newport = add_port(device_name);
 
 		if (newport == NULL) {
 			LLDPAD_INFO("%s: Error adding device %s\n",
@@ -217,7 +214,7 @@ int oper_add_device(char *device_name)
 
 		LLDPAD_INFO("%s: Adding device %s\n", __func__, device_name);
 		port = newport;
-	} else if (!port->portEnabled)
+	} else if (is_bond(device_name) || !port->portEnabled)
 		reinit_port(device_name);
 
 	lldp_add_agent(device_name, NEAREST_BRIDGE);

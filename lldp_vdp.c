@@ -1494,10 +1494,6 @@ void vdp_ifup(char *ifname, struct lldp_agent *agent)
 	struct vsi_profile *p;
 	int enabletx = false;
 
-	/* VDP does not support bonded devices */
-	if (is_bond(ifname))
-		return;
-
 	LLDPAD_DBG("%s: %s agent:%d start VDP\n",
 		   __func__, ifname, agent->type);
 
