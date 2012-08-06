@@ -273,7 +273,8 @@ static void evb_ifdown(char *ifname, struct lldp_agent *agent)
 		return;
 	}
 
-	evb_stop_modules(ifname, agent);
+	if (ed->vdp_start)
+		evb_stop_modules(ifname, agent);
 	LIST_REMOVE(ed, entry);
 	free(ed);
 	LLDPAD_INFO("%s:%s agent %d removed\n", __func__, ifname, agent->type);
