@@ -114,10 +114,8 @@ int hexstr2bin(const char *hex, u8 *buf, size_t len)
 
 	for (i = 0; i < len; i++) {
 		a = hex2byte(ipos);
-		if (a < 0) {
-			printf("ipos=%2.2s, a=%x\n", ipos, a);
+		if (a < 0)
 			return -1;
-		}
 		*opos++ = a;
 		ipos += 2;
 	}

@@ -452,7 +452,7 @@ out_set:
 	length += sizeof(struct tlv_info_maif);
 	o = (struct tlv_info_maoid *)&data[length];
 	o->len = 0;
-	length += sizeof(o->len);
+	length += sizeof(o->len) + o->len;
 
 	tlv = create_tlv();
 	if (!tlv)
