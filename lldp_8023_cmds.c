@@ -95,7 +95,7 @@ get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 }
 
 static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-				char *obuf, bool test)
+				char *obuf, int obuf_len, bool test)
 {
 	int value;
 	char arg_path[256];
@@ -132,22 +132,22 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 		    CONFIG_TYPE_BOOL))
 		return cmd_failed;
 
-	sprintf(obuf, "enableTx = %s\n", value ? "yes" : "no");
+	snprintf(obuf, obuf_len, "enableTx = %s\n", value ? "yes" : "no");
 	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	return cmd_success;
 }
 
 static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, UNUSED int obuf_len)
+			       char *obuf, int obuf_len)
 {
-	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, false);
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, false);
 }
 
 static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
-			       char *obuf, UNUSED int obuf_len)
+			       char *obuf, int obuf_len)
 {
-	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, true);
+	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, true);
 }
 
 struct arg_handlers *ieee8023_get_arg_handlers()

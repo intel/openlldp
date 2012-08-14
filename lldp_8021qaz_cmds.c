@@ -594,7 +594,7 @@ static int get_arg_tcbw(struct cmd *cmd, char *args,
 		strncat(buf, cat, sizeof(buf) - strlen(buf) - 1);
 	}
 
-	sprintf(obuf, "%02x%s%04x%s", (unsigned int) strlen(args),
+	snprintf(obuf, obuf_len, "%02x%s%04x%s", (unsigned int) strlen(args),
 		args, (unsigned int) strlen(buf), buf);
 
 	return cmd_success;
@@ -743,7 +743,7 @@ static int get_arg_tsa(struct cmd *cmd, char *args, UNUSED char *arg_value,
 		}
 	}
 
-	sprintf(obuf, "%02x%s%04x%s",
+	snprintf(obuf, obuf_len, "%02x%s%04x%s",
 		(unsigned int) strlen(args), args,
 		(unsigned int) strlen(buf), buf);
 
@@ -922,7 +922,7 @@ static int get_arg_enabled(struct cmd *cmd, char *args, UNUSED char *arg_value,
 		}
 	}
 
-	sprintf(obuf, "%02x%s%04x%s",
+	snprintf(obuf, obuf_len, "%02x%s%04x%s",
 		(unsigned int) strlen(args), args,
 		(unsigned int) strlen(buf), buf);
 
