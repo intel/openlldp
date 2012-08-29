@@ -178,6 +178,40 @@ lldpad_reconfig(UNUSED int sig, UNUSED void *eloop_ctx, UNUSED void *signal_ctx)
 	return;
 }
 
+struct {
+	const char *path;
+	int score;
+} oom_adjust[] = {{"/proc/self/oom_score_adj", -1000},
+		  {"/proc/self/oom_adj", -17},
+		  {NULL, 0}};
+
+/*
+ * lldp_oom_adjust: Set oom score for lldpad
+ *
+ * Note we have two interfaces depending on kernel version.
+ */
+void lldpad_oom_adjust(void)
+{
+	int i;
+
+	for (i = 0; oom_adjust[i].path; i++) {
+		FILE *oom_file = fopen(oom_adjust[i].path, "r+");
+		int err;
+
+		if (!oom_file)
+			continue;
+
+		err = fprintf(oom_file, "%d", oom_adjust[i].score);
+		fclose(oom_file);
+		if (err < 0)
+			continue;
+
+		return;
+	}
+
+	LLDPAD_DBG("lldpad: OOM adjust failed\n");
+};
+
 int main(int argc, char *argv[])
 {
 	int c;
@@ -305,6 +339,8 @@ int main(int argc, char *argv[])
 		}
 		exit(1);
 	}
+
+	lldpad_oom_adjust();
 
 	/* initialize lldpad user data */
 	clifd = malloc(sizeof(struct clif_data));
