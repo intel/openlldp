@@ -442,6 +442,12 @@ gp	{ if (!cmd) {
 				else
 					BEGIN(cmddone);
 				}
+<getappsubtype>:[fF][iI][pP][  \\t]		{ appsubtype = 2;
+				if (cmd == CMD_SET_CONFIG)
+					BEGIN(getappargs);
+				else
+					BEGIN(cmddone);
+				}
 
 <getappargs>appcfg:		{
 				if (got_args & GOT_APPCFG) {
