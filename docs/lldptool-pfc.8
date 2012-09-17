@@ -14,7 +14,7 @@ PFC \- Show / manipulate PFC TLV configuration
 .sp
 .BR		willing " = " {0|1} " | "
 .sp
-.BR		enabled " = " [0..7],[0..7],... " | "
+.BR		enabled " = " { \fBnone\fR " | " [0..7],[0..7],... } " | "
 .sp
 .BR		delay " = " integer
 .sp
@@ -35,7 +35,8 @@ attributes are used.
 .TP
 .B enabled
 Display or set priorities with PFC enabled. The set attribute
-takes a comma separated list of priorities to enable.
+takes a comma separated list of priorities to enable, or the
+string \fBnone\fR to disable all priorities.
 .TP
 .B delay 
 Display or set delay attribute used to configure PFC thresholds in
@@ -54,6 +55,9 @@ scheme is used. For more detailed coverage see the specification.
 .TP
 Enable PFC for priorities 1, 2, and 4 on \fIeth2\fR
 .B lldptool -T -i eth2 -V PFC enabled=1,2,4
+.TP
+Disable PFC for all priorities on \fIeth2\fR
+.B lldptool -T -i eth2 -V PFC enabled=none
 .TP
 Display priorities enabled for PFC on \fIeth2\fR
 .B lldptool -t -i eth2 -V PFC -c enabled 
