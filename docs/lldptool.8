@@ -225,13 +225,7 @@ Enable transmit of the Edge Virtual Bridging TLV for interface eth4
 .B lldptool -i eth4 -T -V evbCfg enableTx=yes
 
 .TP
-Configure EVB TLV to set reflective relay and RTE,ECP and VDP capabilities
-.B lldptool -T -i eth4 -V evbCfg fmode=reflectiverelay
-.br
-.B lldptool -T -i eth4 -V evbCfg capabilities=rte,ecp,vdp
-
-.TP
-Enable transmit of the VDP for interface eth4
+Enable transmit of VDP for interface eth4
 .B lldptool -i eth4 -T -V vdp enableTx=yes
 
 .PP
