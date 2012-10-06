@@ -1,0 +1,110 @@
+.TH lldptool-dcbx 8 "August 2012" "open-lldp" "Linux"
+.SH NAME
+DCBX \- Show / manipulate DCBX configuration
+.SH SYNOPSIS
+.B lldptool -t -i ethx -V IEEE-DCBX -c [mode]
+.sp
+.B lldptool -T -i ethx -V IEEE-DCBX mode=reset
+.sp
+.B lldptool -t -i ethx -V <DCBXv1|DCBX> -c [enableTx]
+.sp
+.B lldptool -T -i ethx -V <DCBXv1|DCBX> enableTx=<yes|no>
+.sp
+.SH DESCRIPTION - DCBX MODE
+.B lldpad
+supports the following versions of the DCB capabilities exchange (DCBX) protocol:
+.TP
+CIN DCBX
+<http://download.intel.com/technology/eedc/dcb_cep_spec.pdf>
+.TP
+CEE DCBX
+<http://www.ieee802.org/1/files/public/docs2008/az-wadekar-dcbx-capability-exchange-discovery-protocol-1108-v1.01.pdf>
+.TP
+IEEE DCBX
+See the IEEE 802.1Qaz-2011 specification for details."
+.PP
+IEEE DCBX is the default DCBX mode for a DCB capable interface. Therefore the default and configured IEEE DCBX TLV's will be
+transmitted when the interface comes up.
+.B lldpad
+can be globally configured to support one of the legacy DCBX versions (CIN or CEE).  If the remote LLDP agent does not
+transmit any IEEE DCBX TLV's and does transmit a legacy DCBX TLV which matches the configured legacy DCBX version, then the
+DCBX mode will drop back to legacy DCBX mode.  It will not transition
+back to IEEE DCBX mode until the next link reset.  If 
+.B lldpad
+has dropped back to legacy DCBX mode for a given interface and the daemon is stopped and restarted, the
+legacy DCBX mode for that interface will be used instead of starting out in IEEE DCBX mode.  This behavior only applies to the 
+case where
+.B lldpad
+is restarted and is not persistent across a system reboot.  
+.sp
+The DCBX mode can be queried and configured by using the special tlvid
+.B IEEE-DCBX.
+There is not an actual TLV which corresponds to this tlvid.  It's use is to query and reset the IEEE DCBX mode.  When queried,
+IEEE DCBX mode can take the following values:
+
+.BR auto " - IEEE DCBX will be used (intially) if lldpad is restarted"
+.sp
+.BR CEE " - CEE DCBX will be used if lldpad is restarted"
+.sp
+.BR CIN " - CIN DCBX will be used if lldpad is restarted"
+.sp
+
+The IEEE DCBX mode can be reset to
+.B auto
+by setting the
+.B mode
+argument to the value
+.B reset
+
+.SH DESCRIPTION - DCBX CONFIGURATION
+The detailed configuration of the IEEE DCBX TLV's can be found in related lldptool man pages for each IEEE DCBX TLV (see
+lldptool-pfc(8), lldptool-ets(8) and lldptool-app(8)).
+.sp
+The detailed configuration of the CIN and CEE DCBX TLV's is performed using dcbtool (see dcbtool(8)).  However, lldptool
+can configure the enableTx parameter of the CIN and CEE DCBX TLV's (as it can with most other TLV's).  Since lldpad only
+transmits TLV's for one version of DCBX on any given interface, the enableTx parameter for the CIN and CEE DCBX TLV's (and
+for the IEEE DCBX feature TLV's) takes effect only when the corresponding DCBX version is active.
+
+.SH ARGUMENTS
+.TP
+.B mode=reset
+Reset the DCBX mode that will be used if lldpad is restarted by setting the mode argument to reset using the
+special tlvid IEEE-DCBX.
+.TP
+.B enableTx
+Enable the specified DCBX TLV (DCBXv1 or DCBX) to be transmitted in the LLDPDU if that DCBX mode for the specified
+interface has been selected.
+
+.SH EXAMPLE & USAGE
+.TP
+Query the current DCBX mode that will be used if lldpad is restarted. (this is not a persistent setting)
+.B lldptool -t -i eth3 -V IEEE-DCBX -c mode
+
+.TP
+Reset the DCBX mode to be 'auto' (start in IEEE DCBX mode) after the next lldpad restart
+.B lldptool -T -i eth3 -V IEEE-DCBX mode=reset
+
+.TP
+Enable transmission of the CEE DCBX TLV 
+.B lldptool -T -i eth3 -V DCBX enableTx=yes
+
+.TP
+Disable transmission of the CIN DCBX TLV 
+.B lldptool -T -i eth3 -V DCBXv1 enableTx=no
+
+.TP
+Query the configuration of enableTx for the CEE DCBX TLV
+.B lldptool -t -i eth3 -V DCBX -c enableTx
+
+.SH NOTES
+
+.SH SEE ALSO
+.BR dcbtool (8),
+.BR lldptool (8),
+.BR lldptool-ets (8),
+.BR lldptool-pfc (8),
+.BR lldptool-app (8),
+.BR lldpad (8)
+
+.SH AUTHOR
+Eric Multanen
