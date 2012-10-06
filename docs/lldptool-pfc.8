@@ -1,22 +1,22 @@
-.TH lldptool 8 "February 2010" "open-lldp" "Linux"
+.TH lldptool 8 "August 2012" "open-lldp" "Linux"
 .SH NAME
 PFC \- Show / manipulate PFC TLV configuration
 .SH SYNOPSIS
-.B lldptool -t -i ethx -V PFC { willing | enabled | delay | numtcs }
+.B lldptool -t -i ethx -V PFC [ -c [ willing | enabled | delay | numtcs ] ]
 .sp
 .B lldptool -T -i ethx -V PFC
-.RI <-c " " CONFIG_ARG " " ...>
+.RI < CONFIG_ARG=value " " ... >
 .sp
 .ti +4
-.IR	CONFIG_ARG " := 
+.IR	CONFIG_ARG :=
 .sp
-.BR		enableTx " = " {yes|no} " | "
+.BR		enableTx= "<" yes "|" no ">"
 .sp
-.BR		willing " = " {0|1} " | "
+.BR		willing= "<" yes "|" no "|" 0 "|" 1 ">"
 .sp
-.BR		enabled " = " { \fBnone\fR " | " [0..7],[0..7],... } " | "
+.BR		enabled= "<" none "|[" 0 ".." 7 "]" , "[" 0 ".." 7 "]" , "...>
 .sp
-.BR		delay " = " integer
+.BR		delay= "<integer value>"
 .sp
 .SH DESCRIPTION
 The PFC TLV is used to display and set current PFC TLV
@@ -29,25 +29,31 @@ Enable the PFC TLV to be transmitted in the LLDP PDU for the
 specified interface.
 .TP
 .B willing
-Display or set willing attribute. If set and peer TLV is received
-the peer PFC attributes will be used. If cleared locally configured
-attributes are used.
+Display or set the willing attribute. If set to 
+.B yes
+and a peer TLV is received
+then the peer PFC attributes will be used. If set to
+.B no
+then locally configured attributes are used.
 .TP
 .B enabled
-Display or set priorities with PFC enabled. The set attribute
+Display or set the priorities with PFC enabled. The set attribute
 takes a comma separated list of priorities to enable, or the
-string \fBnone\fR to disable all priorities.
+string 
+.B none
+to disable all priorities.
 .TP
 .B delay 
-Display or set delay attribute used to configure PFC thresholds in
+Display or set the delay attribute used to configure PFC thresholds in
 hardware buffers. If PFC is enabled and frames continue to be dropped
-due to full hardware buffers increasing this value may help.
+due to full hardware buffers then increasing this value may help.
 
 .SH Theory of Operations
-The PFC TLV uses Symmetric attribute passing meaning the attributes
-used will depend on the willing bit. If the willing bit is enabled
-and a peer TLV is received the peers attributes will be used. If the
-willing bit is set to 0 the local attributes should be used. When
+The PFC TLV uses the Symmetric attribute passing state machine
+defined in IEEE 802.1Qaz.  This means the attributes
+used will depend on the willing bit. If the willing bit is set to 1
+and a peer TLV is received then the peers attributes will be used. If the
+willing bit is set to 0 the local attributes will be used. When
 both the peer and local configuration are willing a tie breaking
 scheme is used. For more detailed coverage see the specification.
 
@@ -59,7 +65,7 @@ Enable PFC for priorities 1, 2, and 4 on \fIeth2\fR
 Disable PFC for all priorities on \fIeth2\fR
 .B lldptool -T -i eth2 -V PFC enabled=none
 .TP
-Display priorities enabled for PFC on \fIeth2\fR
+Display configuration of PFC enabled priorities for \fIeth2\fR
 .B lldptool -t -i eth2 -V PFC -c enabled 
 .TP
 Display last transmitted PFC TLV on \fIeth2\fR
