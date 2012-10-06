@@ -4,7 +4,7 @@
 .\"
 .\" * Other names and brands may be claimed as the property of others.
 .\"
-.TH lldptool 8 "November 2, 2011"
+.TH lldptool 8 "August 2012" "open-lldp" "Linux"
 .SH NAME
 lldptool \- manage the LLDP settings and status of lldpad
 .SH SYNOPSIS
@@ -33,7 +33,8 @@ It will use libreadline for interactive input when available.
 .SH OPTIONS
 .TP
 .B \-i [ifname]
-specifies the network interface to which the command applies
+specifies the network interface to which the command applies.  Most
+lldptool commands require specifying a network interface.
 .TP
 .B -V [tlvid]
 specifies the TLV identifier
@@ -88,51 +89,55 @@ show usage information
 show version information
 .TP
 .B \-S, stats
-get LLDP statistics
+get LLDP statistics for the specified interface
 .TP
 .B \-t, get-tlv
-get TLV information
+get TLV information for the specified interface
 .TP
 .B \-T, set-tlv
-set TLV information
+set TLV information for the specified interface
 .TP
 .B \-l, get-lldp
-get LLDP parameters
+get LLDP parameters for the specified interface
 .TP
 .B \-L, set-lldp
-set LLDP parameters
+set LLDP parameters for the specified interface
 .TP
 .B \-q, quit
 exit from interactive mode
 .PP
 
 .SH ARGUMENTS
+This section lists arguments which are available for administration of LLDP parameters.  Arguments for
+basic TLV's (non-organizationally specific TLVs) are also described.  See the SEE ALSO section for references to other
+lldptool man pages which contain usage details and arguments for various organizationally specific TLVs.
+
 .TP
 .B adminStatus
 Argument for the
 .B get-lldp/set-lldp
-commands.  May be applied per port or globbally.  Valid values are: \fIdisabled\fR, \fIrx\fR, \fItx\fR, \fIrxtx\fR
+commands.  Configures the LLDP adminStatus parameter for the specified interface.  Valid values are: \fIdisabled\fR, \fIrx\fR, \fItx\fR, \fIrxtx\fR
 
 .TP
 .B enableTx
 Argument for the
 .B get-tlv/set-tlv
-commands.  May be applied per port for a specified TLV.  Valid values are: \fIyes\fR, \fIno\fR.  If the DCBX TLV enableTx is set to \fIno\fR, then all of the DCB feature TLVs DCBX advertise settings will be turned off as well.  Setting enableTx to \fIyes\fR for a DCBX TLV will not affect the DCBX advertise settings.
+commands.  May be applied per interface for a specified TLV.  Valid values are: \fIyes\fR, \fIno\fR.  If the DCBX TLV enableTx is set to \fIno\fR, then all of the DCB feature TLVs DCBX advertise settings will be turned off as well.  Setting enableTx to \fIyes\fR for a DCBX TLV will not affect the DCBX advertise settings.
 
 .TP
 .B ipv4
 Argument for the
 .B get-tlv/set-tlv
-commands with respect to the Management Address TLV.  May be applied per port
-or globally.  The get command will retrieve the configured value.  Set values
+commands with respect to the Management Address TLV.
+The get command will retrieve the configured value.  Set values
 take the form of an IPv4 address: \fIA.B.C.D\fR
 
 .TP
 .B ipv6
 Argument for the
 .B get-tlv/set-tlv
-commands with respect to the Management Address TLV.  May be applied per port
-or globally.  The get command will retrieve the configured value.  Set values
+commands with respect to the Management Address TLV.
+The get command will retrieve the configured value.  Set values
 take the form of an IPv6 address: \fI1111:2222:3333:4444:5555:6666:7777:8888\fR
 and various shorthand variations.
 
@@ -143,10 +148,6 @@ Configure LLDP adminStatus to Receive and Transmit for interface \fIeth2\fR
 .B lldptool -L -i eth2 adminStatus=rxtx
 .br
 .B lldptool set-lldp -i eth2 adminStatus=rxtx
-
-.TP
-Disable the LLDP adminStatus for all interfaces
-.B lldptool set-lldp adminStatus=disabled
 
 .TP
 Query the LLDP adminStatus for interface \fIeth3\fR
@@ -185,16 +186,10 @@ Disable transmit of the IEEE 802.3 MAC/PHY Configuration Status TLV for a given 
 .B lldptool set-tlv -i eth3 -V 0x120f01 enableTx=no
 
 .TP
-Enable transmit of the Port Description TLV for all interfaces:
-.B lldptool -T -V portDesc enableTx=yes
-.br
-.B lldptool set-tlv -V 4 enableTx=yes
-
-.TP
 Query value of the transmit setting for the Port Description TLV for a given interface:
-.B lldptool -t -V portDesc -c enableTx
+.B lldptool -t -i eth3 -V portDesc -c enableTx
 .br
-.B lldptool get-tlv -V 4 -c enableTx
+.B lldptool get-tlv -i eth3 -V 4 -c enableTx
 
 .TP
 Set a Management Address TLV on eth3 to carry IPv4 address 192.168.10.10
@@ -228,14 +223,13 @@ Enable transmit of the Edge Virtual Bridging TLV for interface eth4
 Enable transmit of VDP for interface eth4
 .B lldptool -i eth4 -T -V vdp enableTx=yes
 
-.PP
-Configurations per port have higher precedence than global configurations.
-
 .SH SEE ALSO
 .BR lldptool-ets (8),
 .BR lldptool-pfc (8),
 .BR lldptool-app (8),
 .BR lldptool-med (8),
+.BR lldptool-vdp (8),
+.BR lldptool-evb (8),
 .BR dcbtool (8),
 .BR lldpad (8)
 .br
@@ -243,7 +237,7 @@ Configurations per port have higher precedence than global configurations.
 .SH COPYRIGHT
 lldptool - LLDP agent configuration utility
 .br
-Copyright(c) 2007-2010 Intel Corporation.
+Copyright(c) 2007-2012 Intel Corporation.
 .BR
 Portions of lldptool are based on:
 .IP hostapd-0.5.7
