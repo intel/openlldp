@@ -6,9 +6,9 @@ DCBX \- Show / manipulate DCBX configuration
 .sp
 .B lldptool -T -i ethx -V IEEE-DCBX mode=reset
 .sp
-.B lldptool -t -i ethx -V <DCBXv1|DCBX> -c [enableTx]
+.B lldptool -t -i ethx -V <CIN-DCBX|CEE-DCBX> -c [enableTx]
 .sp
-.B lldptool -T -i ethx -V <DCBXv1|DCBX> enableTx=<yes|no>
+.B lldptool -T -i ethx -V <CIN-DCBX|CEE-DCBX> enableTx=<yes|no>
 .sp
 .SH DESCRIPTION - DCBX MODE
 .B lldpad
@@ -72,7 +72,7 @@ Reset the DCBX mode that will be used if lldpad is restarted by setting the mode
 special tlvid IEEE-DCBX.
 .TP
 .B enableTx
-Enable the specified DCBX TLV (DCBXv1 or DCBX) to be transmitted in the LLDPDU if that DCBX mode for the specified
+Enable the specified DCBX TLV (CIN-DCBX or CEE-DCBX) to be transmitted in the LLDPDU if that DCBX mode for the specified
 interface has been selected.
 
 .SH EXAMPLE & USAGE
@@ -86,15 +86,15 @@ Reset the DCBX mode to be 'auto' (start in IEEE DCBX mode) after the next lldpad
 
 .TP
 Enable transmission of the CEE DCBX TLV 
-.B lldptool -T -i eth3 -V DCBX enableTx=yes
+.B lldptool -T -i eth3 -V CEE-DCBX enableTx=yes
 
 .TP
 Disable transmission of the CIN DCBX TLV 
-.B lldptool -T -i eth3 -V DCBXv1 enableTx=no
+.B lldptool -T -i eth3 -V CIN-DCBX enableTx=no
 
 .TP
 Query the configuration of enableTx for the CEE DCBX TLV
-.B lldptool -t -i eth3 -V DCBX -c enableTx
+.B lldptool -t -i eth3 -V CEE-DCBX -c enableTx
 
 .SH NOTES
 
