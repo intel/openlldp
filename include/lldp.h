@@ -68,7 +68,8 @@ typedef __u64 u64;
 /* Ciso OUI */
 #define OUI_CISCO	0x000142
 
-#define OUI_IEEE_8021Qbg	0x001b3f
+#define OUI_IEEE_8021Qbg	0x001b3f	/* Draft 0.1 value */
+#define OUI_IEEE_8021Qbg22	0x0080c2	/* Standardized value */
 
 /* IEEE 802.3AB Clause 9: TLV Types */
 #define CHASSIS_ID_TLV    1
@@ -228,7 +229,8 @@ enum {
 #define LLDP_8023_LINKAGG_ENABLED	(1 << 1)
 
 /* IEEE 802.1Qbg subtype */
-#define LLDP_EVB_SUBTYPE		0
+#define LLDP_EVB_SUBTYPE		0	/* Draft 0.1 value */
+#define LLDP_EVB22_SUBTYPE		0xd	/* Standardized value */
 #define LLDP_VDP_SUBTYPE		0x2
 
 /* forwarding mode */

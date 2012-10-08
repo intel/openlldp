@@ -421,7 +421,7 @@ void evb_unregister(struct lldp_module *mod)
 		free(mod->data);
 	}
 	free(mod);
-	LLDPAD_DBG("%s:done", __func__);
+	LLDPAD_DBG("%s:done\n", __func__);
 }
 
 static const struct lldp_mod_ops evb_ops =  {

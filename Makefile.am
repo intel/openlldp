@@ -40,7 +40,7 @@ include/lldpad_shm.h include/event_iface.h include/messages.h \
 include/parse_cli.h include/version.h include/lldptool_cli.h include/list.h \
 include/lldp_mand_clif.h include/lldp_basman_clif.h include/lldp_med_clif.h \
 include/lldp_8023_clif.h include/lldp_dcbx_clif.h include/lldp_evb_clif.h \
-include/lldp_vdp_clif.h include/lldp_8021qaz_clif.h \
+include/lldp_evb22_clif.h include/lldp_vdp_clif.h include/lldp_8021qaz_clif.h \
 include/lldp_orgspec_clif.h include/lldp_cisco_clif.h \
 include/lldptool.h include/lldp_rtnl.h include/dcbtool.h include/lldp_dcbx_cfg.h
 
@@ -63,7 +63,8 @@ lldp_basman.c include/lldp_basman.h \
 lldp_med.c include/lldp_med.h \
 lldp_8023.c include/lldp_8023.h \
 lldp_8021qaz.c include/lldp_8021qaz.h \
-lldp_8021qaz_cmds.c include/lldp_8021qaz_cmds.h
+lldp_8021qaz_cmds.c include/lldp_8021qaz_cmds.h \
+include/lldp_evb22.h lldp_evb22.c lldp_evb22_cmds.c
 
 lib_LTLIBRARIES = liblldp_clif.la
 liblldp_clif_la_LDFLAGS = -version-info 1:0:0
@@ -79,7 +80,7 @@ lldptool_SOURCES = lldptool.c lldptool_cmds.c lldp_rtnl.c \
 		   lldp_mand_clif.c lldp_basman_clif.c lldp_med_clif.c \
 		   lldp_8023_clif.c lldp_dcbx_clif.c lldp_util.c \
 		   lldp_8021qaz_clif.c lldp_evb_clif.c lldp_vdp_clif.c \
-		   lldp_orgspec_clif.c lldp_cisco_clif.c \
+		   lldp_orgspec_clif.c lldp_cisco_clif.c lldp_evb22_clif.c \
 		   weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
 lldptool_LDADD = ${srcdir}/liblldp_clif.la
 lldptool_LDFLAGS = -ldl -llldp_clif

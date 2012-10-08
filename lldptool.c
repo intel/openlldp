@@ -46,6 +46,7 @@
 #include "lldp_med_clif.h"
 #include "lldp_8023_clif.h"
 #include "lldp_dcbx_clif.h"
+#include "lldp_evb22_clif.h"
 #include "lldp_evb_clif.h"
 #include "lldp_vdp_clif.h"
 #include "lldp_8021qaz_clif.h"
@@ -176,6 +177,7 @@ struct lldp_module *(*register_tlv_table[])(void) = {
 	ieee8023_cli_register,
 	med_cli_register,
 	dcbx_cli_register,
+	evb22_cli_register,
 	evb_cli_register,
 	vdp_cli_register,
 	ieee8021qaz_cli_register,
