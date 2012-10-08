@@ -3,7 +3,7 @@ sbin_PROGRAMS = lldpad dcbtool lldptool
 
 # package nltest and vdptest, but do not install it anywhere
 if BUILD_DEBUG
-noinst_PROGRAMS = nltest vdptest
+noinst_PROGRAMS = nltest vdptest evbtest
 endif
 
 # look for header files in the include directory
@@ -87,6 +87,8 @@ lldptool_LDFLAGS = -ldl -llldp_clif
 if BUILD_DEBUG
 nltest_SOURCES = test/nltest.c test/nltest.h
 vdptest_SOURCES = test/vdptest.c
+evbtest_SOURCES = test/evbtest.c
+evbtest_LDFLAGS = -lrt
 endif
 
 ## man pages

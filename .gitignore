@@ -31,5 +31,6 @@ lldpad
 lldptool
 nltest
 vdptest
+evbtest
 patches/
 tags
