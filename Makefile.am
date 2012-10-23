@@ -97,6 +97,9 @@ dist_man_MANS = docs/lldpad.8 docs/dcbtool.8 docs/lldptool.8 \
 		docs/lldptool-ets.8 docs/lldptool-pfc.8 docs/lldptool-app.8 \
 		docs/lldptool-evb.8 docs/lldptool-vdp.8 docs/lldptool-med.8 \
 		docs/lldptool-dcbx.8
+if BUILD_DEBUG
+nodist_man_MANS = test/evbtest.1 test/vdptest.1
+endif
 
 ## force the creation of an empty configuration directory at install time
 lldpadconfigdir = /var/lib/lldpad
