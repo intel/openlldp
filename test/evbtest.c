@@ -64,8 +64,6 @@ static char *progname;
 
 static int verbose;
 static char *tokens[1024];	/* Used to parse command line params */
-static int ifindex;		/* Index of ifname */
-static char *ifname;		/* Interface to operate on */
 static int myfd;		/* Raw socket for lldpad talk */
 static int timerfd;		/* Time descriptor */
 static unsigned char my_mac[ETH_ALEN];	/* My source MAC address */
@@ -741,6 +739,18 @@ static void hear(void)
 	timer_close();
 }
 
+static void help(void)
+{
+	printf("usage: %s [-t timeout][-T timeout] [-v] device [file]\n"
+	       "\t-d specifies the run time of the program (default 120s)\n"
+	       "\t-t specifies the timeout in seconds to wait (default 1s)\n"
+	       "\t-T specifies the timeout in microseconds to wait (default 0us)\n"
+	       "\t-v verbose mode, can be set more than once\n"
+	       "\t devices is the network interface to listen on\n"
+	       "\t file are one or more input files to read LLDP data from\n",
+	       progname);
+}
+
 int main(int argc, char **argv)
 {
 	extern int optind, opterr;
@@ -749,12 +759,12 @@ int main(int argc, char **argv)
 	char *slash;
 
 	progname = (slash = strrchr(argv[0], '/')) ? slash + 1 : argv[0];
-	while ((ch = getopt(argc, argv, ":d:i:t:T:v"))
-	    != EOF)
+	while ((ch = getopt(argc, argv, ":d:t:T:v")) != EOF)
 		switch (ch) {
 		case '?':
 			fprintf(stderr, "%s: unknown option -%c\n", progname,
 			    optopt);
+			help();
 			exit(1);
 		case ':':
 			fprintf(stderr, "%s missing option argument for -%c\n",
@@ -787,19 +797,19 @@ int main(int argc, char **argv)
 		case 'v':
 			++verbose;
 			break;
-		case 'i':
-			ifname = optarg;
-			ifindex = if_nametoindex(ifname);
-			break;
 		}
-	if (!ifindex) {
-		fprintf(stderr, "%s interface %s missing or nonexistant\n",
-		    progname, ifname);
+	if (argc == optind) {
+		fprintf(stderr, "%s interface not specified\n", progname);
 		return 2;
 	}
-	if (l2_init(ifname))
+	if (!if_nametoindex(argv[optind])) {
+		fprintf(stderr, "%s interface %s does not exist\n",
+		    progname, argv[optind]);
 		return 2;
-	for (; optind < argc; ++optind) {
+	}
+	if (l2_init(argv[optind]))
+		return 2;
+	for (; ++optind < argc;) {
 		rc |= read_profiles(argv[optind]);
 		if (verbose >= 3)
 			show_evblist();
