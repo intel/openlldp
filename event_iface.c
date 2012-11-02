@@ -63,6 +63,11 @@
 
 #define MAX_PAYLOAD 4096 /* maximum payload size */
 
+#define LIST_FOREACH_SAFE(pos, var, head, field)                        \
+	for ((var) = ((head)->lh_first), pos = ((var)->field.le_next);  \
+	     (var);                                                     \
+	     (var = pos), pos = (!pos) ? NULL : ((pos)->field.le_next))
+
 extern unsigned int if_nametoindex(const char *);
 extern char *if_indextoname(unsigned int, char *);
 
@@ -671,7 +676,7 @@ struct nl_msg *event_if_constructResponse(int ifindex, struct nlmsghdr *from)
 	struct ifinfomsg ifinfo;
 	struct vdp_data *vd;
 	char ifname[IFNAMSIZ];
-	struct vsi_profile *p;
+	struct vsi_profile *p, *s;
 
 	nl_msg = nlmsg_alloc();
 
@@ -707,7 +712,7 @@ struct nl_msg *event_if_constructResponse(int ifindex, struct nlmsghdr *from)
 
 	/* loop over all existing profiles on this interface and
 	 * put them into the nested IFLA_VF_PORT structure */
-	LIST_FOREACH(p, &vd->profile_head, profile) {
+	LIST_FOREACH_SAFE(s, p, &vd->profile_head, profile) {
 		if (p) {
 			vdp_trace_profile(p);
 
