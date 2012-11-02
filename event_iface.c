@@ -678,22 +678,24 @@ struct nl_msg *event_if_constructResponse(int ifindex, struct nlmsghdr *from)
 	char ifname[IFNAMSIZ];
 	struct vsi_profile *p, *s;
 
-	nl_msg = nlmsg_alloc();
-
-	if (!nl_msg) {
-		LLDPAD_ERR("%s(%i): Unable to allocate netlink message !\n", __func__, __LINE__);
-		return NULL;
-	}
-
 	if (!if_indextoname(ifindex, ifname)) {
-		LLDPAD_ERR("%s(%i): No name found for interface with index %i !\n", __func__, __LINE__,
-		       ifindex);
+		LLDPAD_ERR("%s(%i): No name found for iface with index %i!\n",
+			   __func__, __LINE__, ifindex);
+		return NULL;
 	}
 
 	vd = vdp_data(ifname);
 	if (!vd) {
-		LLDPAD_ERR("%s(%i): Could not find vdp_data for %s !\n", __func__, __LINE__,
-		       ifname);
+		LLDPAD_ERR("%s(%i): Could not find vdp_data for %s!\n",
+			   __func__, __LINE__, ifname);
+		return NULL;
+	}
+
+	nl_msg = nlmsg_alloc();
+
+	if (!nl_msg) {
+		LLDPAD_ERR("%s(%i): Unable to allocate netlink message!\n",
+			   __func__, __LINE__);
 		return NULL;
 	}
 
