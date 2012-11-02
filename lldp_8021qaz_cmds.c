@@ -1248,10 +1248,26 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 		goto err;
 
 	/* Verify priority and selector within valid  IEEE range */
-	if (prio < 0 || prio > 7 ||
-	    sel < 1 || sel > 4 ||
-	    pid > 65535 || pid < 0)
+	if (prio < 0 || prio > 7) {
+		strncat(obuf, ": priority out of range",
+			obuf_len - strlen(obuf) - 2);
 		goto err;
+	}
+	if (sel < 1 || sel > 4) {
+		strncat(obuf, ": selector out of range",
+			obuf_len - strlen(obuf) - 2);
+		goto err;
+	}
+	if (pid > 65535 || pid < 0) {
+		strncat(obuf, ": pid out of range",
+			obuf_len - strlen(obuf) - 2);
+		goto err;
+	}
+	if (sel == 1 && (pid < 1536 && pid != 0)) {
+		strncat(obuf, ": Ethertype < 1536",
+			obuf_len - strlen(obuf) - 2);
+		goto err;
+	}
 
 	free(parse);
 
