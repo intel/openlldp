@@ -1783,17 +1783,29 @@ static void ieee8021qaz_mibUpdateObjects(struct port *port)
 
 	tlvs = ieee8021qaz_data(port->ifname);
 
-	if (tlvs->rx->etscfg)
+	if (tlvs->rx->etscfg) {
 		process_ieee8021qaz_etscfg_tlv(port);
+	} else if (tlvs->ets->cfgr) {
+		free(tlvs->ets->cfgr);
+		tlvs->ets->cfgr = NULL;
+	}
 
-	if (tlvs->rx->etsrec)
+	if (tlvs->rx->etsrec) {
 		process_ieee8021qaz_etsrec_tlv(port);
+	} else if (tlvs->ets->recr) {
+		free(tlvs->ets->recr);
+		tlvs->ets->recr = NULL;
+	}
 
 	if (tlvs->rx->pfc)
 		process_ieee8021qaz_pfc_tlv(port);
+	else if (tlvs->pfc)
+		tlvs->pfc->remote_param = false;
 
 	if (tlvs->rx->app)
 		process_ieee8021qaz_app_tlv(port);
+	else
+		ieee8021qaz_app_reset(&tlvs->app_head);
 }
 
 /*
