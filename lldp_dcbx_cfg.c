@@ -57,15 +57,15 @@ config_setting_add_app_default(config_setting_t *eth_setting, int subtype)
 
 	tmp2_setting = config_setting_add(tmp_setting, "app_enable",
 		CONFIG_TYPE_INT);
-	if (!tmp2_setting || !config_setting_set_int(tmp2_setting, 0))
+	if (!tmp2_setting || !config_setting_set_int(tmp2_setting, 1))
 		goto error;
 	tmp2_setting = config_setting_add(tmp_setting, "app_advertise",
 		CONFIG_TYPE_INT);
-	if (!tmp2_setting || !config_setting_set_int(tmp2_setting, 0))
+	if (!tmp2_setting || !config_setting_set_int(tmp2_setting, 1))
 		goto error;
 	tmp2_setting = config_setting_add(tmp_setting, "app_willing",
 		CONFIG_TYPE_INT);
-	if (!tmp2_setting || !config_setting_set_int(tmp2_setting, 0))
+	if (!tmp2_setting || !config_setting_set_int(tmp2_setting, 1))
 		goto error;
 
 	tmp2_setting = config_setting_add(tmp_setting, "app_cfg",
@@ -976,7 +976,6 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 			 */
 			attribs->app[i].protocol.Enable = attribs->app[0].protocol.Enable;
 			attribs->app[i].protocol.Willing = attribs->app[0].protocol.Willing;
-			attribs->app[i].protocol.Advertise = attribs->app[0].protocol.Advertise;
  			continue;
 		}
 
