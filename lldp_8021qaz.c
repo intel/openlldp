@@ -1754,7 +1754,7 @@ static void process_ieee8021qaz_app_tlv(struct port *port)
 		struct app_obj *np;
 		int set = 0;
 		u8 prio  = (tlvs->rx->app->info[offset] & 0xE0) >> 5;
-		u8 sel = (tlvs->rx->app->info[offset] & 0x03);
+		u8 sel = (tlvs->rx->app->info[offset] & 0x07);
 		u16 proto = (tlvs->rx->app->info[offset + 1] << 8) |
 			     tlvs->rx->app->info[offset + 2];
 
