@@ -922,6 +922,9 @@ static int get_arg_enabled(struct cmd *cmd, char *args, UNUSED char *arg_value,
 		}
 	}
 
+	if (first)
+		strncpy(buf, "none", sizeof(buf));
+
 	snprintf(obuf, obuf_len, "%02x%s%04x%s",
 		(unsigned int) strlen(args), args,
 		(unsigned int) strlen(buf), buf);
