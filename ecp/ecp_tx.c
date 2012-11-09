@@ -112,6 +112,21 @@ void ecp_print_frameout(struct vdp_data *vd)
 		LLDPAD_DBG("%s\n", buf);
 }
 
+/*
+ * Append some data at the end of the transmit data buffer. Make sure the
+ * End TLV always fits into the buffer.
+ */
+static u8 end_tlv[2] = { 0x0, 0x0 };		/* END TLV */
+
+static int ecp_append(u8 *buffer, u32 *pos, void *data, u32 len)
+{
+	if (*pos + len > ETH_FRAME_LEN - sizeof end_tlv)
+		return 0;
+	memcpy(buffer + *pos, data, len);
+	*pos += len;
+	return 1;
+}
+
 /* ecp_build_ECPDU - create an ecp protocol data unit
  * @vd: currently used port
  *
@@ -127,7 +142,6 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 	struct ecp_hdr ecp_hdr;
 	u8  own_addr[ETH_ALEN];
 	u32 fb_offset = 0;
-	u32 datasize = 0;
 	struct packed_tlv *ptlv =  NULL;
 	struct vsi_profile *p;
 
@@ -143,9 +157,8 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 		LLDPAD_ERR("InfoECPDU: Failed to malloc frame buffer\n");
 		return false;
 	}
-	memset(vd->ecp.tx.frameout,0,ETH_FRAME_LEN);
-	memcpy(vd->ecp.tx.frameout, (void *)&eth, sizeof(struct l2_ethhdr));
-	fb_offset += sizeof(struct l2_ethhdr);
+	memset(vd->ecp.tx.frameout, 0, ETH_FRAME_LEN);
+	ecp_append(vd->ecp.tx.frameout, &fb_offset, (void *)&eth, sizeof eth);
 
 	ecp_hdr.oui[0] = 0x0;
 	ecp_hdr.oui[1] = 0x1b;
@@ -158,21 +171,11 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 
 	vd->ecp.lastSequence++;
 	ecp_hdr.seqnr = htons(vd->ecp.lastSequence);
-
-	if ((sizeof(struct ecp_hdr)+fb_offset) > ETH_DATA_LEN)
-		goto error;
-	memcpy(vd->ecp.tx.frameout+fb_offset, (void *)&ecp_hdr,
-	       sizeof(struct ecp_hdr));
-	datasize += sizeof(struct ecp_hdr);
-	fb_offset += sizeof(struct ecp_hdr);
+	ecp_append(vd->ecp.tx.frameout, &fb_offset, (void *)&ecp_hdr,
+		   sizeof ecp_hdr);
 
 	/* create packed_tlvs for all profiles on this interface */
 	LIST_FOREACH(p, &vd->profile_head, profile) {
-		if(!p) {
-			LLDPAD_ERR("%s: list vd->profile_head empty\n",
-				   __func__);
-			continue;
-		}
 
 		if (!p->localChange) {
 			LLDPAD_DBG("%s: skipping unchanged profile!\n",
@@ -188,45 +191,19 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 		}
 
 		if (ptlv) {
-			if ((ptlv->size+fb_offset) > ETH_DATA_LEN)
-				goto error;
-			memcpy(vd->ecp.tx.frameout+fb_offset,
-			       ptlv->tlv, ptlv->size);
-			datasize += ptlv->size;
-			fb_offset += ptlv->size;
+			if (!ecp_append(vd->ecp.tx.frameout, &fb_offset,
+				       ptlv->tlv, ptlv->size))
+				ptlv = free_pkd_tlv(ptlv);
+				break;
 		}
 
 		p->seqnr = vd->ecp.lastSequence;
 
 		ptlv = free_pkd_tlv(ptlv);
 	}
-
-	/* The End TLV marks the end of the LLDP PDU */
-	ptlv = pack_end_tlv();
-	if (!ptlv || ((ptlv->size + fb_offset) > ETH_DATA_LEN))
-		goto error;
-	memcpy(vd->ecp.tx.frameout + fb_offset, ptlv->tlv, ptlv->size);
-	datasize += ptlv->size;
-	fb_offset += ptlv->size;
-	ptlv =  free_pkd_tlv(ptlv);
-
-	if (datasize > ETH_DATA_LEN)
-		goto error;
-
-	if (datasize < ETH_MIN_DATA_LEN)
-		vd->ecp.tx.sizeout = ETH_ZLEN;
-	else
-		vd->ecp.tx.sizeout = fb_offset;
-
+	ecp_append(vd->ecp.tx.frameout, &fb_offset, end_tlv, sizeof end_tlv);
+	vd->ecp.tx.sizeout = MAX(fb_offset, (unsigned)ETH_ZLEN);
 	return true;
-
-error:
-	ptlv = free_pkd_tlv(ptlv);
-	if (vd->ecp.tx.frameout)
-		free(vd->ecp.tx.frameout);
-	vd->ecp.tx.frameout = NULL;
-	LLDPAD_ERR("InfoECPDU: packed TLV too large for tx frame\n");
-	return false;
 }
 
 /* ecp_tx_Initialize - initializes the ecp tx state machine
