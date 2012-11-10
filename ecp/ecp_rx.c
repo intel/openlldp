@@ -77,33 +77,6 @@ static void ecp_rx_Initialize(struct vdp_data *vd)
 	ecp_rx_freeFramein(vd);
 }
 
-/* ecp_print_framein - print raw received frame
- * @vd: vd for the state machine
- *
- * no return value
- *
- * prints out a raw version of a received frame. useful for low-level protocol
- * debugging.
- */
-static void ecp_print_framein(struct vdp_data *vd)
-{
-	int i, left = 0;
-	char buffer[128];
-
-	for (i = 0; i < vd->ecp.rx.sizein; i++) {
-		int c;
-		c = snprintf(buffer + left, sizeof buffer - left, "%02x ",
-			     vd->ecp.rx.framein[i]);
-		if (c > 0 && (c < (int)sizeof buffer - left))
-			left += c;
-		if (!((i+1) % 16)) {
-			LLDPAD_DBG("%s\n", buffer);
-			left = 0;
-		}
-	}
-	LLDPAD_DBG("%s\n", buffer);
-}
-
 /* ecp_rx_SendAckFrame - send ack frame
  * @vd: port used by ecp
  *
@@ -252,7 +225,8 @@ ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf, size_t len)
 
 	vd->ecp.seqECPDU = ntohs(ecp_hdr->seqnr);
 
-	ecp_print_framein(vd);
+	ecp_print_frame(vd->ecp.ifname, "frame-in", vd->ecp.rx.framein,
+			vd->ecp.rx.sizein);
 
 	switch(ecp_hdr->mode) {
 	case ECP_REQUEST:

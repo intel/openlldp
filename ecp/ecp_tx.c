@@ -77,39 +77,8 @@ void ecp_somethingChangedLocal(struct vdp_data *vd, bool flag)
  */
 void ecp_print_frameout(struct vdp_data *vd)
 {
-	unsigned i;
-	unsigned length;
-	char *s;
-	char buf[256];
-
-	s = buf;
-	length = sizeof(buf);
-	memset(buf, 0, sizeof(buf));
-
-	for (i = 0; i < vd->ecp.tx.sizeout; i++) {
-		int c;
-		c = snprintf(s, length, "%02x ", vd->ecp.tx.frameout[i]);
-		if (c < 0) {
-			LLDPAD_DBG("%s: snprintf error %d (%s)\n", __func__,
-				errno, strerror(errno));
-			break;
-		}
-		s += c;
-		if ((unsigned)c >= length) {
-			LLDPAD_DBG("%s: string buffer overflow\n", __func__);
-			break;
-		}
-		length -= c;
-		if (!((i + 1) % 16)) {
-			LLDPAD_DBG("%s\n", buf);
-			s = buf;
-			length = sizeof(buf);
-			memset(buf, 0, sizeof(buf));
-		}
-	}
-
-	if (length != sizeof(buf))
-		LLDPAD_DBG("%s\n", buf);
+	ecp_print_frame(vd->ecp.ifname, "frame-out", vd->ecp.tx.frameout,
+			vd->ecp.tx.sizeout);
 }
 
 /*

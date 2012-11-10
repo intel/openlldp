@@ -39,6 +39,24 @@
 #include "lldp/l2_packet.h"
 #include "ecp/ecp.h"
 
+/*
+ * ecp_print_frame - print raw ecp frame
+ */
+void ecp_print_frame(char *ifname, char *txt, u8 *buf, u32 len)
+{
+	u32 i, left = 0;
+	char buffer[ETH_FRAME_LEN * 3];
+
+	for (i = 0; i < len; i++) {
+		int c;
+		c = snprintf(buffer + left, sizeof buffer - left, "%02x%c",
+			     buf[i], !((i + 1) % 16) ? '\n' : ' ');
+		if (c > 0 && (c < (int)sizeof buffer - (int)left))
+			left += c;
+	}
+	LLDPAD_DBG("%s:%s %s\n%s\n", __func__, ifname, txt, buffer);
+}
+
 /* ecp_localchange_handler - triggers the processing of a local change
  * @eloop_data: data structure of event loop
  * @user_ctx: user context, vdp_data here
@@ -181,7 +199,7 @@ int ecp_init(char *ifname)
 			"ETH_P_ECP\n");
 		return -1;
 	}
-
+	strncpy(vd->ecp.ifname, ifname, sizeof vd->ecp.ifname);
 	ecp_rx_change_state(vd, ECP_RX_IDLE);
 	ecp_rx_run_sm(vd);
 	ecp_somethingChangedLocal(vd, true);

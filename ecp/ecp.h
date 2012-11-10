@@ -59,6 +59,7 @@ struct ecp {
 	struct agentrx rx;
 	struct agenttx tx;
 	struct agentstats stats;
+	char ifname[IFNAMSIZ];		/* Interface name */
 };
 
 struct ecp_hdr {
@@ -101,4 +102,5 @@ int ecp_start_localchange_timer(struct vdp_data *);
 int ecp_init(char *);
 int ecp_deinit(char *);
 
+void ecp_print_frame(char *, char *, u8 *, u32);
 #endif /* _ECP_H */
