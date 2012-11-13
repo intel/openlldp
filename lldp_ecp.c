@@ -767,6 +767,49 @@ static void ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf,
 
 }
 
+/* ecp_rx_change_state - changes the ecp rx sm state
+ * @vd: currently used port
+ * @newstate: new state for the sm
+ *
+ * no return value
+ *
+ * checks state transistion for consistency and finally changes the state of
+ * the profile.
+ */
+static void ecp_rx_change_state(struct vdp_data *vd, u8 newstate)
+{
+	switch(newstate) {
+	case ECP_RX_IDLE:
+		break;
+	case ECP_RX_INIT_RECEIVE:
+		break;
+	case ECP_RX_RECEIVE_WAIT:
+		assert((vd->ecp.rx.state == ECP_RX_INIT_RECEIVE) ||
+		       (vd->ecp.rx.state == ECP_RX_IDLE) ||
+		       (vd->ecp.rx.state == ECP_RX_SEND_ACK) ||
+		       (vd->ecp.rx.state == ECP_RX_RESEND_ACK));
+		break;
+	case ECP_RX_RECEIVE_ECPDU:
+		assert(vd->ecp.rx.state == ECP_RX_RECEIVE_WAIT);
+		break;
+	case ECP_RX_SEND_ACK:
+		assert(vd->ecp.rx.state == ECP_RX_RECEIVE_ECPDU);
+		break;
+	case ECP_RX_RESEND_ACK:
+		assert(vd->ecp.rx.state == ECP_RX_RECEIVE_ECPDU);
+		break;
+	default:
+		LLDPAD_ERR("%s:%s LLDP RX state machine invalid state %d\n",
+			   __func__, vd->ecp.ifname, newstate);
+	}
+
+	LLDPAD_DBG("%s:%s state change %s -> %s\n", __func__,
+		   vd->ecp.ifname, ecp_rx_states[vd->ecp.rx.state],
+		   ecp_rx_states[newstate]);
+
+	vd->ecp.rx.state = newstate;
+}
+
 /* ecp_init - initialize ecp module
  * @ifname: interface for which the module is initialized
  *
@@ -996,49 +1039,6 @@ out:
 	}
 	if (vdp_called)
 		vdp_advance_sm(vd);
-}
-
-/* ecp_rx_change_state - changes the ecp rx sm state
- * @vd: currently used port
- * @newstate: new state for the sm
- *
- * no return value
- *
- * checks state transistion for consistency and finally changes the state of
- * the profile.
- */
-void ecp_rx_change_state(struct vdp_data *vd, u8 newstate)
-{
-	switch(newstate) {
-	case ECP_RX_IDLE:
-		break;
-	case ECP_RX_INIT_RECEIVE:
-		break;
-	case ECP_RX_RECEIVE_WAIT:
-		assert((vd->ecp.rx.state == ECP_RX_INIT_RECEIVE) ||
-		       (vd->ecp.rx.state == ECP_RX_IDLE) ||
-		       (vd->ecp.rx.state == ECP_RX_SEND_ACK) ||
-		       (vd->ecp.rx.state == ECP_RX_RESEND_ACK));
-		break;
-	case ECP_RX_RECEIVE_ECPDU:
-		assert(vd->ecp.rx.state == ECP_RX_RECEIVE_WAIT);
-		break;
-	case ECP_RX_SEND_ACK:
-		assert(vd->ecp.rx.state == ECP_RX_RECEIVE_ECPDU);
-		break;
-	case ECP_RX_RESEND_ACK:
-		assert(vd->ecp.rx.state == ECP_RX_RECEIVE_ECPDU);
-		break;
-	default:
-		LLDPAD_ERR("%s:%s LLDP RX state machine invalid state %d\n",
-			   __func__, vd->ecp.ifname, newstate);
-	}
-
-	LLDPAD_DBG("%s:%s state change %s -> %s\n", __func__,
-		   vd->ecp.ifname, ecp_rx_states[vd->ecp.rx.state],
-		   ecp_rx_states[newstate]);
-
-	vd->ecp.rx.state = newstate;
 }
 
 /* ecp_set_rx_state - sets the ecp rx sm state
