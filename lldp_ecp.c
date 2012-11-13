@@ -79,7 +79,6 @@ static void ecp_localchange_handler(UNUSED void *eloop_data, void *user_ctx)
 	struct vdp_data *vd;
 
 	vd = (struct vdp_data *) user_ctx;
-
 	if (vd->ecp.tx.localChange) {
 		LLDPAD_DBG("%s:%s ecp.tx.localChange %i\n",
 			   __func__, vd->ecp.ifname, vd->ecp.tx.localChange);
@@ -113,7 +112,6 @@ static int ecp_stop_localchange_timer(struct vdp_data *vd)
 {
 	LLDPAD_DBG("%s:%s stopping ecp localchange timer\n", __func__,
 		   vd->ecp.ifname);
-
 	return eloop_cancel_timeout(ecp_localchange_handler, NULL, (void *) vd);
 }
 
@@ -142,7 +140,6 @@ static void ecp_ack_timeout_handler(UNUSED void *eloop_data, void *user_ctx)
 	struct vdp_data *vd;
 
 	vd = (struct vdp_data *) user_ctx;
-
 	if (vd->ecp.ackTimer > 0)
 		vd->ecp.ackTimer -= ECP_ACK_TIMER_DEFAULT;
 
@@ -195,9 +192,7 @@ static int ecp_stop_ack_timer(struct vdp_data *vd)
 static void ecp_tx_stop_ackTimer(struct vdp_data *vd)
 {
 	vd->ecp.ackTimer = ECP_ACK_TIMER_STOPPED;
-
 	LLDPAD_DBG("%s:%s stopped ecp ack timer\n", __func__, vd->ecp.ifname);
-
 	ecp_stop_ack_timer(vd);
 }
 
@@ -206,9 +201,7 @@ int ecp_deinit(char *ifname)
 	struct vdp_data *vd;
 
 	LLDPAD_DBG("%s:%s stopping ECP\n", __func__, ifname);
-
 	vd = vdp_data(ifname);
-
 	if (!vd) {
 		LLDPAD_ERR("%s:%s unable to find vd\n", __func__, ifname);
 		return -1;
@@ -244,7 +237,6 @@ void ecp_somethingChangedLocal(struct vdp_data *vd, bool flag)
 
 	LLDPAD_DBG("%s:%s vd->ecp.tx.localChange to %s\n", __func__,
 		   vd->ecp.ifname, (flag == true) ? "true" : "false");
-
 	vd->ecp.tx.localChange = flag;
 	ecp_start_localchange_timer(vd);
 }
@@ -295,9 +287,7 @@ static bool ecp_build_ECPDU(struct vdp_data *vd)
 	ecp_hdr.oui[0] = 0x0;
 	ecp_hdr.oui[1] = 0x1b;
 	ecp_hdr.oui[2] = 0x3f;
-
 	ecp_hdr.pad1 = 0x0;
-
 	ecp_hdr.subtype = ECP_SUBTYPE;
 	ecp_hdr.mode = ECP_REQUEST;
 
@@ -417,9 +407,7 @@ static void ecp_tx_create_frame(struct vdp_data *vd)
 static void ecp_tx_start_ackTimer(struct vdp_data *vd)
 {
 	vd->ecp.ackTimer = ECP_ACK_TIMER_DEFAULT;
-
 	LLDPAD_DBG("%s-%s: starting ecp ack timer\n", __func__, vd->ifname);
-
 	ecp_start_ack_timer(vd);
 }
 
@@ -623,7 +611,6 @@ static int ecp_rx_SendAckFrame(struct vdp_data *vd)
 	u8 own_addr[ETH_ALEN];
 
 	LLDPAD_DBG("%s:%s acking frame\n", __func__, vd->ecp.ifname);
-
 	/* copy over to transmit buffer */
 	memcpy(vd->ecp.tx.frame, vd->ecp.rx.frame, vd->ecp.rx.frame_len);
 	vd->ecp.tx.frame_len = vd->ecp.rx.frame_len;
@@ -690,15 +677,12 @@ static void ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf,
 	}
 
 	vd = (struct vdp_data *)ctx;
-
 	port = port_find_by_name(vd->ifname);
-
 	if (port == NULL)
 		return;
 
 	LLDPAD_DBG("%s:%s received packet with size %i\n", __func__,
 		   vd->ecp.ifname, (int)len);
-
 	if (vd->enabletx == false)
 		return;
 
@@ -737,11 +721,8 @@ static void ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf,
 	}
 
 	tlv_offset = sizeof(struct l2_ethhdr);
-
 	ecp_hdr = (struct ecp_hdr *)&vd->ecp.rx.frame[tlv_offset];
-
 	vd->ecp.seqECPDU = ntohs(ecp_hdr->seqnr);
-
 	ecp_print_frame(vd->ecp.ifname, "frame-in", vd->ecp.rx.frame,
 			vd->ecp.rx.frame_len);
 
@@ -826,9 +807,7 @@ int ecp_init(char *ifname)
 	struct vdp_data *vd;
 
 	LLDPAD_DBG("%s:%s starting ECP\n", __func__, ifname);
-
 	vd = vdp_data(ifname);
-
 	if (!vd) {
 		LLDPAD_ERR("%s:%s unable to find vd\n", __func__, ifname);
 		return -1;
@@ -864,11 +843,8 @@ static void ecp_rx_validate_frame(struct vdp_data *vd)
 	struct ecp_hdr *ecp_hdr;
 
 	LLDPAD_DBG("%s:%s validating frame\n", __func__, vd->ecp.ifname);
-
 	tlv_offset = sizeof(struct l2_ethhdr);
-
 	ecp_hdr = (struct ecp_hdr *)&vd->ecp.rx.frame[tlv_offset];
-
 	LLDPAD_DBG("%s:%s ecp packet with subtype %#x mode %#x seq %#04x\n",
 		   __func__, vd->ecp.ifname, ecp_hdr->subtype, ecp_hdr->mode,
 		   ntohs(ecp_hdr->seqnr));
@@ -927,18 +903,14 @@ static void ecp_rx_ProcessFrame(struct vdp_data *vd)
 	tlv_offset = sizeof(struct l2_ethhdr);
 
 	ecp_hdr = (struct ecp_hdr *)&vd->ecp.rx.frame[tlv_offset];
-
 	LLDPAD_DBG("%s:%s ecp packet with subtype %#x mode %#x seq %#04x\n",
 		   __func__, vd->ifname, ecp_hdr->subtype,
 		   ecp_hdr->mode, ntohs(ecp_hdr->seqnr));
-
 	if (ecp_hdr->mode == ECP_ACK)
 		return;
 
 	/* processing of VSI_TLVs starts here */
-
 	tlv_offset += sizeof(struct ecp_hdr);
-
 	vdp_called = 0;
 	do {
 		tlv_cnt++;
@@ -1027,12 +999,9 @@ static void ecp_rx_ProcessFrame(struct vdp_data *vd)
 			tlv = free_unpkd_tlv(tlv);
 			vd->ecp.stats.statsTLVsUnrecognizedTotal++;
 		}
-
 		tlv = NULL;
 		tlv_stored = false;
-
 	} while (tlv_offset < vd->ecp.rx.frame_len);
-
 out:
 	if (frame_error) {
 		vd->ecp.stats.statsFramesDiscardedTotal++;
@@ -1058,9 +1027,8 @@ static bool ecp_set_rx_state(struct vdp_data *vd)
 	if (!port)
 		return false;
 
-	if (port->portEnabled == false) {
+	if (port->portEnabled == false)
 		ecp_rx_change_state(vd, ECP_RX_IDLE);
-	}
 
 	switch(vd->ecp.rx.state) {
 	case ECP_RX_IDLE:
