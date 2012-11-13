@@ -45,7 +45,7 @@
 /*
  * ecp_print_frame - print raw ecp frame
  */
-void ecp_print_frame(char *ifname, char *txt, u8 *buf, u32 len)
+static void ecp_print_frame(char *ifname, char *txt, u8 *buf, u32 len)
 {
 	u32 i, left = 0;
 	char buffer[ETH_FRAME_LEN * 3];
@@ -92,7 +92,7 @@ static void ecp_localchange_handler(UNUSED void *eloop_data, void *user_ctx)
  * starts the ECP localchange timer when a localchange has been signaled from
  * the VDP state machine.
  */
-int ecp_start_localchange_timer(struct vdp_data *vd)
+static int ecp_start_localchange_timer(struct vdp_data *vd)
 {
 	return eloop_register_timeout(0, ECP_LOCALCHANGE_TIMEOUT,
 				      ecp_localchange_handler,
@@ -150,7 +150,7 @@ static void ecp_ack_timeout_handler(UNUSED void *eloop_data, void *user_ctx)
  *
  * starts the ECP ack timer when a frame has been sent out.
  */
-int ecp_start_ack_timer(struct vdp_data *vd)
+static int ecp_start_ack_timer(struct vdp_data *vd)
 {
 	return eloop_register_timeout(0, ECP_ACK_TIMER_DEFAULT,
 				      ecp_ack_timeout_handler,
@@ -164,7 +164,7 @@ int ecp_start_ack_timer(struct vdp_data *vd)
  *
  * stops the ECP ack timer. Used e.g. when the host interface goes down.
  */
-int ecp_stop_ack_timer(struct vdp_data *vd)
+static int ecp_stop_ack_timer(struct vdp_data *vd)
 {
 	LLDPAD_DBG("%s:%s stopping ecp ack timer\n", __func__, vd->ecp.ifname);
 	return eloop_cancel_timeout(ecp_ack_timeout_handler, NULL, (void *) vd);
@@ -281,7 +281,7 @@ static int ecp_append(u8 *buffer, u32 *pos, void *data, u32 len)
  * plus a list of packed TLVs created from the profiles on this
  * port.
  */
-bool ecp_build_ECPDU(struct vdp_data *vd)
+static bool ecp_build_ECPDU(struct vdp_data *vd)
 {
 	struct l2_ethhdr eth;
 	struct ecp_hdr ecp_hdr;
@@ -378,7 +378,7 @@ static void ecp_tx_Initialize(struct vdp_data *vd)
  *
  * sends out the frame stored in the frame structure using l2_packet_send.
  */
-u8 ecp_txFrame(struct vdp_data *vd)
+static u8 ecp_txFrame(struct vdp_data *vd)
 {
 	int status = 0;
 
@@ -621,21 +621,6 @@ void ecp_tx_run_sm(struct vdp_data *vd)
 	} while (ecp_set_tx_state(vd) == true);
 }
 
-#if 0
-#include <stdio.h>
-#include <assert.h>
-#include "lldp/ports.h"
-#include "lldp/l2_packet.h"
-#include "messages.h"
-#include "lldp.h"
-#include "lldp_tlv.h"
-#include "lldpad.h"
-#include "lldp_mod.h"
-#include "clif_msgs.h"
-#include "lldp_mand.h"
-#include "lldp_vdp.h"
-#endif
-
 static const char *ecp_rx_states[] = {
 	"ECP_RX_IDLE",
 	"ECP_RX_INIT_RECEIVE",
@@ -722,8 +707,8 @@ void ecp_rx_send_ack_frame(struct vdp_data *vd)
  * no return value
  *
  * creates a local copy of the buffer and checks the header. keeps some
- * statistics about ecp frames. Checks if it is a request or an ack frame and branches
- * to ecp rx or ecp tx state machine.
+ * statistics about ecp frames. Checks if it is a request or an ack frame
+ * and branches to ecp rx or ecp tx state machine.
  */
 void
 ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf, size_t len)
