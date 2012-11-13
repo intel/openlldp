@@ -43,6 +43,7 @@
 #include "lldp_tlv.h"
 
 static void ecp_tx_run_sm(struct vdp_data *);
+static void ecp_rx_run_sm(struct vdp_data *);
 
 /*
  * ecp_print_frame - print raw ecp frame
@@ -1115,7 +1116,7 @@ static bool ecp_set_rx_state(struct vdp_data *vd)
  *
  * runs the state machine for ecp rx.
  */
-void ecp_rx_run_sm(struct vdp_data *vd)
+static void ecp_rx_run_sm(struct vdp_data *vd)
 {
 	ecp_set_rx_state(vd);
 	do {

@@ -98,7 +98,6 @@ enum {
 
 struct vdp_data;
 
-void ecp_rx_run_sm(struct vdp_data *);
 int ecp_init(char *);
 int ecp_deinit(char *);
 #endif /* _ECP_H */
