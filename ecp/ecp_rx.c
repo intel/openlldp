@@ -36,7 +36,6 @@
 #include "clif_msgs.h"
 #include "lldp_mand.h"
 #include "lldp_vdp.h"
-#include "ecp.h"
 
 static const char *ecp_rx_states[] = {
 	"ECP_RX_IDLE",

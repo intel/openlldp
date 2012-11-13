@@ -36,7 +36,6 @@
 #include <assert.h>
 #include "lldp.h"
 #include "lldp_vdp.h"
-#include "ecp/ecp.h"
 #include "eloop.h"
 #include "lldp_evb.h"
 #include "messages.h"

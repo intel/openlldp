@@ -37,7 +37,6 @@
 #include "messages.h"
 #include "config.h"
 #include "lldp/l2_packet.h"
-#include "ecp/ecp.h"
 
 /*
  * ecp_print_frame - print raw ecp frame
