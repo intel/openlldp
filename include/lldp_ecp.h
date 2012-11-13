@@ -103,7 +103,6 @@ void ecp_rx_run_sm(struct vdp_data *);
 void ecp_tx_run_sm(struct vdp_data *);
 bool ecp_ackTimer_expired(struct vdp_data *);
 void ecp_rx_change_state(struct vdp_data *, u8);
-void ecp_tx_stop_ackTimer(struct vdp_data *);
 int ecp_init(char *);
 int ecp_deinit(char *);
 #endif /* _ECP_H */

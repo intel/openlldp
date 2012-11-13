@@ -170,6 +170,24 @@ static int ecp_stop_ack_timer(struct vdp_data *vd)
 	return eloop_cancel_timeout(ecp_ack_timeout_handler, NULL, (void *) vd);
 }
 
+/* ecp_tx_stop_ackTimer - stop the ECP ack timer
+ * @vd: currently used port
+ *
+ * returns the number of removed handlers
+ *
+ * stops the ECP ack timer. used when a ack frame for the port has been
+ * received.
+ */
+static void ecp_tx_stop_ackTimer(struct vdp_data *vd)
+{
+	vd->ecp.ackTimer = ECP_ACK_TIMER_STOPPED;
+
+	LLDPAD_DBG("%s:%s stopped ecp ack timer\n", __func__, vd->ecp.ifname);
+
+	ecp_stop_ack_timer(vd);
+}
+
+
 /* ecp_init - initialize ecp module
  * @ifname: interface for which the module is initialized
  *
@@ -413,23 +431,6 @@ static void ecp_tx_create_frame(struct vdp_data *vd)
 	}
 
 	ecp_somethingChangedLocal(vd, false);
-}
-
-/* ecp_tx_stop_ackTimer - stop the ECP ack timer
- * @vd: currently used port
- *
- * returns the number of removed handlers
- *
- * stops the ECP ack timer. used when a ack frame for the port has been
- * received.
- */
-void ecp_tx_stop_ackTimer(struct vdp_data *vd)
-{
-	vd->ecp.ackTimer = ECP_ACK_TIMER_STOPPED;
-
-	LLDPAD_DBG("%s:%s stopped ecp ack timer\n", __func__, vd->ecp.ifname);
-
-	ecp_stop_ack_timer(vd);
 }
 
 /* ecp_tx_start_ackTimer - starts the ECP ack timer
