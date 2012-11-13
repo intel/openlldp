@@ -114,6 +114,17 @@ static int ecp_stop_localchange_timer(struct vdp_data *vd)
 	return eloop_cancel_timeout(ecp_localchange_handler, NULL, (void *) vd);
 }
 
+/* ecp_ackTimer_expired - checks for expired ack timer
+ * @vd: vdp_data for interface
+ *
+ * returns true or false
+ *
+ * returns true if ack timer has expired, false otherwise.
+ */
+static bool ecp_ackTimer_expired(struct vdp_data *vd)
+{
+	return (vd->ecp.ackTimer == 0);
+}
 
 /* ecp_ack_timeout_handler - handles the ack timer expiry
  * @eloop_data: data structure of event loop
@@ -447,18 +458,6 @@ static void ecp_tx_start_ackTimer(struct vdp_data *vd)
 	LLDPAD_DBG("%s-%s: starting ecp ack timer\n", __func__, vd->ifname);
 
 	ecp_start_ack_timer(vd);
-}
-
-/* ecp_ackTimer_expired - checks for expired ack timer
- * @vd: vdp_data for interface
- *
- * returns true or false
- *
- * returns true if ack timer has expired, false otherwise.
- */
-bool ecp_ackTimer_expired(struct vdp_data *vd)
-{
-	return (vd->ecp.ackTimer == 0);
 }
 
 /* ecp_tx_change_state - changes the ecp tx sm state
