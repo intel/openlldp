@@ -42,6 +42,8 @@
 
 #include "lldp_tlv.h"
 
+static void ecp_tx_run_sm(struct vdp_data *);
+
 /*
  * ecp_print_frame - print raw ecp frame
  */
@@ -196,46 +198,6 @@ static void ecp_tx_stop_ackTimer(struct vdp_data *vd)
 	LLDPAD_DBG("%s:%s stopped ecp ack timer\n", __func__, vd->ecp.ifname);
 
 	ecp_stop_ack_timer(vd);
-}
-
-
-/* ecp_init - initialize ecp module
- * @ifname: interface for which the module is initialized
- *
- * returns 0 on success, -1 on error
- *
- * finds the port to the interface name, sets up the receive handle for
- * incoming ecp frames and initializes the ecp rx and tx state machines.
- * should usually be called when a successful exchange of EVB TLVs has been
- * made and ECP and VDP protocols are supported by both sides.
- */
-int ecp_init(char *ifname)
-{
-	struct vdp_data *vd;
-
-	LLDPAD_DBG("%s:%s starting ECP\n", __func__, ifname);
-
-	vd = vdp_data(ifname);
-
-	if (!vd) {
-		LLDPAD_ERR("%s:%s unable to find vd\n", __func__, ifname);
-		return -1;
-	}
-
-	if (!vd->ecp.l2)
-		vd->ecp.l2 = l2_packet_init(vd->ifname, NULL, ETH_P_ECP,
-					    ecp_rx_ReceiveFrame, vd, 1);
-
-	if (!vd->ecp.l2) {
-		LLDPAD_ERR("%s:%s failed to access layer 2 access ETH_P_ECP\n",
-			   __func__, ifname);
-		return -1;
-	}
-	strncpy(vd->ecp.ifname, ifname, sizeof vd->ecp.ifname);
-	ecp_rx_change_state(vd, ECP_RX_IDLE);
-	ecp_rx_run_sm(vd);
-	ecp_somethingChangedLocal(vd, true);
-	return 0;
 }
 
 int ecp_deinit(char *ifname)
@@ -710,8 +672,8 @@ void ecp_rx_send_ack_frame(struct vdp_data *vd)
  * statistics about ecp frames. Checks if it is a request or an ack frame
  * and branches to ecp rx or ecp tx state machine.
  */
-void
-ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf, size_t len)
+static void ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf,
+				size_t len)
 {
 	struct vdp_data *vd;
 	struct port *port;
@@ -803,6 +765,45 @@ ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf, size_t len)
 		return;
 	}
 
+}
+
+/* ecp_init - initialize ecp module
+ * @ifname: interface for which the module is initialized
+ *
+ * returns 0 on success, -1 on error
+ *
+ * finds the port to the interface name, sets up the receive handle for
+ * incoming ecp frames and initializes the ecp rx and tx state machines.
+ * should usually be called when a successful exchange of EVB TLVs has been
+ * made and ECP and VDP protocols are supported by both sides.
+ */
+int ecp_init(char *ifname)
+{
+	struct vdp_data *vd;
+
+	LLDPAD_DBG("%s:%s starting ECP\n", __func__, ifname);
+
+	vd = vdp_data(ifname);
+
+	if (!vd) {
+		LLDPAD_ERR("%s:%s unable to find vd\n", __func__, ifname);
+		return -1;
+	}
+
+	if (!vd->ecp.l2)
+		vd->ecp.l2 = l2_packet_init(vd->ifname, NULL, ETH_P_ECP,
+					    ecp_rx_ReceiveFrame, vd, 1);
+
+	if (!vd->ecp.l2) {
+		LLDPAD_ERR("%s:%s failed to access layer 2 access ETH_P_ECP\n",
+			   __func__, ifname);
+		return -1;
+	}
+	strncpy(vd->ecp.ifname, ifname, sizeof vd->ecp.ifname);
+	ecp_rx_change_state(vd, ECP_RX_IDLE);
+	ecp_rx_run_sm(vd);
+	ecp_somethingChangedLocal(vd, true);
+	return 0;
 }
 
 /* ecp_rx_validate_frame - validates received frame

@@ -98,9 +98,7 @@ enum {
 
 struct vdp_data;
 
-void ecp_rx_ReceiveFrame(void *, int, const u8 *, size_t);
 void ecp_rx_run_sm(struct vdp_data *);
-void ecp_tx_run_sm(struct vdp_data *);
 void ecp_rx_change_state(struct vdp_data *, u8);
 int ecp_init(char *);
 int ecp_deinit(char *);
