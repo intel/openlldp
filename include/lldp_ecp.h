@@ -98,6 +98,9 @@ enum {
 
 struct vdp_data;
 
+void ecp_somethingChangedLocal(struct vdp_data *, bool);
+void ecp_rx_send_ack_frame(struct vdp_data *);
+
 int ecp_init(char *);
 int ecp_deinit(char *);
 #endif /* _ECP_H */

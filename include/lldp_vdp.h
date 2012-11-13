@@ -161,8 +161,6 @@ int vdp_vsis_pending(struct vdp_data *);
 int vdp_vsis(char *);
 const char *vdp_response2str(int);
 void vdp_trace_profile(struct vsi_profile *);
-void ecp_somethingChangedLocal(struct vdp_data *, bool);
-void ecp_rx_send_ack_frame(struct vdp_data *);
 int instance2str(const u8 *, char *, size_t);
 int event_if_indicate_profile(struct vsi_profile *);
 struct vsi_profile *vdp_alloc_profile(void);
