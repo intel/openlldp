@@ -75,7 +75,7 @@ bool mibConstrInfoLLDPDU(struct port *port, struct lldp_agent *agent)
 
 		ptlv = np->ops->lldp_mod_gettlv(port, agent);
 		if (ptlv) {
-			if ((ptlv->size+fb_offset) > ETH_MAX_DATA_LEN)
+			if ((ptlv->size+fb_offset) > ETH_DATA_LEN)
 				goto error;
 			memcpy(agent->tx.frameout+fb_offset,
 			       ptlv->tlv, ptlv->size);
@@ -87,7 +87,7 @@ bool mibConstrInfoLLDPDU(struct port *port, struct lldp_agent *agent)
 
 	/* The End TLV marks the end of the LLDP PDU */
 	ptlv = pack_end_tlv();
-	if (!ptlv || ((ptlv->size + fb_offset) > ETH_MAX_DATA_LEN))
+	if (!ptlv || ((ptlv->size + fb_offset) > ETH_DATA_LEN))
 		goto error;
 	memcpy(agent->tx.frameout + fb_offset, ptlv->tlv, ptlv->size);
 	datasize += ptlv->size;
@@ -191,7 +191,7 @@ bool mibConstrShutdownLLDPDU(struct port *port, struct lldp_agent *agent)
 		goto error;
 	ptlv = np->ops->lldp_mod_gettlv(port, agent);
 	if (ptlv) {
-		if ((ptlv->size + fb_offset) > ETH_MAX_DATA_LEN)
+		if ((ptlv->size + fb_offset) > ETH_DATA_LEN)
 			goto error;
 		/* set the TTL to be 0 TTL TLV */
 		memset(&ptlv->tlv[ptlv->size - 2], 0, 2);
@@ -203,7 +203,7 @@ bool mibConstrShutdownLLDPDU(struct port *port, struct lldp_agent *agent)
 
 	/* The End TLV marks the end of the LLDP PDU */
 	ptlv = pack_end_tlv();
-	if (!ptlv || ((ptlv->size + fb_offset) > ETH_MAX_DATA_LEN))
+	if (!ptlv || ((ptlv->size + fb_offset) > ETH_DATA_LEN))
 		goto error;
 	memcpy(agent->tx.frameout + fb_offset, ptlv->tlv, ptlv->size);
 	datasize += ptlv->size;

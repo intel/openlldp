@@ -159,7 +159,7 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 	vd->ecp.lastSequence++;
 	ecp_hdr.seqnr = htons(vd->ecp.lastSequence);
 
-	if ((sizeof(struct ecp_hdr)+fb_offset) > ETH_MAX_DATA_LEN)
+	if ((sizeof(struct ecp_hdr)+fb_offset) > ETH_DATA_LEN)
 		goto error;
 	memcpy(vd->ecp.tx.frameout+fb_offset, (void *)&ecp_hdr,
 	       sizeof(struct ecp_hdr));
@@ -188,7 +188,7 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 		}
 
 		if (ptlv) {
-			if ((ptlv->size+fb_offset) > ETH_MAX_DATA_LEN)
+			if ((ptlv->size+fb_offset) > ETH_DATA_LEN)
 				goto error;
 			memcpy(vd->ecp.tx.frameout+fb_offset,
 			       ptlv->tlv, ptlv->size);
@@ -203,14 +203,14 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 
 	/* The End TLV marks the end of the LLDP PDU */
 	ptlv = pack_end_tlv();
-	if (!ptlv || ((ptlv->size + fb_offset) > ETH_MAX_DATA_LEN))
+	if (!ptlv || ((ptlv->size + fb_offset) > ETH_DATA_LEN))
 		goto error;
 	memcpy(vd->ecp.tx.frameout + fb_offset, ptlv->tlv, ptlv->size);
 	datasize += ptlv->size;
 	fb_offset += ptlv->size;
 	ptlv =  free_pkd_tlv(ptlv);
 
-	if (datasize > ETH_MAX_DATA_LEN)
+	if (datasize > ETH_DATA_LEN)
 		goto error;
 
 	if (datasize < ETH_MIN_DATA_LEN)

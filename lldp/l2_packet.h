@@ -28,6 +28,7 @@
 #define L2_PACKET_H
 
 #include <stdlib.h>
+#include <linux/if_ether.h>
 #include "lldp.h"
 
 #define MAC2STR(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
@@ -40,12 +41,6 @@
 
 /* TODO: use extended ethertype until final ethertype is available */
 #define ETH_P_ECP 0x88b7
-
-#define ETH_FRAME_LEN   1514
-
-#ifndef ETH_MAX_DATA_LEN
-#define ETH_MAX_DATA_LEN    1500
-#endif
 
 /* 6 source + 6 dest + 2 type */
 #ifndef ETH_HDR_LEN
