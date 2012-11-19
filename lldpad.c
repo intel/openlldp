@@ -385,6 +385,8 @@ int main(int argc, char *argv[])
 	if (fsync(fd) < 0)
 		perror("error syncing lldpad lock file");
 
+	close(fd);
+
 	pid = lldpad_shm_getpid();
 	if (pid < 0) {
 		LLDPAD_ERR("error getting shm pid");

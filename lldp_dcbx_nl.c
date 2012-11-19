@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <stdarg.h>
 #include "linux/netlink.h"
@@ -420,8 +421,14 @@ int init_drv_if(void)
 
 int deinit_drv_if(void)
 {
-	if (nl_sd) {
-		shutdown(nl_sd, 2);
+	int rc;
+
+	rc = fcntl(nl_sd, F_GETFD);
+	if (rc != -1) {
+		rc = close(nl_sd);
+		if (rc)
+			LLDPAD_ERR("Failed to close NETLINK socket (%d)\n",
+					rc);
 		nl_sd = 0;
 	}
 	return 0;

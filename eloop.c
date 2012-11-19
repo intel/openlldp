@@ -19,7 +19,9 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include "eloop.h"
+#include "include/messages.h"
 
 #define UNUSED __attribute__((__unused__))
 
@@ -216,8 +218,23 @@ static void eloop_sock_table_dispatch(struct eloop_sock_table *table,
 
 static void eloop_sock_table_destroy(struct eloop_sock_table *table)
 {
-	if (table)
+	int rc, tc, sock;
+
+	if (table) {
+		tc = table->count;
+		while (tc > 0) {
+			sock = table->table[tc].sock;
+			rc = fcntl(sock, F_GETFD);
+			if (rc != -1) {
+				rc = close(sock);
+				if (rc)
+					LLDPAD_ERR("Failed to close fd - %s\n",
+							strerror(errno));
+			}
+			tc--;
+		}
 		free(table->table);
+	}
 }
 
 

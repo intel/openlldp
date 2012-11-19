@@ -43,6 +43,7 @@
 #include <netlink/msg.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include "linux/if.h"
 #include "linux/if_vlan.h"
 #include "linux/rtnetlink.h"
@@ -1176,5 +1177,15 @@ int event_iface_init_user_space()
 
 int event_iface_deinit()
 {
+	int rc;
+
+	rc = fcntl(peer_sock, F_GETFD);
+	if (rc != -1) {
+		rc = close(peer_sock);
+		if (rc)
+			LLDPAD_ERR("Failed to close fd - %s\n",
+					strerror(errno));
+	}
+
 	return 0;
 }
