@@ -42,17 +42,12 @@
 /* TODO: use extended ethertype until final ethertype is available */
 #define ETH_P_ECP 0x88b7
 
-/* 6 source + 6 dest + 2 type */
-#ifndef ETH_HDR_LEN
-#define ETH_HDR_LEN         14
-#endif
-
 #ifndef ETH_MIN_DATA_LEN
 #define ETH_MIN_DATA_LEN    46
 #endif
 
 #ifndef ETH_MIN_PKT_LEN
-#define ETH_MIN_PKT_LEN     (ETH_MIN_DATA_LEN + ETH_HDR_LEN)
+#define ETH_MIN_PKT_LEN     (ETH_MIN_DATA_LEN + ETH_HLEN)
 #endif
 
 /**
