@@ -214,7 +214,7 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 		goto error;
 
 	if (datasize < ETH_MIN_DATA_LEN)
-		vd->ecp.tx.sizeout = ETH_MIN_PKT_LEN;
+		vd->ecp.tx.sizeout = ETH_ZLEN;
 	else
 		vd->ecp.tx.sizeout = fb_offset;
 

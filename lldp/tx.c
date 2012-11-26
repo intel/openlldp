@@ -95,7 +95,7 @@ bool mibConstrInfoLLDPDU(struct port *port, struct lldp_agent *agent)
 	ptlv =  free_pkd_tlv(ptlv);
 
 	if (datasize < ETH_MIN_DATA_LEN)
-		agent->tx.sizeout = ETH_MIN_PKT_LEN;
+		agent->tx.sizeout = ETH_ZLEN;
 	else
 		agent->tx.sizeout = fb_offset;
 
@@ -211,7 +211,7 @@ bool mibConstrShutdownLLDPDU(struct port *port, struct lldp_agent *agent)
 	ptlv = free_pkd_tlv(ptlv);
 
 	if (datasize < ETH_MIN_DATA_LEN)
-		agent->tx.sizeout = ETH_MIN_PKT_LEN;
+		agent->tx.sizeout = ETH_ZLEN;
 	else
 		agent->tx.sizeout = fb_offset;
 	return true;
