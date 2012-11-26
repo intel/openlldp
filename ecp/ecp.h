@@ -90,7 +90,6 @@ struct vdp_data;
 
 void ecp_rx_ReceiveFrame(void *, int, const u8 *, size_t);
 void ecp_rx_run_sm(struct vdp_data *);
-void ecp_print_frameout(struct vdp_data *);
 u8 ecp_txFrame(struct vdp_data *);
 void ecp_tx_run_sm(struct vdp_data *);
 bool ecp_ackTimer_expired(struct vdp_data *);

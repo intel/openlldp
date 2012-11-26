@@ -129,7 +129,8 @@ static int ecp_rx_SendAckFrame(struct vdp_data *vd)
 void ecp_rx_send_ack_frame(struct vdp_data *vd)
 {
 	ecp_rx_SendAckFrame(vd);
-	ecp_print_frameout(vd);
+	ecp_print_frame(vd->ecp.ifname, "frame-ack", vd->ecp.tx.frameout,
+			vd->ecp.tx.sizeout);
 	ecp_txFrame(vd);
 }
 

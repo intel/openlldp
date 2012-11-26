@@ -67,20 +67,6 @@ void ecp_somethingChangedLocal(struct vdp_data *vd, bool flag)
 	ecp_start_localchange_timer(vd);
 }
 
-/* ecp_print_frameout - print outbound frame
- * @vd: currently used port
- *
- * no return value
- *
- * prints a raw dump of an outbound ecp frame. useful for low-level protocol
- * debugging.
- */
-void ecp_print_frameout(struct vdp_data *vd)
-{
-	ecp_print_frame(vd->ecp.ifname, "frame-out", vd->ecp.tx.frameout,
-			vd->ecp.tx.sizeout);
-}
-
 /*
  * Append some data at the end of the transmit data buffer. Make sure the
  * End TLV always fits into the buffer.
@@ -227,8 +213,6 @@ u8 ecp_txFrame(struct vdp_data *vd)
  * @vd: currently used port
  *
  * no return value
- *
- *
  */
 static void ecp_tx_create_frame(struct vdp_data *vd)
 {
@@ -241,7 +225,9 @@ static void ecp_tx_create_frame(struct vdp_data *vd)
 
 		/* ECPDU construction succesful, send out frame */
 		if (ret == true) {
-			ecp_print_frameout(vd);
+			ecp_print_frame(vd->ecp.ifname, "frame-out",
+					vd->ecp.tx.frameout,
+					vd->ecp.tx.sizeout);
 			ecp_txFrame(vd);
 		}
 	}
