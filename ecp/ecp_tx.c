@@ -60,8 +60,8 @@ void ecp_somethingChangedLocal(struct vdp_data *vd, bool flag)
 	if (!vd)
 		return;
 
-	LLDPAD_DBG("%s: vd->ecp.tx.localChange to %s\n", __func__,
-		   (flag == true) ? "true" : "false");
+	LLDPAD_DBG("%s:%s vd->ecp.tx.localChange to %s\n", __func__,
+		   vd->ecp.ifname, (flag == true) ? "true" : "false");
 
 	vd->ecp.tx.localChange = flag;
 	ecp_start_localchange_timer(vd);
@@ -128,15 +128,16 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 	LIST_FOREACH(p, &vd->profile_head, profile) {
 
 		if (!p->localChange) {
-			LLDPAD_DBG("%s: skipping unchanged profile!\n",
-				   __func__);
+			LLDPAD_DBG("%s:%s skipping unchanged profile\n",
+				   __func__, vd->ecp.ifname);
 			continue;
 		}
 
 		ptlv = vdp_gettlv(vd, p);
 
 		if (!ptlv) {
-			LLDPAD_ERR("%s: ptlv not created !\n", __func__);
+			LLDPAD_DBG("%s:%s ptlv not created\n", __func__,
+				   vd->ecp.ifname);
 			continue;
 		}
 
@@ -209,7 +210,7 @@ static void ecp_tx_create_frame(struct vdp_data *vd)
 	if (vd->ecp.tx.localChange) {
 		int ret;
 
-		LLDPAD_DBG("%s-%s: sending REQs\n", __func__, vd->ifname);
+		LLDPAD_DBG("%s:%s sending REQs\n", __func__, vd->ecp.ifname);
 		ret = ecp_build_ECPDU(vd);
 
 		/* ECPDU construction succesful, send out frame */
@@ -236,7 +237,7 @@ void ecp_tx_stop_ackTimer(struct vdp_data *vd)
 {
 	vd->ecp.ackTimer = ECP_ACK_TIMER_STOPPED;
 
-	LLDPAD_DBG("%s-%s: stopped ecp ack timer\n", __func__, vd->ifname);
+	LLDPAD_DBG("%s:%s stopped ecp ack timer\n", __func__, vd->ecp.ifname);
 
 	ecp_stop_ack_timer(vd);
 }

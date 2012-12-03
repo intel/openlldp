@@ -75,8 +75,8 @@ static void ecp_localchange_handler(UNUSED void *eloop_data, void *user_ctx)
 	vd = (struct vdp_data *) user_ctx;
 
 	if (vd->ecp.tx.localChange) {
-		LLDPAD_DBG("%s-%s: ecp.tx.localChange %i\n",
-			   __func__, vd->ifname, vd->ecp.tx.localChange);
+		LLDPAD_DBG("%s:%s ecp.tx.localChange %i\n",
+			   __func__, vd->ecp.ifname, vd->ecp.tx.localChange);
 		ecp_tx_run_sm(vd);
 	}
 }
@@ -105,8 +105,8 @@ int ecp_start_localchange_timer(struct vdp_data *vd)
  */
 static int ecp_stop_localchange_timer(struct vdp_data *vd)
 {
-	LLDPAD_DBG("%s-%s: stopping ecp localchange timer\n",
-		    __func__, vd->ifname);
+	LLDPAD_DBG("%s:%s stopping ecp localchange timer\n", __func__,
+		   vd->ecp.ifname);
 
 	return eloop_cancel_timeout(ecp_localchange_handler, NULL, (void *) vd);
 }
@@ -130,13 +130,13 @@ static void ecp_ack_timeout_handler(UNUSED void *eloop_data, void *user_ctx)
 		vd->ecp.ackTimer -= ECP_ACK_TIMER_DEFAULT;
 
 	if (ecp_ackTimer_expired(vd) == true) {
-		LLDPAD_DBG("%s-%s: ecp_ackTimer_expired (%i)\n",
-			   __func__, vd->ifname, vd->ecp.ackTimer);
+		LLDPAD_DBG("%s:%s ecp_ackTimer_expired (%i)\n",
+			   __func__, vd->ecp.ifname, vd->ecp.ackTimer);
 		ecp_tx_run_sm(vd);
 	} else {
-		LLDPAD_DBG("%s-%s: BUG ! handler called but"
+		LLDPAD_DBG("%s:%s BUG! handler called but"
 			   "vdp->ecp.ackTimer not expired (%i)\n",
-			   __func__, vd->ifname, vd->ecp.ackTimer);
+			   __func__, vd->ecp.ifname, vd->ecp.ackTimer);
 	}
 }
 
@@ -163,7 +163,7 @@ int ecp_start_ack_timer(struct vdp_data *vd)
  */
 int ecp_stop_ack_timer(struct vdp_data *vd)
 {
-	LLDPAD_DBG("%s-%s: stopping ecp ack timer\n", __func__, vd->ifname);
+	LLDPAD_DBG("%s:%s stopping ecp ack timer\n", __func__, vd->ecp.ifname);
 	return eloop_cancel_timeout(ecp_ack_timeout_handler, NULL, (void *) vd);
 }
 
@@ -181,12 +181,12 @@ int ecp_init(char *ifname)
 {
 	struct vdp_data *vd;
 
-	LLDPAD_DBG("%s: starting ECP for if %s\n", __func__, ifname);
+	LLDPAD_DBG("%s:%s starting ECP\n", __func__, ifname);
 
 	vd = vdp_data(ifname);
 
 	if (!vd) {
-		LLDPAD_ERR("%s: unable to find vd %s\n", __func__, ifname);
+		LLDPAD_ERR("%s:%s unable to find vd\n", __func__, ifname);
 		return -1;
 	}
 
@@ -195,8 +195,8 @@ int ecp_init(char *ifname)
 					    ecp_rx_ReceiveFrame, vd, 1);
 
 	if (!vd->ecp.l2) {
-		LLDPAD_ERR("ERROR: Failed to open register layer 2 access to "
-			"ETH_P_ECP\n");
+		LLDPAD_ERR("%s:%s failed to access layer 2 access ETH_P_ECP\n",
+			   __func__, ifname);
 		return -1;
 	}
 	strncpy(vd->ecp.ifname, ifname, sizeof vd->ecp.ifname);
@@ -210,12 +210,12 @@ int ecp_deinit(char *ifname)
 {
 	struct vdp_data *vd;
 
-	LLDPAD_DBG("%s: stopping ECP for if %s\n", __func__, ifname);
+	LLDPAD_DBG("%s:%s stopping ECP\n", __func__, ifname);
 
 	vd = vdp_data(ifname);
 
 	if (!vd) {
-		LLDPAD_ERR("%s: unable to find vd %s\n", __func__, ifname);
+		LLDPAD_ERR("%s:%s unable to find vd\n", __func__, ifname);
 		return -1;
 	}
 
