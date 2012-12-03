@@ -886,9 +886,6 @@ static void vdp_vsi_sm_bridge(struct vsi_profile *profile)
 			 */
 			/* for now, we always succeed */
 			profile->response = VDP_RESPONSE_SUCCESS;
-			LLDPAD_DBG("%s: %s framein %p, sizein %i\n", __func__,
-			       profile->port->ifname, vd->ecp.rx.framein,
-			       vd->ecp.rx.sizein);
 			ecp_rx_send_ack_frame(vd);
 			break;
 		case VSI_PREASSOCIATED:

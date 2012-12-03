@@ -54,7 +54,8 @@ struct ecp_buffer {			/* ECP payload buffer */
 	u8 frame[ETH_FRAME_LEN];	/* Payload buffer */
 	u16 frame_len;			/* # of bytes of valid data */
 	u8 state;			/* Buffer state */
-	u8 localChange;			/* Changed */
+	u8 localChange;			/* Status changed */
+	u8 rcvFrame;			/* True if new frame received */
 };
 
 struct ecp {
@@ -65,7 +66,7 @@ struct ecp {
 	int ackTimer;
 	u16 lastSequence;
 	u16 seqECPDU;
-	struct agentrx rx;
+	struct ecp_buffer rx;		/* Receive buffer */
 	struct ecp_buffer tx;		/* Transmit buffer */
 	struct agentstats stats;
 	char ifname[IFNAMSIZ];		/* Interface name */
