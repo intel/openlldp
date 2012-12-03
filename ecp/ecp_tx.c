@@ -107,13 +107,8 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 	l2_packet_get_own_src_addr(vd->ecp.l2,(u8 *)&own_addr);
 	memcpy(eth.h_source, &own_addr, ETH_ALEN);
 	eth.h_proto = htons(ETH_P_ECP);
-	vd->ecp.tx.frameout = (u8 *)malloc(ETH_FRAME_LEN);
-	if (vd->ecp.tx.frameout == NULL) {
-		LLDPAD_ERR("InfoECPDU: Failed to malloc frame buffer\n");
-		return false;
-	}
-	memset(vd->ecp.tx.frameout, 0, ETH_FRAME_LEN);
-	ecp_append(vd->ecp.tx.frameout, &fb_offset, (void *)&eth, sizeof eth);
+	memset(vd->ecp.tx.frame, 0, sizeof vd->ecp.tx.frame);
+	ecp_append(vd->ecp.tx.frame, &fb_offset, (void *)&eth, sizeof eth);
 
 	ecp_hdr.oui[0] = 0x0;
 	ecp_hdr.oui[1] = 0x1b;
@@ -126,7 +121,7 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 
 	vd->ecp.lastSequence++;
 	ecp_hdr.seqnr = htons(vd->ecp.lastSequence);
-	ecp_append(vd->ecp.tx.frameout, &fb_offset, (void *)&ecp_hdr,
+	ecp_append(vd->ecp.tx.frame, &fb_offset, (void *)&ecp_hdr,
 		   sizeof ecp_hdr);
 
 	/* create packed_tlvs for all profiles on this interface */
@@ -146,7 +141,7 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 		}
 
 		if (ptlv) {
-			if (!ecp_append(vd->ecp.tx.frameout, &fb_offset,
+			if (!ecp_append(vd->ecp.tx.frame, &fb_offset,
 				       ptlv->tlv, ptlv->size))
 				ptlv = free_pkd_tlv(ptlv);
 				break;
@@ -156,8 +151,8 @@ bool ecp_build_ECPDU(struct vdp_data *vd)
 
 		ptlv = free_pkd_tlv(ptlv);
 	}
-	ecp_append(vd->ecp.tx.frameout, &fb_offset, end_tlv, sizeof end_tlv);
-	vd->ecp.tx.sizeout = MAX(fb_offset, (unsigned)ETH_ZLEN);
+	ecp_append(vd->ecp.tx.frame, &fb_offset, end_tlv, sizeof end_tlv);
+	vd->ecp.tx.frame_len = MAX(fb_offset, (unsigned)ETH_ZLEN);
 	return true;
 }
 
@@ -175,10 +170,7 @@ static void ecp_tx_Initialize(struct vdp_data *vd)
 	if (!port)
 		return;
 
-	if (vd->ecp.tx.frameout) {
-		free(vd->ecp.tx.frameout);
-		vd->ecp.tx.frameout = NULL;
-	}
+	memset(vd->ecp.tx.frame, 0, sizeof vd->ecp.tx.frame);
 	ecp_somethingChangedLocal(vd, true);
 	vd->ecp.lastSequence = ECP_SEQUENCE_NR_START;
 	vd->ecp.stats.statsFramesOutTotal = 0;
@@ -193,19 +185,16 @@ static void ecp_tx_Initialize(struct vdp_data *vd)
  *
  * returns the number of characters sent on success, -1 on failure
  *
- * sends out the frame stored in the frameout structure using l2_packet_send.
+ * sends out the frame stored in the frame structure using l2_packet_send.
  */
 u8 ecp_txFrame(struct vdp_data *vd)
 {
 	int status = 0;
 
 	status = l2_packet_send(vd->ecp.l2, (u8 *)&nearest_bridge,
-		htons(ETH_P_ECP),vd->ecp.tx.frameout,vd->ecp.tx.sizeout);
+		htons(ETH_P_ECP), vd->ecp.tx.frame, vd->ecp.tx.frame_len);
 	vd->ecp.stats.statsFramesOutTotal++;
-
-	free(vd->ecp.tx.frameout);
-	vd->ecp.tx.frameout = NULL;
-
+	vd->ecp.tx.frame_len = 0;
 	return status;
 }
 
@@ -226,8 +215,8 @@ static void ecp_tx_create_frame(struct vdp_data *vd)
 		/* ECPDU construction succesful, send out frame */
 		if (ret == true) {
 			ecp_print_frame(vd->ecp.ifname, "frame-out",
-					vd->ecp.tx.frameout,
-					vd->ecp.tx.sizeout);
+					vd->ecp.tx.frame,
+					vd->ecp.tx.frame_len);
 			ecp_txFrame(vd);
 		}
 	}

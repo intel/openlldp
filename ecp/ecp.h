@@ -27,6 +27,8 @@
 #ifndef _ECP_H
 #define _ECP_H
 
+#include <linux/if_ether.h>
+
 #include "lldp_mod.h"
 #include "lldp_vdp.h"
 
@@ -48,6 +50,13 @@ typedef enum {
 	ECP_ACK
 } ecp_mode;
 
+struct ecp_buffer {			/* ECP payload buffer */
+	u8 frame[ETH_FRAME_LEN];	/* Payload buffer */
+	u16 frame_len;			/* # of bytes of valid data */
+	u8 state;			/* Buffer state */
+	u8 localChange;			/* Changed */
+};
+
 struct ecp {
 	struct l2_packet_data *l2;
 	int sequence;
@@ -57,7 +66,7 @@ struct ecp {
 	u16 lastSequence;
 	u16 seqECPDU;
 	struct agentrx rx;
-	struct agenttx tx;
+	struct ecp_buffer tx;		/* Transmit buffer */
 	struct agentstats stats;
 	char ifname[IFNAMSIZ];		/* Interface name */
 };

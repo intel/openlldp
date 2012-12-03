@@ -96,24 +96,23 @@ static int ecp_rx_SendAckFrame(struct vdp_data *vd)
 
 	assert(vd->ecp.rx.framein && vd->ecp.rx.sizein);
 
-	/* copy over to frameout */
-	vd->ecp.tx.frameout = (u8 *)malloc(ETH_FRAME_LEN);
-	memcpy(vd->ecp.tx.frameout, vd->ecp.rx.framein, vd->ecp.rx.sizein);
-	vd->ecp.tx.sizeout = vd->ecp.rx.sizein;
+	/* copy over to transmit buffer */
+	memcpy(vd->ecp.tx.frame, vd->ecp.rx.framein, vd->ecp.rx.sizein);
+	vd->ecp.tx.frame_len = vd->ecp.rx.sizein;
 
 	/* use my own addr to send ACK */
-	hdr = (struct l2_ethhdr *)vd->ecp.tx.frameout;
+	hdr = (struct l2_ethhdr *)vd->ecp.tx.frame;
 	l2_packet_get_own_src_addr(vd->ecp.l2,(u8 *)&own_addr);
 	memcpy(hdr->h_source, &own_addr, ETH_ALEN);
 
 	tlv_offset = sizeof(struct l2_ethhdr);
-	ecp_hdr = (struct ecp_hdr *)&vd->ecp.tx.frameout[tlv_offset];
+	ecp_hdr = (struct ecp_hdr *)&vd->ecp.tx.frame[tlv_offset];
 	ecp_hdr->mode = ECP_ACK;
 
 	tlv_offset = sizeof(struct l2_ethhdr) + sizeof(struct ecp_hdr);
 	LLDPAD_DBG("%s-%s: zeroing out rest of ack frame from %i to %i\n",
 		   __func__, vd->ifname, tlv_offset, vd->ecp.rx.sizein);
-	memset(&vd->ecp.tx.frameout[tlv_offset], 0,
+	memset(&vd->ecp.tx.frame[tlv_offset], 0,
 	       vd->ecp.rx.sizein-tlv_offset);
 	return 0;
 }
@@ -129,8 +128,8 @@ static int ecp_rx_SendAckFrame(struct vdp_data *vd)
 void ecp_rx_send_ack_frame(struct vdp_data *vd)
 {
 	ecp_rx_SendAckFrame(vd);
-	ecp_print_frame(vd->ecp.ifname, "frame-ack", vd->ecp.tx.frameout,
-			vd->ecp.tx.sizeout);
+	ecp_print_frame(vd->ecp.ifname, "frame-ack", vd->ecp.tx.frame,
+			vd->ecp.tx.frame_len);
 	ecp_txFrame(vd);
 }
 
