@@ -309,6 +309,18 @@ void vdp_localchange_handler(UNUSED void *eloop_data, void *user_ctx)
 	}
 }
 
+/*
+ * vdp_stop - cancel the VDP localchange timer
+ *
+ * returns 0 on success, -1 on error
+ *
+ * cancels the VPP localchange timer when a profile has been deleted.
+ */
+int vdp_stop_localchange_timer(struct vsi_profile *p)
+{
+	return eloop_cancel_timeout(vdp_localchange_handler, NULL, (void *) p);
+}
+
 /* vdp_start_localchange_timer - starts the VDP localchange timer
  * @vd: vdp_data for the interface
  *
@@ -691,6 +703,7 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 				bye = 1;
 			vdp_stop_ackTimer(profile);
 			vdp_stop_keepaliveTimer(profile);
+			vdp_stop_localchange_timer(profile);
 			if (bye)
 				vdp_remove_profile(profile);
 			else
