@@ -26,6 +26,8 @@
 #ifndef LLDP_ECP22_H
 #define LLDP_ECP22_H
 
+#include <linux/if_ether.h>
+
 #include "lldp_mod.h"
 
 #define	LLDP_MOD_ECP22			0x80c3
@@ -36,25 +38,65 @@ enum {
 	ECP22_ACK
 } ecp22_mode;
 
+struct ecp22_hdr {		/* ECP22 header */
+	u16 ver_op_sub;	/* ECP22 version, operation, subtype */
+	u16 seqno;		/* ECP22 sequence number */
+} __attribute__ ((__packed__));
+
+struct ecp22_buffer {			/* ECP payload buffer */
+	unsigned char frame[ETH_FRAME_LEN];	/* Payload buffer */
+	unsigned short frame_len;	/* # of bytes of valid data */
+	unsigned char state;		/* Buffer state machine */
+};
+
+struct ecp22_payload_node {		/* ECP Payload node */
+	struct packed_tlv *ptlv;	/* Pointer to packed TLV to send */
+	unsigned short subtype;		/* ECP subtype*/
+	unsigned char mac[ETH_ALEN];	/* Destination MAC address */
+	LIST_ENTRY(ecp22_payload_node) node;
+};
+
+/*
+ * ECP22 payload data
+ */
+typedef LIST_HEAD(ecp22_list, ecp22_payload_node) ecp22_list;
+
+struct ecp22_usedlist {			/* List of valid ecp_payload_nodes */
+	ecp22_list head;		/* ECP payload data free list */
+	struct ecp22_payload_node *last;	/* Ptr to last entry in list */
+};
+
+struct ecp22_freelist {		/* List of free ecp_payload_nodes */
+	ecp22_list head;	/* ECP payload data free list */
+	u16 freecnt;		/* # of nodes on freelist */
+};
+
+enum {
+	ecp22_maxpayload = 64
+};
+
 struct ecp22 {			/* ECP protocol data per interface */
 	struct l2_packet_data *l2;
-	char ifname[IFNAMSIZ];
-	LIST_ENTRY(ecp22) node;
+	char ifname[IFNAMSIZ];		/* Interface name */
+	LIST_ENTRY(ecp22) node;		/* Successor */
+	struct ecp22_buffer rx;		/* Receive buffer */
+	struct ecp22_buffer tx;		/* Transmit buffer */
+	struct agentstats stats;
+	struct ecp22_usedlist inuse;	/* List of payload data */
+	struct ecp22_freelist isfree;	/* List of free payload nodes */
 };
 
 struct ecp22_user_data {		/* ECP module data per interface  */
 	LIST_HEAD(ecp_head, ecp22) head;
 };
 
+/*
+ * Function prototypes
+ */
 struct lldp_module *ecp22_register(void);
 void ecp22_unregister(struct lldp_module *);
 void ecp22_stop(char *);
 void ecp22_start(char *);
-
-struct ecp22_hdr {		/* ECP header */
-	u16	ver_op_sub;	/* ECP version, operation, subtype */
-	u16	seqno;		/* ECP sequence number */
-} __attribute__ ((__packed__));
 
 /*
  * Functions to set and read ecp header operations field.
@@ -98,4 +140,4 @@ static inline unsigned int ecp22_hdr_read_version(struct ecp22_hdr *p)
 	return p->ver_op_sub & 0x3ff;
 }
 
-#endif /* _ECP_H */
+#endif

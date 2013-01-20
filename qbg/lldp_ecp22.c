@@ -126,11 +126,32 @@ void ecp22_start(char *ifname)
 	ecp = find_ecpdata(ifname, eud);
 	if (!ecp)
 		ecp = ecp22_create(ifname, eud);
+	LIST_INIT(&ecp->inuse.head);
+	ecp->inuse.last = 0;
+	LIST_INIT(&ecp->isfree.head);
+	ecp->isfree.freecnt = 0;
+}
+/*
+ * Remove the ecp_payload nodes
+ */
+static void ecp22_removelist(ecp22_list *ptr)
+{
+	struct ecp22_payload_node *np;
+
+	while ((np = LIST_FIRST(ptr))) {
+		LIST_REMOVE(np, node);
+		free(np->ptlv);
+		free(np);
+	}
 }
 
 static void ecp22_remove(struct ecp22 *ecp)
 {
 	LLDPAD_DBG("%s:%s remove ecp\n", __func__, ecp->ifname);
+	ecp22_removelist(&ecp->inuse.head);
+	ecp->inuse.last = 0;
+	ecp22_removelist(&ecp->isfree.head);
+	ecp->isfree.freecnt = 0;
 	LIST_REMOVE(ecp, node);
 	free(ecp);
 }
