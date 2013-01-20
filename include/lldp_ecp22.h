@@ -42,6 +42,14 @@ enum {					/* ECP Receive states */
 	ECP22_RX_NEW_ECPDU,
 	ECP22_RX_SEND_ACK
 };
+enum {					/* ECP Transmit states */
+	ECP22_TX_BEGIN,
+	ECP22_TX_INIT,
+	ECP22_TX_TXMIT_ECPDU,
+	ECP22_TX_WAIT_FORREQ,
+	ECP22_TX_WAIT_ONDATA,
+	ECP22_TX_ERROR
+};
 
 enum {
 	ECP22_REQUEST = 0,
@@ -49,7 +57,7 @@ enum {
 } ecp22_mode;
 
 struct ecp22_hdr {		/* ECP22 header */
-	u16 ver_op_sub;	/* ECP22 version, operation, subtype */
+	u16 ver_op_sub;		/* ECP22 version, operation, subtype */
 	u16 seqno;		/* ECP22 sequence number */
 } __attribute__ ((__packed__));
 
@@ -58,8 +66,11 @@ struct ecp22_buffer {			/* ECP payload buffer */
 	unsigned short frame_len;	/* # of bytes of valid data */
 	unsigned char state;		/* Buffer state machine */
 	unsigned char ecpdu_received;	/* True when packet received */
+	unsigned char ack_received;	/* True when packet acknowledged */
+	unsigned char retries;		/* # of retries */
 	unsigned short last_seqno;	/* Seqno last acknowledged packet */
 	unsigned short seqno;		/* Seqno this packet */
+	unsigned long errors;		/* # of transmit errors */
 };
 
 struct ecp22_payload_node {		/* ECP Payload node */
@@ -97,6 +108,8 @@ struct ecp22 {			/* ECP protocol data per interface */
 	struct agentstats stats;
 	struct ecp22_usedlist inuse;	/* List of payload data */
 	struct ecp22_freelist isfree;	/* List of free payload nodes */
+	unsigned char max_retries;	/* Max # of retries (via EVB) */
+	unsigned char max_rte;		/* Wait time for ack (via EVB) */
 };
 
 struct ecp22_user_data {		/* ECP module data per interface  */

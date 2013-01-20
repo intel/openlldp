@@ -35,7 +35,16 @@
 #include "lldp/l2_packet.h"
 #include "lldp_tlv.h"
 
-static const char *ecp22_rx_states[] = {	/* Receive states verbatim */
+#define ECP22_MAX_RETRIES_DEFAULT	(3)	/* Default # of max retries */
+#define ECP22_ACK_TIMER_STOPPED		(-1)
+/*
+ * Defaults to 2ms wait time for acknowledgement packet reception.
+ */
+#define ECP22_ACK_TIMER_DEFAULT		(8)
+
+static void ecp22_tx_run_sm(struct ecp22 *);
+
+static const char *const ecp22_rx_states[] = {	/* Receive states verbatim */
 	"ECP22_RX_BEGIN",
 	"ECP22_RX_WAIT",
 	"ECP22_RX_WAIT2",
@@ -44,6 +53,26 @@ static const char *ecp22_rx_states[] = {	/* Receive states verbatim */
 	"ECP22_RX_NEW_ECPDU",
 	"ECP22_RX_SEND_ACK"
 };
+
+static const char *const ecp22_tx_states[] = {	/* Transmit states verbatim */
+	"ECP22_TX_BEGIN",
+	"ECP22_TX_INIT",
+	"ECP22_TX_TXMIT_ECPDU",
+	"ECP22_TX_WAIT_FORREQ",
+	"ECP22_TX_WAIT_ONDATA",
+	"ECP22_TX_ERROR"
+};
+
+/*
+ * Increment sequence number. Do not return zero as sequence number.
+ */
+static unsigned short inc_seqno(unsigned short x)
+{
+	++x;
+	if (!x)		/* Wrapped */
+		++x;
+	return x;
+}
 
 /*
  * Find the ecp data associated with an interface.
@@ -69,11 +98,310 @@ static struct ecp22 *find_ecpdata(char *ifname, struct ecp22_user_data *eud)
  *
  * sends out the frame stored in the frame structure using l2_packet_send.
  */
-static int ecp22_txframe(struct ecp22 *ecp, unsigned char *dst,
+static int ecp22_txframe(struct ecp22 *ecp, char *txt, unsigned char *dst,
 		       unsigned char *ack, size_t len)
 {
-	ecp_print_frame(ecp->ifname, "frame-ack", ack, len);
+	ecp_print_frame(ecp->ifname, txt, ack, len);
 	return l2_packet_send(ecp->l2, dst, htons(ETH_P_ECP22), ack, len);
+}
+
+/*
+ * Append some data at the end of the transmit data buffer. Make sure the
+ * End TLV always fits into the buffer.
+ */
+static unsigned char end_tlv[2] = { 0x0, 0x0 };		/* END TLV */
+
+static void ecp22_append(u8 *buffer, u32 *pos, void *data, u32 len)
+{
+	if (*pos + len > ETH_FRAME_LEN - sizeof end_tlv)
+		return;
+	memcpy(buffer + *pos, data, len);
+	*pos += len;
+}
+
+/*
+ * Return a payload node to the freelist.
+ */
+void ecp22_putnode(struct ecp22_freelist *list, struct ecp22_payload_node *elm)
+{
+	elm->ptlv = free_pkd_tlv(elm->ptlv);
+	if (list->freecnt > ecp22_maxpayload)
+		free(elm);
+	else {
+		++list->freecnt;
+		LIST_INSERT_HEAD(&list->head, elm, node);
+	}
+}
+
+/*
+ * ecp22_build_ecpdu - create an ecp protocol data unit
+ * @ecp: pointer to currently used ecp data structure
+ *
+ * returns true on success, false on failure
+ *
+ * creates the frame header with the ports mac address, the ecp header with REQ
+ * plus a packed TLVs created taken from the send queue.
+ */
+static bool ecp22_build_ecpdu(struct ecp22 *ecp)
+{
+	struct l2_ethhdr eth;
+	struct ecp22_hdr ecph;
+	u32 fb_offset = 0;
+	struct packed_tlv *ptlv;
+	struct ecp22_payload_node *p = LIST_FIRST(&ecp->inuse.head);
+
+	if (!p)
+		return false;
+	ecp->tx.ecpdu_received = true;		/* Txmit buffer in use */
+	memcpy(eth.h_dest, p->mac, ETH_ALEN);
+	l2_packet_get_own_src_addr(ecp->l2, eth.h_source);
+	eth.h_proto = htons(ETH_P_ECP22);
+	memset(ecp->tx.frame, 0, sizeof ecp->tx.frame);
+	ecp22_append(ecp->tx.frame, &fb_offset, (void *)&eth, sizeof eth);
+
+	ecp22_hdr_set_version(&ecph, 1);
+	ecp22_hdr_set_op(&ecph, ECP22_REQUEST);
+	ecp22_hdr_set_subtype(&ecph, 1);
+	ecph.ver_op_sub = htons(ecph.ver_op_sub);
+	ecph.seqno = htons(ecp->tx.seqno);
+	ecp22_append(ecp->tx.frame, &fb_offset, (void *)&ecph, sizeof ecph);
+
+	ptlv = p->ptlv;
+	ecp22_append(ecp->tx.frame, &fb_offset, ptlv->tlv, ptlv->size);
+	ecp22_append(ecp->tx.frame, &fb_offset, end_tlv, sizeof end_tlv);
+	ecp->tx.frame_len = MAX(fb_offset, (unsigned)ETH_ZLEN);
+	LIST_REMOVE(p, node);
+	ecp22_putnode(&ecp->isfree, p);
+	LLDPAD_DBG("%s:%s seqno %#hx frame_len %#hx\n", __func__,
+		   ecp->ifname, ecp->tx.seqno, ecp->tx.frame_len);
+	return true;
+}
+
+/*
+ * Execute transmit state transmitECPDU.
+ */
+static void ecp22_es_waitforreq(struct ecp22 *ecp)
+{
+	ecp->tx.retries = 0;
+	ecp->tx.ack_received = false;
+	ecp->tx.ecpdu_received = false;
+	ecp->tx.seqno = inc_seqno(ecp->tx.seqno);
+	LLDPAD_DBG("%s:%s seqno %#hx\n", __func__, ecp->ifname, ecp->tx.seqno);
+}
+
+/*
+ * Execute transmit state countErrors.
+ */
+static void ecp22_es_counterror(struct ecp22 *ecp)
+{
+	++ecp->tx.errors;
+	LLDPAD_DBG("%s:%s errors %lu\n", __func__, ecp->ifname,
+		   ecp->tx.errors);
+}
+
+/*
+ * Execute transmit state initTransmit.
+ */
+static void ecp22_es_inittransmit(struct ecp22 *ecp)
+{
+	ecp->tx.errors = 0;
+	ecp->tx.seqno = 0;
+}
+
+/*
+ * Return RTE value in milliseconds.
+ */
+static int rtevalue(unsigned char rte)
+{
+	return (1 << rte) * 10;
+}
+
+/*
+ * ecp22_ack_timeout_handler - handles the ack timer expiry
+ * @eloop_data: data structure of event loop
+ * @user_ctx: user context, vdp_data here
+ *
+ * no return value
+ *
+ * called when the ECP timer has expired. Calls the ECP station state machine.
+ */
+static void ecp22_ack_timeout_handler(UNUSED void *eloop_data, void *user_ctx)
+{
+	struct ecp22 *ecp = (struct ecp22 *)user_ctx;
+
+	LLDPAD_DBG("%s:%s retries:%d\n", __func__,
+		   ecp->ifname, ecp->tx.retries);
+	ecp22_tx_run_sm(ecp);
+}
+
+/*
+ * ecp22_tx_start_acktimer - starts the ECP ack timer
+ * @ecp: pointer to currently used ecp data structure
+ *
+ * returns 0 on success, -1 on error
+ *
+ * starts the ack timer when a frame has been sent out.
+ */
+static void ecp22_tx_start_acktimer(struct ecp22 *ecp)
+{
+	unsigned long ack_sec = rtevalue(ecp->max_rte) / 1000000;
+	unsigned long ack_usec = rtevalue(ecp->max_rte) % 1000000;
+
+	LLDPAD_DBG("%s:%s [%ld.%06ld]\n", __func__, ecp->ifname, ack_sec,
+		   ack_usec);
+	eloop_register_timeout(ack_sec, ack_usec, ecp22_ack_timeout_handler,
+			       0, (void *)ecp);
+}
+
+/*
+ * ecp22_tx_change_state - changes the ecp tx sm state
+ * @ecp: pointer to currently used ecp data structure
+ * @newstate: new state for the sm
+ *
+ * no return value
+ *
+ * checks state transistion for consistency and finally changes the state of
+ * the profile.
+ */
+static void ecp22_tx_change_state(struct ecp22 *ecp, unsigned char newstate)
+{
+	switch (newstate) {
+	case ECP22_TX_BEGIN:
+		break;
+	case ECP22_TX_INIT:
+		assert(ecp->tx.state == ECP22_TX_BEGIN);
+		break;
+	case ECP22_TX_WAIT_FORREQ:
+		assert(ecp->tx.state == ECP22_TX_INIT ||
+		       ecp->tx.state == ECP22_TX_ERROR ||
+		       ecp->tx.state == ECP22_TX_TXMIT_ECPDU);
+		break;
+	case ECP22_TX_WAIT_ONDATA:
+		assert(ecp->tx.state == ECP22_TX_WAIT_FORREQ);
+		break;
+	case ECP22_TX_TXMIT_ECPDU:
+		assert(ecp->tx.state == ECP22_TX_WAIT_ONDATA);
+		break;
+	case ECP22_TX_ERROR:
+		assert(ecp->tx.state == ECP22_TX_TXMIT_ECPDU);
+		break;
+	default:
+		LLDPAD_ERR("%s: ECP TX state machine invalid state %d\n",
+			   ecp->ifname, newstate);
+	}
+	LLDPAD_DBG("%s:%s state change %s -> %s\n", __func__,
+		   ecp->ifname, ecp22_tx_states[ecp->tx.state],
+		   ecp22_tx_states[newstate]);
+	ecp->tx.state = newstate;
+}
+
+/*
+ * Send the payload data.
+ */
+static int ecp22_es_txmit(struct ecp22 *ecp)
+{
+	int rc = 0;
+
+	++ecp->tx.retries;
+	ecp22_txframe(ecp, "ecp-out", ecp->tx.frame, ecp->tx.frame,
+		      ecp->tx.frame_len);
+	ecp22_tx_start_acktimer(ecp);
+	return rc;
+}
+
+/*
+ * ecp22_set_tx_state - sets the ecp tx state machine state
+ * @ecp: pointer to currently used ecp data structure
+ *
+ * returns true or false
+ *
+ * switches the state machine to the next state depending on the input
+ * variables. returns true or false depending on wether the state machine
+ * can be run again with the new state or can stop at the current state.
+ */
+static bool ecp22_set_tx_state(struct ecp22 *ecp)
+{
+	struct port *port = port_find_by_name(ecp->ifname);
+
+	if (!port) {
+		LLDPAD_ERR("%s:%s port not found\n", __func__, ecp->ifname);
+		return 0;
+	}
+	if ((port->portEnabled == false) && (port->prevPortEnabled == true)) {
+		LLDPAD_ERR("%s:%s port was disabled\n", __func__, ecp->ifname);
+		ecp22_tx_change_state(ecp, ECP22_TX_BEGIN);
+	}
+	port->prevPortEnabled = port->portEnabled;
+
+	switch (ecp->tx.state) {
+	case ECP22_TX_BEGIN:
+		ecp22_tx_change_state(ecp, ECP22_TX_INIT);
+		return true;
+	case ECP22_TX_INIT:
+		ecp22_tx_change_state(ecp, ECP22_TX_WAIT_FORREQ);
+		return true;
+	case ECP22_TX_WAIT_FORREQ:
+		ecp22_tx_change_state(ecp, ECP22_TX_WAIT_ONDATA);
+		return true;
+	case ECP22_TX_WAIT_ONDATA:
+		if (LIST_FIRST(&ecp->inuse.head)) {	/* Data to send */
+			ecp22_build_ecpdu(ecp);
+			ecp22_tx_change_state(ecp, ECP22_TX_TXMIT_ECPDU);
+			return true;
+		}
+		return false;
+	case ECP22_TX_TXMIT_ECPDU:
+		if (ecp->tx.ack_received) {
+			ecp22_tx_change_state(ecp, ECP22_TX_WAIT_FORREQ);
+			return true;
+		}
+		if (ecp->tx.retries > ecp->max_retries) {
+			ecp22_tx_change_state(ecp, ECP22_TX_ERROR);
+			return true;
+		}
+		return false;
+	case ECP22_TX_ERROR:
+		ecp22_tx_change_state(ecp, ECP22_TX_WAIT_FORREQ);
+		return true;
+	default:
+		LLDPAD_ERR("%s: ECP TX state machine in invalid state %d\n",
+			   ecp->ifname, ecp->tx.state);
+		return false;
+	}
+}
+
+/*
+ * ecp22_tx_run_sm - state machine for ecp transmit
+ * @ecp: pointer to currently used ecp data structure
+ *
+ * no return value
+ */
+static void ecp22_tx_run_sm(struct ecp22 *ecp)
+{
+	ecp22_set_tx_state(ecp);
+	do {
+		LLDPAD_DBG("%s:%s state %s\n", __func__,
+			   ecp->ifname, ecp22_tx_states[ecp->tx.state]);
+
+		switch (ecp->tx.state) {
+		case ECP22_TX_BEGIN:
+			break;
+		case ECP22_TX_INIT:
+			ecp22_es_inittransmit(ecp);
+			break;
+		case ECP22_TX_WAIT_FORREQ:
+			ecp22_es_waitforreq(ecp);
+			break;
+		case ECP22_TX_WAIT_ONDATA:
+			break;
+		case ECP22_TX_TXMIT_ECPDU:
+			ecp22_es_txmit(ecp);
+			break;
+		case ECP22_TX_ERROR:
+			ecp22_es_counterror(ecp);
+			break;
+		}
+	} while (ecp22_set_tx_state(ecp) == true);
 }
 
 /*
@@ -122,7 +450,7 @@ static void ecp22_rx_change_state(struct ecp22 *ecp, u8 newstate)
 }
 
 /*
- * Execute action is state sendack. Construct and send an acknowledgement
+ * Execute action in state sendack. Construct and send an acknowledgement
  * for the received ECP packet.
  */
 static void ecp22_es_send_ack(struct ecp22 *ecp)
@@ -136,12 +464,7 @@ static void ecp22_es_send_ack(struct ecp22 *ecp)
 
 	LLDPAD_DBG("%s:%s state %s seqno %#hx\n", __func__, ecp->ifname,
 		   ecp22_rx_states[ecp->rx.state], ecp->rx.seqno);
-	/*
-	 * Set Ethernet header
-	 * TODO: Which mac address to use in ack package
-	 * memcpy(ethdst->h_dest, nearest_customer_bridge, ETH_ALEN);
-	 */
-	memcpy(ethdst->h_dest, ethsrc->h_source, ETH_ALEN);
+	memcpy(ethdst->h_dest, nearest_customer_bridge, ETH_ALEN);
 	l2_packet_get_own_src_addr(ecp->l2, (u8 *)&ethdst->h_source);
 	ethdst->h_proto = ethsrc->h_proto;
 	/* Set ECP header */
@@ -149,11 +472,12 @@ static void ecp22_es_send_ack(struct ecp22 *ecp)
 	ecp22_hdr_set_op(&ack, ECP22_ACK);
 	ecpdst->ver_op_sub = htons(ack.ver_op_sub);
 	ecpdst->seqno = htons(ecp->rx.seqno);
-	ecp22_txframe(ecp, ethsrc->h_source, ack_frame, sizeof ack_frame);
+	ecp22_txframe(ecp, "ecp-ack", ethsrc->h_source, ack_frame,
+		      sizeof ack_frame);
 }
 
 /*
- * Execute action is state newECPDU.
+ * Execute action in state newECPDU.
  */
 static void ecp22_es_new_ecpdu(struct ecp22 *ecp)
 {
@@ -163,7 +487,7 @@ static void ecp22_es_new_ecpdu(struct ecp22 *ecp)
 }
 
 /*
- * Execute action is state receiveECPDU.
+ * Execute action in state receiveECPDU.
  */
 static void ecp22_es_rec_ecpdu(struct ecp22 *ecp)
 {
@@ -175,7 +499,7 @@ static void ecp22_es_rec_ecpdu(struct ecp22 *ecp)
 }
 
 /*
- * Execute action is state receiveFirst.
+ * Execute action in state receiveFirst.
  */
 static void ecp22_es_first(struct ecp22 *ecp)
 {
@@ -187,7 +511,7 @@ static void ecp22_es_first(struct ecp22 *ecp)
 }
 
 /*
- * Execute action is state receiveWait.
+ * Execute action in state receiveWait.
  */
 static void ecp22_es_wait(struct ecp22 *ecp)
 {
@@ -293,6 +617,21 @@ static void ecp22_rx_run_sm(struct ecp22 *ecp)
 }
 
 /*
+ * Received an aknowledgement frame.
+ * Check if we have a transmit pending and the ack'ed packet number matches
+ * the send packet.
+ */
+static void ecp22_recack_frame(struct ecp22 *ecp, unsigned short seqno)
+{
+	LLDPAD_DBG("%s:%s txmit:%d seqno %#hx ack-seqno %#hx\n", __func__,
+		   ecp->ifname, ecp->tx.ecpdu_received, ecp->tx.seqno, seqno);
+	if (ecp->tx.ecpdu_received) {
+		if (ecp->tx.seqno == seqno)
+			ecp->tx.ack_received = true;
+	}
+}
+
+/*
  * ecp22_rx_receiveframe - receive am ecp frame
  * @ctx: rx callback context, struct ecp * in this case
  * @ifindex: index of interface
@@ -338,6 +677,7 @@ static void ecp22_rx_receiveframe(void *ctx, int ifindex, const u8 *buf,
 	case ECP22_ACK:
 		LLDPAD_DBG("%s:%s received ACK frame seqno %#hx\n", __func__,
 			   ecp->ifname, ntohs(ecp_hdr->seqno));
+		ecp22_recack_frame(ecp, ntohs(ecp_hdr->seqno));
 		break;
 	default:
 		LLDPAD_ERR("%s:%s ERROR unknown mode %#02hx seqno %#hx\n",
@@ -400,12 +740,16 @@ void ecp22_start(char *ifname)
 	ecp = find_ecpdata(ifname, eud);
 	if (!ecp)
 		ecp = ecp22_create(ifname, eud);
+	ecp->max_retries = ECP22_MAX_RETRIES_DEFAULT;
+	ecp->max_rte = ECP22_ACK_TIMER_DEFAULT;
 	LIST_INIT(&ecp->inuse.head);
 	ecp->inuse.last = 0;
 	LIST_INIT(&ecp->isfree.head);
 	ecp->isfree.freecnt = 0;
 	ecp->rx.state = ECP22_RX_BEGIN;
 	ecp22_rx_run_sm(ecp);
+	ecp->tx.state = ECP22_TX_BEGIN;
+	ecp22_tx_run_sm(ecp);
 }
 
 /*
