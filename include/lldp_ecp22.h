@@ -33,6 +33,16 @@
 #define	LLDP_MOD_ECP22			0x80c3
 #define	ETH_P_ECP22			0x8890
 
+enum {					/* ECP Receive states */
+	ECP22_RX_BEGIN,
+	ECP22_RX_WAIT,
+	ECP22_RX_WAIT2,
+	ECP22_RX_FIRST,
+	ECP22_RX_REC_ECPDU,
+	ECP22_RX_NEW_ECPDU,
+	ECP22_RX_SEND_ACK
+};
+
 enum {
 	ECP22_REQUEST = 0,
 	ECP22_ACK
@@ -47,6 +57,9 @@ struct ecp22_buffer {			/* ECP payload buffer */
 	unsigned char frame[ETH_FRAME_LEN];	/* Payload buffer */
 	unsigned short frame_len;	/* # of bytes of valid data */
 	unsigned char state;		/* Buffer state machine */
+	unsigned char ecpdu_received;	/* True when packet received */
+	unsigned short last_seqno;	/* Seqno last acknowledged packet */
+	unsigned short seqno;		/* Seqno this packet */
 };
 
 struct ecp22_payload_node {		/* ECP Payload node */
