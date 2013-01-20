@@ -57,14 +57,16 @@ lldp_mand.c include/lldp_mand.h \
 lldp_mand_cmds.c lldp_basman_cmds.c lldp_8023_cmds.c lldp_med_cmds.c \
 lldp_evb_cmds.c lldp_evb.c include/lldp_evb.h lldp_vdp_cmds.c lldp_vdp_utils.c \
 include/lldp_vdp_cmds.h \
-include/lldp_ecp.h lldp_ecp.c lldp_vdp.c include/lldp_vdp.h \
+include/lldp_ecp.h include/lldp_ecp_utils.h lldp_ecp.c lldp_ecp_utils.c \
+lldp_vdp.c include/lldp_vdp.h \
 lldp_tlv.c include/lldp_tlv.h \
 lldp_basman.c include/lldp_basman.h \
 lldp_med.c include/lldp_med.h \
 lldp_8023.c include/lldp_8023.h \
 lldp_8021qaz.c include/lldp_8021qaz.h \
 lldp_8021qaz_cmds.c include/lldp_8021qaz_cmds.h \
-include/lldp_evb22.h qbg/lldp_evb22.c qbg/lldp_evb22_cmds.c
+include/lldp_evb22.h qbg/lldp_evb22.c qbg/lldp_evb22_cmds.c \
+include/lldp_ecp22.h qbg/lldp_ecp22.c
 
 lib_LTLIBRARIES = liblldp_clif.la
 liblldp_clif_la_LDFLAGS = -version-info 1:0:0

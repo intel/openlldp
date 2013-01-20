@@ -30,6 +30,7 @@
 #include "lldp.h"
 #include "lldp_tlv.h"
 #include "lldp_evb22.h"
+#include "lldp_ecp22.h"
 #include "lldp_evb_cmds.h"
 #include "messages.h"
 #include "config.h"
@@ -325,9 +326,10 @@ static int evb22_rchange(struct port *port, struct lldp_agent *agent,
 /*
  * Stop all modules which depend on EVB capabilities.
  */
-static void evb22_stop_modules(char *ifname, struct lldp_agent *agent)
+static void evb22_stop_modules(char *ifname)
 {
-	LLDPAD_DBG("%s:%s agent %d STOP\n", __func__, ifname, agent->type);
+	LLDPAD_DBG("%s:%s STOP\n", __func__, ifname);
+	ecp22_stop(ifname);
 }
 
 static void evb22_ifdown(char *ifname, struct lldp_agent *agent)
@@ -345,7 +347,7 @@ static void evb22_ifdown(char *ifname, struct lldp_agent *agent)
 		return;
 	}
 	if (ed->vdp_start)
-		evb22_stop_modules(ifname, agent);
+		evb22_stop_modules(ifname);
 	LIST_REMOVE(ed, entry);
 	free(ed);
 	LLDPAD_INFO("%s:%s agent %d removed\n", __func__, ifname, agent->type);
@@ -429,9 +431,10 @@ static void evb22_ifup(char *ifname, struct lldp_agent *agent)
 /*
  * Start all modules which depend on EVB capabilities: ECP, VDP, CDCP.
  */
-static void evb22_start_modules(char *ifname, struct lldp_agent *agent)
+static void evb22_start_modules(char *ifname)
 {
-	LLDPAD_DBG("%s:%s agent %d START\n", __func__, ifname, agent->type);
+	LLDPAD_DBG("%s:%s START\n", __func__, ifname);
+	ecp22_start(ifname);
 }
 
 /*
@@ -453,7 +456,7 @@ static int evb22_timer(struct port *port, struct lldp_agent *agent)
 	if (!ed->vdp_start
 	    && evb_ex_rrstat(ed->out.station_s) == EVB_RRSTAT_YES) {
 		ed->vdp_start = true;
-		evb22_start_modules(port->ifname, agent);
+		evb22_start_modules(port->ifname);
 	}
 	return 0;
 }

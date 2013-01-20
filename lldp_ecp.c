@@ -35,6 +35,7 @@
 #include "eloop.h"
 #include "lldp.h"
 #include "lldp_evb.h"
+#include "lldp_ecp_utils.h"
 #include "lldp_vdp.h"
 #include "messages.h"
 #include "config.h"
@@ -44,24 +45,6 @@
 
 static void ecp_tx_run_sm(struct vdp_data *);
 static void ecp_rx_run_sm(struct vdp_data *);
-
-/*
- * ecp_print_frame - print raw ecp frame
- */
-static void ecp_print_frame(char *ifname, char *txt, u8 *buf, u32 len)
-{
-	u32 i, left = 0;
-	char buffer[ETH_FRAME_LEN * 3];
-
-	for (i = 0; i < len; i++) {
-		int c;
-		c = snprintf(buffer + left, sizeof buffer - left, "%02x%c",
-			     buf[i], !((i + 1) % 16) ? '\n' : ' ');
-		if (c > 0 && (c < (int)sizeof buffer - (int)left))
-			left += c;
-	}
-	LLDPAD_DBG("%s:%s %s\n%s\n", __func__, ifname, txt, buffer);
-}
 
 /* ecp_localchange_handler - triggers the processing of a local change
  * @eloop_data: data structure of event loop
