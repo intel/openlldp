@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <sys/socket.h>
+#include <errno.h>
 
 #include "eloop.h"
 #include "lldp_ecp22.h"
@@ -161,7 +162,7 @@ static bool ecp22_build_ecpdu(struct ecp22 *ecp)
 
 	ecp22_hdr_set_version(&ecph, 1);
 	ecp22_hdr_set_op(&ecph, ECP22_REQUEST);
-	ecp22_hdr_set_subtype(&ecph, 1);
+	ecp22_hdr_set_subtype(&ecph, ECP22_VDP);
 	ecph.ver_op_sub = htons(ecph.ver_op_sub);
 	ecph.seqno = htons(ecp->tx.seqno);
 	ecp22_append(ecp->tx.frame, &fb_offset, (void *)&ecph, sizeof ecph);
@@ -796,9 +797,154 @@ void ecp22_stop(char *ifname)
 		ecp22_remove(ecp);
 }
 
+/*
+ * Update data exchanged via EVB protocol.
+ * Returns true when data update succeeded.
+ */
+static int data_from_evb(char *ifname, struct evb22_to_ecp22 *ptr)
+{
+	struct ecp22_user_data *eud;
+	struct ecp22 *ecp;
+
+	eud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_ECP22);
+	ecp = find_ecpdata(ifname, eud);
+	if (ecp) {
+		ecp->max_rte = ptr->max_rte;
+		ecp->max_retries = ptr->max_retry;
+		return 1;
+	}
+	return 0;
+}
+
+/*
+ * Add ecp payload data at the end of the queue.
+ */
+static void ecp22_add_payload(struct ecp22 *ecp,
+			      struct ecp22_payload_node *elem)
+{
+	if (LIST_EMPTY(&ecp->inuse.head))
+		LIST_INSERT_HEAD(&ecp->inuse.head, elem, node);
+	else
+		LIST_INSERT_AFTER(ecp->inuse.last, elem, node);
+	ecp->inuse.last = elem;
+	if (!ecp->tx.ecpdu_received)	/* Transmit buffer free */
+		ecp22_tx_run_sm(ecp);
+}
+
+/*
+ * Copy the payload data.
+ */
+static struct packed_tlv *copy_ptlv(struct packed_tlv *from)
+{
+	struct packed_tlv *ptlv = create_ptlv();
+
+	if (!ptlv)
+		return NULL;
+	ptlv->size = from->size;
+	ptlv->tlv = calloc(ptlv->size, sizeof(unsigned char));
+	if (!ptlv->tlv) {
+		free_pkd_tlv(ptlv);
+		return NULL;
+	}
+	memcpy(ptlv->tlv, from->tlv, from->size);
+	return ptlv;
+}
+
+/*
+ * Create a node for the ecp payload data. Get it from the free list if not
+ * empty. Otherwise allocate from heap.
+ */
+static struct ecp22_payload_node *ecp22_getnode(struct ecp22_freelist *list)
+{
+	struct ecp22_payload_node *elem = LIST_FIRST(&list->head);
+
+	if (!elem)
+		elem = calloc(1, sizeof *elem);
+	else {
+		LIST_REMOVE(elem, node);
+		--list->freecnt;
+	}
+	return elem;
+}
+
+/*
+ * Receive upper layer protocol data unit for transmit.
+ * Returns error if the request could not be queued for transmision.
+ */
+static int ecp22_req2send(char *ifname, unsigned short subtype,
+			  unsigned const char *mac, struct packed_tlv *du)
+{
+	struct ecp22_user_data *eud;
+	struct ecp22 *ecp;
+	struct ecp22_payload_node *payda;
+	struct packed_tlv *ptlv = copy_ptlv(du);
+	int rc = 0;
+
+	LLDPAD_DBG("%s:%s subtype:%d\n", __func__, ifname, subtype);
+
+	eud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_ECP22);
+	ecp = find_ecpdata(ifname, eud);
+	if (!ecp) {
+		rc = -ENODEV;
+		goto out;
+	}
+	if (!ptlv) {
+		rc = -ENOMEM;
+		goto out;
+	}
+	if (ptlv->size >= ECP22_MAXPAYLOAD_LEN) {
+		rc = -E2BIG;
+		goto out;
+	}
+	payda = ecp22_getnode(&ecp->isfree);
+	if (!payda) {
+		free_pkd_tlv(ptlv);
+		rc = -ENOMEM;
+		goto out;
+	}
+	payda->ptlv = ptlv;
+	payda->subtype = subtype;
+	memcpy(payda->mac, mac, sizeof payda->mac);
+	ecp22_add_payload(ecp, payda);
+out:
+	LLDPAD_DBG("%s:%s rc:%d\n", __func__, ifname, rc);
+	return rc;
+}
+
+/*
+ * Payload data from VDP module.
+ * Returns true when data update succeeded.
+ */
+static int data_from_vdp(char *ifname, struct vdp22_to_ecp22 *ptr)
+{
+	struct packed_tlv d;
+
+	d.size = ptr->len;
+	d.tlv = ptr->data;
+	return ecp22_req2send(ifname, ECP22_VDP, nearest_customer_bridge, &d);
+}
+
+/*
+ * Handle notifications from other modules. Check if sender-id and data type
+ * indicator match. Return false when data could not be delivered.
+ */
+static int ecp22_notify(int sender_id, char *ifname, void *data)
+{
+	struct qbg22_imm *qbg = (struct qbg22_imm *)data;
+
+	LLDPAD_DBG("%s:%s sender-id:%#x data_type:%d\n", __func__, ifname,
+		   sender_id, qbg->data_type);
+	if (sender_id == LLDP_MOD_EVB22 && qbg->data_type == EVB22_TO_ECP22)
+		return data_from_evb(ifname, &qbg->u.a);
+	if (sender_id == LLDP_MOD_VDP22 && qbg->data_type == VDP22_TO_ECP22)
+		return data_from_vdp(ifname, &qbg->u.c);
+	return 0;
+}
+
 static const struct lldp_mod_ops ecp22_ops =  {
 	.lldp_mod_register = ecp22_register,
-	.lldp_mod_unregister = ecp22_unregister
+	.lldp_mod_unregister = ecp22_unregister,
+	.lldp_mod_notify = ecp22_notify
 };
 
 /*

@@ -51,6 +51,7 @@
  * @print_tlv: routine for client to pretty print TLVs
  * @lookup_tlv_name: find tlvid given a tlv 'name'
  * @get_arg_handler: return an arg handler list
+ * @lldp_mod_notify: send data to a module
  */
 struct lldp_mod_ops {
 	struct lldp_module * 	(* lldp_mod_register)(void);
@@ -73,6 +74,7 @@ struct lldp_mod_ops {
 	int			(* print_help)();
 	int			(* timer)(struct port *, struct lldp_agent *);
 	struct arg_handlers *	(* get_arg_handler)(void);
+	int			(*lldp_mod_notify)(int, char *, void *);
 };
 
 /*

@@ -59,6 +59,11 @@ struct ecp22_hdr {		/* ECP22 header */
 	u16 seqno;		/* ECP22 sequence number */
 } __attribute__ ((__packed__));
 
+/*
+ * Define maximum ECP protocol payload length. Leave room for END TLV.
+ */
+#define	ECP22_MAXPAYLOAD_LEN	(ETH_DATA_LEN - sizeof(struct ecp22_hdr) - 2)
+
 struct ecp22_buffer {			/* ECP payload buffer */
 	unsigned char frame[ETH_FRAME_LEN];	/* Payload buffer */
 	unsigned short frame_len;	/* # of bytes of valid data */

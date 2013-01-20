@@ -37,6 +37,27 @@
 
 extern struct lldp_head lldp_head;
 
+/*
+ * Function to advertise changed variables to other modules.
+ *
+ * Parameters are interface name, target module id and data.
+ * When sending the data, the module call back function contains the
+ * module id of the sender.
+ *
+ * Return 0 when no addressee found or addressess found but addressee was
+ * unable to handle data.
+ */
+static int modules_notify(int id, char *ifname, void *data)
+{
+	struct lldp_module *mp = find_module_by_id(&lldp_head, id);
+	int rc = 0;
+
+	if (mp && mp->ops->lldp_mod_notify)
+		rc = mp->ops->lldp_mod_notify(LLDP_MOD_EVB22, ifname, data);
+	LLDPAD_DBG("%s:%s target-id:%#x rc:%d\n", __func__, ifname, id, rc);
+	return rc;
+}
+
 struct evb22_data *evb22_data(char *ifname, enum agent_type type)
 {
 	struct evb22_user_data *ud;
@@ -215,14 +236,27 @@ static void station_tlv(struct evb22_data *ed)
 /*
  * Checks values received in TLV and takes over some values.
  * Sets the new suggestion in member tie to be send out to switch.
+ *
+ * Also notify depending modules about the new values.
  */
 static void evb22_update_tlv(struct evb22_data *ed)
 {
+	struct qbg22_imm qbg;
 
 	if (evb_ex_evbmode(ed->policy.evb_mode) == EVB_STATION)
 		station_tlv(ed);
 	else
 		bridge_tlv(ed);
+
+	qbg.data_type = EVB22_TO_ECP22;
+	qbg.u.a.max_rte = evb_ex_rte(ed->out.r_rte);
+	qbg.u.a.max_retry = evb_ex_retries(ed->out.r_rte);
+	modules_notify(LLDP_MOD_ECP22, ed->ifname, &qbg);
+
+	qbg.data_type = EVB22_TO_VDP22;
+	qbg.u.b.max_rka = evb_ex_rka(ed->out.rl_rka);
+	qbg.u.b.max_rwd = evb_ex_rwd(ed->out.evb_mode);
+	modules_notify(LLDP_MOD_VDP22, ed->ifname, &qbg);
 }
 
 /*
