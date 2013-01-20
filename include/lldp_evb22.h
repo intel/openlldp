@@ -27,8 +27,8 @@
 #define _LLDP_EVB22_H
 
 #include "lldp_mod.h"
+#include "lldp_qbg22.h"
 
-#define LLDP_MOD_EVB22		0x0080c2
 #define LLDP_MOD_EVB22_SUBTYPE	0xd
 #define LLDP_MOD_EVB22_OUI	{ 0x00, 0x80, 0xc2, LLDP_MOD_EVB22_SUBTYPE }
 

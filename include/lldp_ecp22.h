@@ -29,9 +29,7 @@
 #include <linux/if_ether.h>
 
 #include "lldp_mod.h"
-
-#define	LLDP_MOD_ECP22			0x80c3
-#define	ETH_P_ECP22			0x8890
+#include "lldp_qbg22.h"
 
 enum {					/* ECP Receive states */
 	ECP22_RX_BEGIN,
