@@ -1,7 +1,7 @@
 /******************************************************************************
 
   Implementation of VDP according to IEEE 802.1Qbg
-  (c) Copyright IBM Corp. 2012
+  (c) Copyright IBM Corp. 2012, 2013
 
   Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
 
@@ -56,16 +56,24 @@
 #define	MYDEBUG		0
 #define	DIM(x)		(sizeof(x)/sizeof(x[0]))
 #define ETH_P_LLDP	0x88cc
+#define ETH_P_ECP	0x8890
 #define MACSTR		"%02x:%02x:%02x:%02x:%02x:%02x"
 #define MAC2STR(a)	(a)[0] & 0xff, (a)[1] & 0xff, (a)[2] & 0xff, \
 			(a)[3] & 0xff, (a)[4] & 0xff, (a)[5] & 0xff
 
+#define	ECPTEST		"ecptest"
+#define	ECPMAXACK	20		/* Longest ECP ack delay */
+
 static char *progname;
+static unsigned char eth_p_lldp[2] = { 0x88, 0xcc };
+static unsigned char eth_p_ecp[2] = { 0x88, 0x90 };
 
 static int verbose;
 static char *tokens[1024];	/* Used to parse command line params */
-static int myfd;		/* Raw socket for lldpad talk */
+static int myfd;		/* Raw socket for LLDP protocol */
+static int ecpfd;		/* Raw socket for ECP protocol */
 static int timerfd;		/* Time descriptor */
+static unsigned long ackdelay;		/* ECP ack delay */
 static unsigned char my_mac[ETH_ALEN];	/* My source MAC address */
 static unsigned long duration = 120;	/* Time to run program in seconds */
 static unsigned long timeout = 1;	/* Time to wait in select in seconds */
@@ -74,6 +82,7 @@ static unsigned long timeout_us = 0;	/* Time to wait in select in usecs */
 struct lldpdu {			/* LLDP Data unit to send */
 	unsigned char *data;
 	struct lldpdu *next;
+	unsigned short len;	/* No of bytes */
 	unsigned char manda;	/* Mandatory in reply chain */
 };
 
@@ -87,19 +96,33 @@ struct lldp {			/* LLDP DUs */
 	struct lldp *next;	/* Ptr to sucessor */
 };
 
-static struct lldp *lldphead;
+unsigned long runtime;		/* Program run time in seconds */
+static struct lldp *lldphead;	/* List of commands */
+static struct lldp *er_ecp;	/* Expected replies ECP protocol */
+static struct lldp *er_evb;	/* Expected replies ECP protocol */
 
-static void showmsg(char *txt, unsigned char *buf, int len)
+struct ecphdr {		/* ECP header received */
+	unsigned char version;	/* Version number */
+	unsigned char op;	/* Operation REQ, ACK */
+	unsigned short subtype;	/* Subtype */
+	unsigned short seqno;	/* Sequence number */
+};
+
+static void showmsg(char *txt, char nl, unsigned char *buf, int len)
 {
-	int i;
+	int i, do_nl = 1;
 
-	printf("%s:%s\n", __func__, txt);
+	printf("%s%c", txt, nl);
 	for (i = 1; i <= len; ++i) {
 		printf("%02x ", *buf++);
-		if (i % 16 == 0)
+		do_nl = 1;
+		if (i % 16 == 0) {
 			printf("\n");
+			do_nl = 0;
+		}
 	}
-	printf("\n");
+	if (do_nl)
+		printf("\n");
 }
 
 /*
@@ -151,7 +174,7 @@ static void mkbin(unsigned char *to, unsigned char *s)
 	}
 }
 
-static unsigned char *validate(char *s)
+static unsigned char *validate(char *s, unsigned short *len)
 {
 	unsigned char buf[512], *cp = buf;
 	int pos = 0;
@@ -197,14 +220,166 @@ static unsigned char *validate(char *s)
 	}
 	mkbin(cp, buf);
 #if MYDEBUG
-	showmsg("validate", cp, pos);
+	showmsg("validate", ':', cp, pos);
 #endif
+	if (len)
+		*len = pos;
 	return cp;
+}
+static void removedataunit(struct lldpdu *q)
+{
+	free(q->data);
+	free(q);
+}
+
+static void removedata(struct lldpdu *dup)
+{
+	struct lldpdu *q;
+
+	while (dup) {
+		q = dup;
+		dup = dup->next;
+		removedataunit(q);
+	}
+}
+
+static void removeentry(struct lldp *p)
+{
+#if MYDEBUG
+	printf("%s %p:\n", __func__, p);
+#endif
+	removedata(p->head);
+	removedata(p->recv);
+	free(p->dst);
+	free(p->src);
+	free(p->ether);
+	free(p);
+}
+
+
+/*
+ * Display one node entry on stdout.
+ */
+static void showentry(char *txt, struct lldp *p)
+{
+	struct lldpdu *dup;
+
+#if MYDEBUG
+	printf("%p: ", p);
+#endif
+	printf("%s time:%ld\n", txt, p->time);
+	showmsg("\tdstmac", ':', p->dst, ETH_ALEN);
+	showmsg("\tsrcmac", ':', p->src, ETH_ALEN);
+	showmsg("\tethtype", ':', p->ether, 2);
+	for (dup = p->head; dup; dup = dup->next)
+		showmsg("\tout", ':', dup->data, dup->len);
+	for (dup = p->recv; dup; dup = dup->next)
+		showmsg("\tin", ':', dup->data, dup->len);
+}
+
+static int show_queue(char *txt, struct lldp *p)
+{
+	int cnt = 0;
+
+	for (; p; p = p->next, ++cnt)
+		showentry(txt, p);
+	return cnt;
+}
+
+/*
+ * Delete a complete lldp queue.
+ */
+static void delete_queue(struct lldp **root)
+{
+	struct lldp *node, *p = *root;
+
+	while (p) {
+		node = p;
+		p = p->next;
+		removeentry(node);
+	}
+	*root = 0;
+}
+
+/*
+ * Append a node to expected reply queue.
+ */
+static void appendnode(struct lldp **root, struct lldp *add)
+{
+	struct lldp *p2 = *root;
+
+	if (!p2) {			/* Empty queue */
+		*root = add;
+		return;
+	}
+	for (; p2->next; p2 = p2->next)
+		;
+	p2->next = add;
+}
+
+/*
+ * Timer expired. Check if evb reply received. There is only one EVB message
+ * pending for expected reply.
+ */
+static void timeout_evb(void)
+{
+	if (er_evb) {
+		fprintf(stderr, "missing EVB reply (time:%ld)\n", er_evb->time);
+		showentry("missing EVB reply", er_evb);
+		delete_queue(&er_evb);
+	}
+}
+
+static void appendentry(struct lldp *add)
+{
+	int type = memcmp(add->ether, eth_p_lldp, sizeof eth_p_lldp);
+
+	if (type == 0)
+		timeout_evb();
+	appendnode(type == 0 ? &er_evb : &er_ecp, add);
+}
+
+/*
+ * Insert node into queue.
+ * Sorting criteria is time in ascending order.
+ * There is only one entry for the evb reply queue and multiple entries for
+ * the ecp reply queue for each time entry.
+ */
+static void insertentry(struct lldp *add)
+{
+	struct lldp *p2;
+	int type;
+
+	if (!lldphead) {			/* Empty queue */
+		lldphead = add;
+		return;
+	}
+	type = memcmp(add->ether, eth_p_lldp, sizeof eth_p_lldp);
+	if (add->time <= lldphead->time) {	/* Insert at head */
+		if (type == 0 && add->time == lldphead->time) {
+			showentry("duplicate entry -- ignored", add);
+			removeentry(add);
+			return;
+		}
+		add->next = lldphead;
+		lldphead = add;
+		return;
+	}
+	for (p2 = lldphead; p2->next && add->time > p2->next->time;
+						p2 = p2->next)
+		;
+	if (type == 0 && p2->next && add->time == p2->next->time) {
+		showentry("duplicate entry -- ignored", add);
+		removeentry(add);
+		return;
+	}
+	add->next = p2->next;
+	p2->next = add;
 }
 
 static int addone(void)
 {
-	struct lldp *p2, *p = calloc(1, sizeof *p);
+	struct lldp *p = calloc(1, sizeof *p);
 	struct lldpdu *dup, *dup2;
 	unsigned int i;
 	int ec;
@@ -216,13 +391,19 @@ static int addone(void)
 	p->time = getnumber("time", tokens[0], '\0', &ec);
 	if (ec)
 		exit(3);
-	p->dst = validate(tokens[1]);
-	p->src = validate(tokens[2]);
-	p->ether = validate(tokens[3]);
+	p->dst = validate(tokens[1], 0);
+	p->src = validate(tokens[2], 0);
+	p->ether = validate(tokens[3], 0);
+	if (memcmp(p->ether, eth_p_lldp, sizeof eth_p_lldp)
+	&& memcmp(p->ether, eth_p_ecp, sizeof eth_p_ecp)) {
+		fprintf(stderr, "%s: unsupported ethernet protocol %s\n",
+			progname, tokens[3]);
+		exit(11);
+	}
 	for (i = 4; i < DIM(tokens) && tokens[i]; ++i) {
 		if ((dup = calloc(1, sizeof *dup))) {
 			if (*tokens[i] == '@') {
-				dup->data = validate(++tokens[i]);
+				dup->data = validate(++tokens[i], &dup->len);
 				if (p->recv) {
 					for (dup2 = p->recv; dup2->next;
 							dup2 = dup2->next)
@@ -232,7 +413,7 @@ static int addone(void)
 					p->recv = dup;
 				continue;
 			}
-			dup->data = validate(tokens[i]);
+			dup->data = validate(tokens[i], &dup->len);
 			if (p->head) {
 				for (dup2 = p->head; dup2->next;
 							dup2 = dup2->next)
@@ -245,13 +426,7 @@ static int addone(void)
 			return 1;
 		}
 	}
-	if (!lldphead)
-		lldphead = p;
-	else {
-		for (p2 = lldphead; p2->next; p2 = p2->next)
-			;
-		p2->next = p;
-	}
+	insertentry(p);
 	return 0;
 }
 
@@ -351,27 +526,9 @@ static int tlv_len(unsigned char *outp)
 	return byte1 << 8 | byte2;
 }
 
-static void show_evblist(void)
+static void l2_close(int fd)
 {
-	struct lldp *p = lldphead;
-
-	for (; p; p = p->next) {
-		struct lldpdu *dup;
-
-		printf("%p time:%ld\n", p, p->time);
-		showmsg("\tdstmac", p->dst, ETH_ALEN);
-		showmsg("\tsrcmac", p->src, ETH_ALEN);
-		showmsg("\tethtype", p->ether, 2);
-		for (dup = p->head; dup; dup = dup->next)
-			showmsg("\tout tlv", dup->data, 2 + tlv_len(dup->data));
-		for (dup = p->recv; dup; dup = dup->next)
-			showmsg("\tin tlv", dup->data, 2 + tlv_len(dup->data));
-	}
-}
-
-static void l2_close(void)
-{
-	close(myfd);
+	close(fd);
 }
 
 static const unsigned char nearest_bridge[ETH_ALEN] = {
@@ -386,39 +543,40 @@ static const unsigned char nearest_customer_bridge[ETH_ALEN] = {
 	0x01, 0x80, 0xc2, 0x00, 0x00, 0x00
 };
 
-static int l2_init(char *ifname)
+static int l2_init(char *ifname, unsigned short pno)
 {
 	struct ifreq ifr;
 	struct sockaddr_ll ll;
 	struct packet_mreq mr;
 	int ifindex, option = 1;
 	int option_size = sizeof(option);
+	int fd;
 
-	myfd = socket(PF_PACKET, SOCK_RAW, htons(0x88cc));
-	if (myfd < 0) {
+	fd = socket(PF_PACKET, SOCK_RAW, htons(pno));
+	if (fd < 0) {
 		perror("socket(PF_PACKET)");
 		return -1;
 	}
 	strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
-	if (ioctl(myfd, SIOCGIFINDEX, &ifr) < 0) {
+	if (ioctl(fd, SIOCGIFINDEX, &ifr) < 0) {
 		perror("ioctl[SIOCGIFINDEX]");
-		close(myfd);
+		close(fd);
 		return -1;
 	}
 	ifindex = ifr.ifr_ifindex;
 	memset(&ll, 0, sizeof(ll));
 	ll.sll_family = PF_PACKET;
 	ll.sll_ifindex = ifr.ifr_ifindex;
-	ll.sll_protocol = htons(0x88cc);
-	if (bind(myfd, (struct sockaddr *)&ll, sizeof(ll)) < 0) {
+	ll.sll_protocol = htons(pno);
+	if (bind(fd, (struct sockaddr *)&ll, sizeof(ll)) < 0) {
 		perror("bind[PF_PACKET]");
-		close(myfd);
+		close(fd);
 		return -1;
 	}
 	/* current hw address */
-	if (ioctl(myfd, SIOCGIFHWADDR, &ifr) < 0) {
+	if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
 		perror("ioctl[SIOCGIFHWADDR]");
-		close(myfd);
+		close(fd);
 		return -1;
 	}
 	memcpy(my_mac, ifr.ifr_hwaddr.sa_data, ETH_ALEN);
@@ -430,77 +588,40 @@ static int l2_init(char *ifname)
 	mr.mr_alen = ETH_ALEN;
 	memcpy(mr.mr_address, &nearest_bridge, ETH_ALEN);
 	mr.mr_type = PACKET_MR_MULTICAST;
-	if (setsockopt(myfd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
+	if (setsockopt(fd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
 		sizeof(mr)) < 0) {
 		perror("setsockopt nearest_bridge");
-		close(myfd);
+		close(fd);
 		return -1;
 	}
 	memcpy(mr.mr_address, &nearest_customer_bridge, ETH_ALEN);
-	if (setsockopt(myfd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
+	if (setsockopt(fd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
 		sizeof(mr)) < 0)
 		perror("setsockopt nearest_customer_bridge");
 	memcpy(mr.mr_address, &nearest_nontpmr_bridge, ETH_ALEN);
-	if (setsockopt(myfd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
+	if (setsockopt(fd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
 		sizeof(mr)) < 0)
 		perror("setsockopt nearest_nontpmr_bridge");
-	if (setsockopt(myfd, SOL_PACKET, PACKET_ORIGDEV,
+	if (setsockopt(fd, SOL_PACKET, PACKET_ORIGDEV,
 		&option, option_size) < 0) {
 		perror("setsockopt SOL_PACKET");
-		close(myfd);
+		close(fd);
 		return -1;
 	}
-	return 0;
+	return fd;
 }
 
-static void removedata(struct lldpdu *dup)
-{
-	struct lldpdu *q;
-
-	while (dup) {
-		q = dup;
-		dup = dup->next;
-		free(q->data);
-		free(q);
-	}
-}
-
-static void removeentry(struct lldp *p)
-{
-	removedata(p->head);
-	removedata(p->recv);
-	lldphead = p->next;
-	free(p);
-}
-
-static struct lldpdu *reply_du;			/* Expected TLVs */
-static long reply_dutime;			/* Time they have been sent */
-
-static void expect_reply(struct lldp *lldp)
-{
-	if (reply_du) {
-		fprintf(stderr, "%s no reply for message sent out (%ld sec)\n",
-			__func__, reply_dutime);
-		if (verbose)
-			showmsg("expect_reply", reply_du->data,
-				2 + tlv_len(reply_du->data));
-		removedata(reply_du);
-		reply_du = 0;
-	}
-	if (!reply_du) {
-		reply_du = lldp->recv;
-		reply_dutime = lldp->time;
-		lldp->recv = 0;
-	}
-}
-
-static void sendentry(struct lldp *p)
+/*
+ * Send one entry. Return 0 on failure and number of bytes on success.
+ */
+static int sendentry(struct lldp *p)
 {
 	struct lldpdu *dup;
 	unsigned char out[2300];
 	char tracebuf[128];
 	struct ethhdr *ehdr = (struct ethhdr *)out;
 	unsigned char *outp = out + sizeof *ehdr;
+	int fd = -1;
 	int len;
 
 	memset(out, 0, sizeof out);
@@ -508,30 +629,45 @@ static void sendentry(struct lldp *p)
 	memcpy(ehdr->h_source, p->src, ETH_ALEN);
 	memcpy(&ehdr->h_proto, p->ether, 2);
 	for (dup = p->head; dup; dup = dup->next) {
-		len = 2 + tlv_len(dup->data);
-		memcpy(outp, dup->data, len);
-		outp += len;
+		memcpy(outp, dup->data, dup->len);
+		outp += dup->len;
 	}
 	if (verbose >= 2) {
-		sprintf(tracebuf, "time:%ld", p->time);
-		showmsg(tracebuf, out, outp - out);
+		sprintf(tracebuf, "sendout time(%ld)", p->time);
+		showmsg(tracebuf, '\n', out, outp - out);
 	}
-	len = send(myfd, out, outp - out, 0);
-	if (len != outp - out)
+	if (!memcmp(p->ether, eth_p_lldp, sizeof eth_p_lldp))
+		fd = myfd;
+	else
+		fd = ecpfd;
+	len = send(fd, out, outp - out, 0);
+	if (len != outp - out) {
 		fprintf(stderr, "%s:send error %d bytes:%ld\n", __func__, len,
 		    outp - out);
-	else if (p->recv)
-		expect_reply(p);
+		len = 0;
+	}
+	return len;
 }
 
-static struct lldp *findentry(unsigned long runtime)
+/*
+ * Get first entry from list which is equal or older than current program
+ * run time and remove it from list.
+ *
+ * Return pointer to node or 0.
+ */
+static struct lldp *findentry(struct lldp **root)
 {
-	struct lldp *p = lldphead;
+	struct lldp *p = *root;
 
-	return (p && runtime >= p->time) ? p : 0;
+	if (p && runtime >= p->time) {
+		*root = p->next;
+		p->next = 0;
+		return p;
+	}
+	return 0;
 }
 
-static void sendall(unsigned long sec)
+static void sendall(void)
 {
 	struct lldp *p;
 	long long int expired;
@@ -541,77 +677,89 @@ static void sendall(unsigned long sec)
 			sizeof expired);
 		return;
 	}
-	for (p = findentry(sec); p; p = findentry(sec)) {
-		sendentry(p);
-		removeentry(p);
+	for (p = findentry(&lldphead); p; p = findentry(&lldphead)) {
+		if (sendentry(p) && p->recv)
+			appendentry(p);
+		else
+			removeentry(p);
 	}
 }
 
 /*
- * Check if an expected TLV is in the LLDP DU reply and remove it from the list.
+ * Check if an expected TLV is in the ECP/LLDP DU reply.
+ * Return 1 if it matches and has been removed from the data unit list.
  */
-static void check_tlv(unsigned char *tlv, int len)
+static int check_tlv(struct lldp *node, unsigned char *tlv)
 {
-	struct lldpdu *dup = reply_du;
+	struct lldpdu *dup = node->recv;
 	struct lldpdu *dup_pr = 0;
 
 	while (dup) {
-		if (!memcmp(tlv, dup->data, len)) {
+		if (!memcmp(tlv, dup->data, dup->len)) {
 			char txt[32];
 
 			if (verbose >= 2) {
 				sprintf(txt, "tlv id:%d len:%d",
 					tlv_id(dup->data), tlv_len(dup->data));
-				showmsg(txt, tlv, len);
+				showmsg(txt, ':', tlv, dup->len);
 			}
 			if (dup_pr)
 				dup_pr->next = dup->next;
 			else
-				reply_du = dup->next;
-			free(dup);
-			return;
+				node->recv = dup->next;
+			removedataunit(dup);
+			return 1;
 		}
 		dup_pr = dup;
 		dup = dup->next;
 	}
+	return 0;
 }
 
 /*
  * Show all TLV expected in a reply.
  */
-static void show_expect(int exitcode)
+static void show_expect(struct lldp *node, int exitcode)
 {
+	struct lldpdu *dup = node->recv;
 	char txt[32];
-	struct lldpdu *dup = reply_du;
 
 	if (verbose)
 		printf("ERROR expected reply for message sent at %ld sec missing\n",
-			reply_dutime);
+			node->time);
 	while (dup) {
 		if (verbose) {
 			sprintf(txt, "tlv-id:%d len:%d", tlv_id(dup->data),
 					tlv_len(dup->data));
-			showmsg(txt, dup->data, 2 + tlv_len(dup->data));
+			showmsg(txt, ':', dup->data, 2 + tlv_len(dup->data));
 		}
 		dup = dup->next;
 	}
 	exit(exitcode);
 }
 
-static void check_reply(unsigned char *buf, size_t buflen)
+/*
+ * Check if the received reply contains this data we expect as response.
+ */
+static void search_evbreply(unsigned char *buf, size_t buflen)
 {
 	struct ethhdr *ehdr = (struct ethhdr *)buf;
 	unsigned char *tlv = (unsigned char *)(ehdr + 1);
+	int del = 0;
 
+	if (!er_evb || !er_evb->recv)		/* No reply expected */
+		return;
 	do {
 		int len = 2 + tlv_len(tlv);
 
 		if (tlv_id(tlv))
-			check_tlv(tlv, len);
+			del += check_tlv(er_evb, tlv);
 		tlv += len;
 	} while (tlv < buf + buflen);
-	if (reply_du)
-		show_expect(5);
+	if (er_evb->recv)
+		show_expect(er_evb, 5);
+	/* Got all expected replies, delete queue */
+	delete_queue(&er_evb);
 }
 
 /*
@@ -619,7 +767,7 @@ static void check_reply(unsigned char *buf, size_t buflen)
  *
  * Return number of bytes received. 0 means timeout and -1 on error.
  */
-static int getmsg(void)
+static int get_evb(void)
 {
 	unsigned char buf[2300];
 	size_t buflen = sizeof buf;
@@ -646,9 +794,176 @@ static int getmsg(void)
 			    from.sll_halen, MAC2STR(from.sll_addr));
 		if (result > 0) {
 			if (verbose >= 2)
-				showmsg("recv", buf, result);
-			if (reply_du)
-				check_reply(buf, result);
+				showmsg("get_evb", ':', buf, result);
+			search_evbreply(buf, result);
+		}
+	}
+	return result;
+}
+
+/*
+ * Pack the ecp header into 4 bytes.
+ */
+static void convert_ecp(unsigned char *load, struct ecphdr *ecp)
+{
+	*load = (ecp->version << 4) | (ecp->op << 2)
+		| ((ecp->subtype >> 8) & 0xff);
+	*(load + 1) = ecp->subtype & 0xff;
+	*(load + 2) = ecp->seqno >> 8 & 0xff;
+	*(load + 3) = ecp->seqno & 0xff;
+}
+
+/*
+ * Send out acknowledgement when request received.
+ */
+static void ack_ecp(unsigned char *ecpdata, struct ecphdr *ecp)
+{
+	unsigned char *load, *dst, *src, *ether;
+	struct lldp *ack;
+	struct lldpdu *ackdata;
+	struct ethhdr *ethhdr = (struct ethhdr *)ecpdata;
+
+	if (ackdelay > ECPMAXACK)	/* Acknowledge request */
+		return;
+	ack = calloc(1, sizeof *ack);
+	ackdata = calloc(1, sizeof *ackdata);
+	load = calloc(4, sizeof *load);
+	dst = calloc(ETH_ALEN, sizeof *dst);
+	src = calloc(ETH_ALEN, sizeof *src);
+	ether = calloc(2, sizeof *ether);
+	if (!ack || !ackdata || !load || !dst || !src || !ether)
+		goto out;
+	ack->time = runtime + ackdelay;
+	ack->dst = dst;
+	memcpy(ack->dst, ethhdr->h_source, sizeof ethhdr->h_source);
+	ack->src = src;
+	memcpy(ack->src, my_mac, sizeof ethhdr->h_source);
+	ack->ether = ether;
+	memcpy(ack->ether, eth_p_ecp, sizeof ethhdr->h_proto);
+	ecp->op = 1;
+	convert_ecp(load, ecp);
+	ackdata->data = load;
+	ackdata->len = 4;
+	ack->head = ackdata;
+	if (ackdelay) {		/* Insert ack in queue */
+		insertentry(ack);
+		return;
+	}
+	sendentry(ack);
+out:
+	removeentry(ack);
+}
+
+/*
+ * Show ECP expected in a reply.
+ */
+static void show_ecpexpect(struct lldp *node, int exitcode)
+{
+	struct lldpdu *dup = node->recv;
+
+	if (verbose)
+		printf("ERROR expected ECP ACK for message sent at %ld sec missing\n",
+			node->time);
+	while (dup) {
+		if (verbose)
+			showmsg("ecp-ack", ':', dup->data, dup->len);
+		dup = dup->next;
+	}
+	exit(exitcode);
+}
+/*
+ * Check if an expected TLV is in the ECP/LLDP DU reply.
+ * Return 1 if it matches and has been removed from the data unit list.
+ */
+static int check_ecpack(struct lldp *node, unsigned char *buf)
+{
+	struct lldpdu *dup = node->recv;
+	struct lldpdu *dup_pr = 0;
+
+	while (dup) {
+		if (!memcmp(buf, dup->data, dup->len)) {
+			if (dup_pr)
+				dup_pr->next = dup->next;
+			else
+				node->recv = dup->next;
+			removedataunit(dup);
+			return 1;
+		}
+		dup_pr = dup;
+		dup = dup->next;
+	}
+	return 0;
+}
+
+/*
+ * Find an ECP send command and check the returned acknowledgement.
+ */
+static void search_ecpack(unsigned char *ecpdata)
+{
+	struct lldp *np, *np_prev = 0;
+
+	for (np = er_ecp; np; np_prev = np, np = np->next) {
+		check_ecpack(np, ecpdata + ETH_HLEN);
+		if (np->recv)
+			show_ecpexpect(np, 6);
+		else {
+			if (!np_prev)
+				er_ecp = np->next;
+			else
+				np_prev->next = np->next;
+			removeentry(np);
+		}
+	}
+}
+
+static void handle_ecp(unsigned char *ecpdata)
+{
+	unsigned char *buf = ecpdata + ETH_HLEN;
+	struct ecphdr ecphdr;
+
+	ecphdr.version = *buf >> 4;
+	ecphdr.op = (*buf >> 2) & 3;
+	ecphdr.subtype = (*buf & 3) << 8 | *(buf + 1);
+	ecphdr.seqno = *(buf + 2) << 8 | *(buf + 3);
+	if (verbose >= 2)
+		printf("ecp.version:%d op:%d subtype:%d seqno:%#hx\n",
+		       ecphdr.version, ecphdr.op, ecphdr.subtype,
+		       ecphdr.seqno);
+	if (ecphdr.op == 0)		/* Request received, send ACK */
+		ack_ecp(ecpdata, &ecphdr);
+	else				/* ACK received, check list */
+		search_ecpack(ecpdata);
+}
+
+static int get_ecp(void)
+{
+	unsigned char buf[2300];
+	size_t buflen = sizeof buf;
+	struct sockaddr_ll from;
+	socklen_t from_len = sizeof from;
+	int result = 0;
+
+	memset(buf, 0, buflen);
+	memset(&from, 0, from_len);
+	result = recvfrom(ecpfd, buf, buflen, 0, (struct sockaddr *)&from,
+			&from_len);
+	if (result < 0)
+		fprintf(stderr, "%s receive error:%s\n",
+		    progname, strerror(errno));
+	else {
+		if (verbose)
+			printf("received %d bytes from ifindex %d\n",
+			    result, from.sll_ifindex);
+		if (verbose >= 2)
+			printf("\tfamily:%hd protocol:%hx hatype:%hd\n"
+			    "\tpkttype:%d halen:%d MAC:" MACSTR "\n",
+			    from.sll_family, ntohs(from.sll_protocol),
+			    from.sll_hatype, from.sll_pkttype,
+			    from.sll_halen, MAC2STR(from.sll_addr));
+		if (result > 0) {
+			if (verbose >= 2)
+				showmsg("get_ecp", ':', buf, result);
+			handle_ecp(buf);
 		}
 	}
 	return result;
@@ -708,23 +1023,32 @@ static void hear(void)
 	clock_gettime(CLOCK_MONOTONIC, &start_time);
 	do {
 		FD_ZERO(&readfds);
+		FD_SET(ecpfd, &readfds);
 		FD_SET(myfd, &readfds);
 		FD_SET(timerfd, &readfds);
 		if (verbose)
 			printf("%s wait for event %d...", progname, ++cnt);
 		n = (myfd > timerfd) ? myfd : timerfd;
+		n = (n > ecpfd) ? n : ecpfd;
 		n = select(n + 1, &readfds, NULL, NULL, 0);
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		past(&now, &start_time, &diff);
+		runtime = diff.tv_sec;
 		if (n < 0) {
 			fprintf(stderr, "%s error select:%s\n", progname,
 				strerror(errno));
 		} else {
+			if (FD_ISSET(ecpfd, &readfds)) {
+				if (verbose >= 3)
+					printf("ECP msg received %ld.%09ld\n",
+						diff.tv_sec, diff.tv_nsec);
+				get_ecp();
+			}
 			if (FD_ISSET(myfd, &readfds)) {
 				if (verbose >= 3)
-					printf("msg received %ld.%09ld\n",
+					printf("EVB msg received %ld.%09ld\n",
 						diff.tv_sec, diff.tv_nsec);
-				getmsg();
+				get_evb();
 			}
 			if (FD_ISSET(timerfd, &readfds)) {
 				if (verbose >= 3)
@@ -732,7 +1056,8 @@ static void hear(void)
 						diff.tv_sec, diff.tv_nsec);
 				else if (verbose)
 					printf("\n");
-				sendall(diff.tv_sec);
+				timeout_evb();
+				sendall();
 			}
 		}
 	} while ((unsigned long)diff.tv_sec < duration);
@@ -741,14 +1066,23 @@ static void hear(void)
 
 static void help(void)
 {
-	printf("usage: %s [-t timeout][-T timeout] [-v] device [file]\n"
-	       "\t-d specifies the run time of the program (default 120s)\n"
-	       "\t-t specifies the timeout in seconds to wait (default 1s)\n"
-	       "\t-T specifies the timeout in microseconds to wait (default 0us)\n"
+	char *ecp_help = "";
+
+	if (strcmp(progname, ECPTEST) == 0)
+		ecp_help = "[-a delay]";
+	printf("usage: %s %s[-t timeout][-T timeout][-v] device [file]\n",
+	       progname, ecp_help);
+	if (strcmp(progname, ECPTEST) == 0)
+		printf("\t-a specifies the acknowledgement delay"
+		       " (default %lds)\n", ackdelay);
+	printf("\t-d specifies the run time of the program (default %ld)\n"
+	       "\t-t specifies the timeout in seconds to wait (default %lds)\n"
+	       "\t-T specifies the timeout in microseconds to wait"
+	       " (default %ldus)\n"
 	       "\t-v verbose mode, can be set more than once\n"
-	       "\t devices is the network interface to listen on\n"
-	       "\t file are one or more input files to read LLDP data from\n",
-	       progname);
+	       "\t device is the network interface to listen on\n"
+	       "\t file is one or more input files to read LLDP data from\n",
+	       duration, timeout, timeout_us);
 }
 
 int main(int argc, char **argv)
@@ -759,7 +1093,7 @@ int main(int argc, char **argv)
 	char *slash;
 
 	progname = (slash = strrchr(argv[0], '/')) ? slash + 1 : argv[0];
-	while ((ch = getopt(argc, argv, ":d:t:T:v")) != EOF)
+	while ((ch = getopt(argc, argv, ":a:d:t:T:v")) != EOF)
 		switch (ch) {
 		case '?':
 			fprintf(stderr, "%s: unknown option -%c\n", progname,
@@ -786,6 +1120,18 @@ int main(int argc, char **argv)
 				exit(1);
 			}
 			break;
+		case 'a':
+			if (strcmp(progname, ECPTEST)) {
+				help();
+				exit(1);
+			}
+			ackdelay = strtoul(optarg, 0, 0);
+			if (ackdelay > ECPMAXACK) {
+				printf("%s ECP aknowledgement disabled\n",
+				    progname);
+				ackdelay = ECPMAXACK;
+			}
+			break;
 		case 'd':
 			duration = strtoul(optarg, 0, 0);
 			if (!duration) {
@@ -807,14 +1153,24 @@ int main(int argc, char **argv)
 		    progname, argv[optind]);
 		return 2;
 	}
-	if (l2_init(argv[optind]))
+	myfd = l2_init(argv[optind], ETH_P_LLDP);
+	if (myfd < 0)
 		return 2;
+	ecpfd = l2_init(argv[optind], ETH_P_ECP);
+	if (ecpfd < 0) {
+		l2_close(myfd);
+		return 2;
+	}
 	for (; ++optind < argc;) {
 		rc |= read_profiles(argv[optind]);
 		if (verbose >= 3)
-			show_evblist();
+			show_queue("command", lldphead);
 	}
 	hear();
-	l2_close();
+	l2_close(ecpfd);
+	l2_close(myfd);
+	show_queue("expected evb replies", er_evb);
+	if (show_queue("expected ecp replies", er_ecp))
+		rc = 7;		/* This queue should be empty */
 	return rc;
 }

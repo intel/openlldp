@@ -1,32 +1,42 @@
 .PU
-.TH evbtest 1 "LLDPAD" "Revision: 0.2"
+.TH evbtest/ecptest 1 "LLDPAD" "Revision: 0.3"
 .SH NAME
 evbtest \- EVB Protocol Test Program for LLDPAD
+.br
+ecptest \- ECP Protocol Test Program for LLDPAD
 .SH SYNOPSIS
 .ll +8
 .B evbtest
 [\-d duration] [\-t timeout] [\-T timeout] [\-v] device [file]
+.br
+.B ecptest
+[\-a timeout][\-d duration] [\-t timeout] [\-T timeout] [\-v] device [file]
 .br
 .ll -8
 .SH DESCRIPTION
 .B Evbtest
 sends IEEE 802.1ad LLDP protocol messages which contain
 an IEEE802.1Qbg EVB data unit TLV.
+.B Ecptest
+sends IEEE 802.1Qbg ECP protocol messages which contain
+an arbitrary data payload in TLV format.
 The mandatory device parameter specifies
 a network interface name.
 This interface is opened in raw mode and
-listens to LLDP messages (ethertype 0x88cc) targeted
+listens to LLDP messages (ethertype 0x88cc)
+and ECP messages (ethertype 0x8890)
+targeted
 to multicast addresses for nearest bridge,
 nearest customer bridge and nearest non two port MAC relay bridge.
 The purpose of the low level test program is to test 
 .BR lldpad (8)
-EVB module interaction by sending EVB TLV data.
-The LLDP data is read from one or more files,
+EVB and ECP module interaction by sending EVB/ECP TLV data.
+The data is read from one or more files,
 the response received can be displayed on the screen and
 optionally checked against an expected value.
 If no input file is specified
-.B evbtest 
-only listens but does not send any LLDP data units.
+.B evbtest/ecptest
+only listen but do not send any data units.
 A dash stands for standard input.
 The input files are preprocessed by 
 .BR cpp (1).
@@ -34,18 +44,18 @@ All
 .BR cpp (1)
 features can be used, including comments, defines, include files.
 .SS Event Handling
-.B evbtest
-uses the select(2) system call to wait for a message and
+.B evbtest/ecptest
+use the select(2) system call to wait for a message and
 a timer event.
 The timer is a periodic timer and initially loaded
 with the values specified with the options -t and -T.
 The default value is one second and zero nano seconds.
 Each time the timer expires
-.B evbtest 
+.B evbtest/ecptest
 checks for messages to send.
 If the elapsed run time of the program is
 larger or equal to the time specified in the first field
-of the configuraion file, those lines are transmitted.
+of the configuration file, those lines are transmitted.
 Note that only one transmission per timer invocation
 is capable to check optional replies for an expected TLV.
 If more than one line have the same elapsed time, then only
@@ -68,13 +78,21 @@ transmission.
 .IP 4
 The forth field specifies the ethertype variable.
 For LLDP protocol this should be 88cc.
+For ECP protocol this should be 8890 (in hex).
+Any other protocols are not supported and the
+program exits with an appropriate error message.
+The value of this field determines the data layout
+of the remaining fields.
 .IP 5
-The remaining fields specify the LLDP protocol TLVs.
+The remaining fields specify the LLDP protocol TLVs
+or the ECP protocol TLVs.
 There is no check for consistency, but at least the 
 mandatory LLDP protocol TLVs (which are
 chassis identifier, port identifer, time to live (TTL), and
 End) have to be listed.
 To be useful an EVB TLV should be included.
+The same is true for the ECP protocol. At least an
+ECP protocol header has to be listed.
 .IP 6
 When a TLV is preceded by an at-sign ('@'), this TLV
 is not
@@ -155,6 +173,35 @@ remote side to be discarded.
 20	dst_mac - lldp_type chassis_tlv port_tlv ttl_tlv0 end_tlv
 .fi
 .EE
+.PP
+Now following is an example file for ECP protocol negotiation:
+.IP A.
+The first line contains an ECP TLV and is sent after 18 seconds.
+It consists of the ECP header with version, operation and subtype.
+The next field contains the sequence number followed by
+a 4 byte payload data and the END TLV.
+.IP B.
+The second and third line send the same data, only the sequence
+number is incremented.
+No reply is expected.
+.PP
+.ne 20
+.EX
+.nf
+/*
+ * ECP Protocol test data. Define a complete ECP DU in hex. One complete set
+ * is needed for each transmission.
+ */
+#define	lldpad_mac	01:80:c2:00:00:00
+#define	end_tlv		00:00
+#define	ecp_type	88:90
+
+#include	"defines.ecp"
+
+18	lldpad_mac - ecp_type 10:01 12:24 0a:0b:0c:0d end_tlv
+21	lldpad_mac - ecp_type 10:01 12:25 0a:0b:0c:0d end_tlv
+24	lldpad_mac - ecp_type 10:01 12:26 0a:0b:0c:0d end_tlv
+.EE
 .SH OPTIONS
 .TP
 .B "\-v"
@@ -168,6 +215,18 @@ If set twice,
 the message contents is also displayed.
 If set three times,
 the event wait time is also displayed.
+.TP
+.B "\-a\fItimeout\fP"
+Specifies the number in seconds for
+.B ecptest to wait until an acknowledgement is
+sent out for a received request.
+Defaults to 0 seconds which stands for
+immediate acknowledgement.
+A value larger the 30 seconds stands for no
+aknowledgement at all.
+The flag is not valid for the
+.B evbtest
+program.
 .TP
 .B "\-d\fIduration\fP"
 Specifies the number in seconds the program will run.
