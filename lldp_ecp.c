@@ -370,9 +370,8 @@ static void ecp_tx_create_frame(struct vdp_data *vd)
 
 		/* ECPDU construction succesful, send out frame */
 		if (ret == true) {
-			ecp_print_frame(vd->ecp.ifname, "frame-out",
-					vd->ecp.tx.frame,
-					vd->ecp.tx.frame_len);
+			hexdump_frame(vd->ecp.ifname, "frame-out",
+				      vd->ecp.tx.frame, vd->ecp.tx.frame_len);
 			ecp_txFrame(vd);
 		}
 	}
@@ -626,8 +625,8 @@ static int ecp_rx_SendAckFrame(struct vdp_data *vd)
 void ecp_rx_send_ack_frame(struct vdp_data *vd)
 {
 	ecp_rx_SendAckFrame(vd);
-	ecp_print_frame(vd->ecp.ifname, "frame-ack", vd->ecp.tx.frame,
-			vd->ecp.tx.frame_len);
+	hexdump_frame(vd->ecp.ifname, "frame-ack", vd->ecp.tx.frame,
+		      vd->ecp.tx.frame_len);
 	ecp_txFrame(vd);
 }
 
@@ -706,8 +705,8 @@ static void ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf,
 	tlv_offset = sizeof(struct l2_ethhdr);
 	ecp_hdr = (struct ecp_hdr *)&vd->ecp.rx.frame[tlv_offset];
 	vd->ecp.seqECPDU = ntohs(ecp_hdr->seqnr);
-	ecp_print_frame(vd->ecp.ifname, "frame-in", vd->ecp.rx.frame,
-			vd->ecp.rx.frame_len);
+	hexdump_frame(vd->ecp.ifname, "frame-in", vd->ecp.rx.frame,
+		      vd->ecp.rx.frame_len);
 
 	switch(ecp_hdr->mode) {
 	case ECP_REQUEST:

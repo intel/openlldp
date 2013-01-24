@@ -102,7 +102,7 @@ static struct ecp22 *find_ecpdata(char *ifname, struct ecp22_user_data *eud)
 static int ecp22_txframe(struct ecp22 *ecp, char *txt, unsigned char *dst,
 		       unsigned char *ack, size_t len)
 {
-	ecp_print_frame(ecp->ifname, txt, ack, len);
+	hexdump_frame(ecp->ifname, txt, ack, len);
 	return l2_packet_send(ecp->l2, dst, htons(ETH_P_ECP22), ack, len);
 }
 
@@ -655,7 +655,7 @@ static void ecp22_rx_receiveframe(void *ctx, int ifindex, const u8 *buf,
 	LLDPAD_DBG("%s:%s ifindex:%d len:%zd state:%s ecpdu_received:%d\n",
 		   __func__, ecp->ifname, ifindex, len,
 		   ecp22_rx_states[ecp->rx.state], ecp->rx.ecpdu_received);
-	ecp_print_frame(ecp->ifname, "frame-in", buf, len);
+	hexdump_frame(ecp->ifname, "frame-in", buf, len);
 	port = port_find_by_name(ecp->ifname);
 	if (!port || ecp->rx.ecpdu_received)
 		/* Port not found or buffer not free */

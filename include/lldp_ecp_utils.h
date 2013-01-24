@@ -23,8 +23,12 @@
 
 *******************************************************************************/
 
-#ifndef LLDP_ECP_UTILS_H
-#define LLDP_ECP_UTILS_H
+/*
+ * Header file for small utility functions called throught qbg modules.
+ */
 
-void ecp_print_frame(const char *, char *, const unsigned char *, size_t);
+#ifndef LLDP_QBG_UTILS_H
+#define LLDP_QBG_UTILS_H
+
+void hexdump_frame(const char *, char *, const unsigned char *, size_t);
 #endif

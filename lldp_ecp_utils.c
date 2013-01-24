@@ -37,10 +37,10 @@
 extern int loglvl;			/* Global lldpad log level */
 
 /*
- * ecp_print_frame - print raw ecp frame
+ * hexdump_frame - print raw evb/ecp/vdp frame
  */
-void ecp_print_frame(const char *ifname, char *txt, const unsigned char *buf,
-		     size_t len)
+void hexdump_frame(const char *ifname, char *txt, const unsigned char *buf,
+		   size_t len)
 {
 	size_t i;
 	int left = 0;
