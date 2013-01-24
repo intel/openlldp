@@ -32,7 +32,7 @@
 
 #include "lldp.h"
 #include "messages.h"
-#include "lldp_ecp_utils.h"
+#include "lldp_qbg_utils.h"
 
 extern int loglvl;			/* Global lldpad log level */
 
