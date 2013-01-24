@@ -1,6 +1,9 @@
 AC_INIT([lldpad], [0.9.45], [lldp-devel@open-lldp.org])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
+m4_pattern_allow([AM_PROG_AR])
+AM_PROG_AR
+
 AC_ARG_ENABLE(debug, 
 	AS_HELP_STRING([--enable-debug],[compile debug programs]),
 	[enable_debug=yes], [enable_debug=no])
