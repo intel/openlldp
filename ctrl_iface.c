@@ -141,7 +141,7 @@ int clif_iface_ping(UNUSED struct clif_data *clifd,
 		    UNUSED char *ibuf, UNUSED int ilen,
 		    char *rbuf, int rlen)
 {
-	snprintf(rbuf, rlen, "%cPONG", PING_CMD);
+	snprintf(rbuf, rlen, "%cPONG%d", PING_CMD, getpid());
 
 	return 0;
 }
