@@ -220,15 +220,26 @@ static struct nlmsghdr *get_msg(void)
 	memset(nlh, 0, MAX_MSG_SIZE);
 
 	len = recv(nl_sd, (void *)nlh, MAX_MSG_SIZE, 0);
-
-	if ((nlh->nlmsg_type == NLMSG_ERROR) || (len < 0) ||
-	    !(NLMSG_OK(nlh, (unsigned int)len))) {
+	if (len < 0) {
+		printf("RECEIVE FAILED with %d", errno);
 		free(nlh);
-		printf("RECEIVE FAILED: %d\n", len);
+		return NULL;
+	}
+
+	if (!(NLMSG_OK(nlh, (unsigned int)len))) {
+		printf("RECEIVE FAILED, message too long\n");
+		free(nlh);
+		return NULL;
+	}
+	if (nlh->nlmsg_type == NLMSG_ERROR) {
+		struct nlmsgerr *err = (struct nlmsgerr *) NLMSG_DATA(nlh);
+		printf("RECEIVE FAILED with msg error %i (pid %d): %s\n",
+		       err->error, nlh->nlmsg_pid, strerror(err->error * -1));
 #ifdef HEXDUMP
 		if (len > 0)
 			hexprint((char *)nlh, len);
 #endif
+		free(nlh);
 		return NULL;
 	}
 #ifdef HEXDUMP
