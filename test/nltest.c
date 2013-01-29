@@ -34,7 +34,8 @@
 #define DCB_APP_DRV_IF_SUPPORTED
 #endif
 
-#ifdef HEXDUMP
+static int hexdump;
+
 static void hexprint(char *b, int len)
 {
 	int i;
@@ -45,7 +46,6 @@ static void hexprint(char *b, int len)
 	}
 	printf("\n\n");
 }
-#endif
 
 #define NLMSG_TAIL(nmsg) \
 	((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
@@ -193,10 +193,10 @@ static int send_msg(struct nlmsghdr *nlh)
 	nladdr.nl_family = AF_NETLINK;
 
 	do {
-#ifdef HEXDUMP
-		printf("SENT A MESSAGE: %d\n", len);
-		hexprint((char *)nlh, nlh->nlmsg_len);
-#endif
+		if (hexdump) {
+			printf("SENT A MESSAGE: %d\n", len);
+			hexprint((char *)nlh, nlh->nlmsg_len);
+		}
 		r = sendto(nl_sd, buf, len, 0, (struct sockaddr *)&nladdr,
 			sizeof(nladdr));
 	} while (r < 0 && errno == EINTR);
@@ -235,17 +235,15 @@ static struct nlmsghdr *get_msg(void)
 		struct nlmsgerr *err = (struct nlmsgerr *) NLMSG_DATA(nlh);
 		printf("RECEIVE FAILED with msg error %i (pid %d): %s\n",
 		       err->error, nlh->nlmsg_pid, strerror(err->error * -1));
-#ifdef HEXDUMP
-		if (len > 0)
+		if (hexdump && len > 0)
 			hexprint((char *)nlh, len);
-#endif
 		free(nlh);
 		return NULL;
 	}
-#ifdef HEXDUMP
-	printf("RECEIVED A MESSAGE: %d\n", len);
-	hexprint((char *)nlh, nlh->nlmsg_len);
-#endif
+	if (hexdump) {
+		printf("RECEIVED A MESSAGE: %d\n", len);
+		hexprint((char *)nlh, nlh->nlmsg_len);
+	}
 
 	return nlh;
 }
