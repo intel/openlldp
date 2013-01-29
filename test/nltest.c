@@ -1317,6 +1317,7 @@ int main(int argc, char *argv[])
 	struct tc_config tc[8];
 	int i, err = 0;
 	int newstate = -1;
+	int read_only = 0;
 	__u8 state;
 	__u8 pfc[8] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 	__u8 bwg[8] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
@@ -1331,7 +1332,7 @@ int main(int argc, char *argv[])
 
 	printf("Calling RTNETLINK interface.\n");
 	if (argc < 2) {
-		fprintf(stderr, "usage: %s <ifname> [on|off]\n", argv[0]);
+		fprintf(stderr, "usage: %s <ifname> [on|off|ro]\n", argv[0]);
 		exit(1);
 	}
 
@@ -1340,6 +1341,8 @@ int main(int argc, char *argv[])
 			newstate = 1;
 		if (!strcmp(argv[2], "off"))
 			newstate = 0;
+		if (!strcmp(argv[2], "ro"))
+			read_only = 1;
 	}
 
 	ifindex = if_nametoindex(argv[1]);
@@ -1456,24 +1459,26 @@ int main(int argc, char *argv[])
 		printf("num = %d\n", numtcs);
 	else	printf("not found\n");
 
-	printf("\nTEST SET NUMBER OF PG TCS\n");
-	if (!set_numtcs(argv[1], DCB_NUMTCS_ATTR_PG, numtcs))
-		printf("set passed\n");
-	else	printf("error\n");
+	if (!read_only) {
+		printf("\nTEST SET NUMBER OF PG TCS\n");
+		if (!set_numtcs(argv[1], DCB_NUMTCS_ATTR_PG, numtcs))
+			printf("set passed\n");
+		else	printf("error\n");
 
-	printf("\nTEST SET NUMBER OF PFC TCS\n");
-	if (!set_numtcs(argv[1], DCB_NUMTCS_ATTR_PFC, numtcs))
-		printf("set passed\n");
-	else	printf("error\n\n");
+		printf("\nTEST SET NUMBER OF PFC TCS\n");
+		if (!set_numtcs(argv[1], DCB_NUMTCS_ATTR_PFC, numtcs))
+			printf("set passed\n");
+		else	printf("error\n\n");
 
 /*	printf("set_pfc_cfg = %d\n", set_pfc_cfg(argv[1], pfc)); */
 /*	printf("set_rx_pg = %d\n", set_pg(argv[1], tc, bwg, DCB_CMD_PGRX_SCFG));*/
 /*	printf("set_hw_all = %d\n", set_hw_all(argv[1])); */
 
-	err = set_hw_bcn(argv[1], &bcn_set_data, 1);
-	printf("set_bcn_cfg result is %d.\n", err);
+		err = set_hw_bcn(argv[1], &bcn_set_data, 1);
+		printf("set_bcn_cfg result is %d.\n", err);
 
 	/*set_hw_all(argv[1]);*/
+	}
 
 	get_bcn(argv[1], &bcn_data);
 	printf("\nGETTING BCN: \n");
@@ -1495,10 +1500,12 @@ int main(int argc, char *argv[])
 	printf("BCN RP WRTT : %d\n", bcn_data.rp_wrtt);
 
 #ifdef DCB_APP_DRV_IF_SUPPORTED
-	printf("\nSETTING APP:\n");
-	if (set_hw_app0(argv[1], &app_data)) {
-		printf("Fail to set app data.\n");
-		goto err_main;
+	if (!read_only) {
+		printf("\nSETTING APP:\n");
+		if (set_hw_app0(argv[1], &app_data)) {
+			printf("Fail to set app data.\n");
+			goto err_main;
+		}
 	}
 
 	printf("\nGETTING APP:\n");
@@ -1517,7 +1524,7 @@ int main(int argc, char *argv[])
 	}
 #endif /* DCB_APP_DRV_IF_SUPPORTED */
 
-	if (1) {
+	if (!read_only) {
 		struct ieee_ets ets = {
 			.willing = 0, .ets_cap = 0x1, .cbs = 0,
 			.tc_tx_bw = {25, 25, 25, 25, 0, 0, 0, 0},
