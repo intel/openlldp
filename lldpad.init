@@ -166,13 +166,13 @@ case "$1" in
 		;;
 	status)
 		echo -n "Checking for service $LLDPAD: "
-  		p=`pidof $LLDPAD`
+  		p=`dcbtool ping 2> /dev/null`
 		RC=$?
-		if [ "$RC" = "1" ]; then
+		if [ "$RC" != "0" ]; then
 			echo "stopped"
 			if [ -f /var/lock/subsys/lldpad ]; then
 				rc_failed 2
-			elif [ -f /var/run/lldpad.pid ]; then
+			elif [ -z "$p" ]; then
 				rc_failed 1
 			else
 				rc_failed 3
