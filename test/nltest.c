@@ -1480,24 +1480,25 @@ int main(int argc, char *argv[])
 	/*set_hw_all(argv[1]);*/
 	}
 
-	get_bcn(argv[1], &bcn_data);
-	printf("\nGETTING BCN: \n");
-	for (i = 0; i < 8; i++) {
-		printf("BCN RP %d: %d\n", i,
-			bcn_data.up_settings[i].rp_admin);
-	}
-	printf("\nBCN RP ALPHA: %f\n", bcn_data.rp_alpha);
-	printf("BCN RP BETA : %f\n", bcn_data.rp_beta);
-	printf("BCN RP GD   : %f\n", bcn_data.rp_gd);
-	printf("BCN RP GI   : %f\n", bcn_data.rp_gi);
-	printf("BCN RP TMAX : %d\n", bcn_data.rp_tmax);
-	printf("BCN RP RI   : %d\n", bcn_data.rp_ri);
-	printf("BCN RP TD   : %d\n", bcn_data.rp_td);
-	printf("BCN RP RMIN : %d\n", bcn_data.rp_rmin);
-	printf("BCN RP W    : %d\n", bcn_data.rp_w);
-	printf("BCN RP RD   : %d\n", bcn_data.rp_rd);
-	printf("BCN RP RU   : %d\n", bcn_data.rp_ru);
-	printf("BCN RP WRTT : %d\n", bcn_data.rp_wrtt);
+	printf("\nGETTING BCN:\n");
+	if (!get_bcn(argv[1], &bcn_data)) {
+		for (i = 0; i < 8; i++) {
+			printf("BCN RP %d: %d\n", i,
+			       bcn_data.up_settings[i].rp_admin);
+		}
+		printf("\nBCN RP ALPHA: %f\n", bcn_data.rp_alpha);
+		printf("BCN RP BETA : %f\n", bcn_data.rp_beta);
+		printf("BCN RP GD   : %f\n", bcn_data.rp_gd);
+		printf("BCN RP GI   : %f\n", bcn_data.rp_gi);
+		printf("BCN RP TMAX : %d\n", bcn_data.rp_tmax);
+		printf("BCN RP RI   : %d\n", bcn_data.rp_ri);
+		printf("BCN RP TD   : %d\n", bcn_data.rp_td);
+		printf("BCN RP RMIN : %d\n", bcn_data.rp_rmin);
+		printf("BCN RP W    : %d\n", bcn_data.rp_w);
+		printf("BCN RP RD   : %d\n", bcn_data.rp_rd);
+		printf("BCN RP RU   : %d\n", bcn_data.rp_ru);
+		printf("BCN RP WRTT : %d\n", bcn_data.rp_wrtt);
+	} else	printf("not found\n");
 
 #ifdef DCB_APP_DRV_IF_SUPPORTED
 	if (!read_only) {
