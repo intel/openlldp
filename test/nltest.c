@@ -1327,25 +1327,34 @@ int main(int argc, char *argv[])
 	appgroup_attribs app_data = {DCB_APP_IDTYPE_ETHTYPE, 0x8906, 0x08};
 #endif /* DCB_APP_DRV_IF_SUPPORTED */
 	int ifindex;
+	int optind = 1;
+	char *ifname;
 
 	printf("Calling RTNETLINK interface.\n");
 	if (argc < 2) {
-		fprintf(stderr, "usage: %s <ifname> [on|off|ro]\n", argv[0]);
+		fprintf(stderr, "usage: %s [-v] <ifname> [on|off|ro]\n",
+			argv[0]);
 		exit(1);
 	}
 
-	if (argc >= 3) {
-		if (!strcmp(argv[2], "on"))
-			newstate = 1;
-		if (!strcmp(argv[2], "off"))
-			newstate = 0;
-		if (!strcmp(argv[2], "ro"))
-			read_only = 1;
+	if (argc > 2) {
+		if (!strcmp(argv[1], "-v")) {
+			hexdump = 1;
+			optind++;
+		}
+		if (argc > optind + 1) {
+			if (!strcmp(argv[optind + 1], "on"))
+				newstate = 1;
+			if (!strcmp(argv[optind + 1], "off"))
+				newstate = 0;
+			if (!strcmp(argv[optind + 1], "ro"))
+				read_only = 1;
+		}
 	}
-
-	ifindex = if_nametoindex(argv[1]);
+	ifname = argv[optind];
+	ifindex = if_nametoindex(ifname);
 	if (ifindex == 0) {
-		printf("no ifindex for %s\n", argv[1]);
+		printf("no ifindex for %s\n", ifname);
 		exit(1);
 	}
 
@@ -1366,7 +1375,7 @@ int main(int argc, char *argv[])
 #endif
 
 	printf("GETTING DCB STATE\n");
-	err = get_state(argv[1], &state);
+	err = get_state(ifname, &state);
 	if (err) {
 		fprintf(stderr, "Error getting DCB state\n");
 		goto err_main;
@@ -1375,11 +1384,11 @@ int main(int argc, char *argv[])
 
 	if (newstate >= 0) {
 		printf("\nSETTING DCB STATE TO: %d\n", newstate);
-		err = set_state(argv[1], newstate);
+		err = set_state(ifname, newstate);
 		if (err)
 			goto err_main;
 
-		err = get_state(argv[1], &state);
+		err = get_state(ifname, &state);
 		if (err) {
 			fprintf(stderr, "Error getting DCB state\n");
 			goto err_main;
@@ -1390,13 +1399,13 @@ int main(int argc, char *argv[])
 	printf("\nGETTING PFC CONFIGURATION\n");
 	for (i=0; i<8; i++)
 		pfc[i] = 0x0f;
-	get_pfc_cfg(argv[1], pfc);
+	get_pfc_cfg(ifname, pfc);
 	printf("PFC config:\n");
 	for (i=0; i<8; i++)
 		printf("%x ", pfc[i]);
 	printf("\n");
 
-	get_pfc_state(argv[1], &state);
+	get_pfc_state(ifname, &state);
 	if (err) {
 		fprintf(stderr, "Error getting PFC status\n");
 		goto err_main;
@@ -1404,7 +1413,7 @@ int main(int argc, char *argv[])
 	printf("PFC State = %d\n", state);
 
 	printf("\nGETTING PG TX CONFIGURATION\n");
-	get_pg(argv[1], tc, bwg, DCB_CMD_PGTX_GCFG);
+	get_pg(ifname, tc, bwg, DCB_CMD_PGTX_GCFG);
 	for (i = 0; i < 8; i++) {
 		printf("%d: pr=%d\tbwgid=%d\tbw%%=%d\tu2t=%d\tlk%%=%d\n", i,
 			tc[i].prio_type,
@@ -1423,7 +1432,7 @@ int main(int argc, char *argv[])
 	printf("\nGETTING PG RX CONFIGURATION\n");
 	memset(bwg, 0, sizeof(bwg));
 	memset(&tc[0], 0, sizeof(tc));
-	get_pg(argv[1], tc, bwg, DCB_CMD_PGRX_GCFG);
+	get_pg(ifname, tc, bwg, DCB_CMD_PGRX_GCFG);
 	for (i = 0; i < 8; i++) {
 		printf("%d: pr=%d\tbwgid=%d\tbw%%=%d\tu2t=%d\tlk%%=%d\n", i,
 			tc[i].prio_type,
@@ -1434,7 +1443,7 @@ int main(int argc, char *argv[])
 	}
 
 	printf("\nGETTING PERMANENT MAC: ");
-	get_perm_hwaddr(argv[1], mac, san_mac);
+	get_perm_hwaddr(ifname, mac, san_mac);
 	for (i = 0; i < 5; i++)
 		printf("%02x:", mac[i]);
 	printf("%02x\n", mac[i]);
@@ -1445,41 +1454,41 @@ int main(int argc, char *argv[])
 	printf("%02x\n", san_mac[i]);
 
 	printf("\nGETTING DCB CAPABILITIES\n");
-	get_cap(argv[1], &cap[0]);
+	get_cap(ifname, &cap[0]);
 
 	printf("\nGET NUMBER OF PG TCS\n");
-	if (!get_numtcs(argv[1], DCB_NUMTCS_ATTR_PG, &numtcs))
+	if (!get_numtcs(ifname, DCB_NUMTCS_ATTR_PG, &numtcs))
 		printf("num = %d\n", numtcs);
 	else	printf("not found\n");
 
 	printf("\nGET NUMBER OF PFC TCS\n");
-	if (!get_numtcs(argv[1], DCB_NUMTCS_ATTR_PFC, &numtcs))
+	if (!get_numtcs(ifname, DCB_NUMTCS_ATTR_PFC, &numtcs))
 		printf("num = %d\n", numtcs);
 	else	printf("not found\n");
 
 	if (!read_only) {
 		printf("\nTEST SET NUMBER OF PG TCS\n");
-		if (!set_numtcs(argv[1], DCB_NUMTCS_ATTR_PG, numtcs))
+		if (!set_numtcs(ifname, DCB_NUMTCS_ATTR_PG, numtcs))
 			printf("set passed\n");
 		else	printf("error\n");
 
 		printf("\nTEST SET NUMBER OF PFC TCS\n");
-		if (!set_numtcs(argv[1], DCB_NUMTCS_ATTR_PFC, numtcs))
+		if (!set_numtcs(ifname, DCB_NUMTCS_ATTR_PFC, numtcs))
 			printf("set passed\n");
 		else	printf("error\n\n");
 
-/*	printf("set_pfc_cfg = %d\n", set_pfc_cfg(argv[1], pfc)); */
-/*	printf("set_rx_pg = %d\n", set_pg(argv[1], tc, bwg, DCB_CMD_PGRX_SCFG));*/
-/*	printf("set_hw_all = %d\n", set_hw_all(argv[1])); */
+/*	printf("set_pfc_cfg = %d\n", set_pfc_cfg(ifname, pfc)); */
+/*	printf("set_rx_pg = %d\n", set_pg(ifname, tc, bwg, DCB_CMD_PGRX_SCFG));*/
+/*	printf("set_hw_all = %d\n", set_hw_all(ifname)); */
 
-		err = set_hw_bcn(argv[1], &bcn_set_data, 1);
+		err = set_hw_bcn(ifname, &bcn_set_data, 1);
 		printf("set_bcn_cfg result is %d.\n", err);
 
-	/*set_hw_all(argv[1]);*/
+		/*set_hw_all(ifname);*/
 	}
 
 	printf("\nGETTING BCN:\n");
-	if (!get_bcn(argv[1], &bcn_data)) {
+	if (!get_bcn(ifname, &bcn_data)) {
 		for (i = 0; i < 8; i++) {
 			printf("BCN RP %d: %d\n", i,
 			       bcn_data.up_settings[i].rp_admin);
@@ -1501,14 +1510,14 @@ int main(int argc, char *argv[])
 #ifdef DCB_APP_DRV_IF_SUPPORTED
 	if (!read_only) {
 		printf("\nSETTING APP:\n");
-		if (set_hw_app0(argv[1], &app_data)) {
+		if (set_hw_app0(ifname, &app_data)) {
 			printf("Fail to set app data.\n");
 			goto err_main;
 		}
 	}
 
 	printf("\nGETTING APP:\n");
-	if (!get_app_cfg(argv[1], &app_data)) {
+	if (!get_app_cfg(ifname, &app_data)) {
 		printf("APP ID TYPE: ");
 		if (app_data.dcb_app_idtype)
 			printf(" \t DCB_APP_IDTYPE_ETHTYPE.\n");
@@ -1539,10 +1548,10 @@ int main(int argc, char *argv[])
 		};
 
 		printf("\nSETTING ETS:\n");
-		set_ieee(argv[1], &ets, &pfc, &app);
+		set_ieee(ifname, &ets, &pfc, &app);
 	}
 
-	get_ieee(argv[1]);
+	get_ieee(ifname);
 
 err_main:
 	close(nl_sd);
