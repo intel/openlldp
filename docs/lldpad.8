@@ -13,6 +13,7 @@ lldpad \- Link Layer Discovery Protocol (LLDP) agent daemon
 .B [-V]
 .B [-d]
 .B [-k]
+.B [-p]
 .B [-s]
 .BI "[-f" " filename" "]"
 .SH DESCRIPTION
@@ -145,6 +146,9 @@ invocations of lldpad -k will not terminate lldpad.
 .TP
 .B \-s
 remove lldpad state records from shared memory
+.TP
+.B \-p
+do not create PID file /var/run/lldpad.pid on startup
 .PP
 
 .SH SEE ALSO
