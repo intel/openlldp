@@ -50,11 +50,13 @@
 
 #include <netlink/msg.h>
 
+#include "clif.h"
+#include "clif_msgs.h"
+
 #define	UUIDLEN			16
 #define	DIM(x)			(sizeof(x)/sizeof(x[0]))
 #define	COPY_OP			"new="
 #define	KEYLEN			16
-#define LLDPAD_PID_FILE		"/var/run/lldpad.pid"
 #define CMD_ASSOC	'a'	/* Association */
 #define CMD_DEASSOC	'd'	/* DE-Association */
 #define CMD_PREASSOC	'p'	/* pre-Association */
@@ -663,32 +665,44 @@ static int open_socket(int protocol)
 }
 
 /*
- * Get PID of lldpad from pid file
+ * Get PID of lldpad from 'ping' command
  */
 static void lldpad_pid(void)
 {
-	FILE *fp;
+	struct clif *clif_conn;
+	char buf[MAX_CLIF_MSGBUF];
+	size_t len;
+	int ret;
 
-	fp = fopen(LLDPAD_PID_FILE, "r");
-	if (fp) {
-		char buffer[10];
-
-		memset(buffer, 0, sizeof buffer);
-		if (fgets(buffer, sizeof(buffer), fp) == 0) {
-			fprintf(stderr, "%s error parsing pid of lldpad\n",
-			    progname);
-			fclose(fp);
-			exit(3);
-		} else
-			lldpad = atoi(buffer);
-	} else {
-		perror(LLDPAD_PID_FILE);
+	clif_conn = clif_open();
+	if (!clif_conn) {
+		fprintf(stderr, "%s: couldn't connect to lldpad\n", progname);
+		exit(1);
+	}
+	if (clif_attach(clif_conn, NULL)) {
+		fprintf(stderr, "%s: failed to attach to lldpad\n", progname);
+		exit(2);
+	}
+	ret = clif_request(clif_conn, "P", 1, buf, &len, NULL);
+	if (ret == -2) {
+		fprintf(stderr, "%s: connection to lldpad timed out\n",
+			progname);
 		exit(3);
+	}
+	if (ret < 0) {
+		fprintf(stderr, "%s: ping command failed\n", progname);
+		exit(4);
+	}
+	if (sscanf(buf, "PPONG%d", &lldpad) != 1) {
+		fprintf(stderr, "%s error parsing pid of lldpad\n",
+			progname);
+		exit(5);
 	}
 	if (verbose >= 2)
 		printf("%s my pid %d lldpad pid %d\n", progname, getpid(),
 		    lldpad);
-	fclose(fp);
+	clif_detach(clif_conn);
+	clif_close(clif_conn);
 }
 
 /*

@@ -90,6 +90,7 @@ lldptool_LDFLAGS = -ldl -llldp_clif
 if BUILD_DEBUG
 nltest_SOURCES = test/nltest.c test/nltest.h
 vdptest_SOURCES = test/vdptest.c
+vdptest_LDFLAGS = -llldp_clif
 evbtest_SOURCES = test/evbtest.c
 evbtest_LDFLAGS = -lrt
 endif
