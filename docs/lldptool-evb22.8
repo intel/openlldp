@@ -1,0 +1,231 @@
+.TH lldptool 8 "February 2013" "open-lldp" "Linux"
+.SH NAME
+evb22 \- Show / manipulate EVB IEEE 802.1 Ratified Standard TLV configuration
+.SH SYNOPSIS
+.B lldptool -t -i ethx -g ncb -V evb
+.sp
+.B lldptool -t -i ethx -g ncb -V evb -c evbmode
+.sp
+.B lldptool -T -i ethx -g ncb -V evb -c enabletx=[yes|no]
+.sp
+.B lldptool -T -i ethx -g ncb -V evb -c evbmode=[bridge|station]
+.sp
+.B lldptool -t -i ethx -g ncb -V evb -c evbrrreq
+.sp
+.B lldptool -T -i ethx -g ncb -V evb -c evbrrreq=[yes|no]
+.sp
+.B lldptool -t -i ethx -g ncb -V evb -c evbrrcap
+.sp
+.B lldptool -T -i ethx -g ncb -V evb -c evbrrcap=[yes|no]
+.sp
+.B lldptool -t -i ethx -g ncb -V evb -c evbgpid
+.sp
+.B lldptool -T -i ethx -g ncb -V evb -c evbgpid=[yes|no]
+.sp
+.B lldptool -t -i ethx -g ncb -V evb -c ecpretries
+.sp
+.B lldptool -T -i ethx -g ncb -V evb -c ecpretries=[0..7]
+.sp
+.B lldptool -t -i ethx -g ncb -V evb -c ecprte
+.sp
+.B lldptool -T -i ethx -g ncb -V evb -c ecprte=[0..31]
+.sp
+.B lldptool -t -i ethx -g ncb -V evb -c vdprwd
+.sp
+.B lldptool -T -i ethx -g ncb -V evb -c vdprwd=[0..31]
+.sp
+.B lldptool -t -i ethx -g ncb -V evb -c vdprka
+.sp
+.B lldptool -T -i ethx -g ncb -V evb -c vdprka=[0..31]
+.SH DESCRIPTION
+The Edge Virtual Bridge (EVB) TLV is a TLV to
+announce the station and bridge's edge virtual
+bridging (EVB) capabilities and 
+may request the bridge port to be
+set into reflective relay (hairpin) mode.
+If both sides agree on the modes and time out values, 
+the edge control protocol (ECP) will be used
+to exchange VSI discovery protocol (VDP) data
+using ECP frames between the host interface
+and the adjacent switch port facing the host
+interface.
+
+This man pages describes the IEEE 802.1 Qbg ratified standard
+dated from July 5th, 2012.
+The arguments and parameters differ from the 
+IEEE 802.1 Qbg draft 0.2, which is also implemented.
+The EVB protocol version to be used
+depends on the organizational unique identifier
+(OUI) of the EVB TLV in the LLDP
+data stream.
+A OUI value of 0x001b3f stands for the IEEE 802.1 Qbg draft 0.2,
+a OUI value of 0x0080c2 stands for the IEEE 802.1 Qbg ratified standard.
+The version of the ECP and VDP protocols are
+determined by the
+ethernet type field in the ethernet header.
+The ethernet type value for IEEE 802.1 Qbg draft 0.2
+is 0x88b7, the value for IEEE 802.1 Qbg ratified standard
+is 0x8890.
+Note that the EVB protocol is exchanged between
+nearest customer bridges only, employing the
+reserved multicast MAC address 01:80:c2:00:00:00
+as destination MAC address.
+.BR lldpad (8)
+supports both versions, the switch port configuration
+determines which version will be used.
+The switch port configuration should select only one
+protocol version, never both.
+.sp 1 
+The command line options and arugments are explained in the 
+.BR lldptool (8)
+man pages. 
+Only the EVB, ECP and VDP protocol specific parameters are 
+detailed in this manual page.
+.SH ARGUMENTS
+The invocation without command line option '-c' and
+argument displays the
+complete EVB, ECP and VDP protocol settings.
+See below for a detailed description 
+on how to interpret the output.
+.TP
+\fB\-c\fP \fItext\fP
+Use command line option '-c' and one of the
+following arguments to display and
+set individual parameters.
+.I Text
+can be one of the following values:
+.TP
+.B enabletx
+Enables or disables the EVB TLV to be transmitted.
+When set to disabled no EVB TLV will be included
+in the LLDP data stream.
+Furthermore the output of the complete EVB settings without
+option '-c' will be empty.
+.TP
+.B evbmode
+Display the current role or sets the role the to given value.
+Supported values are either 
+"station"
+or "bridge".
+.TP
+.B evbrrreq
+Shows the current reflective relay (hairpin) request mode or
+sets the reflective relay (hairpin) request mode.
+If the value is "yes", the station requests the
+interface facing switch port to be set in
+reflective relay (hairpin) mode.
+This field is only valid for stations, 
+the output of evbmode equals "station".
+.TP
+.B evbrrcap
+Shows the current reflective relay (hairpin) capabilities or
+sets the reflective relay (hairpin) capabilities.
+If the value is "yes",
+the switch port will be set in
+reflective relay (hairpin) mode.
+This field is only valid for switches,
+the output of evbmode equals "bridge".
+.TP
+.B gpid
+Shows the current station or switch support for grouping
+or turns on/off the station or switch support for grouping.
+If set to true, the station or switch wants to 
+use group identifiers in VDP protocols.
+.TP
+.B ecpretries
+Shows or sets the maximum number of retries for
+ECP frames to be retransmitted. 
+A retransmit occurs when no ECP acknowledgement
+message has been received during a given time period.
+.TP
+.B ecprte
+Shows or sets the local run time exponent (RTE).
+The RTE will be used as the
+base for the timing of the ECP protocol time outs and
+retransmits.
+The wait time is calcuated as 10*2\u\fIecprte\fP\d micro seconds.
+.TP
+.B vdprwd
+Shows or sets the number of resource wait delay value.
+This value is calcuated as 10*2\u\fIvdprwd\fP\d micro seconds
+and determines the
+maximum  wait time for VDP protocol acknowledgements.
+.TP
+.B vdprka
+Shows or sets the number of re-init keep alive value.
+This value is calcuated as 10*2\u\fIvdprka\fP\d micro seconds
+and determines the wait time for VDP protocol 
+to send a keep alive message.
+.SH Theory of Operation
+The EVB TLV is used to announce and exchange supported parameters between
+the station and an adjacent switch.
+If
+.I reflectiverelay
+is active, the switch sends back
+ethernet frames on the very same port it received the frame on.
+This is an extension to the current bridging standard and
+allows communication between virtual machines on the
+same host through the switch port.
+.SH EXAMPLE & USAGE
+.TP
+Display locally configured values for \fIeth0\fR
+.B lldptool -t -g ncb -i eth0 -V evb
+.DS
+.nf
+EVB Configuration TLV
+	bridge:(00)
+	station:rrreq,rrstat(0x5)
+	retries:7 rte:31
+	mode:station r/l:0 rwd:31
+	r/l:0 rka:8
+.fi
+.DE
+This output is displayed when enabletx has been enabled.
+The first line shows the currently known status
+of the bridge.
+The second line shows the currently known status
+of the station.
+The status is displayed verbose appended by the
+hexadecimal value in parenthesis.
+The verbose output uses the bit naming convention
+used in the standard document.
+The third line displays the values for the
+ECP protocol number of retransmits (retries)
+and the retransmit timeout exponent.
+The forth line shows the current mode of
+operation, either bridge or station, 
+the resource wait delay value (rwd) and
+an indication if the local (0) or remote (1)
+rwd value is used.
+The fifth line displays the value of the
+re-init keep alive counter (rka) and 
+an indication if the local (0) or remote (1)
+rka value is used.
+.TP
+Display the currently requested forwarding mode for \fIeth0\fR
+.B lldptool -t -g ncb -i eth0 -V evb -c evbrrreq
+.TP
+Display the locally configured value for RTE
+.B lldptool -t -g ncb -i eth0 -V evb -c evbrte
+.TP
+Set the value for RTE to its maximum value
+.B lldptool -T -g ncb -i eth0 -V evb -c rte=7
+.TP
+Set the value for enabletx to yes to transmit EVB TLV
+to the switch.
+.B lldptool -T -g ncb -i eth0 -V evb -c enabletx=yes
+.SH NOTES
+Currently the code in lldpad reflects 
+IEEE 802.1 Qbg draft 0.2 of the upcoming standard.
+Wireshark support for IEEE 802.1 Qbg
+ratified standard TLVs is currently missing.
+Support for the IEEE 802.1 Qbg ratified standard protocols ECP and VDP
+is currently under development and not fully functional.
+.SH SEE ALSO
+.BR lldptool-vdp (8),
+.BR lldptool (8),
+.BR lldpad (8)
+.br
+IEEE 802.1Qbg (http://www.ieee802.org/1/pages/802.1bg.html)
+.SH AUTHOR
+Thomas Richter
