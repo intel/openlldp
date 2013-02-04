@@ -47,7 +47,7 @@
 #define EVB_CONF_GPID			"evbgpid"
 #define EVB_CONF_RETRIES		"ecpretries"
 #define EVB_CONF_RTE			"ecprte"
-#define EVB_CONF_RWD			"ecprwd"
+#define EVB_CONF_RWD			"vdprwd"
 #define EVB_CONF_RKA			"vdprka"
 #define EVB_CONF_BRIDGE			"bridge"
 #define EVB_CONF_STATION		"station"

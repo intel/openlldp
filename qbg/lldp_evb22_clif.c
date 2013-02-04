@@ -78,7 +78,7 @@ static void show_tlv(char *buf, size_t len, struct evb22_tlv *tlv)
 		 "\tstation:%s(%#02x)\n"
 		 "\tretries:%d rte:%d\n"
 		 "\tmode:%s r/l:%d rwd:%d\n"
-		 "\tr/l:%d rwd:%d\n",
+		 "\tr/l:%d rka:%d\n",
 		 bridge_txt, tlv->bridge_s,
 		 station_txt, tlv->station_s,
 		 evb_ex_retries(tlv->r_rte), evb_ex_rte(tlv->r_rte),
