@@ -53,11 +53,11 @@
 enum {				/* Identify data type in union below */
 	EVB22_TO_ECP22 = 1,	/* Data from EVB to ECP */
 	EVB22_TO_VDP22 = 2,	/* Data from EVB to VDP */
-	ECP22_TO_VDP22 = 3,	/* Data from ECP to VDP */
+	ECP22_TO_ULP = 3,	/* Data from ECP to VDP, etc */
 	VDP22_TO_ECP22 = 4,	/* Data from VDP to ECP */
 	/* ECP22 subtypes */
 	ECP22_VDP = 1,		/* VDP protocol */
-	ECP22_PE_CSP = 2	/* Port extender control and status protocol */
+	ECP22_PECSP = 2		/* Port extender control and status protocol */
 };
 
 struct evb22_to_ecp22 {		/* Notification from EVB to ECP */
@@ -71,7 +71,7 @@ struct evb22_to_vdp22 {		/* Notification from EVB to VDP */
 	unsigned char gpid;	/* Support group ids in VDP */
 };
 
-struct vdp22_to_ecp22 {		/* Notification from VDP to ECP */
+struct ecp22_to_ulp {		/* Notification from ECP to VDP, etc */
 	unsigned short len;	/* Size of bytestream */
 	void *data;		/* Pointer to data */
 };
@@ -81,7 +81,7 @@ struct qbg22_imm {		/* Intermodule message data structure */
 	union {			/* Overlay possible data */
 		struct evb22_to_ecp22 a;
 		struct evb22_to_vdp22 b;
-		struct vdp22_to_ecp22 c;
+		struct ecp22_to_ulp c;
 	} u;
 };
 #endif

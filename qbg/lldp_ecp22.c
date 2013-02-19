@@ -477,14 +477,43 @@ static void ecp22_es_send_ack(struct ecp22 *ecp)
 		      sizeof ack_frame);
 }
 
+
+/*
+ * Notify upper layer protocol function of ECP payload data just received.
+ */
+static void ecp22_to_ulp(unsigned short ulp, struct ecp22 *ecp)
+{
+	size_t offset = ETH_HLEN + sizeof(struct ecp22_hdr);
+	struct qbg22_imm to_ulp;
+
+	to_ulp.data_type = ECP22_TO_ULP;
+	to_ulp.u.c.len = ecp->rx.frame_len - offset;
+	to_ulp.u.c.data =  &ecp->rx.frame[offset];
+	if (ulp == ECP22_VDP)
+		modules_notify(LLDP_MOD_VDP22, LLDP_MOD_ECP22, ecp->ifname,
+			       &to_ulp);
+	else
+		LLDPAD_INFO("%s:%s ECP subtype %d not yet implemented\n",
+			    __func__, ecp->ifname, ulp);
+}
+
 /*
  * Execute action in state newECPDU.
+ * Notify upper layer protocol of new data.
  */
 static void ecp22_es_new_ecpdu(struct ecp22 *ecp)
 {
-	LLDPAD_DBG("%s:%s state %s notify ULP seqno %#hx\n", __func__,
-		   ecp->ifname, ecp22_rx_states[ecp->rx.state], ecp->rx.seqno);
+	struct ecp22_hdr *hdr = (struct ecp22_hdr *)&ecp->rx.frame[ETH_HLEN];
+	struct ecp22_hdr ecphdr;
+	unsigned short ulp;
+
+	ecphdr.ver_op_sub = ntohs(hdr->ver_op_sub);
+	ulp = ecp22_hdr_read_subtype(&ecphdr);
+	LLDPAD_DBG("%s:%s state %s notify ULP %d seqno %#hx\n", __func__,
+		   ecp->ifname, ecp22_rx_states[ecp->rx.state],
+		   ulp, ecp->rx.seqno);
 	ecp->rx.last_seqno = ecp->rx.seqno;
+	ecp22_to_ulp(ulp, ecp);
 }
 
 /*
@@ -915,7 +944,7 @@ out:
  * Payload data from VDP module.
  * Returns true when data update succeeded.
  */
-static int data_from_vdp(char *ifname, struct vdp22_to_ecp22 *ptr)
+static int data_from_vdp(char *ifname, struct ecp22_to_ulp *ptr)
 {
 	struct packed_tlv d;
 
