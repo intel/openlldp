@@ -31,10 +31,12 @@
 #include <linux/if_ether.h>
 
 #include "lldp.h"
+#include "lldp_mod.h"
 #include "messages.h"
 #include "lldp_qbg_utils.h"
 
 extern int loglvl;			/* Global lldpad log level */
+extern struct lldp_head lldp_head;
 
 /*
  * hexdump_frame - print raw evb/ecp/vdp frame
@@ -57,4 +59,25 @@ void hexdump_frame(const char *ifname, char *txt, const unsigned char *buf,
 			left += c;
 	}
 	LLDPAD_DBG("%s:%s %s\n%s\n", __func__, ifname, txt, buffer);
+}
+
+/*
+ * Function to advertise changed variables to other modules.
+ *
+ * Parameters are interface name, target module id and data.
+ * When sending the data, the module call back function contains the
+ * module id of the sender.
+ *
+ * Return 0 when no addressee found or addressess found but addressee was
+ * unable to handle data.
+ */
+int modules_notify(int id, int sender_id, char *ifname, void *data)
+{
+	struct lldp_module *mp = find_module_by_id(&lldp_head, id);
+	int rc = 0;
+
+	if (mp && mp->ops->lldp_mod_notify)
+		rc = mp->ops->lldp_mod_notify(sender_id, ifname, data);
+	LLDPAD_DBG("%s:%s target-id:%#x rc:%d\n", __func__, ifname, id, rc);
+	return rc;
 }

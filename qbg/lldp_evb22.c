@@ -31,32 +31,12 @@
 #include "lldp_tlv.h"
 #include "lldp_evb22.h"
 #include "lldp_ecp22.h"
+#include "lldp_qbg_utils.h"
 #include "lldp_evb_cmds.h"
 #include "messages.h"
 #include "config.h"
 
 extern struct lldp_head lldp_head;
-
-/*
- * Function to advertise changed variables to other modules.
- *
- * Parameters are interface name, target module id and data.
- * When sending the data, the module call back function contains the
- * module id of the sender.
- *
- * Return 0 when no addressee found or addressess found but addressee was
- * unable to handle data.
- */
-static int modules_notify(int id, char *ifname, void *data)
-{
-	struct lldp_module *mp = find_module_by_id(&lldp_head, id);
-	int rc = 0;
-
-	if (mp && mp->ops->lldp_mod_notify)
-		rc = mp->ops->lldp_mod_notify(LLDP_MOD_EVB22, ifname, data);
-	LLDPAD_DBG("%s:%s target-id:%#x rc:%d\n", __func__, ifname, id, rc);
-	return rc;
-}
 
 struct evb22_data *evb22_data(char *ifname, enum agent_type type)
 {
@@ -251,7 +231,7 @@ static void evb22_update_tlv(struct evb22_data *ed)
 	qbg.data_type = EVB22_TO_ECP22;
 	qbg.u.a.max_rte = evb_ex_rte(ed->out.r_rte);
 	qbg.u.a.max_retry = evb_ex_retries(ed->out.r_rte);
-	modules_notify(LLDP_MOD_ECP22, ed->ifname, &qbg);
+	modules_notify(LLDP_MOD_ECP22, LLDP_MOD_EVB22, ed->ifname, &qbg);
 
 	qbg.data_type = EVB22_TO_VDP22;
 	qbg.u.b.max_rka = evb_ex_rka(ed->out.rl_rka);
@@ -259,7 +239,7 @@ static void evb22_update_tlv(struct evb22_data *ed)
 	/* Support group identifiers when advertised by both sides */
 	qbg.u.b.gpid = evb_ex_bgid(ed->out.bridge_s)
 		       && evb_ex_sgid(ed->out.station_s);
-	modules_notify(LLDP_MOD_VDP22, ed->ifname, &qbg);
+	modules_notify(LLDP_MOD_VDP22, LLDP_MOD_EVB22, ed->ifname, &qbg);
 }
 
 /*

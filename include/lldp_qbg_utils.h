@@ -31,4 +31,5 @@
 #define LLDP_QBG_UTILS_H
 
 void hexdump_frame(const char *, char *, const unsigned char *, size_t);
+int modules_notify(int, int, char *, void *);
 #endif
