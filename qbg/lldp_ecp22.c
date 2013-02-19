@@ -697,6 +697,25 @@ static void ecp22_rx_receiveframe(void *ctx, int ifindex, const u8 *buf,
 	ecp_hdr = (struct ecp22_hdr *)&ecp->rx.frame[ETH_HLEN];
 	ecphdr.ver_op_sub = ntohs(ecp_hdr->ver_op_sub);
 
+	/* Check for correct subtype and version number */
+	if (ecp22_hdr_read_version(&ecphdr) != 1) {
+		LLDPAD_ERR("%s:%s ERROR unknown version %#02hx seqno %#hx\n",
+			   __func__, ecp->ifname, ecphdr.ver_op_sub,
+			   ntohs(ecp_hdr->seqno));
+		return;
+	}
+	switch (ecp22_hdr_read_subtype(&ecphdr)) {
+	default:
+		LLDPAD_ERR("%s:%s ERROR unknown subtype %#02hx seqno %#hx\n",
+			   __func__, ecp->ifname, ecphdr.ver_op_sub,
+			   ntohs(ecp_hdr->seqno));
+		return;
+	case ECP22_PECSP:
+	case ECP22_VDP:
+		/* Subtype ok, fall through intended */
+		break;
+	}
+
 	switch (ecp22_hdr_read_op(&ecphdr)) {
 	case ECP22_REQUEST:
 		LLDPAD_DBG("%s:%s received REQ frame seqno %#hx\n", __func__,
