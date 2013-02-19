@@ -673,6 +673,7 @@ static void lldpad_pid(void)
 	char buf[MAX_CLIF_MSGBUF];
 	size_t len;
 	int ret;
+	char *ppong;
 
 	clif_conn = clif_open();
 	if (!clif_conn) {
@@ -693,7 +694,9 @@ static void lldpad_pid(void)
 		fprintf(stderr, "%s: ping command failed\n", progname);
 		exit(4);
 	}
-	if (sscanf(buf, "PPONG%d", &lldpad) != 1) {
+	buf[len] = '\0';
+	ppong = strstr(buf, "PPONG");		/* Ignore leading chars */
+	if (!ppong || sscanf(ppong, "PPONG%d", &lldpad) != 1) {
 		fprintf(stderr, "%s error parsing pid of lldpad\n",
 			progname);
 		exit(5);
