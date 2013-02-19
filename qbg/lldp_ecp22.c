@@ -859,9 +859,9 @@ static int data_from_evb(char *ifname, struct evb22_to_ecp22 *ptr)
 	if (ecp) {
 		ecp->max_rte = ptr->max_rte;
 		ecp->max_retries = ptr->max_retry;
-		return 1;
+		return 0;
 	}
-	return 0;
+	return -ENOENT;
 }
 
 /*
