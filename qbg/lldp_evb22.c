@@ -256,6 +256,9 @@ static void evb22_update_tlv(struct evb22_data *ed)
 	qbg.data_type = EVB22_TO_VDP22;
 	qbg.u.b.max_rka = evb_ex_rka(ed->out.rl_rka);
 	qbg.u.b.max_rwd = evb_ex_rwd(ed->out.evb_mode);
+	/* Support group identifiers when advertised by both sides */
+	qbg.u.b.gpid = evb_ex_bgid(ed->out.bridge_s)
+		       && evb_ex_sgid(ed->out.station_s);
 	modules_notify(LLDP_MOD_VDP22, ed->ifname, &qbg);
 }
 

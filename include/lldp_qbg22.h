@@ -30,8 +30,8 @@
  * Messages are sent from:
  * EVB --> ECP: Max number of retries (R) and retransmit timeout (RTE).
  *
- * EVB --> VDP: Max number of Reinit-keep-Alive (RKA) and Resource wait delay
- *		(RWD)
+ * EVB --> VDP: Max number of Reinit-keep-Alive (RKA) Resource wait delay (RWD)
+ *		and groupid support.
  *
  * VDP --> ECP: VSI Information as payload
  * ECP --> VDP: VSI Information as payload
@@ -68,6 +68,7 @@ struct evb22_to_ecp22 {		/* Notification from EVB to ECP */
 struct evb22_to_vdp22 {		/* Notification from EVB to VDP */
 	unsigned char max_rwd;	/* Max number of resource wait delay */
 	unsigned char max_rka;	/* Max number of reinit keep alive */
+	unsigned char gpid;	/* Support group ids in VDP */
 };
 
 struct vdp22_to_ecp22 {		/* Notification from VDP to ECP */
