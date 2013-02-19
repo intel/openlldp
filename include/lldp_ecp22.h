@@ -166,7 +166,7 @@ static inline void ecp22_hdr_set_version(struct ecp22_hdr *p, unsigned int ver)
 
 static inline unsigned int ecp22_hdr_read_version(struct ecp22_hdr *p)
 {
-	return p->ver_op_sub & 0x3ff;
+	return (p->ver_op_sub >> 12) & 0xf;
 }
 
 #endif
