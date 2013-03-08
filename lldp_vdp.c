@@ -1370,21 +1370,13 @@ void vdp_takeover_macvlans(struct vsi_profile *p1, struct vsi_profile *p2)
  * main interface function which adds a profile to a list kept on a per-port
  * basis. Checks if the profile is already in the list, adds it if necessary.
  */
-struct vsi_profile *vdp_add_profile(struct vsi_profile *profile)
+struct vsi_profile *vdp_add_profile(struct vdp_data *vd,
+				    struct vsi_profile *profile)
 {
 	struct vsi_profile *p;
-	struct vdp_data *vd;
 
 	LLDPAD_DBG("%s: adding vdp profile for %s\n", __func__,
 		   profile->port->ifname);
-
-	vd = vdp_data(profile->port->ifname);
-	if (!vd) {
-		LLDPAD_ERR("%s: could not find vdp_data for %s\n", __func__,
-			   profile->port->ifname);
-		return NULL;
-	}
-
 	vdp_trace_profile(profile);
 
 	/*

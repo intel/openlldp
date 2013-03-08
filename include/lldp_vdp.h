@@ -147,7 +147,7 @@ void vdp_unregister(struct lldp_module *);
 struct vdp_data *vdp_data(char *);
 struct packed_tlv *vdp_gettlv(struct vdp_data *, struct vsi_profile *);
 void vdp_vsi_sm_station(struct vsi_profile *);
-struct vsi_profile *vdp_add_profile(struct vsi_profile *);
+struct vsi_profile *vdp_add_profile(struct vdp_data *, struct vsi_profile *);
 int vdp_remove_profile(struct vsi_profile *);
 void vdp_somethingChangedLocal(struct vsi_profile *, bool);
 void vdp_update(char *, u8);

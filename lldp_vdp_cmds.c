@@ -413,6 +413,7 @@ out_free:
 static int _set_arg_mode(struct cmd *cmd, char *argvalue, bool test)
 {
 	struct vsi_profile *profile, *p;
+	struct vdp_data *vd;
 
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
@@ -437,12 +438,18 @@ static int _set_arg_mode(struct cmd *cmd, char *argvalue, bool test)
 		return cmd_invalid;
 	}
 
+	vd = vdp_data(cmd->ifname);
+	if (!vd) {
+		vdp_delete_profile(profile);
+		return cmd_invalid;
+	}
+
 	if (test) {
 		vdp_delete_profile(profile);
 		return cmd_success;
 	}
 
-	p = vdp_add_profile(profile);
+	p = vdp_add_profile(vd, profile);
 
 	if (!p) {
 		vdp_delete_profile(profile);

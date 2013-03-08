@@ -575,7 +575,7 @@ static int event_if_parse_setmsg(struct nlmsghdr *nlh)
 		goto out_err;
 	}
 
-	p = vdp_add_profile(profile);
+	p = vdp_add_profile(NULL, profile);
 
 	if (!p)
 		goto out_err;
