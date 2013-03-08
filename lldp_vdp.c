@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <net/if.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
@@ -36,6 +37,7 @@
 #include <assert.h>
 #include "lldp.h"
 #include "lldp_vdp.h"
+#include "lldp_vdpnl.h"
 #include "eloop.h"
 #include "lldp_evb.h"
 #include "messages.h"
@@ -69,6 +71,7 @@ const char * const vsi_states[] = {
 
 int vdp_start_localchange_timer(struct vsi_profile *p);
 int vdp_remove_profile(struct vsi_profile *profile);
+int vdp_trigger(struct vsi_profile *profile);
 
 void vdp_trace_profile(struct vsi_profile *p)
 {
@@ -707,7 +710,7 @@ void vdp_vsi_sm_station(struct vsi_profile *profile)
 			if (bye)
 				vdp_remove_profile(profile);
 			else
-				event_if_indicate_profile(profile);
+				vdp_trigger(profile);
 			break;
 		default:
 			LLDPAD_ERR("%s: ERROR VSI state machine in invalid state %d\n",
@@ -1641,4 +1644,186 @@ void vdp_update(char *ifname, u8 ccap)
 		LLDPAD_DBG("%s:%s vdpbit_on %d\n", __func__, ifname,
 			   vdp->vdpbit_on);
 	}
+}
+
+/*
+ * Handle a VSI request from buddy.
+ */
+int vdp_request(struct vdpnl_vsi *vsi)
+{
+	struct vdp_data *vd;
+	struct vsi_profile *profile, *p;
+	struct port *port = port_find_by_name(vsi->ifname);
+	struct mac_vlan *mac_vlan;
+	int ret = 0;
+
+	vd = vdp_data(vsi->ifname);
+	if (!vd) {
+		LLDPAD_ERR("%s: %s has not yet been configured\n", __func__,
+			   vsi->ifname);
+		return -ENXIO;
+	}
+	if (!vd->vdpbit_on) {
+		LLDPAD_ERR("%s: %s has VDP disabled\n", __func__, vsi->ifname);
+		return -ENXIO;
+	}
+
+	if (!port) {
+		LLDPAD_ERR("%s: %s can not find port\n", __func__, vsi->ifname);
+		return -ENODEV;
+	}
+	/* If the link is down, reject request */
+	if (!port->portEnabled && vsi->request != VDP_MODE_DEASSOCIATE) {
+		LLDPAD_WARN("%s: %s not enabled, unable to associate\n",
+			    __func__, vsi->ifname);
+		return -ENXIO;
+	}
+
+	profile = vdp_alloc_profile();
+	if (!profile)
+		return -ENOMEM;
+	mac_vlan = calloc(1, sizeof(struct mac_vlan));
+	if (!mac_vlan) {
+		ret = -ENOMEM;
+		goto out_err;
+	}
+
+	profile->port = port;
+	memcpy(&mac_vlan->mac, vsi->maclist->mac, sizeof mac_vlan->mac);
+	mac_vlan->vlan = vsi->maclist->vlan;
+	mac_vlan->qos = vsi->maclist->qos;
+	mac_vlan->req_pid = vsi->req_pid;
+	mac_vlan->req_seq = vsi->req_seq;
+	LIST_INSERT_HEAD(&profile->macvid_head, mac_vlan, entry);
+	profile->entries = 1;
+
+	profile->mgrid = vsi->vsi_mgrid;
+	profile->id = vsi->vsi_typeid;
+	profile->version = vsi->vsi_typeversion;
+	profile->mode = vsi->request;
+	profile->response = vsi->response;
+	memcpy(profile->instance, vsi->vsi_uuid, sizeof vsi->vsi_uuid);
+	p = vdp_add_profile(vd, profile);
+	p->no_nlmsg = 1;
+	p->txmit = false;
+	vdp_trace_profile(p);
+	if (p != profile)
+		goto out_err;
+	return ret;
+
+out_err:
+	vdp_delete_profile(profile);
+	return ret;
+}
+
+/*
+ * Query a VSI request from buddy and report its progress. Use the interface
+ * name to determine the VSI profile list. Return one entry in parameter 'vsi'
+ * use the structure members response and vsi_uuid.
+ * Returns
+ * 1  valid VSI data returned
+ * 0  end of queue (no VSI data returned)
+ * <0 errno
+ */
+int vdp_status(int number, struct vdpnl_vsi *vsi)
+{
+	struct vdp_data *vd;
+	struct vsi_profile *p;
+	int i = 0, ret = 0;
+
+	vd = vdp_data(vsi->ifname);
+	if (!vd) {
+		LLDPAD_ERR("%s: %s has not yet been configured\n", __func__,
+			   vsi->ifname);
+		return -ENODEV;
+	}
+	/* Interate to queue element number */
+	LIST_FOREACH(p, &vd->profile_head, profile) {
+		if (++i == number) {
+			ret = 1;
+			break;
+		}
+	}
+	if (ret) {
+		vdp_trace_profile(p);
+		vsi->response = p->response;
+		memcpy(vsi->vsi_uuid, p->instance, sizeof vsi->vsi_uuid);
+		if (p->response != VDP_RESPONSE_NO_RESPONSE
+		    && p->state == VSI_EXIT)
+			vdp_remove_profile(p);
+	}
+	LLDPAD_DBG("%s: entry:%d more:%d\n", __func__, number, ret);
+	return ret;
+}
+
+/*
+ * Copy MAC-VLAN list from profile to vdpnl structure.
+ */
+static void copy_maclist(struct vsi_profile *p, struct vdpnl_mac *macp)
+{
+	struct mac_vlan *mv1;
+
+	LIST_FOREACH(mv1, &p->macvid_head, entry) {
+		macp->vlan = mv1->vlan;
+		macp->qos =  mv1->qos;
+		memcpy(macp->mac, mv1->mac, sizeof macp->mac);
+		++macp;
+	}
+}
+
+/*
+ * Prepare data for a netlink message to originator of VSI.
+ * Forward a notification from switch.
+ */
+int vdp_trigger(struct vsi_profile *profile)
+{
+	struct vdpnl_vsi vsi;
+	struct vdp_data *vd;
+	struct mac_vlan *macp = 0;
+	int rc = -EINVAL;
+	struct vdpnl_mac maclist[profile->entries];
+
+	vsi.macsz = profile->entries;
+	vsi.maclist = maclist;
+	LLDPAD_DBG("%s: no_nlmsg:%d\n", __func__, profile->no_nlmsg);
+	vdp_trace_profile(profile);
+	if (profile->no_nlmsg)
+		return 0;
+	if (LIST_EMPTY(&profile->macvid_head))
+		return 0;
+	macp = LIST_FIRST(&profile->macvid_head);
+	if (!macp->req_pid)
+		return 0;
+	sleep(1);		/* Delay message notification */
+	if (!profile->port || !profile->port->ifname) {
+		LLDPAD_ERR("%s: no ifname found for profile %p:\n", __func__,
+			   profile);
+		goto error_exit;
+	}
+	memcpy(vsi.ifname, profile->port->ifname, sizeof vsi.ifname);
+	vd = vdp_data(vsi.ifname);
+	if (!vd) {
+		LLDPAD_ERR("%s: %s could not find vdp_data\n", __func__,
+			   vsi.ifname);
+		goto error_exit;
+	}
+	vsi.ifindex = if_nametoindex(vsi.ifname);
+	if (vsi.ifindex == 0) {
+		LLDPAD_ERR("%s: %s could not find index for ifname\n",
+			   __func__, vsi.ifname);
+		goto error_exit;
+	}
+	vsi.macsz = profile->entries;
+	copy_maclist(profile, vsi.maclist);
+	vsi.req_pid = macp->req_pid;
+	vsi.req_seq = macp->req_seq;
+	vsi.vsi_mgrid = profile->mgrid;
+	vsi.vsi_typeid = profile->id;
+	vsi.vsi_typeversion = profile->version;
+	memcpy(vsi.vsi_uuid, profile->instance, sizeof vsi.vsi_uuid);
+	vsi.request = VDP_MODE_DEASSOCIATE;
+	rc = vdpnl_send(&vsi);
+error_exit:
+	vdp_remove_profile(profile);
+	return rc;
 }

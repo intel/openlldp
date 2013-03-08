@@ -40,7 +40,8 @@ include/lldpad_shm.h include/event_iface.h include/messages.h \
 include/parse_cli.h include/version.h include/lldptool_cli.h include/list.h \
 include/lldp_mand_clif.h include/lldp_basman_clif.h include/lldp_med_clif.h \
 include/lldp_8023_clif.h include/lldp_dcbx_clif.h include/lldp_evb_clif.h \
-include/lldp_evb22_clif.h include/lldp_vdp_clif.h include/lldp_8021qaz_clif.h \
+include/lldp_evb22_clif.h include/lldp_vdp_clif.h include/lldp_vdpnl.h \
+include/lldp_8021qaz_clif.h \
 include/lldp_orgspec_clif.h include/lldp_cisco_clif.h \
 include/lldptool.h include/lldp_rtnl.h include/dcbtool.h include/lldp_dcbx_cfg.h
 
@@ -67,7 +68,7 @@ lldp_8021qaz.c include/lldp_8021qaz.h \
 lldp_8021qaz_cmds.c include/lldp_8021qaz_cmds.h \
 include/lldp_evb22.h qbg/lldp_evb22.c qbg/lldp_evb22_cmds.c \
 include/lldp_qbg22.h include/lldp_ecp22.h qbg/lldp_ecp22.c \
-include/lldp_vdp22.h qbg/lldp_vdp22.c
+include/lldp_vdp22.h qbg/lldp_vdp22.c qbg/lldp_vdpnl.c
 
 lib_LTLIBRARIES = liblldp_clif.la
 liblldp_clif_la_LDFLAGS = -version-info 1:0:0
