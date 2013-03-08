@@ -31,6 +31,17 @@
 #define IFNAMSIZ 16
 #endif
 
+#include "include/linux/netlink.h"
+
+/*
+ * Helper functions to construct a netlink message.
+ */
+void mynla_nest_end(struct nlmsghdr *, struct nlattr *);
+struct nlattr *mynla_nest_start(struct nlmsghdr *, int);
+void mynla_put(struct nlmsghdr *, int, size_t, void *);
+void mynla_put_u16(struct nlmsghdr *, int, __u16);
+void mynla_put_u32(struct nlmsghdr *, int, __u32);
+
 int get_operstate(char *ifname);
 int set_operstate(char *ifname, __u8 operstate);
 int set_linkmode(const char *ifname, __u8 linkmode);
