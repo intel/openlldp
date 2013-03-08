@@ -157,6 +157,7 @@ static const char *commands_help =
 "  license                              show license information\n"
 "  -h|help                              show command usage information\n"
 "  -v|version                           show version\n"
+"  -p|ping                              ping lldpad and query pid of lldpad\n"
 "  -q|quit                              exit lldptool (interactive mode)\n"
 "  -S|stats                             get LLDP statistics for ifname\n"
 "  -t|get-tlv                           get TLVs from ifname\n"
@@ -478,7 +479,7 @@ static int request(struct clif *clif, int argc, char *argv[])
 
 	opterr = 0;
 	for (;;) {
-		c = getopt_long(argc, argv, "Si:tTlLhcdnvrRqV:g:",
+		c = getopt_long(argc, argv, "Si:tTlLhcdnvrRpqV:g:",
 				lldptool_opts, &option_index);
 		if (c < 0)
 			break;
@@ -530,6 +531,9 @@ static int request(struct clif *clif, int argc, char *argv[])
 					optarg);
 				return -1;
 			}
+			break;
+		case 'p':
+			command.cmd = cmd_ping;
 			break;
 		case 'q':
 			command.cmd = cmd_quit;

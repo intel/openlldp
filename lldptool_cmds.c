@@ -576,7 +576,7 @@ void print_response(char *buf, int status)
 		if (status)
 			printf("FAILED:%s\n", print_status(status));
 		else
-			printf("%s\n", buf+CLIF_RSP_OFF);
+			printf("%s\n", buf+CLIF_RSP_OFF+5);
 		break;
 	case ATTACH_CMD:
 	case DETACH_CMD:
