@@ -669,43 +669,15 @@ static int open_socket(int protocol)
  */
 static void lldpad_pid(void)
 {
-	struct clif *clif_conn;
-	char buf[MAX_CLIF_MSGBUF];
-	size_t len;
-	int ret;
-	char *ppong;
-
-	clif_conn = clif_open();
-	if (!clif_conn) {
-		fprintf(stderr, "%s: couldn't connect to lldpad\n", progname);
-		exit(1);
-	}
-	if (clif_attach(clif_conn, NULL)) {
-		fprintf(stderr, "%s: failed to attach to lldpad\n", progname);
-		exit(2);
-	}
-	ret = clif_request(clif_conn, "P", 1, buf, &len, NULL);
-	if (ret == -2) {
-		fprintf(stderr, "%s: connection to lldpad timed out\n",
-			progname);
-		exit(3);
-	}
-	if (ret < 0) {
-		fprintf(stderr, "%s: ping command failed\n", progname);
-		exit(4);
-	}
-	buf[len] = '\0';
-	ppong = strstr(buf, "PPONG");		/* Ignore leading chars */
-	if (!ppong || sscanf(ppong, "PPONG%d", &lldpad) != 1) {
-		fprintf(stderr, "%s error parsing pid of lldpad\n",
+	lldpad = clif_getpid();
+	if (!lldpad) {
+		fprintf(stderr, "%s error getting pid of lldpad\n",
 			progname);
 		exit(5);
 	}
 	if (verbose >= 2)
 		printf("%s my pid %d lldpad pid %d\n", progname, getpid(),
 		    lldpad);
-	clif_detach(clif_conn);
-	clif_close(clif_conn);
 }
 
 /*
