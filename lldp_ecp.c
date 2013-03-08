@@ -256,6 +256,7 @@ static bool ecp_build_ECPDU(struct vdp_data *vd)
 	u32 fb_offset = 0;
 	struct packed_tlv *ptlv =  NULL;
 	struct vsi_profile *p;
+	int rc;
 
 	/* TODO: use LLDP group MAC addresses to support
 	 *	 S-channels/multichannel
@@ -296,16 +297,13 @@ static bool ecp_build_ECPDU(struct vdp_data *vd)
 			continue;
 		}
 
-		if (ptlv) {
-			if (!ecp_append(vd->ecp.tx.frame, &fb_offset,
-				       ptlv->tlv, ptlv->size))
-				ptlv = free_pkd_tlv(ptlv);
-				break;
-		}
-
-		p->seqnr = vd->ecp.lastSequence;
-
+		rc = ecp_append(vd->ecp.tx.frame, &fb_offset, ptlv->tlv,
+				ptlv->size);
 		ptlv = free_pkd_tlv(ptlv);
+		if (rc)
+			p->seqnr = vd->ecp.lastSequence;
+		else
+			break;
 	}
 	ecp_append(vd->ecp.tx.frame, &fb_offset, end_tlv, sizeof end_tlv);
 	vd->ecp.tx.frame_len = MAX(fb_offset, (unsigned)ETH_ZLEN);
