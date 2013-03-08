@@ -82,9 +82,9 @@ u8 evb_conf_fmode(char *ifname, enum agent_type type)
 
 	value = evb_conf_string(ifname, type, ARG_EVB_FORWARDING_MODE, smode);
 	if (value) {
-		if (strstr(value, VAL_EVB_FMODE_BRIDGE))
+		if (strcasestr(value, VAL_EVB_FMODE_BRIDGE))
 			smode = LLDP_EVB_CAPABILITY_FORWARD_STANDARD;
-		if (strstr(value, VAL_EVB_FMODE_REFLECTIVE_RELAY))
+		if (strcasestr(value, VAL_EVB_FMODE_REFLECTIVE_RELAY))
 			smode = LLDP_EVB_CAPABILITY_FORWARD_REFLECTIVE_RELAY;
 		LLDPAD_DBG("%s:%s agent %d policy %s %s(%#x)\n", __func__,
 			   ifname, type, ARG_EVB_FORWARDING_MODE, value, smode);
@@ -114,23 +114,21 @@ u16 evb_conf_vsis(char *ifname, enum agent_type type)
  */
 u8 evb_conf_capa(char *ifname, enum agent_type type)
 {
-	u8 scap = LLDP_EVB_CAPABILITY_PROTOCOL_RTE |
-			   LLDP_EVB_CAPABILITY_PROTOCOL_ECP |
-			   LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
+	u8 scap = 0;
 	const char *value;
 
 	value = evb_conf_string(ifname, type, ARG_EVB_CAPABILITIES, scap);
 	if (value) {
-		if (strstr(value, VAL_EVB_CAPA_RTE))
+		if (strcasestr(value, VAL_EVB_CAPA_RTE))
 			scap = LLDP_EVB_CAPABILITY_PROTOCOL_RTE;
 
-		if (strstr(value, VAL_EVB_CAPA_ECP))
+		if (strcasestr(value, VAL_EVB_CAPA_ECP))
 			scap |= LLDP_EVB_CAPABILITY_PROTOCOL_ECP;
 
-		if (strstr(value, VAL_EVB_CAPA_VDP))
+		if (strcasestr(value, VAL_EVB_CAPA_VDP))
 			scap |= LLDP_EVB_CAPABILITY_PROTOCOL_VDP;
 
-		if (strstr(value, VAL_EVB_CAPA_NONE))
+		if (strcasestr(value, VAL_EVB_CAPA_NONE))
 			scap = 0;
 
 		LLDPAD_DBG("%s:%s agent %d policy %s %s(%#x)\n",
