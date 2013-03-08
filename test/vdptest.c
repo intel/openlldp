@@ -280,7 +280,7 @@ static void showmsg(struct nlmsghdr *nlh, int *status)
 				    pvsi->vsi_type_id[1] << 8 |
 				    pvsi->vsi_type_id[0];
 				addit("\tIFLA_PORT_VSI_TYPE=mgr_id:%d "
-				    " type_id:%d typeid_version\n",
+				    " type_id:%d typeid_version:%d\n",
 				    pvsi->vsi_mgr_id, tid,
 				    pvsi->vsi_type_version);
 			}
