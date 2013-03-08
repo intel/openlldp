@@ -54,6 +54,7 @@
 #include "lldp_evb22.h"
 #include "lldp_ecp22.h"
 #include "lldp_vdp.h"
+#include "lldp_vdp22.h"
 #include "lldp_8021qaz.h"
 #include "config.h"
 #include "lldpad_shm.h"
@@ -73,6 +74,7 @@ struct lldp_module *(*register_tlv_table[])(void) = {
 	evb_register,
 	evb22_register,
 	vdp_register,
+	vdp22_register,
 	ecp22_register,
 	ieee8021qaz_register,
 	NULL,

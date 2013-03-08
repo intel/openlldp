@@ -31,6 +31,7 @@
 #include "lldp_tlv.h"
 #include "lldp_evb22.h"
 #include "lldp_ecp22.h"
+#include "lldp_vdp22.h"
 #include "lldp_qbg_utils.h"
 #include "lldp_evb_cmds.h"
 #include "messages.h"
@@ -347,6 +348,7 @@ static void evb22_stop_modules(char *ifname)
 {
 	LLDPAD_DBG("%s:%s STOP\n", __func__, ifname);
 	ecp22_stop(ifname);
+	vdp22_stop(ifname);
 }
 
 static void evb22_ifdown(char *ifname, struct lldp_agent *agent)
@@ -452,6 +454,7 @@ static void evb22_start_modules(char *ifname)
 {
 	LLDPAD_DBG("%s:%s START\n", __func__, ifname);
 	ecp22_start(ifname);
+	vdp22_start(ifname);
 }
 
 /*
