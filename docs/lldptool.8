@@ -103,6 +103,9 @@ get LLDP parameters for the specified interface
 .B \-L, set-lldp
 set LLDP parameters for the specified interface
 .TP
+.B \-p, ping
+display the process identifier of the running lldpad process
+.TP
 .B \-q, quit
 exit from interactive mode
 .PP
@@ -215,6 +218,10 @@ Enable transmit of the Edge Virtual Bridging TLV for interface eth4
 Enable transmit of VDP for interface eth4
 .B lldptool -i eth4 -T -V vdp enableTx=yes
 
+.TP
+Display process identifier of lldpad
+.B lldptool -p
+
 .SH SEE ALSO
 .BR lldptool-dcbx (8),
 .BR lldptool-ets (8),
@@ -223,6 +230,7 @@ Enable transmit of VDP for interface eth4
 .BR lldptool-med (8),
 .BR lldptool-vdp (8),
 .BR lldptool-evb (8),
+.BR lldptool-evb22 (8),
 .BR dcbtool (8),
 .BR lldpad (8)
 .br
