@@ -66,6 +66,7 @@ struct clif  *clif_open()
 		    "%s/%d", LLDP_CLIF_SOCK, getpid());
 	addrlen = sizeof(sa_family_t) + strlen(clif->local.sun_path + 1) + 1;
 	if (bind(clif->s, (struct sockaddr *) &clif->local, addrlen) < 0) {
+		perror("bind");
 		close(clif->s);
 		free(clif);
 		return NULL;
@@ -78,6 +79,7 @@ struct clif  *clif_open()
 	addrlen = sizeof(sa_family_t) + strlen(clif->dest.sun_path + 1) + 1;
 
 	if (connect(clif->s, (struct sockaddr *) &clif->dest, addrlen) < 0) {
+		perror("connect");
 		close(clif->s);
 		free(clif);
 		return NULL;
@@ -231,6 +233,45 @@ int clif_get_fd(struct clif *clif)
 	return clif->s;
 }
 
+/*
+ * Get PID of lldpad from 'ping' command
+ */
+pid_t clif_getpid(void)
+{
+	struct clif *clif_conn;
+	char buf[MAX_CLIF_MSGBUF];
+	size_t len;
+	char *ppong;
+	int ret;
+	pid_t lldpad = 0;		/* LLDPAD process identifier */
 
-
-
+	clif_conn = clif_open();
+	if (!clif_conn) {
+		fprintf(stderr, "couldn't connect to lldpad\n");
+		return 0;
+	}
+	if (clif_attach(clif_conn, NULL)) {
+		fprintf(stderr, "failed to attach to lldpad\n");
+		clif_close(clif_conn);
+		return 0;
+	}
+	ret = clif_request(clif_conn, "P", 1, buf, &len, NULL);
+	if (ret == -2) {
+		fprintf(stderr, "connection to lldpad timed out\n");
+		goto out;
+	}
+	if (ret < 0) {
+		fprintf(stderr, "ping command failed\n");
+		goto out;
+	}
+	buf[len] = '\0';
+	ppong = strstr(buf, "PPONG");		/* Ignore leading chars */
+	if (!ppong || sscanf(ppong, "PPONG%d", &lldpad) != 1) {
+		fprintf(stderr, "error parsing pid of lldpad\n");
+		lldpad = 0;
+	}
+out:
+	clif_detach(clif_conn);
+	clif_close(clif_conn);
+	return lldpad;
+}

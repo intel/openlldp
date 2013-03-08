@@ -171,4 +171,13 @@ int clif_pending(struct clif *clif);
  */
 int clif_get_fd(struct clif *clif);
 
+/**
+ * clif_getpid - Get PID of running lldpad process
+ * Returns: The PID of lldpad or 0 on failure
+ *
+ * This function is returns the PID of the running lldpad. It connects to the
+ * lldpad and sends a PING command. Lldpad returns with a PONG followed by
+ * its PID. Extract the PID and return it to the caller.
+ */
+pid_t clif_getpid(void);
 #endif /* CLIF_H */
