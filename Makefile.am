@@ -109,7 +109,9 @@ endif
 
 ## force the creation of an empty configuration directory at install time
 lldpadconfigdir = /var/lib/lldpad
-lldpadconfig_DATA =
+installdirs-local:	
+	$(MKDIR_P) $(DESTDIR)$(lldpadconfigdir)
+install-data-hook:	installdirs-local
 
 ## pkg-config data file, for client interface software to find headers
 pkgconfigdir = ${libdir}/pkgconfig
