@@ -40,6 +40,7 @@
 
 #include "messages.h"
 #include "lldp_vdp.h"
+#include "lldp_vdp22.h"
 #include "lldp_vdpnl.h"
 #include "lldp_qbg_utils.h"
 #include "lldp_rtnl.h"
@@ -381,7 +382,8 @@ static int vdpnl_setlink(struct nlmsghdr *nlh, size_t len)
 	p.maclist = &mac;
 	rc = vdpnl_set(nlh, &p);
 	if (!rc)
-		rc = vdp_request(&p);
+		rc = vdp22_query(p.ifname) ? vdp22_request(&p)
+					   : vdp_request(&p);
 	return vdpnl_error(rc, nlh, len);
 }
 

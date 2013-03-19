@@ -28,9 +28,12 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#include <net/if.h>
+
 #include "messages.h"
 #include "config.h"
 
+#include "lldp_vdpnl.h"
 #include "lldp_qbg22.h"
 #include "lldp_vdp22.h"
 
@@ -41,7 +44,8 @@
  * Find the vdp data associated with an interface.
  * Return pointer or NULL if not found.
  */
-static struct vdp22 *vdp22_findif(char *ifname, struct vdp22_user_data *ud)
+static struct vdp22 *vdp22_findif(const char *ifname,
+				  struct vdp22_user_data *ud)
 {
 	struct vdp22 *vdp = 0;
 
@@ -156,7 +160,8 @@ void vdp22_stop(char *ifname)
  * To be called when a successful exchange of EVB TLVs has been
  * made and ECP protocols are supported by both sides.
  */
-static struct vdp22 *vdp22_create(char *ifname, struct vdp22_user_data *eud)
+static struct vdp22 *vdp22_create(const char *ifname,
+				  struct vdp22_user_data *eud)
 {
 	struct vdp22 *vdp;
 
@@ -172,10 +177,36 @@ static struct vdp22 *vdp22_create(char *ifname, struct vdp22_user_data *eud)
 	LLDPAD_DBG("%s:%s create vdp data\n", __func__, ifname);
 	return vdp;
 }
+
+/*
+ * Query the supported VDP protocol on an interface.
+ */
+static struct vdp22 *vdp22_getvdp(const char *ifname)
+{
+	struct vdp22_user_data *vud;
+	struct vdp22 *vdp = NULL;
+
+	vud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP22);
+	if (vud)
+		vdp = vdp22_findif(ifname, vud);
+	LLDPAD_DBG("%s:%s vdp %p\n", __func__, ifname, vdp);
+	return vdp;
+}
+
+int vdp22_query(const char *ifname)
+{
+	int rc = 0;
+
+	if (vdp22_getvdp(ifname))
+		rc = 1;
+	LLDPAD_DBG("%s:%s rc:%d\n", __func__, ifname, rc);
+	return rc;
+}
+
 /*
  * Enable the interface for VDP protocol support.
  */
-void vdp22_start(char *ifname)
+void vdp22_start(const char *ifname)
 {
 	struct vdp22_user_data *vud;
 	struct vdp22 *vdp;
@@ -189,6 +220,16 @@ void vdp22_start(char *ifname)
 	vdp = vdp22_findif(ifname, vud);
 	if (!vdp)
 		vdp = vdp22_create(ifname, vud);
+}
+
+/*
+ * Handle a VSI request from buddy.
+ */
+int vdp22_request(struct vdpnl_vsi *vsi)
+{
+	int rc = -ENODEV;
+	LLDPAD_DBG("%s:%s rc:%d\n", __func__, vsi->ifname, rc);
+	return rc;
 }
 
 /*

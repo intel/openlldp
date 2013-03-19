@@ -58,6 +58,7 @@ struct vdpnl_vsi {		/* Data structure for VSI data via netlink */
 int vdpnl_recv(unsigned char *, size_t);
 int vdpnl_send(struct vdpnl_vsi *);
 int vdp_request(struct vdpnl_vsi *);
+int vdp22_request(struct vdpnl_vsi *);
 int vdp_status(int, struct vdpnl_vsi *);
 int event_trigger(struct nlmsghdr *, pid_t);
 #endif

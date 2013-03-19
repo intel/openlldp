@@ -30,7 +30,6 @@
 #define LLDP_VDP22_H
 
 #include	<sys/queue.h>
-#include	<net/if.h>
 #include	<linux/if_ether.h>
 
 #include	"lldp_mod.h"
@@ -56,7 +55,8 @@ struct vdp22_user_data {		/* Head for all VDP data */
 
 struct lldp_module *vdp22_register(void);
 void vdp22_unregister(struct lldp_module *);
-void vdp22_start(char *);
+void vdp22_start(const char *);
 void vdp22_stop(char *);
+int vdp22_query(const char *);
 
 #endif
