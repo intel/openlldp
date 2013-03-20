@@ -128,6 +128,4 @@ void l2_packet_get_remote_addr(struct l2_packet_data *l2, u8 *addr);
 int l2_packet_send(struct l2_packet_data *l2, const u8 *dst_addr, u16 proto,
 			const u8 *buf, size_t len);
 
-void l2_packet_get_port_state(struct l2_packet_data *, u8 *);
-
 #endif /* L2_PACKET_H */

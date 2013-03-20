@@ -282,29 +282,3 @@ void l2_packet_deinit(struct l2_packet_data *l2)
 		
 	free(l2);
 }
-
-void l2_packet_get_port_state(struct l2_packet_data *l2, u8  *portEnabled)
-{
-
-	int s;
-	struct ifreq ifr;
-
-	s = socket(PF_INET, SOCK_DGRAM, 0);
-	if (s < 0) {
-		perror("socket");
-		return;
-	}
-	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, l2->ifname, sizeof(ifr.ifr_name));
-
-	if (ioctl(s, SIOCGIFFLAGS, &ifr) < 0) {
-		perror("ioctl[SIOCGIFFLAGS]");
-		close(s);
-		*portEnabled = 0;
-		return;
-	}
-		
-	*portEnabled = ifr.ifr_flags & IFF_UP;
-	close(s);
-	return;
-}
