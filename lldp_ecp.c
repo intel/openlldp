@@ -319,19 +319,12 @@ static bool ecp_build_ECPDU(struct vdp_data *vd)
  */
 static void ecp_tx_Initialize(struct vdp_data *vd)
 {
-	struct port *port = port_find_by_name(vd->ifname);
-
-	if (!port)
-		return;
-
 	memset(vd->ecp.tx.frame, 0, sizeof vd->ecp.tx.frame);
 	ecp_somethingChangedLocal(vd, true);
 	vd->ecp.lastSequence = ECP_SEQUENCE_NR_START;
 	vd->ecp.stats.statsFramesOutTotal = 0;
 	vd->ecp.ackTimer = ECP_ACK_TIMER_STOPPED;
 	vd->ecp.retries = 0;
-
-	l2_packet_get_port_state(vd->ecp.l2, (u8 *)&(port->portEnabled));
 }
 
 /* ecp_txFrame - transmit ecp frame
