@@ -81,3 +81,15 @@ int modules_notify(int id, int sender_id, char *ifname, void *data)
 	LLDPAD_DBG("%s:%s target-id:%#x rc:%d\n", __func__, ifname, id, rc);
 	return rc;
 }
+
+int vdp_uuid2str(const u8 *p, char *dst, size_t size)
+{
+	if (dst && size > VDP_UUID_STRLEN) {
+		snprintf(dst, size, "%02x%02x%02x%02x-%02x%02x-%02x%02x"
+			 "-%02x%02x-%02x%02x%02x%02x%02x%02x",
+			 p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+			 p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+		return 0;
+	}
+	return -1;
+}

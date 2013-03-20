@@ -161,12 +161,10 @@ int vdp_vsis_pending(struct vdp_data *);
 int vdp_vsis(char *);
 const char *vdp_response2str(int);
 void vdp_trace_profile(struct vsi_profile *);
-int instance2str(const u8 *, char *, size_t);
 struct vsi_profile *vdp_alloc_profile(void);
 void vdp_delete_profile(struct vsi_profile *);
 struct vsi_profile *vdp_find_profile(struct vdp_data *, struct vsi_profile *);
 
 #define MAC_ADDR_STRLEN		18
-#define INSTANCE_STRLEN		36
 
 #endif /* _LLDP_VDP_H */

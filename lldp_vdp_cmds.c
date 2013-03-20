@@ -37,6 +37,7 @@
 #include "lldp_mand_clif.h"
 #include "lldp_vdp_clif.h"
 #include "lldp_vdp_cmds.h"
+#include "lldp_qbg_utils.h"
 #include "lldp/ports.h"
 #include "messages.h"
 #include "libconfig.h"
@@ -104,9 +105,9 @@ char *print_profile(char *s, size_t length, struct vsi_profile *p)
 		return r;
 
 	{
-		char instance[INSTANCE_STRLEN + 2];
+		char instance[VDP_UUID_STRLEN + 2];
 
-		instance2str(p->instance, instance, sizeof(instance));
+		vdp_uuid2str(p->instance, instance, sizeof(instance));
 		c = snprintf(s, length, "instance: %s\n", &instance[0]);
 	}
 	s = check_and_update(&total, &length, s, c);
@@ -302,21 +303,6 @@ static void str2instance(struct vsi_profile *profile, char *buffer)
 			j++;
 		}
 	}
-}
-
-/* INSTANCE_STRLEN = strlen("fa9b7fff-b0a0-4893-abcd-beef4ff18f8f") */
-#define INSTANCE_STRLEN 36
-
-int instance2str(const u8 *p, char *dst, size_t size)
-{
-	if (dst && size > INSTANCE_STRLEN) {
-		snprintf(dst, size, "%02x%02x%02x%02x-%02x%02x-%02x%02x"
-			 "-%02x%02x-%02x%02x%02x%02x%02x%02x",
-			 p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-			 p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
-		return 0;
-	}
-	return -1;
 }
 
 static void vdp_fill_profile(struct vsi_profile *profile, char *buffer,

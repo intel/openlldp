@@ -41,6 +41,7 @@
 #include "messages.h"
 #include "lldp_vdp.h"
 #include "lldp_vdpnl.h"
+#include "lldp_qbg_utils.h"
 #include "lldp_rtnl.h"
 
 static struct nla_policy ifla_vf_policy[IFLA_VF_MAX + 1] = {
@@ -96,7 +97,7 @@ static int vdpnl_get(struct nlmsghdr *nlh, struct vdpnl_vsi *p)
 
 static void vdpnl_show(struct vdpnl_vsi *vsi)
 {
-	char instance[INSTANCE_STRLEN + 2];
+	char instance[VDP_UUID_STRLEN + 2];
 	struct vdpnl_mac *mac;
 	int i;
 
@@ -112,7 +113,7 @@ static void vdpnl_show(struct vdpnl_vsi *vsi)
 		   "typeid_version:%d\n",
 		   __func__, vsi->vsi_mgrid, vsi->vsi_typeid,
 		   vsi->vsi_typeversion);
-	instance2str(vsi->vsi_uuid, instance, sizeof(instance));
+	vdp_uuid2str(vsi->vsi_uuid, instance, sizeof(instance));
 	LLDPAD_DBG("%s: IFLA_PORT_INSTANCE_UUID=%s\n", __func__, instance);
 	LLDPAD_DBG("%s: IFLA_PORT_REQUEST=%d\n", __func__, vsi->request);
 	LLDPAD_DBG("%s: IFLA_PORT_RESPONSE=%d\n", __func__, vsi->response);
@@ -124,7 +125,7 @@ static void vdpnl_show(struct vdpnl_vsi *vsi)
  */
 static int vdpnl_vfports(struct nlattr *vfports, struct vdpnl_vsi *vsi)
 {
-	char instance[INSTANCE_STRLEN + 2];
+	char instance[VDP_UUID_STRLEN + 2];
 	struct nlattr *tb_vf_ports, *tb3[IFLA_PORT_MAX + 1];
 	int rem;
 
@@ -156,7 +157,7 @@ static int vdpnl_vfports(struct nlattr *vfports, struct vdpnl_vsi *vsi)
 
 			uuid = (unsigned char *)
 				RTA_DATA(tb3[IFLA_PORT_HOST_UUID]);
-			instance2str(uuid, instance, sizeof(instance));
+			vdp_uuid2str(uuid, instance, sizeof(instance));
 			LLDPAD_DBG("%s: IFLA_PORT_HOST_UUID=%s\n", __func__,
 				   instance);
 		}
@@ -315,11 +316,11 @@ static void vdpnl_reply1(struct vdpnl_vsi *p, struct nlmsghdr *nlh, size_t len)
  */
 static void vdpnl_reply2(struct vdpnl_vsi *p, struct nlmsghdr *nlh)
 {
-	char instance[INSTANCE_STRLEN + 2];
+	char instance[VDP_UUID_STRLEN + 2];
 
 	mynla_put(nlh, IFLA_PORT_INSTANCE_UUID, sizeof p->vsi_uuid,
 		  p->vsi_uuid);
-	instance2str(p->vsi_uuid, instance, sizeof instance);
+	vdp_uuid2str(p->vsi_uuid, instance, sizeof instance);
 	LLDPAD_DBG("%s: IFLA_PORT_INSTANCE_UUID=%s\n", __func__, instance);
 	mynla_put_u32(nlh, IFLA_PORT_VF, PORT_SELF_VF);
 	LLDPAD_DBG("%s: IFLA_PORT_VF=%d\n", __func__,  PORT_SELF_VF);

@@ -45,6 +45,7 @@
 #include "lldp_tlv.h"
 #include "lldp_vdp_cmds.h"
 #include "lldp_vdp_clif.h"
+#include "lldp_qbg_utils.h"
 #include "lldp_mand_clif.h"
 
 static const char * const vsi_responses[] = {
@@ -75,10 +76,10 @@ int vdp_trigger(struct vsi_profile *profile);
 
 void vdp_trace_profile(struct vsi_profile *p)
 {
-	char instance[INSTANCE_STRLEN + 2];
+	char instance[VDP_UUID_STRLEN + 2];
 	struct mac_vlan *mac_vlan;
 
-	instance2str(p->instance, instance, sizeof(instance));
+	vdp_uuid2str(p->instance, instance, sizeof(instance));
 
 	LLDPAD_DBG("profile:%p mode:%d response:%d state:%d (%s) no_nlmsg:%d"
 		   " txmit:%i"

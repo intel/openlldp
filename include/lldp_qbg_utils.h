@@ -32,4 +32,12 @@
 
 void hexdump_frame(const char *, char *, const unsigned char *, size_t);
 int modules_notify(int, int, char *, void *);
+
+/*
+ * Required buffer space to display a UUID.
+ * VDP_UUID_STRLEN = strlen("fa9b7fff-b0a0-4893-abcd-beef4ff18f8f")
+ */
+#define VDP_UUID_STRLEN 36
+
+int vdp_uuid2str(const u8 *, char *, size_t);
 #endif
