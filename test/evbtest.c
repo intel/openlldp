@@ -31,6 +31,9 @@
  * The EVB data to be sent is read from a configuration file. Data is send
  * once per second. The configuration file specifies the data to be send
  * for each transmission.
+ *
+ * Support for ECP and VDP protocol has been added. The support is very simple
+ * and contains automatic acknowledgement with some delay and error response.
  */
 
 #include <stdint.h>
@@ -61,8 +64,9 @@
 #define MAC2STR(a)	(a)[0] & 0xff, (a)[1] & 0xff, (a)[2] & 0xff, \
 			(a)[3] & 0xff, (a)[4] & 0xff, (a)[5] & 0xff
 
-#define	ECPTEST		"ecptest"
 #define	ECPMAXACK	20		/* Longest ECP ack delay */
+#define	VDPMAXACK	30		/* Longest VDP ack delay */
+#define ECP_HLEN	4		/* ECP protocol header length */
 
 static char *progname;
 static unsigned char eth_p_lldp[2] = { 0x88, 0xcc };
@@ -73,11 +77,25 @@ static char *tokens[1024];	/* Used to parse command line params */
 static int myfd;		/* Raw socket for LLDP protocol */
 static int ecpfd;		/* Raw socket for ECP protocol */
 static int timerfd;		/* Time descriptor */
-static unsigned long ackdelay;		/* ECP ack delay */
 static unsigned char my_mac[ETH_ALEN];	/* My source MAC address */
 static unsigned long duration = 120;	/* Time to run program in seconds */
 static unsigned long timeout = 1;	/* Time to wait in select in seconds */
 static unsigned long timeout_us = 0;	/* Time to wait in select in usecs */
+
+enum pr_optype {		/* Protocol actions */
+	ECP_ACK,		/* ECP acknowledgement delay */
+	ECP_SEQNO,		/* ECP sequnece number */
+	VDP_ACK,		/* VDP acknowledgement delay */
+	VDP_ERROR,		/* VDP Error returned */
+	CMD_LAST		/* Must be last */
+};
+
+struct pr_op {			/* Protocol command */
+	enum pr_optype type;	/* Protocol to apply this command */
+	unsigned long value;	/* Value */
+	int enabled;		/* True if active */
+};
+static struct pr_op cmd_on[CMD_LAST];
 
 struct lldpdu {			/* LLDP Data unit to send */
 	unsigned char *data;
@@ -94,6 +112,7 @@ struct lldp {			/* LLDP DUs */
 	struct lldpdu *head;	/* Ptr to TLV data units */
 	struct lldpdu *recv;	/* Ptr to expected receive TLV data units */
 	struct lldp *next;	/* Ptr to sucessor */
+	struct pr_op *opr;	/* Protocol operation */
 };
 
 unsigned long runtime;		/* Program run time in seconds */
@@ -101,12 +120,45 @@ static struct lldp *lldphead;	/* List of commands */
 static struct lldp *er_ecp;	/* Expected replies ECP protocol */
 static struct lldp *er_evb;	/* Expected replies ECP protocol */
 
-struct ecphdr {		/* ECP header received */
+struct ecphdr {			/* ECP header received */
 	unsigned char version;	/* Version number */
 	unsigned char op;	/* Operation REQ, ACK */
 	unsigned short subtype;	/* Subtype */
 	unsigned short seqno;	/* Sequence number */
 };
+
+struct vdphdr {			/* VDP header */
+	unsigned char opr;	/* Operation requested */
+	unsigned char status;	/* Status */
+	unsigned long vsi_tyid;	/* VSI Type id */
+	unsigned char vsi_tyv;	/* VSI Type version */
+	unsigned char vsi_tyfm;	/* VSI Type id format */
+	unsigned char vsi_uuid[16];	/* VSI UUID */
+	unsigned char fil_info;	/* Filter info format */
+};
+
+/* Return ECP protocol acknowledgement delay and other settings */
+static unsigned long ecp_inc_seqno(void)
+{
+	if (++cmd_on[ECP_SEQNO].value == 0)
+		++cmd_on[ECP_SEQNO].value;
+	return cmd_on[ECP_SEQNO].value;
+}
+
+static unsigned long ecp_ackdelay(void)
+{
+	return cmd_on[ECP_ACK].value;
+}
+
+static unsigned long vdp_ackdelay(void)
+{
+	return cmd_on[VDP_ACK].value;
+}
+
+static unsigned long vdp_error(void)
+{
+	return cmd_on[VDP_ERROR].value;
+}
 
 static void showmsg(char *txt, char nl, unsigned char *buf, int len)
 {
@@ -148,6 +200,68 @@ static unsigned long getnumber(char *key, char *word, char stopchar, int *ec)
 	}
 	*ec = 0;
 	return no;
+}
+
+/*
+ * Add a command to the list on how to react to unsolicited messages.
+ * If not recognized, proceed with normal input processing.
+ *
+ * Currently recognized:
+ * ecp ack 0 --> no delay in sending out acknowledgement
+ * ecp ack 1..20 --> x seconds delay in sending out acknowledgement
+ * ecp ack 21 --> no acknowledgement
+ * vdp ack ## --> same as ecp ack
+ * vdp error ## --> return error number on VDP request.
+ */
+static struct pr_op *valid_cmd()
+{
+	unsigned long no;
+	int ec;
+
+	struct pr_op *p = calloc(1, sizeof *p);
+
+	if (!p) {
+		perror(progname);
+		exit(1);
+	}
+	if (!strcmp(tokens[1], "vdp") && !strcmp(tokens[2], "error")) {
+		no = getnumber(tokens[2], tokens[3], '\0', &ec);
+		if (ec)
+			exit(1);
+		p->value = no;
+		p->type = VDP_ERROR;
+		return p;
+	}
+	if (!strcmp(tokens[1], "vdp") && !strcmp(tokens[2], "ack")) {
+		no = getnumber(tokens[2], tokens[3], '\0', &ec);
+		if (ec)
+			exit(1);
+		if (no > VDPMAXACK)
+			no = VDPMAXACK;
+		p->value = no;
+		p->type = VDP_ACK;
+		return p;
+	}
+	if (!strcmp(tokens[1], "ecp") && !strcmp(tokens[2], "seqno")) {
+		no = getnumber(tokens[2], tokens[3], '\0', &ec);
+		if (ec)
+			exit(1);
+		p->value = no;
+		p->type = ECP_SEQNO;
+		return p;
+	}
+	if (!strcmp(tokens[1], "ecp") && !strcmp(tokens[2], "ack")) {
+		no = getnumber(tokens[2], tokens[3], '\0', &ec);
+		if (ec)
+			exit(1);
+		if (no > ECPMAXACK)
+			no = ECPMAXACK;
+		p->value = no;
+		p->type = ECP_ACK;
+		return p;
+	}
+	free(p);
+	return 0;
 }
 
 static int numeric(unsigned char x)
@@ -250,12 +364,35 @@ static void removeentry(struct lldp *p)
 #endif
 	removedata(p->head);
 	removedata(p->recv);
+	free(p->opr);
 	free(p->dst);
 	free(p->src);
 	free(p->ether);
 	free(p);
 }
 
+static void show_cmd(struct pr_op *p)
+{
+	char *txt = "unknown";
+
+	switch (p->type) {
+	case ECP_SEQNO:
+			txt = "ecp seqno";
+			break;
+	case ECP_ACK:
+			txt = "ecp ack";
+			break;
+	case VDP_ACK:
+			txt = "vdp ack";
+			break;
+	case VDP_ERROR:
+			txt = "vdp error";
+			break;
+	case CMD_LAST:
+			break;
+	}
+	printf("\t%s %ld\n", txt, p->value);
+}
 
 /*
  * Display one node entry on stdout.
@@ -268,6 +405,10 @@ static void showentry(char *txt, struct lldp *p)
 	printf("%p: ", p);
 #endif
 	printf("%s time:%ld\n", txt, p->time);
+	if (p->opr) {
+		show_cmd(p->opr);
+		return;
+	}
 	showmsg("\tdstmac", ':', p->dst, ETH_ALEN);
 	showmsg("\tsrcmac", ':', p->src, ETH_ALEN);
 	showmsg("\tethtype", ':', p->ether, 2);
@@ -391,6 +532,11 @@ static int addone(void)
 	p->time = getnumber("time", tokens[0], '\0', &ec);
 	if (ec)
 		exit(3);
+	p->opr = valid_cmd();
+	if (p->opr) {
+		p->ether = validate("88:90", 0);
+		goto out;
+	}
 	p->dst = validate(tokens[1], 0);
 	p->src = validate(tokens[2], 0);
 	p->ether = validate(tokens[3], 0);
@@ -426,6 +572,7 @@ static int addone(void)
 			return 1;
 		}
 	}
+out:
 	insertentry(p);
 	return 0;
 }
@@ -611,6 +758,34 @@ static int l2_init(char *ifname, unsigned short pno)
 	return fd;
 }
 
+static void apply_cmd(struct pr_op *p)
+{
+	switch (p->type) {
+	case ECP_SEQNO:
+			cmd_on[ECP_SEQNO].value = p->value;
+			if (verbose >= 2)
+				show_cmd(p);
+			break;
+	case ECP_ACK:
+			cmd_on[ECP_ACK].value = p->value;
+			if (verbose >= 2)
+				show_cmd(p);
+			break;
+	case VDP_ACK:
+			cmd_on[VDP_ACK].value = p->value;
+			if (verbose >= 2)
+				show_cmd(p);
+			break;
+	case VDP_ERROR:
+			cmd_on[VDP_ERROR].value = p->value;
+			if (verbose >= 2)
+				show_cmd(p);
+			break;
+	case CMD_LAST:
+			break;
+	}
+}
+
 /*
  * Send one entry. Return 0 on failure and number of bytes on success.
  */
@@ -624,6 +799,10 @@ static int sendentry(struct lldp *p)
 	int fd = -1;
 	int len;
 
+	if (p->opr) {
+		apply_cmd(p->opr);
+		return 0;
+	}
 	memset(out, 0, sizeof out);
 	memcpy(ehdr->h_dest, p->dst, ETH_ALEN);
 	memcpy(ehdr->h_source, p->src, ETH_ALEN);
@@ -802,6 +981,16 @@ static int get_evb(void)
 }
 
 /*
+ * Pack the vdp data into the buffer. For now just use the first 3 bytes.
+ */
+static void convert_vdp(unsigned char *load, struct vdphdr *p)
+{
+	*load = (p->opr << 1);
+	*(load + 1) = 1;
+	*(load + 2) = p->status;
+}
+
+/*
  * Pack the ecp header into 4 bytes.
  */
 static void convert_ecp(unsigned char *load, struct ecphdr *ecp)
@@ -814,6 +1003,106 @@ static void convert_ecp(unsigned char *load, struct ecphdr *ecp)
 }
 
 /*
+ * Check if this vdp data needs acknowledgement, Return false in this case
+ * true otherwise.
+ */
+static int vdp_get(unsigned char *vdpdata, int len, struct vdphdr *vdp)
+{
+	unsigned char tlv_type = tlv_id(vdpdata);
+	unsigned short tlv_length = tlv_len(vdpdata);
+
+	memset(vdp, 0, sizeof *vdp);
+	for ( ; tlv_type >= 5 && len >= 0;
+			len -= tlv_length + 2, vdpdata += tlv_length + 2)
+		;
+	if (tlv_type < 5) {
+		vdp->opr = tlv_id(vdpdata);
+		vdpdata += 2;
+		vdp->status = *vdpdata;
+		vdp->vsi_tyid = *(vdpdata + 1) << 16 | *(vdpdata + 2) << 8 |
+				*(vdpdata + 3);
+		vdp->vsi_tyv = *(vdpdata + 4);
+		vdp->vsi_tyfm = *(vdpdata + 5);
+		memcpy(vdp->vsi_uuid, vdpdata + 6, sizeof vdp->vsi_uuid);
+		vdp->fil_info = *(vdpdata + 22);
+		if ((vdp->status & 2) == 0)
+			return 0;
+	}
+	return 1;
+}
+
+/*
+ * Handle acknowledgement of vdp protocol header.
+ */
+static void handle_vdp(unsigned char *data, int len)
+{
+	unsigned char *load, *rcv, *dst, *src, *ether;
+	struct lldp *ack;
+	struct lldpdu *ackdata, *rcvdata;
+	struct ethhdr *ethhdr = (struct ethhdr *)data;
+	struct vdphdr vdp;
+	struct ecphdr ecp;
+
+	if (vdp_ackdelay() > VDPMAXACK)	/* Acknowledge request */
+		return;
+	if (vdp_get(data + ETH_HLEN + ECP_HLEN, len - (ETH_HLEN + ECP_HLEN),
+		    &vdp))
+		return;
+	ack = calloc(1, sizeof *ack);
+	ackdata = calloc(1, sizeof *ackdata);
+	rcvdata = calloc(1, sizeof *rcvdata);
+	load = calloc(ECP_HLEN + 3, sizeof *load);
+	rcv = calloc(ECP_HLEN, sizeof *load);
+	dst = calloc(ETH_ALEN, sizeof *dst);
+	src = calloc(ETH_ALEN, sizeof *src);
+	ether = calloc(2, sizeof *ether);
+	if (!ack || !ackdata || !load || !dst || !src || !ether || !rcv ||
+			!rcvdata) {
+		free(load);
+		free(rcv);
+		free(dst);
+		free(src);
+		free(ether);
+		free(ackdata);
+		free(rcvdata);
+		free(ack);
+		return;
+	}
+	ack->time = runtime + vdp_ackdelay();
+	/* Prepare ETH header */
+	ack->dst = dst;
+	memcpy(ack->dst, ethhdr->h_source, sizeof ethhdr->h_source);
+	ack->src = src;
+	memcpy(ack->src, my_mac, sizeof ethhdr->h_source);
+	ack->ether = ether;
+	memcpy(ack->ether, eth_p_ecp, sizeof ethhdr->h_proto);
+	/* Prepare ECP header */
+	ecp.op = 0;
+	ecp.seqno = ecp_inc_seqno();
+	ecp.subtype = 1;
+	ecp.version = 1;
+	convert_ecp(load, &ecp);
+	/* Prepare ECP acknowledgement */
+	ecp.op = 1;
+	convert_ecp(rcv, &ecp);
+	rcvdata->data = rcv;
+	rcvdata->len = ECP_HLEN;
+	ack->recv = rcvdata;
+	/* Prepare VDP acknowledgement */
+	vdp.status = ((vdp_error() & 0xf) << 4) | 2;
+	convert_vdp(load + ECP_HLEN, &vdp);
+	ackdata->data = load;
+	ackdata->len = ECP_HLEN + 3;
+	ack->head = ackdata;
+	if (vdp_ackdelay()) {		/* Insert ack in queue */
+		insertentry(ack);
+		return;
+	}
+	sendentry(ack);
+	appendnode(&er_ecp, ack);
+}
+
+/*
  * Send out acknowledgement when request received.
  */
 static void ack_ecp(unsigned char *ecpdata, struct ecphdr *ecp)
@@ -823,17 +1112,24 @@ static void ack_ecp(unsigned char *ecpdata, struct ecphdr *ecp)
 	struct lldpdu *ackdata;
 	struct ethhdr *ethhdr = (struct ethhdr *)ecpdata;
 
-	if (ackdelay > ECPMAXACK)	/* Acknowledge request */
+	if (ecp_ackdelay() > ECPMAXACK)	/* Acknowledge request */
 		return;
 	ack = calloc(1, sizeof *ack);
 	ackdata = calloc(1, sizeof *ackdata);
-	load = calloc(4, sizeof *load);
+	load = calloc(ECP_HLEN, sizeof *load);
 	dst = calloc(ETH_ALEN, sizeof *dst);
 	src = calloc(ETH_ALEN, sizeof *src);
 	ether = calloc(2, sizeof *ether);
-	if (!ack || !ackdata || !load || !dst || !src || !ether)
-		goto out;
-	ack->time = runtime + ackdelay;
+	if (!ack || !ackdata || !load || !dst || !src || !ether) {
+		free(ack);
+		free(ackdata);
+		free(load);
+		free(dst);
+		free(src);
+		free(ether);
+		return;
+	}
+	ack->time = runtime + ecp_ackdelay();
 	ack->dst = dst;
 	memcpy(ack->dst, ethhdr->h_source, sizeof ethhdr->h_source);
 	ack->src = src;
@@ -843,14 +1139,13 @@ static void ack_ecp(unsigned char *ecpdata, struct ecphdr *ecp)
 	ecp->op = 1;
 	convert_ecp(load, ecp);
 	ackdata->data = load;
-	ackdata->len = 4;
+	ackdata->len = ECP_HLEN;
 	ack->head = ackdata;
-	if (ackdelay) {		/* Insert ack in queue */
+	if (ecp_ackdelay()) {		/* Insert ack in queue */
 		insertentry(ack);
 		return;
 	}
 	sendentry(ack);
-out:
 	removeentry(ack);
 }
 
@@ -916,10 +1211,11 @@ static void search_ecpack(unsigned char *ecpdata)
 	}
 }
 
-static void handle_ecp(unsigned char *ecpdata)
+static int handle_ecp(unsigned char *ecpdata)
 {
 	unsigned char *buf = ecpdata + ETH_HLEN;
 	struct ecphdr ecphdr;
+	int rc = 0;
 
 	ecphdr.version = *buf >> 4;
 	ecphdr.op = (*buf >> 2) & 3;
@@ -929,10 +1225,12 @@ static void handle_ecp(unsigned char *ecpdata)
 		printf("ecp.version:%d op:%d subtype:%d seqno:%#hx\n",
 		       ecphdr.version, ecphdr.op, ecphdr.subtype,
 		       ecphdr.seqno);
-	if (ecphdr.op == 0)		/* Request received, send ACK */
+	if (ecphdr.op == 0) {		/* Request received, send ACK */
 		ack_ecp(ecpdata, &ecphdr);
-	else				/* ACK received, check list */
+		rc = ecphdr.subtype;
+	} else				/* ACK received, check list */
 		search_ecpack(ecpdata);
+	return rc;
 }
 
 static int get_ecp(void)
@@ -941,7 +1239,7 @@ static int get_ecp(void)
 	size_t buflen = sizeof buf;
 	struct sockaddr_ll from;
 	socklen_t from_len = sizeof from;
-	int result = 0;
+	int type, result = 0;
 
 	memset(buf, 0, buflen);
 	memset(&from, 0, from_len);
@@ -963,7 +1261,9 @@ static int get_ecp(void)
 		if (result > 0) {
 			if (verbose >= 2)
 				showmsg("get_ecp", ':', buf, result);
-			handle_ecp(buf);
+			type = handle_ecp(buf);
+			if (type == 1)		/* VDP payload in ECP */
+				handle_vdp(buf, result);
 		}
 	}
 	return result;
@@ -1066,23 +1366,15 @@ static void hear(void)
 
 static void help(void)
 {
-	char *ecp_help = "";
-
-	if (strcmp(progname, ECPTEST) == 0)
-		ecp_help = "[-a delay]";
-	printf("usage: %s %s[-t timeout][-T timeout][-v] device [file]\n",
-	       progname, ecp_help);
-	if (strcmp(progname, ECPTEST) == 0)
-		printf("\t-a specifies the acknowledgement delay"
-		       " (default %lds)\n", ackdelay);
-	printf("\t-d specifies the run time of the program (default %ld)\n"
+	printf("\t-a specifies the ECP acknowledgement delay ((default %lds)\n"
+	       "\t-d specifies the run time of the program (default %ld)\n"
 	       "\t-t specifies the timeout in seconds to wait (default %lds)\n"
 	       "\t-T specifies the timeout in microseconds to wait"
 	       " (default %ldus)\n"
 	       "\t-v verbose mode, can be set more than once\n"
 	       "\t device is the network interface to listen on\n"
 	       "\t file is one or more input files to read LLDP data from\n",
-	       duration, timeout, timeout_us);
+	       ecp_ackdelay(), duration, timeout, timeout_us);
 }
 
 int main(int argc, char **argv)
@@ -1093,7 +1385,7 @@ int main(int argc, char **argv)
 	char *slash;
 
 	progname = (slash = strrchr(argv[0], '/')) ? slash + 1 : argv[0];
-	while ((ch = getopt(argc, argv, ":a:d:t:T:v")) != EOF)
+	while ((ch = getopt(argc, argv, ":d:t:T:v")) != EOF)
 		switch (ch) {
 		case '?':
 			fprintf(stderr, "%s: unknown option -%c\n", progname,
@@ -1118,18 +1410,6 @@ int main(int argc, char **argv)
 				fprintf(stderr, "%s wrong timeout %s\n",
 				    progname, optarg);
 				exit(1);
-			}
-			break;
-		case 'a':
-			if (strcmp(progname, ECPTEST)) {
-				help();
-				exit(1);
-			}
-			ackdelay = strtoul(optarg, 0, 0);
-			if (ackdelay > ECPMAXACK) {
-				printf("%s ECP aknowledgement disabled\n",
-				    progname);
-				ackdelay = ECPMAXACK;
 			}
 			break;
 		case 'd':
