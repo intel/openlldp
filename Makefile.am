@@ -3,7 +3,7 @@ sbin_PROGRAMS = lldpad dcbtool lldptool
 
 # package nltest and vdptest, but do not install it anywhere
 if BUILD_DEBUG
-noinst_PROGRAMS = nltest vdptest evbtest
+noinst_PROGRAMS = nltest vdptest qbg22sim
 endif
 
 # look for header files in the include directory
@@ -93,8 +93,8 @@ if BUILD_DEBUG
 nltest_SOURCES = test/nltest.c test/nltest.h
 vdptest_SOURCES = test/vdptest.c
 vdptest_LDFLAGS = -llldp_clif
-evbtest_SOURCES = test/evbtest.c
-evbtest_LDFLAGS = -lrt
+qbg22sim_SOURCES = test/qbg22sim.c
+qbg22sim_LDFLAGS = -lrt
 endif
 
 ## man pages
@@ -104,7 +104,7 @@ dist_man_MANS = docs/lldpad.8 docs/dcbtool.8 docs/lldptool.8 \
 		docs/lldptool-dcbx.8 \
 		docs/lldptool-evb22.8
 if BUILD_DEBUG
-nodist_man_MANS = test/evbtest.1 test/vdptest.1
+nodist_man_MANS = test/qbg22sim.1 test/vdptest.1
 endif
 
 ## force the creation of an empty configuration directory at install time

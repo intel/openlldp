@@ -31,7 +31,7 @@ lldpad
 lldptool
 nltest
 vdptest
-evbtest
+qbg22sim
 patches/
 tags
 ar-lib
