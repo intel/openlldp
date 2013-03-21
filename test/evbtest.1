@@ -1,25 +1,26 @@
 .PU
-.TH evbtest/ecptest 1 "LLDPAD" "Revision: 0.3"
+.TH qbg22sim 1 "LLDPAD" "Revision: 0.4"
 .SH NAME
-evbtest \- EVB Protocol Test Program for LLDPAD
-.br
-ecptest \- ECP Protocol Test Program for LLDPAD
+qbg22sim \- EVB, ECP and VDP Protocol Test Program for LLDPAD
 .SH SYNOPSIS
 .ll +8
-.B evbtest
-[\-d duration] [\-t timeout] [\-T timeout] [\-v] device [file]
 .br
-.B ecptest
-[\-a timeout][\-d duration] [\-t timeout] [\-T timeout] [\-v] device [file]
+.B qbg22sim
+[\-d duration] [\-t timeout] [\-T timeout] [\-v] device [file]
 .br
 .ll -8
 .SH DESCRIPTION
-.B Evbtest
+.B Qbg22sim
 sends IEEE 802.1ad LLDP protocol messages which contain
 an IEEE802.1Qbg EVB data unit TLV.
-.B Ecptest
+It also
 sends IEEE 802.1Qbg ECP protocol messages which contain
 an arbitrary data payload in TLV format.
+It can automaticly send IEEE 802.1Qbg VDP protocol
+acknowledgements with a given response code.
+Only the IEEE 802.1Qbg Darft 2.2 (ratified on July 5th, 2012)
+is supported.
+.PP
 The mandatory device parameter specifies
 a network interface name.
 This interface is opened in raw mode and
@@ -30,12 +31,12 @@ to multicast addresses for nearest bridge,
 nearest customer bridge and nearest non two port MAC relay bridge.
 The purpose of the low level test program is to test 
 .BR lldpad (8)
-EVB and ECP module interaction by sending EVB/ECP TLV data.
+EVB, ECP and VDP module interaction by sending EVB/ECP TLV data.
 The data is read from one or more files,
 the response received can be displayed on the screen and
 optionally checked against an expected value.
 If no input file is specified
-.B evbtest/ecptest
+.B qbg22sim
 only listen but do not send any data units.
 A dash stands for standard input.
 The input files are preprocessed by 
@@ -44,14 +45,14 @@ All
 .BR cpp (1)
 features can be used, including comments, defines, include files.
 .SS Event Handling
-.B evbtest/ecptest
+.B qbg22sim
 use the select(2) system call to wait for a message and
 a timer event.
 The timer is a periodic timer and initially loaded
 with the values specified with the options -t and -T.
 The default value is one second and zero nano seconds.
 Each time the timer expires
-.B evbtest/ecptest
+.B qbg22sim
 checks for messages to send.
 If the elapsed run time of the program is
 larger or equal to the time specified in the first field
@@ -71,6 +72,52 @@ The first field specifies the elapsed time in seconds
 when the remaining data on the line will be sent.
 .IP 2
 The second field specifies the destination MAC address.
+If the second field on one of the keywords
+.I ecp
+or
+.I vdp
+this entry specifies a command line.
+Command lines alter the behavior of
+.B qbg22sim
+for the named protocol.
+.RS
+In this case the third and forth field
+specify parameter and value.
+At the time specified, the parameter for the
+procotol is changed and applied until the
+program terminates or the
+parameter is changed again.
+For the
+.I ecp
+protocol the valid parameters are
+.IP ack
+The forth field
+specifies the time to wait in seconds until ECP
+protocol
+acknowledgement is sent. A value of 0 stands for
+no delay at all. A value larger then 20 seconds
+disables acknowledgements.
+.IP seqno
+The forth field
+specifies the next sequence number to use when
+a VDP protocol message triggers an ECP acknowledgement.
+.PP
+For the
+.I vdp
+protocol the valid parameters are
+.IP ack
+The forth field
+specifies the time to wait in seconds until VDP
+protocol
+acknowledgement is sent. A value of 0 stands for
+no delay at all. A value larger then 30 seconds
+disables acknowledgements.
+.IP error
+The forth field
+specifies the error number to be returned when
+a VDP protocol message requesting an association
+is received.
+.RE
 .IP 3
 The third field specifies the sender's MAC address.
 A dash ('-') will be replaced by the sender's MAC address on 
@@ -104,15 +151,16 @@ is waited for and searched.
 If the reply contains this TLV and they match, the program
 continues. If they mismatch or the expected TLV is not
 found in the reply,
-.B evbtest 
+.B qbg22sim
 terminates.
 If there is no reply at all
-.B evbtest
+.B qbg22sim
 issues a warning, discards the expected TLV list and continues.
-Missing replies, even when expected TLVs are specified, do not cause
-.B evbtest
+Missing EVB protocol replies,
+even when expected TLVs are specified, do not cause
+.B qbg22sim
 to terminate.
-.B evbtest
+.B qbg22sim
 waits for a possible reply up to the next timer expiration.
 This simulates the LLDP TLV exchange mechanims as defined in the standard.
 .PP
@@ -139,7 +187,7 @@ the first line to simulate fast initialization.
 Same replies are expected.
 .IP C.
 The last line is executed after 20 seconds program run time.
-It sends a TTL TLV of value 0 and causes the EVB TLV on the
+It sends a TTL TLV of value 0 and causes the EVB entry on the
 remote side to be discarded.
 .PP
 .ne 20
@@ -209,24 +257,12 @@ Enables verbose mode. This option can be applied more
 than once.
 Each time specified, the output is more verbose.
 If set once, 
-.B evbtest
+.B qbg22sim
 displays the progress of sent and received messages.
 If set twice,
 the message contents is also displayed.
 If set three times,
 the event wait time is also displayed.
-.TP
-.B "\-a\fItimeout\fP"
-Specifies the number in seconds for
-.B ecptest to wait until an acknowledgement is
-sent out for a received request.
-Defaults to 0 seconds which stands for
-immediate acknowledgement.
-A value larger the 30 seconds stands for no
-aknowledgement at all.
-The flag is not valid for the
-.B evbtest
-program.
 .TP
 .B "\-d\fIduration\fP"
 Specifies the number in seconds the program will run.
