@@ -533,12 +533,10 @@ void init_oper_apptlv(app_attribs *Store, u32 Subtype)
 	memset(Store,0,sizeof(*Store));
 
 	app_it itapp = apptlv_find(&oper_apptlv, DEF_CFG_STORE, Subtype);
-	if (itapp == NULL) {
+	if (!itapp)
 		return;
-	}
-	Store->Length =itapp->second->Length;
-	memcpy(&(Store->AppData), &(itapp->second->AppData),
-			sizeof(Store->Length));
+	Store->Length = itapp->second->Length;
+	memcpy(&Store->AppData, &itapp->second->AppData, Store->Length);
 }
 
 bool add_oper_apptlv(char *device_name, u32 Subtype)
