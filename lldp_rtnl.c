@@ -37,6 +37,7 @@
 #include "linux/rtnetlink.h"
 #include "linux/dcbnl.h"
 #include "linux/if.h"
+#include "lldp_util.h"
 #include "lldp_rtnl.h"
 #include "messages.h"
 #include "lldp.h"
@@ -286,20 +287,11 @@ out:
 
 int get_operstate(char *ifname)
 {
-	int s, ifq;
-	int ifindex = 0;
-	struct ifreq ifr;
+	int s;
+	int ifindex;
 	__u8 operstate = IF_OPER_UNKNOWN;
 
-	/* fill in ifr_ifindex for kernel versions that require it */
-	ifq = socket(PF_PACKET, SOCK_DGRAM, 0);
-	if (ifq < 0)
-		return ifq;
-	strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name) - 1);
-	if (ioctl(ifq, SIOCGIFINDEX, &ifr) == 0)
-		ifindex = ifr.ifr_ifindex;
-	close(ifq);
-
+	ifindex = get_ifidx(ifname);
 	s = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
 	if (s < 0)
 		return s;
