@@ -328,18 +328,24 @@ fail:
 
 int remove_port(char *ifname)
 {
-	struct port *port = NULL;    /* Pointer to port to remove */
+	struct port *port;    /* Pointer to port to remove */
 	struct port *parent = NULL;  /* Pointer to previous on port stack */
-	struct lldp_agent *agent = NULL;
+	struct lldp_agent *agent;
 
-	port = port_find_by_name(ifname);
-
-	if (port == NULL) {
-		LLDPAD_DBG("remove_port: port not present\n");
+	for (port = porthead; port; port = port->next) {
+		if (!strncmp(ifname, port->ifname, IFNAMSIZ)) {
+			LLDPAD_DBG("In %s: Found port %s\n", __func__,
+				   port->ifname);
+			break;
+		}
+		parent = port;
+	}
+	if (!port) {
+		LLDPAD_DBG("%s: port not present\n", __func__);
 		return -1;
 	}
 
-	LLDPAD_DBG("In remove_port: Found port %s\n", port->ifname);
+	LLDPAD_DBG("In %s: Found port %s\n", __func__, port->ifname);
 
 	/* Set linkmode to off */
 	set_linkmode(ifname, 0);
@@ -378,7 +384,6 @@ int remove_port(char *ifname)
 
 		LIST_REMOVE(agent, entry);
 		free(agent);
-
 	}
 
 	/* Take this port out of the chain */
