@@ -151,6 +151,13 @@ remove lldpad state records from shared memory
 do not create PID file /var/run/lldpad.pid on startup
 .PP
 
+.SH NOTE
+On termination, lldpad does not undo any of the configurations that
+it has set. This approach minimizes the risk of restarting the daemon
+to perform a software update, or of having storage issues during
+shutdown. Ongoing operation of network interfaces that had been
+controlled by lldpad may result in unexpected behavior.
+
 .SH SEE ALSO
 .BR dcbtool (8),
 .BR lldptool (8),
