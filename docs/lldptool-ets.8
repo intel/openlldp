@@ -74,7 +74,7 @@ on. Undefined bandwidths are presumed to be 0.
 .sp
 .TP
 .B numtcs
-Sets/Displays the number of ETS supported traffic classes.
+Displays the number of ETS supported traffic classes.
 
 .SH Theory of Operations
 
@@ -86,22 +86,19 @@ valid configuration is to map all priorities to a single traffic class
 and use the link strict selection algorithm. This is equivalent to
 being in a non-DCB enabled mode.
 
-To support legacy CEE DCBX the ETS-CFG and ETS-REC TLVs are disabled
-if a CEE TLV is received and there are no valid IEEE 802.1Qaz TLVs
-present. At this time the hardware DCBX mode will be set to CEE and
-IEEE mode is disabled. This allows switches to be configured and
+To support legacy DCBX (CIN or CEE) the ETS-CFG and ETS-REC TLVs are disabled
+if a legacy DCBX TLV is received and no valid IEEE DCBX TLVs
+are received. The hardware DCBX mode will also be set to the legacy
+mode and IEEE mode is disabled. This allows switches to be configured and
 end nodes will then be configured accordingly without any configuration 
-required on the end node.
+required on the end node.  See \fIlldpad(8)\fR for more information
+about the operation of the DCBX selection mechanism.
 
 Mapping applications and protocols to traffic classes is required for
 ETS to be useful. User space programs can encode the priority of an
-application with the SO_PRIORITY option. Low level drivers that support
-priority to traffic class mappings may enable this mode by default. For
-drivers that do not support this mode, manual configuration can support
-this mode of operation. See \fItc-mqprio(8)\fR and \fItc-multiq\fR.
-Additionally, tc qdiscs and filters can be used to map protocols to queues
-see \fItc(8)\fR for more details along these lines. Finally, many drivers
-have support for specific protocols ie Fiber Channel over Ethernet (FCoE).
+application with the SO_PRIORITY option. The net_prio cgroup can be
+used to assign application traffic to specific priorities.  See the
+kernel documentation and \fIcgdcbxd(8)\fR for net_prio cgroup information.
 
 .B 
 .SH EXAMPLE & USAGE

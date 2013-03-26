@@ -23,11 +23,11 @@ CEE DCBX
 IEEE DCBX
 See the IEEE 802.1Qaz-2011 specification for details."
 .PP
-IEEE DCBX is the default DCBX mode for a DCB capable interface. Therefore the default and configured IEEE DCBX TLV's will be
+IEEE DCBX is the default DCBX mode for a DCB capable interface. Therefore the default and configured IEEE DCBX TLVs will be
 transmitted when the interface comes up.
 .B lldpad
 can be globally configured to support one of the legacy DCBX versions (CIN or CEE).  If the remote LLDP agent does not
-transmit any IEEE DCBX TLV's and does transmit a legacy DCBX TLV which matches the configured legacy DCBX version, then the
+transmit any IEEE DCBX TLVs and does transmit a legacy DCBX TLV which matches the configured legacy DCBX version, then the
 DCBX mode will drop back to legacy DCBX mode.  It will not transition
 back to IEEE DCBX mode until the next link reset.  If 
 .B lldpad
@@ -39,10 +39,12 @@ is restarted and is not persistent across a system reboot.
 .sp
 The DCBX mode can be queried and configured by using the special tlvid
 .B IEEE-DCBX.
-There is not an actual TLV which corresponds to this tlvid.  It's use is to query and reset the IEEE DCBX mode.  When queried,
+There is not an actual TLV which corresponds to this tlvid.  Its use is to query and reset the IEEE DCBX mode.  When queried,
 IEEE DCBX mode can take the following values:
 
-.BR auto " - IEEE DCBX will be used (intially) if lldpad is restarted"
+.BR auto " - IEEE DCBX will be used (intially) if lldpad is restarted.  An exception is if the DCBX mode has been forced to a
+legacy DCBX mode, then the specified legacy mode will be used.  See information about the 'dcbx' parameter in dcbtool(8) for
+more information about this exception."
 .sp
 .BR CEE " - CEE DCBX will be used if lldpad is restarted"
 .sp
@@ -57,13 +59,13 @@ argument to the value
 .B reset
 
 .SH DESCRIPTION - DCBX CONFIGURATION
-The detailed configuration of the IEEE DCBX TLV's can be found in related lldptool man pages for each IEEE DCBX TLV (see
+The detailed configuration of the IEEE DCBX TLVs can be found in related lldptool man pages for each IEEE DCBX TLV (see
 lldptool-pfc(8), lldptool-ets(8) and lldptool-app(8)).
 .sp
-The detailed configuration of the CIN and CEE DCBX TLV's is performed using dcbtool (see dcbtool(8)).  However, lldptool
-can configure the enableTx parameter of the CIN and CEE DCBX TLV's (as it can with most other TLV's).  Since lldpad only
-transmits TLV's for one version of DCBX on any given interface, the enableTx parameter for the CIN and CEE DCBX TLV's (and
-for the IEEE DCBX feature TLV's) takes effect only when the corresponding DCBX version is active.
+The detailed configuration of the CIN and CEE DCBX TLVs is performed using dcbtool (see dcbtool(8)).  However, lldptool
+can configure the enableTx parameter of the CIN and CEE DCBX TLVs (as it can with most other TLVs).  Since lldpad only
+transmits TLVs for one version of DCBX on any given interface, the enableTx parameter for the CIN and CEE DCBX TLVs (and
+for the IEEE DCBX feature TLVs) takes effect only when the corresponding DCBX version is active.
 
 .SH ARGUMENTS
 .TP
