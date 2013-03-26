@@ -82,11 +82,11 @@ version 2 - also known as CEE DCBX
 IEEE DCBX
 See the IEEE 802.1Qaz-2011 specification for details.
 .PP
-IEEE DCBX is the default DCBX mode for a DCB capable interface so the default and configured IEEE DCBX TLV's will be
+IEEE DCBX is the default DCBX mode for a DCB capable interface so the default and configured IEEE DCBX TLVs will be
 transmitted when the interface comes up.
 .B lldpad
 can be globally configured to support one of the legacy DCBX versions (CIN or CEE).  If the remote LLDP agent does not
-transmit any IEEE DCBX TLV's and does transmit a legacy DCBX TLV which matches the configured legacy DCBX version, then the
+transmit any IEEE DCBX TLVs and does transmit a legacy DCBX TLV which matches the configured legacy DCBX version, then the
 DCBX mode will drop back to legacy DCBX mode.  It will not transition
 back to IEEE DCBX mode until the next link reset.  If 
 .B lldpad

@@ -14,12 +14,12 @@ selector and protocol field the local parameter is used.
 .SH ARGUMENTS
 .TP
 .B app
-Configures a local application data field using the three parameters
-priority (prio), selector (sel), and protocol (pid). The -d option
+Configures a local application data field using the three parameters: priority
+(prio), selector (sel), and protocol (pid). The -d option
 can be provided to remove an entry which matches the three parameters.
 
 .SH Theory of Operations
-The APP TLV is an informational TLV for most end stations it is not expected
+The APP TLV is an informational TLV for most end stations. It is not expected
 that setting APP data should be required. Peer data will be processed and
 added to the application data table by default assuming there does not
 already exist a local entry with matching selector and priority fields.
