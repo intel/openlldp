@@ -157,6 +157,24 @@ static void event_if_decode_rta(int type, struct rtattr *rta, int *ls, char *d)
 	case IFLA_GROUP:
 		LLDPAD_DBG(" IFLA_GROUP\n");
 		break;
+	case IFLA_NET_NS_FD:
+		LLDPAD_DBG(" IFLA_NET_NS_FD\n");
+		break;
+	case IFLA_EXT_MASK:
+		LLDPAD_DBG(" IFLA_EXT_MASK\n");
+		break;
+	case IFLA_PROMISCUITY:
+		LLDPAD_DBG(" IFLA_PROMISCUITY\n");
+		break;
+	case IFLA_NUM_TX_QUEUES:
+		LLDPAD_DBG(" IFLA_NUM_TX_QUEUES\n");
+		break;
+	case IFLA_NUM_RX_QUEUES:
+		LLDPAD_DBG(" IFLA_NUM_RX_QUEUES\n");
+		break;
+	case IFLA_CARRIER:
+		LLDPAD_DBG(" IFLA_CARRIER\n");
+		break;
 	default:
 		LLDPAD_DBG(" unknown type : 0x%02x\n", type);
 		break;
