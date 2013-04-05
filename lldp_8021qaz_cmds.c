@@ -138,10 +138,6 @@ get_arg_dcbx_mode(struct cmd *cmd, char *args, UNUSED char *arg_value,
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8):
 		break;
@@ -150,6 +146,10 @@ get_arg_dcbx_mode(struct cmd *cmd, char *args, UNUSED char *arg_value,
 	default:
 		return cmd_not_applicable;
 	}
+
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (!tlvs)
+		return cmd_device_not_found;
 
 	switch (lldpad_shm_get_dcbx(cmd->ifname)) {
 	case dcbx_subtype0:
@@ -181,10 +181,6 @@ static int set_arg_dcbx_mode(struct cmd *cmd, UNUSED char *args,
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8):
 		break;
@@ -196,6 +192,10 @@ static int set_arg_dcbx_mode(struct cmd *cmd, UNUSED char *args,
 
 	if (strcmp(arg_value, "reset"))
 		return cmd_invalid;
+
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (!tlvs)
+		return cmd_device_not_found;
 
 	lldpad_shm_set_dcbx(cmd->ifname, dcbx_subtype0);
 	snprintf(obuf, obuf_len, "mode = %s\n", arg_value);
@@ -214,16 +214,25 @@ test_arg_dcbx_mode(UNUSED struct cmd *cmd, UNUSED char *args,
 static int get_arg_willing(struct cmd *cmd, char *args,
 			   UNUSED char *arg_value, char *obuf, int obuf_len)
 {
-	int willing;
+	int willing = 0;
 	struct ieee8021qaz_tlvs *tlvs;
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
 
+	switch (cmd->tlvid) {
+	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
+	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC:
+		break;
+	case INVALID_TLVID:
+		return cmd_invalid;
+	default:
+		return cmd_not_applicable;
+	}
+
 	tlvs = ieee8021qaz_data(cmd->ifname);
 	if (!tlvs)
 		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
 		willing = tlvs->ets->cfgl->willing;
@@ -231,10 +240,6 @@ static int get_arg_willing(struct cmd *cmd, char *args,
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC:
 		willing = tlvs->pfc->local.willing;
 		break;
-	case INVALID_TLVID:
-		return cmd_invalid;
-	default:
-		return cmd_not_applicable;
 	}
 
 	if (willing)
@@ -258,10 +263,6 @@ static int _set_arg_willing(struct cmd *cmd, char *args,
 
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
-
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
 
 
 
@@ -288,12 +289,7 @@ static int _set_arg_willing(struct cmd *cmd, char *args,
 
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
-		if (!test)
-			tlvs->ets->cfgl->willing = !!willing;
-		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC:
-		if (!test)
-			tlvs->pfc->local.willing = !!willing;
 		break;
 	case INVALID_TLVID:
 		return cmd_invalid;
@@ -303,6 +299,19 @@ static int _set_arg_willing(struct cmd *cmd, char *args,
 
 	if (test)
 		return cmd_success;
+
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (!tlvs)
+		return cmd_device_not_found;
+
+	switch (cmd->tlvid) {
+	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
+		tlvs->ets->cfgl->willing = !!willing;
+		break;
+	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC:
+		tlvs->pfc->local.willing = !!willing;
+		break;
+	}
 
 	snprintf(obuf, obuf_len, "willing = %s\n",
 		 !!willing ? VAL_YES : VAL_NO);
@@ -336,10 +345,6 @@ static int get_arg_numtc(struct cmd *cmd, char *args,
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
 		break;
@@ -350,6 +355,10 @@ static int get_arg_numtc(struct cmd *cmd, char *args,
 	default:
 		return cmd_not_applicable;
 	}
+
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (!tlvs)
+		return cmd_device_not_found;
 
 	snprintf(obuf, obuf_len, "%02x%s%04x%i",
 		(unsigned int) strlen(args), args, 1, tlvs->ets->cfgl->max_tcs);
@@ -370,16 +379,25 @@ static int get_arg_up2tc(struct cmd *cmd, char *args,
 {
 	struct ieee8021qaz_tlvs *tlvs;
 	char buf[250] = "";
-	u32 *pmap;
+	u32 *pmap = NULL;
 	int i;
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
 
+	switch (cmd->tlvid) {
+	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
+	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
+		break;
+	case INVALID_TLVID:
+		return cmd_invalid;
+	default:
+		return cmd_not_applicable;
+	}
+
 	tlvs = ieee8021qaz_data(cmd->ifname);
 	if (!tlvs)
 		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
 		pmap = &tlvs->ets->cfgl->prio_map;
@@ -387,10 +405,6 @@ static int get_arg_up2tc(struct cmd *cmd, char *args,
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
 		pmap = &tlvs->ets->recl->prio_map;
 		break;
-	case INVALID_TLVID:
-		return cmd_invalid;
-	default:
-		return cmd_not_applicable;
 	}
 
 	for (i = 0; i < 8; i++) {
@@ -427,16 +441,18 @@ _set_arg_up2tc(struct cmd *cmd, char *args, const char *arg_value,
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
+		tlvs = ieee8021qaz_data(cmd->ifname);
+		if (!tlvs)
+			return cmd_device_not_found;
 		pmap = &tlvs->ets->cfgl->prio_map;
 		max = tlvs->ets->cfgl->max_tcs;
 		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
+		tlvs = ieee8021qaz_data(cmd->ifname);
+		if (!tlvs)
+			return cmd_device_not_found;
 		pmap = &tlvs->ets->recl->prio_map;
 		max = MAX_TCS;
 		break;
@@ -568,15 +584,17 @@ static int get_arg_tcbw(struct cmd *cmd, char *args,
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
+		tlvs = ieee8021qaz_data(cmd->ifname);
+		if (!tlvs)
+			return cmd_device_not_found;
 		bmap = tlvs->ets->cfgl->tc_bw;
 		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
+		tlvs = ieee8021qaz_data(cmd->ifname);
+		if (!tlvs)
+			return cmd_device_not_found;
 		bmap = tlvs->ets->recl->tc_bw;
 		break;
 	case INVALID_TLVID:
@@ -613,15 +631,17 @@ _set_arg_tcbw(struct cmd *cmd, char *args, const char *arg_value,
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
+		tlvs = ieee8021qaz_data(cmd->ifname);
+		if (!tlvs)
+			return cmd_device_not_found;
 		tcbw = tlvs->ets->cfgl->tc_bw;
 		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
+		tlvs = ieee8021qaz_data(cmd->ifname);
+		if (!tlvs)
+			return cmd_device_not_found;
 		tcbw = tlvs->ets->recl->tc_bw;
 		break;
 	case INVALID_TLVID:
@@ -696,15 +716,17 @@ static int get_arg_tsa(struct cmd *cmd, char *args, UNUSED char *arg_value,
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
+		tlvs = ieee8021qaz_data(cmd->ifname);
+		if (!tlvs)
+			return cmd_device_not_found;
 		tsa = tlvs->ets->cfgl->tsa_map;
 		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
+		tlvs = ieee8021qaz_data(cmd->ifname);
+		if (!tlvs)
+			return cmd_device_not_found;
 		tsa = tlvs->ets->recl->tsa_map;
 		break;
 	case INVALID_TLVID:
@@ -764,15 +786,17 @@ _set_arg_tsa(struct cmd *cmd, char *args, const char *arg_value,
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
+		tlvs = ieee8021qaz_data(cmd->ifname);
+		if (!tlvs)
+			return cmd_device_not_found;
 		tsa = tlvs->ets->cfgl->tsa_map;
 		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
+		tlvs = ieee8021qaz_data(cmd->ifname);
+		if (!tlvs)
+			return cmd_device_not_found;
 		tsa = tlvs->ets->recl->tsa_map;
 		break;
 	case INVALID_TLVID:
@@ -892,10 +916,6 @@ static int get_arg_enabled(struct cmd *cmd, char *args, UNUSED char *arg_value,
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC:
 		break;
@@ -904,6 +924,10 @@ static int get_arg_enabled(struct cmd *cmd, char *args, UNUSED char *arg_value,
 	default:
 		return cmd_not_applicable;
 	}
+
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (!tlvs)
+		return cmd_device_not_found;
 
 	pfc = tlvs->pfc->local.pfc_enable;
 
@@ -946,10 +970,6 @@ static int _set_arg_enabled(struct cmd *cmd, char *args,
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC:
 		break;
@@ -958,6 +978,10 @@ static int _set_arg_enabled(struct cmd *cmd, char *args,
 	default:
 		return cmd_not_applicable;
 	}
+
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (!tlvs)
+		return cmd_device_not_found;
 
 	parse = strdup(arg_value);
 	if (!parse)
@@ -1043,10 +1067,6 @@ static int get_arg_delay(struct cmd *cmd, char *args,
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC:
 		break;
@@ -1055,6 +1075,10 @@ static int get_arg_delay(struct cmd *cmd, char *args,
 	default:
 		return cmd_not_applicable;
 	}
+
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (!tlvs)
+		return cmd_device_not_found;
 
 	snprintf(obuf, obuf_len, "%02x%s%04x%02x",
 		(unsigned int) strlen(args), args, 2,
@@ -1073,10 +1097,6 @@ static int _set_arg_delay(struct cmd *cmd, char *args,
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC:
 		break;
@@ -1085,6 +1105,10 @@ static int _set_arg_delay(struct cmd *cmd, char *args,
 	default:
 		return cmd_not_applicable;
 	}
+
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (!tlvs)
+		return cmd_device_not_found;
 
 	if (test)
 		return cmd_success;
@@ -1127,10 +1151,6 @@ static int get_arg_app(struct cmd *cmd, char *args, UNUSED char *arg_value,
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_APP:
 		break;
@@ -1139,6 +1159,10 @@ static int get_arg_app(struct cmd *cmd, char *args, UNUSED char *arg_value,
 	default:
 		return cmd_not_applicable;
 	}
+
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (!tlvs)
+		return cmd_device_not_found;
 
 	LIST_FOREACH(np, &tlvs->app_head, entry) {
 		char new_app[80];
@@ -1208,10 +1232,6 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_APP:
 		break;
@@ -1220,6 +1240,10 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	default:
 		return cmd_not_applicable;
 	}
+
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (!tlvs)
+		return cmd_device_not_found;
 
 	parse = strdup(arg_value);
 	if (!parse)
