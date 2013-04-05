@@ -45,13 +45,6 @@
 #include "lldpad_status.h"
 #include "lldp/states.h"
 
-static const char * const vsi_modes[] = {
-	[VDP_MODE_PREASSOCIATE] = "VDP_MODE_PREASSOCIATED",
-	[VDP_MODE_PREASSOCIATE_WITH_RR] = "VDP_MODE_PREASSOCIATED_WITH_RR",
-	[VDP_MODE_ASSOCIATE] = "VDP_MODE_ASSOCIATED",
-	[VDP_MODE_DEASSOCIATE] = "VDP_MODE_DEASSOCIATED",
-};
-
 static char *check_and_update(size_t *total, size_t *length, char *s, int c)
 {
 	if (c < 0)
@@ -63,62 +56,18 @@ static char *check_and_update(size_t *total, size_t *length, char *s, int c)
 	return s + c;
 }
 
-static char *print_profile(char *s, size_t length, struct vsi_profile *p)
+static char *print_mode(char *s, size_t length, struct vsi_profile *p)
 {
 	int c;
 	size_t	total = 0;
 	char *r = s;
 	struct mac_vlan *mac_vlan;
+	char instance[VDP_UUID_STRLEN + 2];
 
-	c = snprintf(s, length, "\nmode: %i (%s)\n",
-			p->mode, vsi_modes[p->mode]);
-	s = check_and_update(&total, &length, s, c);
-	if (!s)
-		return r;
-
-	c = snprintf(s, length, "response: %i (%s)\n", p->response,
-		     vdp_response2str(p->response));
-	s = check_and_update(&total, &length, s, c);
-	if (!s)
-		return r;
-
-	c = snprintf(s, length, "state: %i (%s)\n",
-		     p->state, vsi_states[p->state]);
-	s = check_and_update(&total, &length, s, c);
-	if (!s)
-		return r;
-
-	c = snprintf(s, length, "mgrid: %i\n", p->mgrid);
-	s = check_and_update(&total, &length, s, c);
-	if (!s)
-		return r;
-
-	c = snprintf(s, length, "id: %i (%#x)\n", p->id, p->id);
-	s = check_and_update(&total, &length, s, c);
-	if (!s)
-		return r;
-
-	c = snprintf(s, length, "version: %i\n", p->version);
-	s = check_and_update(&total, &length, s, c);
-	if (!s)
-		return r;
-
-	{
-		char instance[VDP_UUID_STRLEN + 2];
-
-		vdp_uuid2str(p->instance, instance, sizeof(instance));
-		c = snprintf(s, length, "instance: %s\n", &instance[0]);
-	}
-	s = check_and_update(&total, &length, s, c);
-	if (!s)
-		return r;
-
-	c = snprintf(s, length, "format: %#x\n", p->format);
-	s = check_and_update(&total, &length, s, c);
-	if (!s)
-		return r;
-
-	c = snprintf(s, length, "entries: %u\n", p->entries);
+	vdp_uuid2str(p->instance, instance, sizeof(instance));
+	c = snprintf(s, length, "%d,%d,%d,%d,%s,%d",
+		     p->state, p->mgrid, p->id, p->version, instance,
+		     p->format);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
 		return r;
@@ -127,32 +76,11 @@ static char *print_profile(char *s, size_t length, struct vsi_profile *p)
 		char macbuf[MAC_ADDR_STRLEN + 1];
 
 		mac2str(mac_vlan->mac, macbuf, MAC_ADDR_STRLEN);
-		c = snprintf(s, length, "mac: %s\n", macbuf);
-		s = check_and_update(&total, &length, s, c);
-		if (!s)
-			return r;
-
-		c = snprintf(s, length, "vlan: %i\n", mac_vlan->vlan);
-		s = check_and_update(&total, &length, s, c);
-		if (!s)
-			return r;
-
-		c = snprintf(s, length, "qos: %i\n", mac_vlan->qos);
-		s = check_and_update(&total, &length, s, c);
-		if (!s)
-			return r;
-
-		c = snprintf(s, length, "pid: %i\n", mac_vlan->req_pid);
-		s = check_and_update(&total, &length, s, c);
-		if (!s)
-			return r;
-
-		c = snprintf(s, length, "seq: %i\n", mac_vlan->req_seq);
+		c = snprintf(s, length, ",%s,%d", macbuf, mac_vlan->vlan);
 		s = check_and_update(&total, &length, s, c);
 		if (!s)
 			return r;
 	}
-
 	return s;
 }
 
@@ -246,10 +174,10 @@ static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 static int get_arg_mode(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 			char *obuf, int obuf_len)
 {
-	char *s, *t;
 	struct vsi_profile *np;
 	struct vdp_data *vd;
-	int count=0;
+	char mode_str[VDP_BUF_SIZE], *t = mode_str;
+	int filled = 0;
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
@@ -270,21 +198,15 @@ static int get_arg_mode(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		return cmd_device_not_found;
 	}
 
-	LIST_FOREACH(np, &vd->profile_head, profile)
-		count++;
-
-	s = t = malloc((count + 1) * VDP_BUF_SIZE);
-	if (!s)
-		return cmd_invalid;
-	memset(s, 0, (count + 1) * VDP_BUF_SIZE);
-
-	LIST_FOREACH(np, &vd->profile_head, profile)
-		t = print_profile(t, (count + 1) * VDP_BUF_SIZE, np);
+	memset(mode_str, 0, sizeof mode_str);
+	LIST_FOREACH(np, &vd->profile_head, profile) {
+		t = print_mode(t, sizeof(mode_str) - filled, np);
+		filled = t - mode_str;
+	}
 
 	snprintf(obuf, obuf_len, "%02x%s%04x%s",
-		 (unsigned int)strlen(arg), arg, (unsigned int)strlen(s), s);
-
-	free(s);
+		 (unsigned int)strlen(arg), arg, (unsigned int)strlen(mode_str),
+		 mode_str);
 	return cmd_success;
 }
 
