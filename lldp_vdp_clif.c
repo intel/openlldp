@@ -33,12 +33,75 @@
 #include "clif_msgs.h"
 #include "lldp.h"
 #include "lldp_vdp.h"
+#include "lldp_vdp_cmds.h"
 #include "lldp_vdp_clif.h"
+#include "lldp_mand_clif.h"
 
-static void vdp_print_cfg_tlv(UNUSED u16 len, UNUSED char *info)
+static const char *mode_state(int mode)
 {
-       /* TODO: this should print out all associated VSI mac/vlan pairs */
-       printf("TODO print out all associated VSI mac/vlan pairs\n");
+	switch (mode) {
+	case VDP_MODE_PREASSOCIATE_WITH_RR:
+		return "Preassociated with RR";
+	case VDP_MODE_DEASSOCIATE:
+		return "Disassociated";
+	case VDP_MODE_ASSOCIATE:
+		return "Associated";
+	case VDP_MODE_PREASSOCIATE:
+		return "Preassociated";
+	default: return "unknown";
+	}
+}
+
+/*
+ * Print a complete VDP TLV. Data string constructed in function
+ * vdp_clif_profile().
+ */
+static void vdp_show_tlv(UNUSED u16 len, char *info)
+{
+	int rc, role, enabletx, vdpbit, mode, response, mgrid, id, idver;
+	unsigned int x[16];
+
+	rc = sscanf(info, "%02x%02x%02x%02x%02x%02x%06x%02x",
+		    &role, &enabletx, &vdpbit, &mode, &response, &mgrid,
+		    &id, &idver);
+	if (rc != 3 && rc != 8)
+		return;
+	printf("Role:%s\n", role ? VAL_BRIDGE : VAL_STATION);
+	printf("\tEnabled:%s\n", enabletx ? VAL_YES : VAL_NO);
+	printf("\tVDP Bit:%s\n", vdpbit ? VAL_YES : VAL_NO);
+	if (rc == 3)		/* No active VSI profile */
+		return;
+	printf("\tMode:%d (%s)\n", mode, mode_state(mode));
+	printf("\tMgrid:%d\n", mgrid);
+	printf("\tTypeid:%d\n", id);
+	printf("\tTypeidversion:%d\n", idver);
+	rc = sscanf(info + 20, "%02x%02x%02x%02x%02x%02x%02x%02x"
+		    "%02x%02x%02x%02x%02x%02x%02x%02x",
+		    &x[0], &x[1], &x[2], &x[3], &x[4], &x[5], &x[6], &x[7],
+		    &x[8], &x[9], &x[10], &x[11], &x[12], &x[13], &x[14],
+		    &x[15]);
+	if (rc != 16)
+		return;
+	printf("\tUUID:%02x%02x%02x%02x-%02x%02x-%02x%02x"
+	       "-%02x%02x-%02x%02x%02x%02x%02x%02x\n", x[0], x[1], x[2], x[3],
+	       x[4], x[5], x[6], x[7], x[8], x[9], x[10], x[11], x[12], x[13],
+	       x[14], x[15]);
+	mode = 52;
+	rc = sscanf(info + mode, "%02x%04x", &role, &vdpbit);
+	if (rc != 2)
+		return;
+	printf("\tFilter Format:%d\n", role);
+	printf("\tEntries:%d\n", vdpbit);
+	mode += 6;
+	while (--vdpbit >= 0) {
+		rc = sscanf(info + mode, "%02x%02x%02x%02x%02x%02x%04x",
+			    &x[0], &x[1], &x[2], &x[3], &x[4], &x[5], &x[6]);
+		if (rc != 7)
+			return;
+		printf("\t\tMAC:%02x:%02x:%02x:%02x:%02x:%02x\tVlanid:%d\n",
+		       x[0], x[1], x[2], x[3], x[4], x[5], x[6]);
+		mode += 16;
+	}
 }
 
 static struct type_name_info vdp_tlv_names[] = {
@@ -46,7 +109,7 @@ static struct type_name_info vdp_tlv_names[] = {
 		.type = ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE,
 		.name = "VDP draft 0.2 protocol configuration",
 		.key = "vdp",
-		.print_info = vdp_print_cfg_tlv
+		.print_info = vdp_show_tlv
 	},
 	{
 		.type = INVALID_TLVID
