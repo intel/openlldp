@@ -35,7 +35,6 @@
 #include "lldp.h"
 #include "lldp_vdp.h"
 #include "lldp_mand_clif.h"
-#include "lldp_vdp_clif.h"
 #include "lldp_vdp_cmds.h"
 #include "lldp_qbg_utils.h"
 #include "lldp/ports.h"

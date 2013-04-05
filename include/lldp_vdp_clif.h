@@ -29,10 +29,4 @@
 
 struct lldp_module *vdp_cli_register(void);
 
-#define VDP_BUF_SIZE                   256
-
-#define VDP_PREFIX                     "vdp"
-#define ARG_VDP_MODE                   "mode"
-#define ARG_VDP_ROLE                   "role"
-
 #endif

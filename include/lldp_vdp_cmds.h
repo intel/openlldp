@@ -37,7 +37,11 @@ enum {
        FORMAT,
 };
 
-#define VAL_STATION    "station"
-#define VAL_BRIDGE     "bridge"
+#define VAL_STATION	"station"
+#define VAL_BRIDGE	"bridge"
+#define ARG_VDP_MODE	"mode"
+#define ARG_VDP_ROLE	"role"
+#define VDP_PREFIX	"vdp"
+#define VDP_BUF_SIZE	256
 
 #endif
