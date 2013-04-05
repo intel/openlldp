@@ -524,6 +524,8 @@ static int request(struct clif *clif, int argc, char *argv[])
 			if (!command.tlvid || errno || *end != '\0' ||
 			    end == optarg) {
 				command.tlvid = lookup_tlvid(optarg);
+				if (!strcasecmp("vdp", optarg))
+					command.module_id = command.tlvid;
 			}
 
 			if (command.tlvid == INVALID_TLVID) {
@@ -584,6 +586,12 @@ static int request(struct clif *clif, int argc, char *argv[])
 			ret = -1;
 		}
 	}
+	/*
+	 * If -V vdp option is set together with -c option, use standard
+	 * module to retrieve data.
+	 */
+	if ((command.ops & op_config) && command.tlvid == command.module_id)
+		command.module_id = LLDP_MOD_MAND;
 
 	/* if no command was supplied via an option flag, then
 	 * the first remaining argument should be the command.
