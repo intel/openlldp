@@ -334,7 +334,7 @@ static void vdp_fill_profile(struct vsi_profile *profile, char *buffer,
 	}
 }
 
-static struct vsi_profile *vdp_parse_mode_line(char * argvalue)
+static struct vsi_profile *vdp_parse_mode_line(char *argvalue)
 {
 	int field;
 	char *cmdstring, *parsed;
@@ -372,7 +372,10 @@ static struct vsi_profile *vdp_parse_mode_line(char * argvalue)
 		if (mac_vlan == NULL)
 			goto out_free;
 
-		str2mac(parsed, &mac_vlan->mac[0], MAC_ADDR_LEN);
+		if (str2mac(parsed, &mac_vlan->mac[0], MAC_ADDR_LEN)) {
+			free(mac_vlan);
+			goto out_free;
+		}
 
 		parsed = strtok(NULL, ",");
 		if (parsed == NULL) {
@@ -420,7 +423,7 @@ static int _set_arg_mode(struct cmd *cmd, char *argvalue, bool test)
 
 	if (!profile->port) {
 		vdp_delete_profile(profile);
-		return cmd_invalid;
+		return cmd_device_not_found;
 	}
 
 	vd = vdp_data(cmd->ifname);
@@ -435,12 +438,6 @@ static int _set_arg_mode(struct cmd *cmd, char *argvalue, bool test)
 	}
 
 	p = vdp_add_profile(vd, profile);
-
-	if (!p) {
-		vdp_delete_profile(profile);
-		return cmd_invalid;
-	}
-
 	if (profile != p)
 		vdp_delete_profile(profile);
 
