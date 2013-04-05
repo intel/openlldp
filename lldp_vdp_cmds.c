@@ -64,7 +64,7 @@ static char *check_and_update(size_t *total, size_t *length, char *s, int c)
 	return s + c;
 }
 
-char *print_profile(char *s, size_t length, struct vsi_profile *p)
+static char *print_profile(char *s, size_t length, struct vsi_profile *p)
 {
 	int c;
 	size_t	total = 0;

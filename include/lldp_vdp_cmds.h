@@ -27,7 +27,6 @@
 #define _LLDP_VDP_CMDS_H
 
 struct arg_handlers *vdp_get_arg_handlers();
-char *print_profile(char *, size_t, struct vsi_profile *);
 
 enum {
        MODE = 0,
