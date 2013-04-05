@@ -44,7 +44,7 @@ static void vdp_print_cfg_tlv(UNUSED u16 len, UNUSED char *info)
 static struct type_name_info vdp_tlv_names[] = {
 	{
 		.type = ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE,
-		.name = "VDP protocol configuration",
+		.name = "VDP draft 0.2 protocol configuration",
 		.key = "vdp",
 		.print_info = vdp_print_cfg_tlv
 	},
