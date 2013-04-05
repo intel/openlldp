@@ -1659,10 +1659,18 @@ out_err:
 		   __func__, ifname, agent->type);
 }
 
+static int vdp_client_cmd(UNUSED void *data, UNUSED struct sockaddr_un *from,
+		   UNUSED socklen_t fromlen, char *ibuf, int ilen,
+		   char *rbuf, int rlen)
+{
+	return vdp_clif_cmd(ibuf, ilen, rbuf, rlen);
+}
+
 static const struct lldp_mod_ops vdp_ops =  {
 	.lldp_mod_register	= vdp_register,
 	.lldp_mod_unregister	= vdp_unregister,
 	.get_arg_handler	= vdp_get_arg_handlers,
+	.client_cmd             = vdp_client_cmd
 };
 
 /* vdp_register - register vdp module to lldpad
