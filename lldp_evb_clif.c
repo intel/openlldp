@@ -40,7 +40,7 @@ static void evb_print_cfg_tlv(u16, char *);
 static struct type_name_info evb_tlv_names[] = {
 	{
 		.type = TLVID_8021Qbg(LLDP_EVB_SUBTYPE),
-		.name = "EVB Configuration TLV",
+		.name = "EVB draft 0.2 Configuration TLV",
 		.key = "evbCfg",
 		.print_info = evb_print_cfg_tlv
 	},
