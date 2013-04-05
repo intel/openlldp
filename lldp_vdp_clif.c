@@ -124,7 +124,7 @@ struct lldp_module *vdp_cli_register(void)
 		fprintf(stderr, "failed to malloc module data\n");
 		return NULL;
        }
-       mod->id = LLDP_MOD_VDP;
+       mod->id = (LLDP_MOD_VDP << 8) | LLDP_VDP_SUBTYPE;
        mod->ops = &vdp_ops_clif;
        return mod;
 }
