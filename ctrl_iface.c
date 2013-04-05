@@ -118,7 +118,7 @@ int clif_iface_module(struct clif_data *clifd,
 
 	mod = find_module_by_id(&lldp_head, module_id);
 
-	if (mod)
+	if (mod && mod->ops && mod->ops->client_cmd)
 		return  (mod->ops->client_cmd)(clifd, from, fromlen,
 			 cmd_start, cmd_len, rbuf+strlen(rbuf), rlen);
 	else
