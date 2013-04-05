@@ -38,6 +38,7 @@
 #include "lldp_vdp_cmds.h"
 #include "lldp_qbg_utils.h"
 #include "lldp/ports.h"
+#include "lldp_tlv.h"
 #include "messages.h"
 #include "libconfig.h"
 #include "config.h"
@@ -505,4 +506,150 @@ static struct arg_handlers arg_handlers[] = {
 struct arg_handlers *vdp_get_arg_handlers()
 {
 	return &arg_handlers[0];
+}
+
+/*
+ * Interface to build information for lldptool -V vdp
+ */
+struct tlv_info_vdp_nopp {	/* VSI information without profile data */
+	u8 oui[3];		/* OUI */
+	u8 sub;			/* Subtype */
+	u8 role;		/* Role: station or bridge */
+	u8 enabletx;
+	u8 vdpbit_on;
+}  __attribute__ ((__packed__));
+
+/*
+ * Flatten a profile stored as TLV and append it. Skip the first 4 bytes.
+ * They contain the OUI already stored.
+ * Returns the number of bytes added to the buffer.
+ */
+static int add_profile(unsigned char *pdu, size_t pdusz, struct vdp_data *vdp)
+{
+	size_t size = 0;
+
+	if (!vdp->vdp)
+		return size;
+	size = (unsigned)TLVSIZE(vdp->vdp) - 4;
+	if (pdusz >= size)
+		memcpy(pdu, vdp->vdp->info + 4, size);
+	else {
+		LLDPAD_ERR("%s: %s buffer size too small (need %d bytes)\n",
+			   __func__, vdp->ifname, TLVSIZE(vdp->vdp));
+		return -1;
+	}
+	return size;
+}
+
+/*
+ * Create unpacked VDP tlv for VSI profile when active.
+ */
+static int make_vdp_tlv(unsigned char *pdu, size_t pdusz, struct vdp_data *vdp)
+{
+	struct unpacked_tlv *tlv = (struct unpacked_tlv *)pdu;
+	struct tlv_info_vdp_nopp *vdpno;
+	size_t pduoff;
+	int rc;
+
+	tlv->info = (unsigned char *)(tlv + 1);
+	vdpno = (struct tlv_info_vdp_nopp *)tlv->info;
+	tlv->type = ORG_SPECIFIC_TLV;
+	tlv->length = sizeof(struct tlv_info_vdp_nopp);
+	hton24(vdpno->oui, LLDP_MOD_VDP);
+	vdpno->sub = LLDP_VDP_SUBTYPE;
+	vdpno->role = vdp->role;
+	vdpno->enabletx = vdp->enabletx;
+	vdpno->vdpbit_on = vdp->vdpbit_on;
+	pduoff = sizeof(*tlv) + tlv->length;
+	pdusz -= pduoff;
+	rc = add_profile(pdu + pduoff, pdusz - pduoff, vdp);
+	if (rc > 0) {
+		tlv->length += rc;
+		rc = 0;
+	}
+	return rc;
+}
+
+/*
+ * Flatten a VDP TLV into a byte stream.
+ */
+static int vdp_clif_profile(char *ifname, char *rbuf, int rlen)
+{
+	unsigned char pdu[VDP_BUF_SIZE];	/* Buffer for unpacked TLV */
+	int i;
+	struct vdp_data *vd;
+	struct unpacked_tlv *tlv = (struct unpacked_tlv *)pdu;
+	struct packed_tlv *ptlv;
+
+	LLDPAD_DBG("%s: %s rlen:%d\n", __func__, ifname, rlen);
+	vd = vdp_data(ifname);
+	if (!vd)
+		return cmd_device_not_found;
+
+	if (make_vdp_tlv(pdu, sizeof pdu, vd))
+		return cmd_failed;
+
+	/* Convert to packed TLV */
+	ptlv = pack_tlv(tlv);
+	if (!ptlv)
+		return cmd_failed;
+	for (i = 0; i < TLVSIZE(tlv); ++i)
+		snprintf(rbuf + 2 * i, rlen - 2 * i, "%02x", ptlv->tlv[i]);
+	free_pkd_tlv(ptlv);
+	return cmd_success;
+}
+
+/*
+ * Module function to extract all VSI profile data on a given interface. It
+ * is invoked via 'lldptool -t -i ethx -g ncb -V vdp' without any configuration
+ * options.
+ * This function does not support arguments and its values. They are handled
+ * using the lldp_mand_cmds.c interfaces.
+ */
+int vdp_clif_cmd(char *ibuf, UNUSED int ilen, char *rbuf, int rlen)
+{
+	struct cmd cmd;
+	u8 len, version;
+	int ioff, roff;
+	int rstatus = cmd_invalid;
+
+	/* Pull out the command elements of the command message */
+	hexstr2bin(ibuf + MSG_VER, (u8 *)&version, sizeof(u8));
+	version >>= 4;
+	hexstr2bin(ibuf + CMD_CODE, (u8 *)&cmd.cmd, sizeof(cmd.cmd));
+	hexstr2bin(ibuf + CMD_OPS, (u8 *)&cmd.ops, sizeof(cmd.ops));
+	cmd.ops = ntohl(cmd.ops);
+	hexstr2bin(ibuf + CMD_IF_LEN, &len, sizeof(len));
+	ioff = CMD_IF;
+	if (len < sizeof(cmd.ifname))
+		memcpy(cmd.ifname, ibuf + CMD_IF, len);
+	else
+		return cmd_failed;
+	cmd.ifname[len] = '\0';
+	ioff += len;
+
+	memset(rbuf, 0, rlen);
+	snprintf(rbuf, rlen, "%c%1x%02x%08x%02x%s",
+		 CMD_REQUEST, CLIF_MSG_VERSION, cmd.cmd, cmd.ops,
+		 (unsigned int)strlen(cmd.ifname), cmd.ifname);
+	roff = strlen(rbuf);
+
+	if (version == CLIF_MSG_VERSION) {
+		hexstr2bin(ibuf+ioff, &cmd.type, sizeof(cmd.type));
+		ioff += 2*sizeof(cmd.type);
+	} else	/* Command valid only for nearest customer bridge */
+		goto out;
+
+	if (cmd.cmd == cmd_gettlv) {
+		hexstr2bin(ibuf+ioff, (u8 *)&cmd.tlvid, sizeof(cmd.tlvid));
+		cmd.tlvid = ntohl(cmd.tlvid);
+		ioff += 2*sizeof(cmd.tlvid);
+	} else
+		goto out;
+
+	snprintf(rbuf + roff, rlen - roff, "%08x", cmd.tlvid);
+	roff = strlen(rbuf);
+	rstatus = vdp_clif_profile(cmd.ifname, rbuf + roff, rlen - roff);
+out:
+	return rstatus;
 }
