@@ -268,7 +268,7 @@ static int get_arg_mode(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 	if (!vd) {
 		LLDPAD_ERR("%s: vdp_data for %s not found !\n",
 			    __func__, cmd->ifname);
-		return cmd_invalid;
+		return cmd_device_not_found;
 	}
 
 	LIST_FOREACH(np, &vd->profile_head, profile)
@@ -286,7 +286,6 @@ static int get_arg_mode(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		 (unsigned int)strlen(arg), arg, (unsigned int)strlen(s), s);
 
 	free(s);
-
 	return cmd_success;
 }
 
@@ -427,7 +426,7 @@ static int _set_arg_mode(struct cmd *cmd, char *argvalue, bool test)
 	vd = vdp_data(cmd->ifname);
 	if (!vd) {
 		vdp_delete_profile(profile);
-		return cmd_invalid;
+		return cmd_device_not_found;
 	}
 
 	if (test) {
@@ -475,7 +474,7 @@ static int get_arg_role(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		if (!vd) {
 			LLDPAD_ERR("%s: could not find vdp_data for %s\n",
 				    __FILE__, cmd->ifname);
-			return cmd_invalid;
+			return cmd_device_not_found;
 		}
 
 		if (vd->role == VDP_ROLE_STATION)
@@ -521,7 +520,7 @@ static int _set_arg_role(struct cmd *cmd, char *arg, char *argvalue, bool test)
 	if (!vd) {
 		LLDPAD_ERR("%s: could not find vdp_data for %s\n",
 			    __FILE__, cmd->ifname);
-		return cmd_invalid;
+		return cmd_device_not_found;
 	}
 
 	if (!strcasecmp(argvalue, VAL_BRIDGE)) {
