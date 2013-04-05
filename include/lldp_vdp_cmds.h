@@ -27,6 +27,7 @@
 #define _LLDP_VDP_CMDS_H
 
 struct arg_handlers *vdp_get_arg_handlers();
+int vdp_clif_cmd(char *, int, char *, int);
 
 enum {
        MODE = 0,
