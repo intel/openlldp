@@ -412,6 +412,99 @@ inline void set_prio_map(u32 *prio_map, u8 prio, int tc)
 }
 
 /*
+ * get_dcbx_hw - Get bitmask of hardware DCBX version and firmware status
+ *
+ * @ifname: interface name to query
+ * @dcbx: bitmask to store DCBX capabilities
+ *
+ * Returns 0 on success, error value otherwise.
+ */
+static int get_dcbx_hw(const char *ifname, __u8 *dcbx)
+{
+	int err = 0;
+	struct nlattr *attr;
+	struct sockaddr_nl dest_addr;
+	static struct nl_handle *nlhandle;
+	struct nl_msg *nlm = NULL;
+	unsigned char *msg = NULL;
+	struct nlmsghdr *hdr;
+	struct dcbmsg d = {
+			   .dcb_family = AF_UNSPEC,
+			   .cmd = DCB_CMD_GDCBX,
+			   .dcb_pad = 0
+			  };
+
+	if (!nlhandle) {
+		nlhandle = nl_handle_alloc();
+		if (!nlhandle) {
+			LLDPAD_WARN("%s: %s: nl_handle_alloc failed, %s\n",
+				    __func__, ifname, nl_geterror());
+			err = -ENOMEM;
+			goto out;
+		}
+		nl_socket_set_local_port(nlhandle, 0);
+	}
+
+	err = nl_connect(nlhandle, NETLINK_ROUTE);
+	if (err < 0) {
+		LLDPAD_WARN("%s: %s nlconnect failed abort get ieee, %s\n",
+			    __func__, ifname, nl_geterror());
+		goto out;
+	}
+
+	nlm = nlmsg_alloc_simple(RTM_GETDCB, NLM_F_REQUEST);
+	if (!nlm) {
+		LLDPAD_WARN("%s: %s nlmsg_alloc failed abort get ieee, %s\n",
+			    __func__, ifname, nl_geterror());
+		err = -ENOMEM;
+		goto out;
+	}
+
+	memset(&dest_addr, 0, sizeof(dest_addr));
+	dest_addr.nl_family = AF_NETLINK;
+	nlmsg_set_dst(nlm, &dest_addr);
+
+	err = nlmsg_append(nlm, &d, sizeof(d), NLMSG_ALIGNTO);
+	if (err < 0)
+		goto out;
+
+	err = nla_put(nlm, DCB_ATTR_IFNAME, strlen(ifname)+1, ifname);
+	if (err < 0)
+		goto out;
+
+	err = nl_send_auto_complete(nlhandle, nlm);
+	if (err <= 0) {
+		LLDPAD_WARN("%s: %s 802.1Qaz get app attributes failed\n",
+			    __func__, ifname);
+		goto out;
+	}
+
+	err = nl_recv(nlhandle, &dest_addr, &msg, NULL);
+	if (err <= 0) {
+		LLDPAD_WARN("%s: %s: nl_recv returned %d\n", __func__, ifname,
+			    err);
+		goto out;
+	}
+
+	hdr = (struct nlmsghdr *) msg;
+
+	attr = nlmsg_find_attr(hdr, sizeof(d), DCB_ATTR_DCBX);
+	if (!attr) {
+		LLDPAD_DBG("%s: %s: nlmsg_find_attr failed, no GDCBX support\n",
+			    __func__, ifname);
+		goto out;
+	}
+
+	*dcbx = nla_get_u8(attr);
+out:
+	nlmsg_free(nlm);
+	free(msg);
+	if (nlhandle)
+		nl_close(nlhandle);
+	return err;
+}
+
+/*
  * LLDP_8021QAZ_MOD_OPS - IFUP
  *
  * Load TLV values (either from config file, command prompt or defaults),
@@ -427,10 +520,11 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	struct ieee8021qaz_tlvs *tlvs;
 	struct ieee8021qaz_user_data *iud;
 	int adminstatus, cnt, len;
-	feature_support dcb_support;
+	__u8 dcbx = 0;
 	struct ieee_ets *ets = NULL;
 	struct ieee_pfc *pfc = NULL;
 	struct app_prio *data = NULL;
+	int err;
 
 	if (agent->type != NEAREST_BRIDGE)
 		return;
@@ -439,9 +533,15 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	if (is_bond(ifname) || is_vlan(ifname))
 		return;
 
-	get_dcb_capabilities(ifname, &dcb_support);
+	err = get_dcbx_hw(ifname, &dcbx);
+	if (err < 0)
+		return;
 
-	if (!(dcb_support.dcbx & DCB_CAP_DCBX_HOST))
+	/* If hardware is not DCBX IEEE compliant or it is managed
+	 * by an LLD agent most likely a firmware agent abort
+	 */
+	if (!(dcbx & DCB_CAP_DCBX_VER_IEEE) ||
+	    (dcbx & DCB_CAP_DCBX_LLD_MANAGED))
 		return;
 
 	/* If 802.1Qaz is already configured no need to continue */
@@ -541,12 +641,10 @@ initialized:
 		free(data);
 	}
 
-	/* if the dcbx field is filled in by the capabilities
-	 * query, then the kernel is supports
-	 * IEEE mode, so make IEEE DCBX active by default.
+	/* if the dcbx field is filled in by the dcbx query then the
+	 * kernel is supports IEEE mode, so make IEEE DCBX active by default.
 	 */
-	if (!dcb_support.dcbx ||
-	   (dcbx_get_legacy_version(ifname) & ~MASK_DCBX_FORCE)) {
+	if (!dcbx || (dcbx_get_legacy_version(ifname) & ~MASK_DCBX_FORCE)) {
 		tlvs->active = false;
 	} else {
 		tlvs->active = true;
