@@ -2,25 +2,25 @@
 .SH NAME
 evb \- Show / manipulate EVB TLV configuration
 .SH SYNOPSIS
-.B lldptool -t -i ethx -V evbCfg -c enableTx
+.B lldptool -t -g ncb -i ethx -V evbCfg -c enableTx
 .sp
-.B lldptool -T -i ethx -V evbCfg -c enableTx=[yes|no]
+.B lldptool -T -g ncb -i ethx -V evbCfg -c enableTx=[yes|no]
 .sp
-.B lldptool -t -i ethx -V evbCfg -c fmode
+.B lldptool -t -g ncb -i ethx -V evbCfg -c fmode
 .sp
-.B lldptool -T -i ethx -V evbCfg -c fmode=[bridge|reflectiverelay]
+.B lldptool -T -g ncb -i ethx -V evbCfg -c fmode=[bridge|reflectiverelay]
 .sp
-.B lldptool -t -i ethx -V evbCfg -c capabilities
+.B lldptool -t -g ncb -i ethx -V evbCfg -c capabilities
 .sp
-.B lldptool -T -i ethx -V evbCfg -c capabilities=[rte|ecp|vdp|none]
+.B lldptool -T -g ncb -i ethx -V evbCfg -c capabilities=[rte|ecp|vdp|none]
 .sp
-.B lldptool -t -i ethx -V evbCfg -c rte
+.B lldptool -t -g ncb -i ethx -V evbCfg -c rte
 .sp
-.B lldptool -T -i ethx -V evbCfg -c rte=[<rte>]
+.B lldptool -T -g ncb -i ethx -V evbCfg -c rte=[<rte>]
 .sp
-.B lldptool -t -i ethx -V evbCfg -c vsis
+.B lldptool -t -g ncb -i ethx -V evbCfg -c vsis
 .sp
-.B lldptool -T -i ethx -V evbCfg -c vsis=[<number of vsis>]
+.B lldptool -T -g ncb -i ethx -V evbCfg -c vsis=[<number of vsis>]
 .sp
 .SH DESCRIPTION
 The EVB TLV is a TLV to announce the station and bridge's edge virtual
@@ -56,7 +56,8 @@ between 0 and 65535.
 
 .SH Theory of Operation
 The EVB TLV is used to announce and exchange supported parameters between
-the station and an adjacent switch.
+the station and an adjacent switch. The TLV uses the nearest customer bridge
+agent.
 
 If "reflectiverelay" is set as forwarding mode, the switch will allow
 "reflection" of frames coming from different sources at the same port back
@@ -70,40 +71,40 @@ capabilities. RTE will be used as the base timing parameter for ECP and VDP.
 .SH EXAMPLE & USAGE
 .TP
 Display locally configured values for \fIeth8\fR
-.B lldptool -t -i eth8 -V evbCfg
+.B lldptool -t -g ncb -i eth8 -V evbCfg
 .TP
 Display remotely configured values for \fIeth8\fR
-.B lldptool -n -t -i eth8 -V evbCfg
+.B lldptool -n -g ncb -t -i eth8 -V evbCfg
 .TP
 Display wether evb tlv is configured for tx on \fIeth8\fR
-.B lldptool -t -i eth8 -V evbCfg -c enableTx
+.B lldptool -t -g ncb -i eth8 -V evbCfg -c enableTx
 .TP
 Display the currently requested forwarding mode for \fIeth8\fR
-.B lldptool -t -i eth8 -V evbCfg -c fmode
+.B lldptool -t -g ncb -i eth8 -V evbCfg -c fmode
 .TP
 Set the forwarding mode to reflective relay
-.B lldptool -T -i eth8 -V evbCfg -c fmode=reflectiverelay
+.B lldptool -T -g ncb -i eth8 -V evbCfg -c fmode=reflectiverelay
 .TP
 Display the currently configured capabilities
-.B lldptool -t -i ethx -V evbCfg -c capabilities
+.B lldptool -t -g ncb -i ethx -V evbCfg -c capabilities
 .TP
 Set the locally possible capabilities to RTE, ECP and VDP
-.B lldptool -T -i ethx -V evbCfg -c capabilities=rte,ecp,vdp
+.B lldptool -T -g ncb -i ethx -V evbCfg -c capabilities=rte,ecp,vdp
 .TP
 Resets the locally possible capabilities to "none"
-.B lldptool -T -i ethx -V evbCfg -c capabilities=none
+.B lldptool -T -g ncb -i ethx -V evbCfg -c capabilities=none
 .TP
 Display the locally configured value for RTE
-.B lldptool -t -i ethx -V evbCfg -c rte
+.B lldptool -t -g ncb -i ethx -V evbCfg -c rte
 .TP
 Set the value for RTE
-.B lldptool -T -i ethx -V evbCfg -c rte=[<rte>]
+.B lldptool -T -g ncb -i ethx -V evbCfg -c rte=[<rte>]
 .TP
 Display the configured maximum number of VSIs
-.B lldptool -t -i ethx -V evbCfg -c vsis
+.B lldptool -t -g ncb -i ethx -V evbCfg -c vsis
 .TP
 Set the maximum number of VSIs
-.B lldptool -T -i ethx -V evbCfg -c vsis=[<number of vsis>]
+.B lldptool -T -g ncb -i ethx -V evbCfg -c vsis=[<number of vsis>]
 .sp
 
 .SH SOURCE
