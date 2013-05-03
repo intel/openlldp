@@ -573,15 +573,16 @@ static int make_vdp_tlv(unsigned char *pdu, size_t pdusz, struct vdp_data *vdp)
 /*
  * Flatten a VDP TLV into a byte stream.
  */
-static int vdp_clif_profile(char *ifname, char *rbuf, int rlen)
+static int vdp_clif_profile(char *ifname, char *rbuf, size_t rlen)
 {
 	unsigned char pdu[VDP_BUF_SIZE];	/* Buffer for unpacked TLV */
-	int i;
+	int i, c, rstatus = cmd_success;
+	size_t sum  = 0;
 	struct vdp_data *vd;
 	struct unpacked_tlv *tlv = (struct unpacked_tlv *)pdu;
 	struct packed_tlv *ptlv;
 
-	LLDPAD_DBG("%s: %s rlen:%d\n", __func__, ifname, rlen);
+	LLDPAD_DBG("%s: %s rlen:%zu\n", __func__, ifname, rlen);
 	vd = vdp_data(ifname);
 	if (!vd)
 		return cmd_device_not_found;
@@ -593,10 +594,16 @@ static int vdp_clif_profile(char *ifname, char *rbuf, int rlen)
 	ptlv = pack_tlv(tlv);
 	if (!ptlv)
 		return cmd_failed;
-	for (i = 0; i < TLVSIZE(tlv); ++i)
-		snprintf(rbuf + 2 * i, rlen - 2 * i, "%02x", ptlv->tlv[i]);
+	for (i = 0; i < TLVSIZE(tlv); ++i) {
+		c = snprintf(rbuf, rlen, "%02x", ptlv->tlv[i]);
+		rbuf = check_and_update(&sum, &rlen, rbuf, c);
+		if (!rbuf) {
+			rstatus = cmd_failed;
+			break;
+		}
+	}
 	free_pkd_tlv(ptlv);
-	return cmd_success;
+	return rstatus;
 }
 
 /*
@@ -610,7 +617,9 @@ int vdp_clif_cmd(char *ibuf, UNUSED int ilen, char *rbuf, int rlen)
 {
 	struct cmd cmd;
 	u8 len, version;
-	int ioff, roff;
+	int c, ioff;
+	size_t roff = 0, outlen = rlen;
+	char *here;
 	int rstatus = cmd_invalid;
 
 	/* Pull out the command elements of the command message */
@@ -629,27 +638,31 @@ int vdp_clif_cmd(char *ibuf, UNUSED int ilen, char *rbuf, int rlen)
 	ioff += len;
 
 	memset(rbuf, 0, rlen);
-	snprintf(rbuf, rlen, "%c%1x%02x%08x%02x%s",
-		 CMD_REQUEST, CLIF_MSG_VERSION, cmd.cmd, cmd.ops,
-		 (unsigned int)strlen(cmd.ifname), cmd.ifname);
-	roff = strlen(rbuf);
+	c = snprintf(rbuf, rlen, "%c%1x%02x%08x%02x%s",
+		     CMD_REQUEST, CLIF_MSG_VERSION, cmd.cmd, cmd.ops,
+		     (unsigned int)strlen(cmd.ifname), cmd.ifname);
+	here = check_and_update(&roff, &outlen, rbuf, c);
+	if (!here)
+		return cmd_failed;
 
 	if (version == CLIF_MSG_VERSION) {
 		hexstr2bin(ibuf+ioff, &cmd.type, sizeof(cmd.type));
-		ioff += 2*sizeof(cmd.type);
+		ioff += 2 * sizeof(cmd.type);
 	} else	/* Command valid only for nearest customer bridge */
 		goto out;
 
 	if (cmd.cmd == cmd_gettlv) {
 		hexstr2bin(ibuf+ioff, (u8 *)&cmd.tlvid, sizeof(cmd.tlvid));
 		cmd.tlvid = ntohl(cmd.tlvid);
-		ioff += 2*sizeof(cmd.tlvid);
+		ioff += 2 * sizeof(cmd.tlvid);
 	} else
 		goto out;
 
-	snprintf(rbuf + roff, rlen - roff, "%08x", cmd.tlvid);
-	roff = strlen(rbuf);
-	rstatus = vdp_clif_profile(cmd.ifname, rbuf + roff, rlen - roff);
+	c = snprintf(here, outlen, "%08x", cmd.tlvid);
+	here = check_and_update(&roff, &outlen, here, c);
+	if (!here)
+		return cmd_failed;
+	rstatus = vdp_clif_profile(cmd.ifname, here, outlen);
 out:
 	return rstatus;
 }
