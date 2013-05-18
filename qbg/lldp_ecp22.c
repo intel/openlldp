@@ -322,13 +322,13 @@ static int ecp22_es_txmit(struct ecp22 *ecp)
  */
 static bool ecp22_set_tx_state(struct ecp22 *ecp)
 {
-	struct port *port = port_find_by_name(ecp->ifname);
+	struct port *port = port_find_by_ifindex(get_ifidx(ecp->ifname));
 
 	if (!port) {
 		LLDPAD_ERR("%s:%s port not found\n", __func__, ecp->ifname);
-		return 0;
+		return false;
 	}
-	if ((port->portEnabled == false) && (port->prevPortEnabled == true)) {
+	if (!port->portEnabled && port->prevPortEnabled) {
 		LLDPAD_ERR("%s:%s port was disabled\n", __func__, ecp->ifname);
 		ecp22_tx_change_state(ecp, ECP22_TX_BEGIN);
 	}
@@ -562,14 +562,14 @@ static void ecp22_es_wait(struct ecp22 *ecp)
  */
 static bool ecp22_set_rx_state(struct ecp22 *ecp)
 {
-	struct port *port = port_find_by_name(ecp->ifname);
+	struct port *port = port_find_by_ifindex(get_ifidx(ecp->ifname));
 
 	if (!port)
 		return false;
 
 	LLDPAD_DBG("%s:%s state %s\n", __func__, ecp->ifname,
-			   ecp22_rx_states[ecp->rx.state]);
-	if (port->portEnabled == false)
+		   ecp22_rx_states[ecp->rx.state]);
+	if (!port->portEnabled)
 		ecp22_rx_change_state(ecp, ECP22_RX_BEGIN);
 	switch (ecp->rx.state) {
 	case ECP22_RX_BEGIN:
@@ -685,7 +685,7 @@ static void ecp22_rx_receiveframe(void *ctx, int ifindex, const u8 *buf,
 		   __func__, ecp->ifname, ifindex, len,
 		   ecp22_rx_states[ecp->rx.state], ecp->rx.ecpdu_received);
 	hexdump_frame(ecp->ifname, "frame-in", buf, len);
-	port = port_find_by_name(ecp->ifname);
+	port = port_find_by_ifindex(get_ifidx(ecp->ifname));
 	if (!port || ecp->rx.ecpdu_received)
 		/* Port not found or buffer not free */
 		return;

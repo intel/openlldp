@@ -431,14 +431,14 @@ static void ecp_tx_change_state(struct vdp_data *vd, u8 newstate)
  */
 static bool ecp_set_tx_state(struct vdp_data *vd)
 {
-	struct port *port = port_find_by_name(vd->ifname);
+	struct port *port = port_find_by_ifindex(get_ifidx(vd->ifname));
 
 	if (!port) {
 		LLDPAD_ERR("%s: port not found\n", __func__);
 		return 0;
 	}
 
-	if ((port->portEnabled == false) && (port->prevPortEnabled == true)) {
+	if (!port->portEnabled && port->prevPortEnabled) {
 		LLDPAD_ERR("set_tx_state: port was disabled\n");
 		ecp_tx_change_state(vd, ECP_TX_INIT_TRANSMIT);
 	}
@@ -446,14 +446,14 @@ static bool ecp_set_tx_state(struct vdp_data *vd)
 
 	switch (vd->ecp.tx.state) {
 	case ECP_TX_INIT_TRANSMIT:
-		if (port->portEnabled && (vd->enabletx == true)
-					  && vd->ecp.tx.localChange) {
+		if (port->portEnabled && vd->enabletx &&
+		    vd->ecp.tx.localChange) {
 			ecp_tx_change_state(vd, ECP_TX_TRANSMIT_ECPDU);
 			return true;
 		}
 		return false;
 	case ECP_TX_TRANSMIT_ECPDU:
-		if (vd->enabletx == false) {
+		if (!vd->enabletx) {
 			ecp_tx_change_state(vd, ECP_TX_INIT_TRANSMIT);
 			return true;
 		}
@@ -650,8 +650,8 @@ static void ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf,
 	}
 
 	vd = (struct vdp_data *)ctx;
-	port = port_find_by_name(vd->ifname);
-	if (port == NULL)
+	port = port_find_by_ifindex(get_ifidx(vd->ifname));
+	if (!port)
 		return;
 
 	LLDPAD_DBG("%s:%s received packet with size %i\n", __func__,
@@ -995,7 +995,7 @@ out:
  */
 static bool ecp_set_rx_state(struct vdp_data *vd)
 {
-	struct port *port = port_find_by_name(vd->ifname);
+	struct port *port = port_find_by_ifindex(get_ifidx(vd->ifname));
 
 	if (!port)
 		return false;

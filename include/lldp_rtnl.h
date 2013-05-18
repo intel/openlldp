@@ -44,6 +44,6 @@ void mynla_put_u32(struct nlmsghdr *, int, __u32);
 
 int get_operstate(char *ifname);
 int set_operstate(char *ifname, __u8 operstate);
-int set_linkmode(const char *ifname, __u8 linkmode);
+int set_linkmode(int ifindex, const char *ifname, __u8 linkmode);
 
 #endif

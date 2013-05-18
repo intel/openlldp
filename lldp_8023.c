@@ -320,40 +320,32 @@ static void ieee8023_free_tlv(struct ieee8023_data *bd)
 	}
 }
 
-static int ieee8023_bld_tlv(struct ieee8023_data *bd,
-			    struct lldp_agent *agent)
+static int ieee8023_bld_tlv(struct ieee8023_data *bd, struct lldp_agent *agent)
 {
-	int rc = 0;
-
-	if (!port_find_by_name(bd->ifname)) {
-		rc = EEXIST;
-		goto out_err;
-	}
+	if (!port_find_by_ifindex(get_ifidx(bd->ifname)))
+		return -EEXIST;
 
 	if (ieee8023_bld_maccfg_tlv(bd, agent)) {
 		LLDPAD_DBG("%s:%s:ieee8023_bld_macfg_tlv() failed\n",
-				__func__, bd->ifname);
-		goto out_err;
+			   __func__, bd->ifname);
+		return 0;
 	}
 	if (ieee8023_bld_powvmdi_tlv(bd, agent)) {
 		LLDPAD_DBG("%s:%s:ieee8023_bld_powvmdi_tlv() failed\n",
-				__func__, bd->ifname);
-		goto out_err;
+			   __func__, bd->ifname);
+		return 0;
 	}
 	if (ieee8023_bld_linkagg_tlv(bd, agent)) {
 		LLDPAD_DBG("%s:%s:ieee8023_bld_linkagg_tlv() failed\n",
-				__func__, bd->ifname);
-		goto out_err;
+			   __func__, bd->ifname);
+		return 0;
 	}
 	if (ieee8023_bld_maxfs_tlv(bd, agent)) {
 		LLDPAD_DBG("%s:%s:ieee8023_bld_maxfs_tlv() failed\n",
-				__func__, bd->ifname);
-		goto out_err;
+			   __func__, bd->ifname);
+		return 0;
 	}
-	rc = 0;
-
-out_err:
-	return rc;
+	return 0;
 }
 
 static void ieee8023_free_data(struct ieee8023_user_data *ud)

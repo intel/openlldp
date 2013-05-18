@@ -484,7 +484,8 @@ void dcbx_unregister(struct lldp_module *mod)
 
 void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 {
-	struct port *port = NULL;
+	int ifindex;
+	struct port *port;
 	struct dcbx_tlvs *tlvs;
 	struct dcbd_user_data *dud;
 	struct dcbx_manifest *manifest;
@@ -501,14 +502,15 @@ void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 	if (agent->type != NEAREST_BRIDGE)
 		return;
 
-	port = port_find_by_name(ifname);
+	ifindex = get_ifidx(ifname);
+	port = port_find_by_ifindex(ifindex);
 
 	dud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_DCBX);
 	tlvs = dcbx_data(ifname);
 
 	if (!port)
 		return;
-	else if (tlvs)
+	if (tlvs)
 		goto initialized;
 
 	/* Abort initialization on hardware that does not support
@@ -634,7 +636,6 @@ initialized:
 
 void dcbx_ifdown(char *device_name, struct lldp_agent *agent)
 {
-	struct port *port = NULL;
 	struct dcbx_tlvs *tlvs;
 
 	if (agent->type != NEAREST_BRIDGE)
@@ -644,30 +645,19 @@ void dcbx_ifdown(char *device_name, struct lldp_agent *agent)
 	if (is_bond(device_name))
 		return;
 
-	port = porthead;
-	while (port != NULL) {
-		if (!strncmp(device_name, port->ifname, MAX_DEVICE_NAME_LEN))
-			break;
-		port = port->next;
-	}
-
 	tlvs = dcbx_data(device_name);
-
 	if (!tlvs)
 		return;
 
 	/* remove dcb port */
-	if (check_port_dcb_mode(device_name)) {
+	if (check_port_dcb_mode(device_name))
 		dcbx_remove_adapter(device_name);
-	}
 
-	if (tlvs) {
-		LIST_REMOVE(tlvs, entry);
-		dcbx_free_tlv(tlvs);
-		dcbx_free_manifest(tlvs->manifest);
-		free(tlvs->manifest);
-		free(tlvs);
-	}
+	LIST_REMOVE(tlvs, entry);
+	dcbx_free_tlv(tlvs);
+	dcbx_free_manifest(tlvs->manifest);
+	free(tlvs->manifest);
+	free(tlvs);
 }
 
 void clear_dcbx_manifest(struct dcbx_tlvs *dcbx)

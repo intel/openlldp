@@ -341,7 +341,7 @@ static int _set_arg_mode(struct cmd *cmd, char *argvalue, bool test)
 	if (profile == NULL)
 		return cmd_failed;
 
-	profile->port = port_find_by_name(cmd->ifname);
+	profile->port = port_find_by_ifindex(get_ifidx(cmd->ifname));
 
 	if (!profile->port) {
 		vdp_delete_profile(profile);

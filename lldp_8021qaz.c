@@ -557,12 +557,7 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 		set_lldp_agent_admin(ifname, agent->type, enabledRxOnly);
 
 	/* lookup port data */
-	port = porthead;
-	while (port != NULL) {
-		if (!strncmp(ifname, port->ifname, MAX_DEVICE_NAME_LEN))
-			break;
-		port = port->next;
-	}
+	port = port_find_by_ifindex(get_ifidx(ifname));
 
 	/*
 	 * Check if link down and/or tlvs exist for current port.
@@ -2146,29 +2141,18 @@ void ieee8021qaz_unregister(struct lldp_module *mod)
  */
 void ieee8021qaz_ifdown(char *device_name, struct lldp_agent *agent)
 {
-	struct port *port = NULL;
 	struct ieee8021qaz_tlvs *tlvs;
 
 	if (agent->type != NEAREST_BRIDGE)
 		return;
 
-	port = porthead;
-	while (port != NULL) {
-		if (!strncmp(device_name, port->ifname, MAX_DEVICE_NAME_LEN))
-			break;
-		port = port->next;
-	}
-
 	tlvs = ieee8021qaz_data(device_name);
-
 	if (!tlvs)
 		return;
 
-	if (tlvs) {
-		ieee8021qaz_free_rx(tlvs->rx);
-		free(tlvs->rx);
-		tlvs->rx = NULL;
-	}
+	ieee8021qaz_free_rx(tlvs->rx);
+	free(tlvs->rx);
+	tlvs->rx = NULL;
 }
 
 /*

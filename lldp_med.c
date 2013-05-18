@@ -686,39 +686,32 @@ out_err:
  * @md: the med data struct
  *
  * Returns 0 for success or error code for failure
- *
  */
-static int med_bld_tlv(struct med_data *md,
-		       struct lldp_agent *agent)
+static int med_bld_tlv(struct med_data *md, struct lldp_agent *agent)
 {
-	int rc = EPERM;
-
-	if (!port_find_by_name(md->ifname)) {
-		rc = EEXIST;
-		goto out_err;
-	}
+	if (!port_find_by_ifindex(get_ifidx(md->ifname)))
+		return -EEXIST;
 
 	/* no build if not enabled */
 	if (!is_tlv_txenabled(md->ifname, agent->type,
 			      TLVID_MED(LLDP_MED_RESERVED))) {
 		LLDPAD_DBG("%s:%s:LLDP-MED is not enabled\n",
-			__func__, md->ifname);
-		rc = 0;
-		goto out_err;
+			   __func__, md->ifname);
+		return 0;
 	}
 
 	/* no build if enabled no devtype is given */
 	if (!LLDP_MED_DEVTYPE_DEFINED(get_med_devtype(md->ifname, agent->type))) {
 		LLDPAD_DBG("%s:%s:LLDP-MED devtype is not defined\n",
-			__func__, md->ifname);
-		goto out_err;
+			   __func__, md->ifname);
+		return -EPERM;
 	}
 
 	/* MED Cap is always mandatory for MED */
 	if (med_bld_medcaps_tlv(md, agent)) {
 		LLDPAD_DBG("%s:%s:MED Capabilities TLV is mandatory!\n",
-			__func__, md->ifname);
-		goto out_err;
+			   __func__, md->ifname);
+		return -EPERM;
 	}
 
 	/* MAC PHY TLV is mandatory for MED */
@@ -726,8 +719,7 @@ static int med_bld_tlv(struct med_data *md,
 			      TLVID_8023(LLDP_8023_MACPHY_CONFIG_STATUS))) {
 		LLDPAD_DBG("%s:%s MAC PHY Config is mandatory for MED\n",
 				__func__, md->ifname);
-		rc = ENOTTY;
-		goto out_err;
+		return -ENOTTY;
 	}
 
 	/* Build optional and conditional ones based on device type:
@@ -757,32 +749,28 @@ static int med_bld_tlv(struct med_data *md,
 	 * 	- Extended Power-via-MDI: mandatory only for
 	 *	  802.3.af PSE
 	 * 	- Inventory: optional
-	 *
 	 */
 	if (med_bld_netpoli_tlv(md, agent)) {
 		LLDPAD_DBG("%s:%s:med_bld_netpoli_tlv() failed\n",
-				__func__, md->ifname);
-		goto out_err;
+			   __func__, md->ifname);
+		return -EPERM;
 	}
 	if (med_bld_locid_tlv(md, agent)) {
 		LLDPAD_DBG("%s:%s:med_bld_locid_tlv() failed\n",
-				__func__, md->ifname);
-		goto out_err;
+			   __func__, md->ifname);
+		return -EPERM;
 	}
 	if (med_bld_powvmdi_tlv(md, agent)) {
 		LLDPAD_DBG("%s:%s:med_bld_powvmdi_tlv() failed\n",
-				__func__, md->ifname);
-		goto out_err;
+			   __func__, md->ifname);
+		return -EPERM;
 	}
 	if (med_bld_inventory_tlv(md, agent)) {
 		LLDPAD_DBG("%s:%s:med_bld_inventory_tlv() failed\n",
-				__func__, md->ifname);
-		goto out_err;
+			   __func__, md->ifname);
+		return -EPERM;
 	}
-	rc = 0;
-
-out_err:
-	return rc;
+	return 0;
 }
 
 /*

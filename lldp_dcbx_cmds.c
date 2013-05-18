@@ -533,7 +533,7 @@ static int handle_dcbx_cmd(u8 cmd, u8 feature, char *ibuf, int ilen, char *rbuf)
 	return status;
 }
 
-int dcbx_clif_cmd(void *data,
+int dcbx_clif_cmd(UNUSED void *data,
 		  UNUSED struct sockaddr_un *from,
 		  UNUSED socklen_t fromlen,
 		  char *ibuf, int ilen,
@@ -544,6 +544,7 @@ int dcbx_clif_cmd(void *data,
 	u8 feature;
 	u8 subtype;
 	u8 plen;
+	int ifindex;
 	char port_id[MAX_U8_BUF];
 	pg_attribs pg_data;
 	pfc_attribs pfc_data;
@@ -551,8 +552,6 @@ int dcbx_clif_cmd(void *data,
 	llink_attribs llink_data;
 	struct port *port;
 	struct dcbx_tlvs *dcbx;
-
-	data = (struct clif_data *) data;
 
 	if (hexstr2bin(ibuf+DCB_CMD_OFF, &cmd, sizeof(cmd)) ||
 		hexstr2bin(ibuf+DCB_FEATURE_OFF, &feature, sizeof(feature)))
@@ -585,9 +584,10 @@ int dcbx_clif_cmd(void *data,
 
 	memcpy(port_id, ibuf+DCB_PORT_OFF, plen);
 	port_id[plen] = '\0';
+	ifindex = get_ifidx(port_id);
 
 	/* Confirm port is a lldpad managed port */
-	port = port_find_by_name(port_id);
+	port = port_find_by_ifindex(ifindex);
 	if (!port)
 		return cmd_device_not_found;
 

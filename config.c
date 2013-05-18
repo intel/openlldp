@@ -121,22 +121,19 @@ void scan_port(UNUSED void *eloop_data, UNUSED void *user_ctx)
 	 * comes back online we should receive a RTM_NEWLINK event and can
 	 * readd it there.
 	 */
-	port = porthead;
-	while (port != NULL) {
+	for (port = porthead; port; port = port->next) {
 		int found = 0;
 		struct port *del;
-		p = nameidx;
-		while (p->if_index != 0) {
-			if (!strncmp(p->if_name, port->ifname,
-				     MAX_DEVICE_NAME_LEN)) {
+
+		for (p = nameidx; p->if_index; ++p) {
+			if ((int)p->if_index == port->ifindex) {
 				/* Good device exists continue port walk */
 				found = 1;
+				memcpy(port->ifname, p->if_name, IFNAMSIZ);
 				break;
 			}
-			p++;
 		}
 		del = port;
-		port = port->next;
 		if (!found)
 			remove_port(del->ifname);
 	}
@@ -149,43 +146,42 @@ void scan_port(UNUSED void *eloop_data, UNUSED void *user_ctx)
 	 * This is required because we currently do not know if we missed
 	 * IF_OPER_UP, IF_OPER_DOWN or IF_OPER_DORMANT. 
 	 */
-	p = nameidx;
-	while (p->if_index != 0) {
+	for (p = nameidx; p->if_index; ++p) {
 		struct lldp_module *np;
 		const struct lldp_mod_ops *ops;
 		char *ifname = p->if_name;
 		struct lldp_agent *agent;
 
-		if (!is_valid_lldp_device(ifname)) {
-			p++;
+		if (!is_valid_lldp_device(ifname))
+			continue;
+
+		port = port_find_by_ifindex(p->if_index);
+		if (!port) {
+			port = add_port(p->if_index, p->if_name);
 			continue;
 		}
 
-		port = port_find_by_name(p->if_name);
-		if (!port)
-			port = add_port(p->if_name);
-
-		if (port && check_link_status(ifname)) {
+		memcpy(port->ifname, ifname, IFNAMSIZ);
+		if (check_link_status(ifname)) {
 			set_port_oper_delay(ifname);
 			oper_add_device(ifname);
-		} else if (port) {
-			LIST_FOREACH(agent, &port->agent_head, entry) {
-				LLDPAD_DBG("%s: calling ifdown for agent %p.\n",
-					   __func__, agent);
-				LIST_FOREACH(np, &lldp_head, lldp) {
-					ops = np->ops;
-					if (ops->lldp_mod_ifdown)
-						ops->lldp_mod_ifdown(ifname,
-								     agent);
-				}
-			}
-			set_lldp_port_enable(ifname, 0);
+			continue;
 		}
-		p++;
+		LIST_FOREACH(agent, &port->agent_head, entry) {
+			LLDPAD_DBG("%s: calling ifdown for agent %p.\n",
+				   __func__, agent);
+			LIST_FOREACH(np, &lldp_head, lldp) {
+				ops = np->ops;
+				if (ops->lldp_mod_ifdown)
+					ops->lldp_mod_ifdown(ifname, agent);
+			}
+		}
+		set_lldp_port_enable(ifname, 0);
 	}
 
 	if_freenameindex(nameidx);
 	return;
+
 error_out:
 	eloop_register_timeout(INI_TIMER, 0, scan_port, NULL, NULL);
 	return;
@@ -361,36 +357,34 @@ void init_ports(void)
 		return;
 	}
 
-	p = nameidx;
-	while (p->if_index != 0) {
+	for (p = nameidx; p->if_index; ++p) {
 		int valid = is_valid_lldp_device(p->if_name);
 
-		if (!valid) {
-			p++;
+		if (!valid)
 			continue;
-		}
 
-		port = add_port(p->if_name);
-
-		if (port == NULL) {
+		port = add_port(p->if_index, p->if_name);
+		if (!port) {
 			LLDPAD_ERR("%s: Error adding device %s\n",
 				     __func__, p->if_name);
-		} else if (check_link_status(p->if_name)) {
-			lldp_add_agent(p->if_name, NEAREST_BRIDGE);
-			lldp_add_agent(p->if_name, NEAREST_NONTPMR_BRIDGE);
-			lldp_add_agent(p->if_name, NEAREST_CUSTOMER_BRIDGE);
-
-			LIST_FOREACH(agent, &port->agent_head, entry) {
-				LLDPAD_DBG("%s: calling ifup for agent %p.\n",
-					   __func__, agent);
-				LIST_FOREACH(np, &lldp_head, lldp) {
-					if (np->ops->lldp_mod_ifup)
-						np->ops->lldp_mod_ifup(p->if_name, agent);
-				}
-			}
-			set_lldp_port_enable(p->if_name, 1);
+			continue;
 		}
-		p++;
+		if (!check_link_status(p->if_name))
+			continue;
+
+		lldp_add_agent(p->if_name, NEAREST_BRIDGE);
+		lldp_add_agent(p->if_name, NEAREST_NONTPMR_BRIDGE);
+		lldp_add_agent(p->if_name, NEAREST_CUSTOMER_BRIDGE);
+
+		LIST_FOREACH(agent, &port->agent_head, entry) {
+			LLDPAD_DBG("%s: calling ifup for agent %p.\n",
+				   __func__, agent);
+			LIST_FOREACH(np, &lldp_head, lldp) {
+				if (np->ops->lldp_mod_ifup)
+					np->ops->lldp_mod_ifup(p->if_name, agent);
+			}
+		}
+		set_lldp_port_enable(p->if_name, 1);
 	}
 
 	if_freenameindex(nameidx);

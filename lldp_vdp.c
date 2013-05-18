@@ -1110,7 +1110,7 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 {
 	struct tlv_info_vdp vdp;
 	struct vsi_profile *p, *profile;
-	struct port *port = port_find_by_name(vd->ifname);
+	struct port *port = port_find_by_ifindex(get_ifidx(vd->ifname));
 
 	LLDPAD_DBG("%s: indicating vdp of length %u (%zu) for %s\n",
 		   __func__, tlv->length, sizeof(struct tlv_info_vdp),
@@ -1132,7 +1132,6 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 	}
 
 	profile = vdp_alloc_profile();
-
 	if (!profile) {
 		LLDPAD_ERR("%s: unable to allocate profile\n", __func__);
 		goto out_err;
@@ -1144,7 +1143,6 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 	if (vd->role == VDP_ROLE_STATION) {
 		/* do we have the profile already ? */
 		p = vdp_find_profile(vd, profile);
-
 		if (p) {
 			LLDPAD_DBG("%s: station profile found localChange %i "
 				   "ackReceived %i no_nlmsg:%d\n",
@@ -1192,7 +1190,6 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 	if (vd->role == VDP_ROLE_BRIDGE) {
 		/* do we have the profile already ? */
 		p = vdp_find_profile(vd, profile);
-
 		if (p) {
 			LLDPAD_DBG("%s: bridge profile found\n", __func__);
 			vdp_delete_profile(profile);
@@ -1210,7 +1207,6 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 
 out_err:
 	return 1;
-
 }
 
 /*
@@ -1289,7 +1285,6 @@ out_free:
 
 out_err:
 	return rc;
-
 }
 
 /* vdp_bld_tlv - builds a tlv from a profile
@@ -1300,26 +1295,20 @@ out_err:
  *
  * wrapper function around vdp_bld_vsi_tlv. adds some checks and calls
  * vdp_bld_vsi_tlv.
-*/
+ */
 
 static int vdp_bld_tlv(struct vdp_data *vd, struct vsi_profile *profile)
 {
-	int rc = 0;
-
-	if (!port_find_by_name(vd->ifname)) {
-		rc = EEXIST;
-		goto out_err;
-	}
+	if (!port_find_by_ifindex(get_ifidx(vd->ifname)))
+		return -EEXIST;
 
 	if (vdp_bld_vsi_tlv(vd, profile)) {
 		LLDPAD_ERR("%s: %s vdp_bld_vsi_tlv() failed\n",
 				__func__, vd->ifname);
-		rc = EINVAL;
-		goto out_err;
+		return -EINVAL;
 	}
 
-out_err:
-	return rc;
+	return 0;
 }
 
 /* vdp_gettlv - get the tlv for a profile
@@ -1740,7 +1729,7 @@ int vdp_request(struct vdpnl_vsi *vsi)
 {
 	struct vdp_data *vd;
 	struct vsi_profile *profile, *p;
-	struct port *port = port_find_by_name(vsi->ifname);
+	struct port *port = port_find_by_ifindex(get_ifidx(vsi->ifname));
 	struct mac_vlan *mac_vlan;
 	int ret = 0;
 

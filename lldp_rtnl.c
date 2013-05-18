@@ -173,7 +173,7 @@ static ssize_t rtnl_send_linkmode(int s, int ifindex,
 	return send(s, &req, req.nh.nlmsg_len, 0);
 }
 
-static int rtnl_set_linkmode(int ifindex, const char *ifname, __u8 linkmode)
+int set_linkmode(int ifindex, const char *ifname, __u8 linkmode)
 {
 	int s;
 	int rc;
@@ -299,11 +299,6 @@ int get_operstate(char *ifname)
 	rtnl_recv_operstate(s, ifindex, ifname, &operstate);
 	close(s);
 	return operstate;
-}
-
-int set_linkmode(const char *ifname, __u8 linkmode)
-{
-	return rtnl_set_linkmode(0, ifname, linkmode);
 }
 
 int get_perm_hwaddr(const char *ifname, u8 *buf_perm, u8 *buf_san)

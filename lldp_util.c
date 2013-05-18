@@ -349,6 +349,25 @@ int get_ifflags(const char *ifname)
 	return flags;
 }
 
+int get_ifname(int ifindex, char *ifname)
+{
+	int fd;
+	int rc;
+	struct ifreq ifr;
+
+	memset(&ifr, 0, sizeof(ifr));
+	fd = get_ioctl_socket();
+	if (fd < 0)
+		return -1;
+
+	ifr.ifr_ifindex = ifindex;
+	rc = ioctl(fd, SIOCGIFNAME, &ifr);
+	if (rc >= 0)
+		memcpy(ifname, ifr.ifr_name, IFNAMSIZ);
+
+	return rc;
+}
+
 int get_ifpflags(const char *ifname)
 {
 	int fd;

@@ -153,15 +153,13 @@ void send_event(int level, u32 moduleid, char *msg)
 		ctrl_iface_send(cd, level, moduleid, msg, strlen(msg));
 }
 
-static void remove_all_adapters()
+static void remove_all_adapters(void)
 {
-	struct port *port, *p;
+	struct port *port, *next;
 
-	port = porthead;
-	while (port != NULL) {
-		p = port;
-		port = port->next;
-		remove_port(p->ifname);
+	for (port = porthead; port; port = next) {
+		next = port->next;
+		remove_port(port->ifname);
 	}
 
 	return;

@@ -51,12 +51,10 @@ static const char *agent_sections[AGENT_MAX] = {
 struct lldp_agent *
 lldp_agent_find_by_type(const char *ifname, enum agent_type type)
 {
-	struct port *port;
+	struct port *port = port_find_by_ifindex(get_ifidx(ifname));
 	struct lldp_agent *agent;
 
-	port = port_find_by_name(ifname);
-
-	if (port == NULL)
+	if (!port)
 		return NULL;
 
 	LIST_FOREACH(agent, &port->agent_head, entry) {
@@ -109,12 +107,10 @@ void lldp_init_agent(struct port *port, struct lldp_agent *agent, int type)
 int lldp_add_agent(const char *ifname, enum agent_type type)
 {
 	int count;
-	struct port *port;
+	struct port *port = port_find_by_ifindex(get_ifidx(ifname));
 	struct lldp_agent *agent, *newagent;
 
-	port = port_find_by_name(ifname);
-
-	if (port == NULL)
+	if (!port)
 		return -1;
 
 	/* check if lldp_agents for this if already exist */
@@ -123,17 +119,15 @@ int lldp_add_agent(const char *ifname, enum agent_type type)
 		count++;
 		if (agent->type != type)
 			continue;
-		else
-			return -1;
+		return -1;
 	}
 
 	/* if not, create one and initialize it */
-	LLDPAD_DBG("%s(%i): creating new agent for port %s.\n", __func__,
-		   __LINE__, ifname);
-	newagent  = (struct lldp_agent *)malloc(sizeof(struct lldp_agent));
-	if (newagent == NULL) {
-		LLDPAD_DBG("%s(%i): creation of new agent failed !.\n",
-			   __func__,  __LINE__);
+	LLDPAD_DBG("%s: creating new agent for port %s.\n", __func__,
+		   ifname);
+	newagent = malloc(sizeof(*newagent));
+	if (!newagent) {
+		LLDPAD_DBG("%s: creation of new agent failed !.\n", __func__);
 		return -1;
 	}
 

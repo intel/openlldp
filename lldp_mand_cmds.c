@@ -728,7 +728,7 @@ int mand_clif_cmd(UNUSED void  *data,
 	roff = strlen(rbuf);
 
 	/* Confirm port is a lldpad managed port */
-	port = port_find_by_name(cmd.ifname);
+	port = port_find_by_ifindex(get_ifidx(cmd.ifname));
 	if (!port) {
 		free(argvals);
 		free(args);

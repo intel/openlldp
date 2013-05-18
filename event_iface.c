@@ -186,20 +186,18 @@ int oper_add_device(char *device_name)
 	struct lldp_module *np;
 	struct port *port, *newport;
 	struct lldp_agent *agent;
+	int ifindex;
 
-	port = porthead;
-	while (port != NULL) {
-		if (!strncmp(device_name, port->ifname, MAX_DEVICE_NAME_LEN))
+	ifindex = get_ifidx(device_name);
+	for (port = porthead; port; port = port->next)
+		if (ifindex == port->ifindex)
 			break;
-		port = port->next;
-	}
 
 	if (!port) {
-		newport = add_port(device_name);
-
-		if (newport == NULL) {
+		newport = add_port(ifindex, device_name);
+		if (!newport) {
 			LLDPAD_INFO("%s: Error adding device %s\n",
-				__func__, device_name);
+				    __func__, device_name);
 			return -EINVAL;
 		}
 
@@ -232,6 +230,7 @@ static void event_if_decode_nlmsg(int route_type, void *data, int len)
 	struct rtattr *rta;
 	char device_name[IFNAMSIZ];
 	struct lldp_agent *agent;
+	int ifindex;
 	int attrlen;
 	int valid;
 	int link_status = IF_OPER_UNKNOWN;
@@ -241,13 +240,13 @@ static void event_if_decode_nlmsg(int route_type, void *data, int len)
 	case RTM_DELLINK:
 	case RTM_SETLINK:
 	case RTM_GETLINK:
+		ifindex = ((struct ifinfomsg *)data)->ifi_index;
 		LLDPAD_DBG(" IFINFOMSG\n");
 		LLDPAD_DBG("        ifi_family = 0x%02x\n",
 			((struct ifinfomsg *)data)->ifi_family);
 		LLDPAD_DBG("        ifi_type   = 0x%x\n",
 			((struct ifinfomsg *)data)->ifi_type);
-		LLDPAD_DBG("        ifi_index  = %i\n",
-			((struct ifinfomsg *)data)->ifi_index);
+		LLDPAD_DBG("        ifi_index  = %i\n", ifindex);
 		LLDPAD_DBG("        ifi_flags  = 0x%04x\n",
 			((struct ifinfomsg *)data)->ifi_flags);
 		LLDPAD_DBG("        ifi_change = 0x%04x\n",
@@ -274,7 +273,7 @@ static void event_if_decode_nlmsg(int route_type, void *data, int len)
 			if (!valid)
 				break;
 
-			struct port *port = port_find_by_name(device_name);
+			struct port *port = port_find_by_ifindex(ifindex);
 			if (!port)
 				break;
 
