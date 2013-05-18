@@ -1002,6 +1002,14 @@ int parse_dcb_cmd(char *buf)
 					error = 1;
 				}
 				break;
+			case APP_FIP_STYPE:
+				if (strlen(appcfg_p) != 2) {
+					if (!badarg)
+						badarg = strdup("invalid appcfg"
+							" length for FIP");
+					error = 1;
+				}
+				break;
 			default:
 				break;
 			}
