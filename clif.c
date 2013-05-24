@@ -164,7 +164,7 @@ static int clif_attach_helper(struct clif *clif, char *tlvs_hex, int attach)
 
 	/* Allocate maximum buffer usage */
 	if (tlvs_hex && attach) {
-		buf = malloc(sizeof(char)*(strlen(tlvs_hex) + 1));
+		buf = malloc(sizeof(char)*(strlen(tlvs_hex) + 2));
 		if (!buf)
 			return -1;
 		sprintf(buf, "%s%s","A",tlvs_hex);
