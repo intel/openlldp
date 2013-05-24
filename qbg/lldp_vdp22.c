@@ -26,6 +26,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <string.h>
 
@@ -35,15 +36,156 @@
 #include "config.h"
 
 #include "lldp_mod.h"
+#include "lldp_util.h"
 #include "lldp_vdpnl.h"
 #include "lldp_qbg22.h"
 #include "lldp_vdp22.h"
+#include "lldp_qbg_utils.h"
 
 /*
  * VDP22 helper functions
  */
+
+/*
+ * Print a profile.
+ */
+void vdp22_showprof(struct vsi22_profile *p)
+{
+	char uuid[VDP_UUID_STRLEN + 2];
+	struct vdp22_mac_vlan *mac_vlan;
+
+	vdp_uuid2str(p->uuid, uuid, sizeof(uuid));
+	LLDPAD_DBG("profile:%p mode:%d response:%d"
+		   " mgrid:%d id:%d(%#x) version:%d %s format:%d entries:%d\n",
+		   p, p->req_mode, p->req_response, p->mgrid, p->typeid,
+		    p->typeid, p->typeid_ver, uuid, p->format, p->entries);
+	LIST_FOREACH(mac_vlan, &p->macvid_head, node) {
+		mac2str(mac_vlan->mac, uuid, sizeof uuid);
+		LLDPAD_DBG("profile:%p mac:%s vlan:%d qos:%d pid:%d seq:%ld\n",
+			   p, uuid, mac_vlan->vlan, mac_vlan->qos,
+			   mac_vlan->req_pid, mac_vlan->req_seq);
+	}
+}
+
+/*
+ * vdp22_remove_macvlan - remove all mac/vlan pairs in the profile
+ *
+ * Remove all allocated <mac,vlan> pairs on the profile.
+*/
+static void vdp22_remove_macvlan(struct vsi22_profile *p)
+{
+	struct vdp22_mac_vlan *macp;
+
+	while ((macp = LIST_FIRST(&p->macvid_head))) {
+		LIST_REMOVE(macp, node);
+		free(macp);
+	}
+}
+
+/*
+ * Delete a complete profile node
+ */
+static void vdp22_delete_prof(struct vsi22_profile *prof)
+{
+	vdp22_remove_macvlan(prof);
+	free(prof);
+}
+
+/*
+ * Remove a profile node from list and delete it
+ */
+static void vdp22_listdel_prof(struct vsi22_profile *prof)
+{
+	LLDPAD_DBG("%s:%s profile:%p(%02x)\n", __func__, prof->ifname,
+		   prof, prof->uuid[PUMLAST]);
+	LIST_REMOVE(prof, prof22_node);
+	vdp22_delete_prof(prof);
+}
+
+static bool check_macvlan(struct vdp22_mac_vlan *macp)
+{
+	if (macp->vlan < 2 || macp->vlan > 4094)
+		return false;
+	if (!is_valid_mac(macp->mac))
+		return false;
+	return true;
+}
+
+/* Check for valid VSI request mode */
+static bool check_vsi(struct vdpnl_vsi *vsi)
+{
+	switch (vsi->request) {
+	case VDP22_PREASSOC:
+	case VDP22_PREASSOC_WITH_RR:
+	case VDP22_ASSOC:
+	case VDP22_DEASSOC:
+	case VDP22_MGRID:
+	case VDP22_OUI:	return true;
+	}
+	return false;
+}
+
+/*
+ * Allocate a vsi_profile with MAC/VLAN list
+ */
+static struct vsi22_profile *vdp22_alloc_prof(struct vdpnl_vsi *vsi, int *rc)
+{
+	struct vsi22_profile *p;
+	int i;
+
+	*rc = -EINVAL;
+	if (!check_vsi(vsi))
+		return NULL;
+	p = calloc(1, sizeof *p);
+	if (!p) {
+		*rc = -ENOMEM;
+		 return p;
+	}
+	LIST_INIT(&p->macvid_head);
+	strncpy(p->ifname, vsi->ifname, sizeof p->ifname);
+	/* Adjust new numbering for VDP22 protocol */
+	p->req_mode = 1 + vsi->request;
+	p->req_response = VDP22_RESP_NONE;
+	p->mgrid = vsi->vsi_mgrid;
+	p->typeid_ver = vsi->vsi_typeversion;
+	p->typeid = vsi->vsi_typeid;
+	memcpy(p->uuid, vsi->vsi_uuid, sizeof p->uuid);
+	p->format = vsi->filter_fmt;
+	p->entries = vsi->macsz;
+
+	for (i = 0; i < vsi->macsz; ++i) {
+		struct vdpnl_mac *from = &vsi->maclist[i];
+		struct vdp22_mac_vlan *macp;
+
+		macp = calloc(1, sizeof *macp);
+		if (!macp) {
+			*rc = -ENOMEM;
+			goto error1;
+		}
+		LIST_INSERT_HEAD(&p->macvid_head, macp, node);
+		memcpy(macp->mac, from->mac, sizeof macp->mac);
+		macp->qos = from->qos;
+		macp->vlan = from->vlan;
+		macp->req_pid = vsi->req_pid;
+		macp->req_seq = vsi->req_seq;
+		if (!check_macvlan(macp)) {
+			*rc = -EINVAL;
+			goto error1;
+		}
+	}
+	*rc = 0;
+	LLDPAD_DBG("%s:%s profile:%p(%02x)\n", __func__, vsi->ifname,
+		   p, p->uuid[PUMLAST]);
+	return p;
+error1:
+	vdp22_delete_prof(p);
+	return NULL;
+}
+
 /*
  * Find the vdp data associated with an interface.
+ * Parameter 'ud' may be zero, then search for the module first.
+ *
  * Return pointer or NULL if not found.
  */
 static struct vdp22 *vdp22_findif(const char *ifname,
@@ -51,6 +193,12 @@ static struct vdp22 *vdp22_findif(const char *ifname,
 {
 	struct vdp22 *vdp = 0;
 
+	if (!ud) {
+		ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP22);
+		if (!ud)
+			LLDPAD_DBG("%s:%s no VDP22 module\n", __func__,
+				   ifname);
+	}
 	if (ud) {
 		LIST_FOREACH(vdp, &ud->head, entry)
 			if (!strncmp(ifname, vdp->ifname, IFNAMSIZ))
@@ -65,11 +213,9 @@ static struct vdp22 *vdp22_findif(const char *ifname,
  */
 static int data_from_ecp(char *ifname, struct ecp22_to_ulp *ptr)
 {
-	struct vdp22_user_data *vud;
 	struct vdp22 *vdp;
 
-	vud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP22);
-	vdp = vdp22_findif(ifname, vud);
+	vdp = vdp22_findif(ifname, NULL);
 	if (vdp) {
 		memcpy(vdp->input, ptr->data, ptr->len);
 		vdp->input_len = ptr->len;
@@ -84,18 +230,19 @@ static int data_from_ecp(char *ifname, struct ecp22_to_ulp *ptr)
  */
 static int data_from_evb(char *ifname, struct evb22_to_vdp22 *ptr)
 {
-	struct vdp22_user_data *vud;
+	int rc = -ENOENT;
 	struct vdp22 *vdp;
 
-	vud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP22);
-	vdp = vdp22_findif(ifname, vud);
+	vdp = vdp22_findif(ifname, NULL);
 	if (vdp) {
 		vdp->max_rwd = ptr->max_rwd;
 		vdp->max_rka = ptr->max_rka;
 		vdp->gpid = ptr->gpid;
-		return 0;
+		LLDPAD_DBG("%s:%s max_rwd:%d max_rka:%d gpid:%d\n", __func__,
+			   ifname, vdp->max_rwd, vdp->max_rka, vdp->gpid);
+		rc = 0;
 	}
-	return -ENOENT;
+	return rc;
 }
 
 /*
@@ -185,12 +332,9 @@ static struct vdp22 *vdp22_create(const char *ifname,
  */
 static struct vdp22 *vdp22_getvdp(const char *ifname)
 {
-	struct vdp22_user_data *vud;
 	struct vdp22 *vdp = NULL;
 
-	vud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP22);
-	if (vud)
-		vdp = vdp22_findif(ifname, vud);
+	vdp = vdp22_findif(ifname, NULL);
 	LLDPAD_DBG("%s:%s vdp %p\n", __func__, ifname, vdp);
 	return vdp;
 }
@@ -229,7 +373,18 @@ void vdp22_start(const char *ifname)
  */
 int vdp22_request(struct vdpnl_vsi *vsi)
 {
-	int rc = -ENODEV;
+	int rc;
+	struct vsi22_profile *p;
+	struct vdp22 *vdp;
+
+	LLDPAD_DBG("%s:%s\n", __func__, vsi->ifname);
+	vdp = vdp22_findif(vsi->ifname, NULL);
+	if (vdp) {
+		p = vdp22_alloc_prof(vsi, &rc);
+		if (p)
+			rc = vdp22_addreq(p, vdp);
+	} else
+		rc = -ENODEV;
 	LLDPAD_DBG("%s:%s rc:%d\n", __func__, vsi->ifname, rc);
 	return rc;
 }
@@ -286,4 +441,44 @@ struct lldp_module *vdp22_register(void)
 	mod->data = ud;
 	LLDPAD_DBG("%s:done\n", __func__);
 	return mod;
+}
+
+/*
+ * Query a VSI request from buddy and report its progress. Use the interface
+ * name to determine the VSI profile list. Return one entry in parameter 'vsi'
+ * use the structure members response and vsi_uuid.
+ * Returns
+ * 1  valid VSI data returned
+ * 0  end of queue (no VSI data returned)
+ * <0 errno
+ */
+int vdp22_status(int number, struct vdpnl_vsi *vsi)
+{
+	struct vdp22 *vdp;
+	struct vsi22_profile *p;
+	int i = 0, ret = 0;
+
+	LLDPAD_DBG("%s:%s\n", __func__, vsi->ifname);
+	vdp = vdp22_findif(vsi->ifname, NULL);
+	if (!vdp) {
+		LLDPAD_ERR("%s: %s has not yet been configured\n", __func__,
+			   vsi->ifname);
+		return -ENODEV;
+	}
+	/* Interate to queue element number */
+	LIST_FOREACH(p, &vdp->prof22_head, prof22_node) {
+		if (++i == number) {
+			ret = 1;
+			break;
+		}
+	}
+	if (ret) {
+		vdp22_showprof(p);
+		vsi->response = p->req_response;
+		memcpy(vsi->vsi_uuid, p->uuid, sizeof vsi->vsi_uuid);
+		if (p->req_response != VDP22_RESP_NONE && p->done)
+			vdp22_listdel_prof(p);
+	}
+	LLDPAD_DBG("%s: entry:%d more:%d\n", __func__, number, ret);
+	return ret;
 }

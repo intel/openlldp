@@ -354,7 +354,8 @@ static int vdpnl_getlink(struct nlmsghdr *nlh, size_t len)
 	vf_port = mynla_nest_start(nlh, IFLA_VF_PORT);
 	/* Iterate over all profiles */
 	do {
-		rc = vdp_status(++i, &p);
+		rc = vdp22_query(p.ifname) ? vdp22_status(++i, &p)
+					   : vdp_status(++i, &p);
 		if (rc == 1)
 			vdpnl_reply2(&p, nlh);
 		if (rc == 0) {

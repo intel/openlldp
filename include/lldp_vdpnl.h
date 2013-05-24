@@ -61,5 +61,6 @@ int vdpnl_send(struct vdpnl_vsi *);
 int vdp_request(struct vdpnl_vsi *);
 int vdp22_request(struct vdpnl_vsi *);
 int vdp_status(int, struct vdpnl_vsi *);
+int vdp22_status(int, struct vdpnl_vsi *);
 int event_trigger(struct nlmsghdr *, pid_t);
 #endif
