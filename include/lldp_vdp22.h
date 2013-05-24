@@ -90,8 +90,9 @@ struct vsi22_profile {		/* Profile data */
 
 struct vdp22 {		/* Per interface VSI/VDP data */
 	char ifname[IFNAMSIZ + 1];	/* Interface name */
-	unsigned char max_rwd;		/* Max number of resource wait delay */
-	unsigned char max_rka;		/* Max number of reinit keep alive */
+	unsigned long long wdly_us;	/* Waitdelay timeout in micro secs */
+	unsigned long long ka_us;	/* Keep alive timeout in micro secs */
+	unsigned long long resp_us;	/* Response timeout in micro secs */
 	unsigned char gpid;		/* Supports group ids in VDP */
 	unsigned short input_len;	/* Length of input data from ECP */
 	unsigned char input[ETH_DATA_LEN];	/* Input data from ECP */

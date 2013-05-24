@@ -237,6 +237,8 @@ static void evb22_update_tlv(struct evb22_data *ed)
 	qbg.data_type = EVB22_TO_VDP22;
 	qbg.u.b.max_rka = evb_ex_rka(ed->out.rl_rka);
 	qbg.u.b.max_rwd = evb_ex_rwd(ed->out.evb_mode);
+	qbg.u.b.max_rte = evb_ex_rte(ed->out.r_rte);
+	qbg.u.b.max_retry = evb_ex_retries(ed->out.r_rte);
 	/* Support group identifiers when advertised by both sides */
 	qbg.u.b.gpid = evb_ex_bgid(ed->out.bridge_s)
 		       && evb_ex_sgid(ed->out.station_s);

@@ -226,6 +226,8 @@ static int data_from_ecp(char *ifname, struct ecp22_to_ulp *ptr)
 
 /*
  * Update data exchanged via EVB protocol.
+ * Calculate the various time out values based in input parameters.
+ * See IEEE 802.1Qbg ratified standard 41.5.5.7 + 41.5.5.9
  * Returns true when data update succeeded.
  */
 static int data_from_evb(char *ifname, struct evb22_to_vdp22 *ptr)
@@ -235,11 +237,16 @@ static int data_from_evb(char *ifname, struct evb22_to_vdp22 *ptr)
 
 	vdp = vdp22_findif(ifname, NULL);
 	if (vdp) {
-		vdp->max_rwd = ptr->max_rwd;
-		vdp->max_rka = ptr->max_rka;
+		vdp->wdly_us = (1 << ptr->max_rwd) * 10;
+		vdp->resp_us = (1 + 2 * ptr->max_retry)
+				* (1 << ptr->max_rte) * 10;
+		vdp->ka_us = (1 << ptr->max_rka) * 10;
 		vdp->gpid = ptr->gpid;
-		LLDPAD_DBG("%s:%s max_rwd:%d max_rka:%d gpid:%d\n", __func__,
-			   ifname, vdp->max_rwd, vdp->max_rka, vdp->gpid);
+		LLDPAD_DBG("%s:%s rwd:%d rka:%d gpid:%d retry:%d rte:%d"
+			   " waitdelay:%lld respdelay:%lld keepalive:%lld\n",
+			   __func__, ifname, ptr->max_rwd, ptr->max_rka,
+			   ptr->gpid, ptr->max_retry, ptr->max_rte,
+			   vdp->wdly_us, vdp->resp_us, vdp->ka_us);
 		rc = 0;
 	}
 	return rc;
