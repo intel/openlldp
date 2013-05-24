@@ -378,6 +378,7 @@ static int vdpnl_setlink(struct nlmsghdr *nlh, size_t len)
 	struct vdpnl_vsi p;
 
 	memset(&p, 0, sizeof p);
+	p.filter_fmt = VDP22_FFMT_MACVID;
 	p.macsz = 1;
 	p.maclist = &mac;
 	rc = vdpnl_set(nlh, &p);

@@ -51,6 +51,7 @@ struct vdpnl_vsi {		/* Data structure for VSI data via netlink */
 	unsigned long vsi_typeid;
 	unsigned long req_seq;
 	pid_t req_pid;
+	unsigned char filter_fmt;	/* Filter format type */
 	int macsz;			/* Entries in mac-vlan pair list */
 	struct vdpnl_mac *maclist;	/* List of MAC-VLAN pairs */
 };
