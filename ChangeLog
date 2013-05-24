@@ -1,3 +1,14 @@
+Changes from 0.9.45 tthrough 0.9.46
+- Add IEEE802.1Qbg EVB module support
+- add and improve test code evbest/nltest
+- 8021qaz fix to work with hardware that does not support CEE DCBX
+- support lldpad running on bonded interfaces
+- pretty print support for VDP
+- new -p option to display lldpad process identifier
+Changes from 0.9.44 tthrough 0.9.45
+- generate shared library liblldp_clif for applications to use
+- Add vdptest program
+- various link event fixes
 Changes from 0.9.43 through 0.9.44
 - Support for multiple agent types Nearest non-TPMR, Nearest customer bridge,
   and Nearest Bridge (always supported).
