@@ -596,12 +596,11 @@ void mand_ifup(char *ifname, struct lldp_agent *agent)
 		if (!md) {
 			LLDPAD_WARN("%s:%s malloc %zu failed\n",
 				     __func__, ifname, sizeof(*md));
-			goto out_err;
+			return;
 		}
 		memset(md, 0, sizeof(struct mand_data));
 		strncpy(md->ifname, ifname, IFNAMSIZ);
 		md->agenttype = agent->type;
-
 
 		mud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_MAND);
 		LIST_INSERT_HEAD(&mud->head, md, entry);
@@ -609,15 +608,15 @@ void mand_ifup(char *ifname, struct lldp_agent *agent)
 
 	if (mand_bld_tlv(md, agent)) {
 		LLDPAD_INFO("%s:%s mand_bld_tlv failed\n", __func__, ifname); 
+		LIST_REMOVE(md, entry);
+		mand_free_tlv(md);
 		free(md);
-		goto out_err;
+		return;
 	}
 
 	/* Only read shared memory on first ifup */
 	md->read_shm = 1;
 	LLDPAD_INFO("%s:port %s added\n", __func__, ifname); 
-	return;
-out_err:
 	return;
 }
 
