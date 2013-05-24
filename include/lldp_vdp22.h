@@ -31,15 +31,65 @@
 
 #include	<sys/queue.h>
 #include	<linux/if_ether.h>
+#include	<linux/if_link.h>
 
-#include	"lldp_mod.h"
-
-struct vsi22_profile {
-	LIST_ENTRY(vsi22_profile) prof22_entry;
+/*
+ * Define VDP22 filter formats.
+ */
+enum vdp22_ffmt {
+	 VDP22_FFMT_VID = 1,
+	 VDP22_FFMT_MACVID,
+	 VDP22_FFMT_GROUPVIDC,
+	 VDP22_FFMT_GROUPMACVID
 };
 
+/*
+ * Define VDP22 VSI Profile modes.
+ */
+enum vdp22_modes {
+	VDP22_PREASSOC = 1,
+	VDP22_PREASSOC_WITH_RR,
+	VDP22_ASSOC,
+	VDP22_DEASSOC,
+	VDP22_MGRID,
+	VDP22_OUI = 0x7f
+};
+
+enum vdp22_cmdresp {		/* VDP22 Protocol command responses */
+	VDP22_RESP_NONE = 255	/* No response returned so far */
+};
+
+struct vdp22_mac_vlan {		/* MAC,VLAN entry anchored by profiles */
+	unsigned char mac[ETH_ALEN];
+	unsigned short vlan;
+	unsigned char qos;		/* QOS field */
+	pid_t req_pid;			/* PID of requester for profile */
+	unsigned long req_seq;		/* Seq # of requester for profile */
+	LIST_ENTRY(vdp22_mac_vlan) node;
+};
+
+struct vsi22_profile {		/* Profile data */
+	char ifname[IFNAMSIZ + 1];	/* Interface name */
+	unsigned char req_mode;		/* VSI profile association command */
+	unsigned char req_response;	/* Response from switch */
+	unsigned char mgrid;		/* Profile mgr id */
+	unsigned char typeid_ver;	/* Profile type id version */
+	unsigned int typeid;		/* Profile id */
+	unsigned char uuid[PORT_UUID_MAX];	/* Profile UUID */
+	unsigned char format;		/* Format of MAC,VLAN list */
+	unsigned short entries;		/* Number of MAC,VLAN entries in */
+					/* macvid_head */
+	LIST_HEAD(macvid22_head, vdp22_mac_vlan) macvid_head;
+	LIST_ENTRY(vsi22_profile) prof22_node;
+	struct vdp22smi *smi;		/* Pointer to state machine info */
+	int done;			/* Timer for profile completion */
+};
+
+/* Show last char of UUID in trace */
+#define	PUMLAST		(PORT_UUID_MAX - 1)
+
 struct vdp22 {		/* Per interface VSI/VDP data */
-	char ifname[IFNAMSIZ];		/* Interface name */
+	char ifname[IFNAMSIZ + 1];	/* Interface name */
 	unsigned char max_rwd;		/* Max number of resource wait delay */
 	unsigned char max_rka;		/* Max number of reinit keep alive */
 	unsigned char gpid;		/* Supports group ids in VDP */
@@ -58,5 +108,6 @@ void vdp22_unregister(struct lldp_module *);
 void vdp22_start(const char *);
 void vdp22_stop(char *);
 int vdp22_query(const char *);
+int vdp22_addreq(struct vsi22_profile *, struct vdp22 *);
 
 #endif

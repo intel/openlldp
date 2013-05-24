@@ -27,12 +27,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <string.h>
 
 #include <net/if.h>
 
 #include "messages.h"
 #include "config.h"
 
+#include "lldp_mod.h"
 #include "lldp_vdpnl.h"
 #include "lldp_qbg22.h"
 #include "lldp_vdp22.h"
