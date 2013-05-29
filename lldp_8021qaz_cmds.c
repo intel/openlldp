@@ -845,7 +845,7 @@ _set_arg_tsa(struct cmd *cmd, char *args, const char *arg_value,
 			toked_maps = strtok(NULL, ",");
 		}
 	} else if (!test) {
-		memset(tsa, 0, sizeof(tsa));
+		memset(tsa, 0, MAX_TCS);
 	}
 
 	if (test) {
