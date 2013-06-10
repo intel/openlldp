@@ -38,7 +38,7 @@
 #include "lldp_mod.h"
 #include "lldp_util.h"
 #include "qbg_vdpnl.h"
-#include "lldp_qbg22.h"
+#include "qbg22.h"
 #include "qbg_vdp22.h"
 #include "qbg_utils.h"
 

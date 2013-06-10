@@ -38,7 +38,7 @@
 #include "messages.h"
 #include "config.h"
 
-#include "lldp_qbg22.h"
+#include "qbg22.h"
 #include "qbg_vdp22.h"
 
 enum vdp22_states {

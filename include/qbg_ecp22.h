@@ -29,7 +29,7 @@
 #include <linux/if_ether.h>
 
 #include "lldp_mod.h"
-#include "lldp_qbg22.h"
+#include "qbg22.h"
 
 enum {					/* ECP Receive states */
 	ECP22_RX_BEGIN,

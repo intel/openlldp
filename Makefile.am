@@ -67,7 +67,7 @@ lldp_8023.c include/lldp_8023.h \
 lldp_8021qaz.c include/lldp_8021qaz.h \
 lldp_8021qaz_cmds.c include/lldp_8021qaz_cmds.h \
 include/lldp_evb22.h lldp_evb22.c lldp_evb22_cmds.c \
-include/lldp_qbg22.h include/qbg_ecp22.h qbg/ecp22.c \
+include/qbg22.h include/qbg_ecp22.h qbg/ecp22.c \
 include/qbg_vdp22.h qbg/vdp22.c qbg/vdpnl.c qbg/vdp22sm.c
 
 lib_LTLIBRARIES = liblldp_clif.la
