@@ -30,7 +30,7 @@
 #include <errno.h>
 
 #include "eloop.h"
-#include "lldp_ecp22.h"
+#include "qbg_ecp22.h"
 #include "messages.h"
 #include "lldp_qbg_utils.h"
 #include "lldp/l2_packet.h"

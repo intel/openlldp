@@ -30,7 +30,7 @@
 #include "lldp.h"
 #include "lldp_tlv.h"
 #include "lldp_evb22.h"
-#include "lldp_ecp22.h"
+#include "qbg_ecp22.h"
 #include "lldp_vdp22.h"
 #include "lldp_qbg_utils.h"
 #include "lldp_evb_cmds.h"

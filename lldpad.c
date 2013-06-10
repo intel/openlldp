@@ -52,7 +52,7 @@
 #include "lldp_8023.h"
 #include "lldp_evb.h"
 #include "lldp_evb22.h"
-#include "lldp_ecp22.h"
+#include "qbg_ecp22.h"
 #include "lldp_vdp.h"
 #include "lldp_vdp22.h"
 #include "lldp_8021qaz.h"

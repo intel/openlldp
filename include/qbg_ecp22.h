@@ -23,8 +23,8 @@
 
 *******************************************************************************/
 
-#ifndef LLDP_ECP22_H
-#define LLDP_ECP22_H
+#ifndef QBG_ECP22_H
+#define QBG_ECP22_H
 
 #include <linux/if_ether.h>
 
