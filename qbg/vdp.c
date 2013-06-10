@@ -36,14 +36,14 @@
 #include <errno.h>
 #include <assert.h>
 #include "lldp.h"
-#include "lldp_vdp.h"
+#include "qbg_vdp.h"
 #include "lldp_vdpnl.h"
 #include "eloop.h"
 #include "lldp_evb.h"
 #include "messages.h"
 #include "config.h"
 #include "lldp_tlv.h"
-#include "lldp_vdp_cmds.h"
+#include "qbg_vdp_cmds.h"
 #include "lldp_qbg_utils.h"
 #include "lldp_mand_clif.h"
 

@@ -30,7 +30,7 @@
 #include <linux/if_ether.h>
 
 #include "lldp_mod.h"
-#include "lldp_vdp.h"
+#include "qbg_vdp.h"
 
 #define ECP_SUBTYPE			0x0
 

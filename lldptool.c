@@ -48,7 +48,7 @@
 #include "lldp_dcbx_clif.h"
 #include "lldp_evb22_clif.h"
 #include "lldp_evb_clif.h"
-#include "lldp_vdp_clif.h"
+#include "qbg_vdp_clif.h"
 #include "lldp_8021qaz_clif.h"
 #include "lldp_orgspec_clif.h"
 #include "lldp_cisco_clif.h"

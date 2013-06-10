@@ -32,7 +32,7 @@
 #include "lldp_tlv.h"
 #include "lldp_evb.h"
 #include "lldp_evb_cmds.h"
-#include "lldp_vdp.h"
+#include "qbg_vdp.h"
 #include "messages.h"
 #include "config.h"
 

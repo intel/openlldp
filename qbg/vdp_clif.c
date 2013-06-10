@@ -32,9 +32,9 @@
 #include "lldp_mod.h"
 #include "clif_msgs.h"
 #include "lldp.h"
-#include "lldp_vdp.h"
-#include "lldp_vdp_cmds.h"
-#include "lldp_vdp_clif.h"
+#include "qbg_vdp.h"
+#include "qbg_vdp_cmds.h"
+#include "qbg_vdp_clif.h"
 #include "lldp_mand_clif.h"
 
 static const char *mode_state(int mode)

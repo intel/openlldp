@@ -24,8 +24,8 @@
 
 *******************************************************************************/
 
-#ifndef _LLDP_VDP_H
-#define _LLDP_VDP_H
+#ifndef QBG_VDP_H
+#define QBG_VDP_H
 
 #include "lldp_mod.h"
 #include "qbg_ecp.h"

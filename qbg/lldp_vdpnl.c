@@ -39,7 +39,7 @@
 #include <netlink/msg.h>
 
 #include "messages.h"
-#include "lldp_vdp.h"
+#include "qbg_vdp.h"
 #include "lldp_vdp22.h"
 #include "lldp_vdpnl.h"
 #include "lldp_qbg_utils.h"

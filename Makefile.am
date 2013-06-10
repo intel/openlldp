@@ -27,7 +27,7 @@ include/clif.h include/lldp_dcbx_cmds.h \
 include/lldpad.h include/lldp_mand_cmds.h \
 include/clif_msgs.h include/lldp_basman_cmds.h include/lldp_8023_cmds.h \
 include/lldp_med_cmds.h include/lldp_util.h \
-include/lldp_evb_cmds.h include/lldp_vdp_cmds.h include/lldp_8021qaz_cmds.h \
+include/lldp_evb_cmds.h include/qbg_vdp_cmds.h include/lldp_8021qaz_cmds.h \
 include/clif_sock.h include/linux/dcbnl.h \
 include/linux/netlink.h include/linux/rtnetlink.h \
 include/lldpad_status.h
@@ -40,7 +40,7 @@ include/lldpad_shm.h include/event_iface.h include/messages.h \
 include/parse_cli.h include/version.h include/lldptool_cli.h include/list.h \
 include/lldp_mand_clif.h include/lldp_basman_clif.h include/lldp_med_clif.h \
 include/lldp_8023_clif.h include/lldp_dcbx_clif.h include/lldp_evb_clif.h \
-include/lldp_evb22_clif.h include/lldp_vdp_clif.h include/lldp_vdpnl.h \
+include/lldp_evb22_clif.h include/qbg_vdp_clif.h include/lldp_vdpnl.h \
 include/lldp_8021qaz_clif.h \
 include/lldp_orgspec_clif.h include/lldp_cisco_clif.h \
 include/lldptool.h include/lldp_rtnl.h include/dcbtool.h include/lldp_dcbx_cfg.h
@@ -56,10 +56,10 @@ lldp_dcbx.c include/lldp_dcbx.h tlv_dcbx.c include/tlv_dcbx.h \
 lldp_dcbx_cfg.c include/lldp_dcbx_cfg.h lldp_util.c \
 lldp_mand.c include/lldp_mand.h \
 lldp_mand_cmds.c lldp_basman_cmds.c lldp_8023_cmds.c lldp_med_cmds.c \
-lldp_evb_cmds.c lldp_evb.c include/lldp_evb.h lldp_vdp_cmds.c \
-include/lldp_vdp_cmds.h \
+lldp_evb_cmds.c lldp_evb.c include/lldp_evb.h qbg/vdp_cmds.c \
+include/qbg_vdp_cmds.h \
 include/qbg_ecp.h include/lldp_qbg_utils.h qbg/ecp.c lldp_qbg_utils.c \
-lldp_vdp.c include/lldp_vdp.h \
+qbg/vdp.c include/qbg_vdp.h \
 lldp_tlv.c include/lldp_tlv.h \
 lldp_basman.c include/lldp_basman.h \
 lldp_med.c include/lldp_med.h \
@@ -83,7 +83,7 @@ dcbtool_LDFLAGS = -ldl -llldp_clif
 lldptool_SOURCES = lldptool.c lldptool_cmds.c lldp_rtnl.c \
 		   lldp_mand_clif.c lldp_basman_clif.c lldp_med_clif.c \
 		   lldp_8023_clif.c lldp_dcbx_clif.c lldp_util.c \
-		   lldp_8021qaz_clif.c lldp_evb_clif.c lldp_vdp_clif.c \
+		   lldp_8021qaz_clif.c lldp_evb_clif.c qbg/vdp_clif.c \
 		   lldp_orgspec_clif.c lldp_cisco_clif.c lldp_evb22_clif.c \
 		   weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
 lldptool_LDADD = ${srcdir}/liblldp_clif.la

@@ -1,9 +1,10 @@
 /*******************************************************************************
 
-  implementation of VDP according to IEEE 802.1Qbg
-  (c) Copyright IBM Corp. 2010
+  Implementation of VDP according to IEEE 802.1Qbg
+  (c) Copyright IBM Corp. 2010, 2012
 
   Author(s): Jens Osterkamp <jens@linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht@linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -23,26 +24,9 @@
 
 *******************************************************************************/
 
-#ifndef _LLDP_VDP_CMDS_H
-#define _LLDP_VDP_CMDS_H
+#ifndef QBG_VDP_CLIF_H
+#define QBG_VDP_CLIF_H
 
-struct arg_handlers *vdp_get_arg_handlers();
-int vdp_clif_cmd(char *, int, char *, int);
-
-enum {
-       MODE = 0,
-       MGRID,
-       TYPEID,
-       TYPEIDVERSION,
-       INSTANCEID,
-       FORMAT,
-};
-
-#define VAL_STATION	"station"
-#define VAL_BRIDGE	"bridge"
-#define ARG_VDP_MODE	"mode"
-#define ARG_VDP_ROLE	"role"
-#define VDP_PREFIX	"vdp"
-#define VDP_BUF_SIZE	256
+struct lldp_module *vdp_cli_register(void);
 
 #endif
