@@ -66,7 +66,7 @@ lldp_med.c include/lldp_med.h \
 lldp_8023.c include/lldp_8023.h \
 lldp_8021qaz.c include/lldp_8021qaz.h \
 lldp_8021qaz_cmds.c include/lldp_8021qaz_cmds.h \
-include/lldp_evb22.h qbg/lldp_evb22.c qbg/lldp_evb22_cmds.c \
+include/lldp_evb22.h lldp_evb22.c lldp_evb22_cmds.c \
 include/lldp_qbg22.h include/qbg_ecp22.h qbg/ecp22.c \
 include/lldp_vdp22.h qbg/lldp_vdp22.c qbg/lldp_vdpnl.c qbg/lldp_vdp22sm.c
 
@@ -84,7 +84,7 @@ lldptool_SOURCES = lldptool.c lldptool_cmds.c lldp_rtnl.c \
 		   lldp_mand_clif.c lldp_basman_clif.c lldp_med_clif.c \
 		   lldp_8023_clif.c lldp_dcbx_clif.c lldp_util.c \
 		   lldp_8021qaz_clif.c lldp_evb_clif.c lldp_vdp_clif.c \
-		   lldp_orgspec_clif.c lldp_cisco_clif.c qbg/lldp_evb22_clif.c \
+		   lldp_orgspec_clif.c lldp_cisco_clif.c lldp_evb22_clif.c \
 		   weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
 lldptool_LDADD = ${srcdir}/liblldp_clif.la
 lldptool_LDFLAGS = -ldl -llldp_clif
