@@ -36,7 +36,7 @@
 #include "qbg_vdp.h"
 #include "lldp_mand_clif.h"
 #include "qbg_vdp_cmds.h"
-#include "lldp_qbg_utils.h"
+#include "qbg_utils.h"
 #include "lldp/ports.h"
 #include "lldp_tlv.h"
 #include "messages.h"

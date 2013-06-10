@@ -32,7 +32,7 @@
 #include "lldp_evb22.h"
 #include "qbg_ecp22.h"
 #include "lldp_vdp22.h"
-#include "lldp_qbg_utils.h"
+#include "qbg_utils.h"
 #include "lldp_evb_cmds.h"
 #include "messages.h"
 #include "config.h"

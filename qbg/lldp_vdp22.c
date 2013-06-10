@@ -40,7 +40,7 @@
 #include "lldp_vdpnl.h"
 #include "lldp_qbg22.h"
 #include "lldp_vdp22.h"
-#include "lldp_qbg_utils.h"
+#include "qbg_utils.h"
 
 /*
  * VDP22 helper functions

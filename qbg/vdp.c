@@ -44,7 +44,7 @@
 #include "config.h"
 #include "lldp_tlv.h"
 #include "qbg_vdp_cmds.h"
-#include "lldp_qbg_utils.h"
+#include "qbg_utils.h"
 #include "lldp_mand_clif.h"
 
 /* Define Module id. Must match with value in lldp_vdp_clif.c */

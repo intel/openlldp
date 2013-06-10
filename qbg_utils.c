@@ -33,7 +33,7 @@
 #include "lldp.h"
 #include "lldp_mod.h"
 #include "messages.h"
-#include "lldp_qbg_utils.h"
+#include "qbg_utils.h"
 
 extern int loglvl;			/* Global lldpad log level */
 extern struct lldp_head lldp_head;

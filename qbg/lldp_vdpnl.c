@@ -42,7 +42,7 @@
 #include "qbg_vdp.h"
 #include "lldp_vdp22.h"
 #include "lldp_vdpnl.h"
-#include "lldp_qbg_utils.h"
+#include "qbg_utils.h"
 #include "lldp_rtnl.h"
 
 static struct nla_policy ifla_vf_policy[IFLA_VF_MAX + 1] = {

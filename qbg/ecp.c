@@ -35,7 +35,7 @@
 #include "eloop.h"
 #include "lldp.h"
 #include "lldp_evb.h"
-#include "lldp_qbg_utils.h"
+#include "qbg_utils.h"
 #include "qbg_vdp.h"
 #include "messages.h"
 #include "config.h"

@@ -32,7 +32,7 @@
 #include "eloop.h"
 #include "qbg_ecp22.h"
 #include "messages.h"
-#include "lldp_qbg_utils.h"
+#include "qbg_utils.h"
 #include "lldp/l2_packet.h"
 #include "lldp_tlv.h"
 

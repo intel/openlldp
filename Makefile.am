@@ -58,7 +58,7 @@ lldp_mand.c include/lldp_mand.h \
 lldp_mand_cmds.c lldp_basman_cmds.c lldp_8023_cmds.c lldp_med_cmds.c \
 lldp_evb_cmds.c lldp_evb.c include/lldp_evb.h qbg/vdp_cmds.c \
 include/qbg_vdp_cmds.h \
-include/qbg_ecp.h include/lldp_qbg_utils.h qbg/ecp.c lldp_qbg_utils.c \
+include/qbg_ecp.h include/qbg_utils.h qbg/ecp.c qbg_utils.c \
 qbg/vdp.c include/qbg_vdp.h \
 lldp_tlv.c include/lldp_tlv.h \
 lldp_basman.c include/lldp_basman.h \
