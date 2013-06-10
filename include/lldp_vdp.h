@@ -28,7 +28,7 @@
 #define _LLDP_VDP_H
 
 #include "lldp_mod.h"
-#include "lldp_ecp.h"
+#include "qbg_ecp.h"
 
 #define LLDP_MOD_VDP		(OUI_IEEE_8021Qbg + 1)
 

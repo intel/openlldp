@@ -24,8 +24,8 @@
 
 *******************************************************************************/
 
-#ifndef LLDP_ECP_H
-#define LLDP_ECP_H
+#ifndef QBG_ECP_H
+#define QBG_ECP_H
 
 #include <linux/if_ether.h>
 
