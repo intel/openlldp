@@ -40,8 +40,8 @@
 
 #include "messages.h"
 #include "qbg_vdp.h"
-#include "lldp_vdp22.h"
-#include "lldp_vdpnl.h"
+#include "qbg_vdp22.h"
+#include "qbg_vdpnl.h"
 #include "qbg_utils.h"
 #include "lldp_rtnl.h"
 

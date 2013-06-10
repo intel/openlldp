@@ -26,8 +26,8 @@
 /*
  * Definition of the VSI data structure received via netlink interface
  */
-#ifndef LLDP_VDPNL_H
-#define LLDP_VDPNL_H
+#ifndef QBG_VDPNL_H
+#define QBG_VDPNL_H
 
 #include <linux/if_link.h>
 #include <linux/if_ether.h>

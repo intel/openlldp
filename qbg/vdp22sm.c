@@ -39,7 +39,7 @@
 #include "config.h"
 
 #include "lldp_qbg22.h"
-#include "lldp_vdp22.h"
+#include "qbg_vdp22.h"
 
 enum vdp22_states {
 	VDP22_BEGIN = 1,

@@ -59,7 +59,7 @@
 #include "lldp/states.h"
 #include "messages.h"
 #include "lldp_rtnl.h"
-#include "lldp_vdpnl.h"
+#include "qbg_vdpnl.h"
 #include "lldp_tlv.h"
 
 extern unsigned int if_nametoindex(const char *);

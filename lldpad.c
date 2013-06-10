@@ -54,7 +54,7 @@
 #include "lldp_evb22.h"
 #include "qbg_ecp22.h"
 #include "qbg_vdp.h"
-#include "lldp_vdp22.h"
+#include "qbg_vdp22.h"
 #include "lldp_8021qaz.h"
 #include "config.h"
 #include "lldpad_shm.h"

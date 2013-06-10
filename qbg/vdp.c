@@ -37,7 +37,7 @@
 #include <assert.h>
 #include "lldp.h"
 #include "qbg_vdp.h"
-#include "lldp_vdpnl.h"
+#include "qbg_vdpnl.h"
 #include "eloop.h"
 #include "lldp_evb.h"
 #include "messages.h"

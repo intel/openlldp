@@ -26,8 +26,8 @@
 /*
  * External interface definition for the ratified standard VDP protocol.
  */
-#ifndef LLDP_VDP22_H
-#define LLDP_VDP22_H
+#ifndef QBG_VDP22_H
+#define QBG_VDP22_H
 
 #include	<sys/queue.h>
 #include	<linux/if_ether.h>
