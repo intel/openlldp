@@ -102,6 +102,7 @@ void destroy_cfg(void)
 void scan_port(UNUSED void *eloop_data, UNUSED void *user_ctx)
 {
 	struct port *port;
+	struct port *next;
 	struct if_nameindex *nameidx, *p;
 
 	LLDPAD_INFO("%s: NLMSG dropped, scan ports.\n", __func__);
@@ -121,9 +122,8 @@ void scan_port(UNUSED void *eloop_data, UNUSED void *user_ctx)
 	 * comes back online we should receive a RTM_NEWLINK event and can
 	 * readd it there.
 	 */
-	for (port = porthead; port; port = port->next) {
+	for (port = porthead; port; port = next) {
 		int found = 0;
-		struct port *del;
 
 		for (p = nameidx; p->if_index; ++p) {
 			if ((int)p->if_index == port->ifindex) {
@@ -133,9 +133,9 @@ void scan_port(UNUSED void *eloop_data, UNUSED void *user_ctx)
 				break;
 			}
 		}
-		del = port;
+		next = port->next;
 		if (!found)
-			remove_port(del->ifname);
+			remove_port(port->ifname);
 	}
 
 	/* Walk port list looking for devices that should have been added
