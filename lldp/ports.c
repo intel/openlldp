@@ -126,50 +126,32 @@ void set_lldp_agent_admin(const char *ifname, int type, int admin)
 {
 	struct port *port;
 	struct lldp_agent *agent;
-	int all = 0;
-	int ifindex;
-	int tmp;
+	int ifindex = get_ifidx(ifname);
 
-	all = !strlen(ifname);
-	if (!all)
-		ifindex = get_ifidx(ifname);
+	if (!ifindex)
+		return;
 
 	for (port = porthead; port; port = port->next) {
-		if (!all && ifindex != port->ifindex)
-			continue;
-
-		if (!all)
-			memcpy(port->ifname, ifname, IFNAMSIZ);
-		/* don't change a port which has an explicit setting
-		 * on a global setting change
-		 */
-		if (all && !get_config_setting(port->ifname, type,
-					       ARG_ADMINSTATUS,
-					       (void *)&tmp,
-					       CONFIG_TYPE_INT)) {
-			if (!all)
-				break;
-			else
-				continue;
-		}
-
-		agent = lldp_agent_find_by_type(port->ifname, type);
-		if (!agent) {
-			if (!all)
-				break;
-			else
-				continue;
-		}
-
-		if (agent->adminStatus != admin) {
-			agent->adminStatus = admin;
-			somethingChangedLocal(port->ifname, type);
-			run_tx_sm(port, agent);
-			run_rx_sm(port, agent);
-		}
-
-		if (!all)
+		if (ifindex == port->ifindex)
 			break;
+	}
+
+	if (!port)
+		return;
+
+	agent = lldp_agent_find_by_type(port->ifname, type);
+	if (!agent)
+		return;
+
+	/* Set ifname with ifindex reported ifname */
+	if (strncmp(port->ifname, ifname, IFNAMSIZ) !=  0)
+		memcpy(port->ifname, ifname, IFNAMSIZ);
+
+	if (agent->adminStatus != admin) {
+		agent->adminStatus = admin;
+		somethingChangedLocal(port->ifname, type);
+		run_tx_sm(port, agent);
+		run_rx_sm(port, agent);
 	}
 }
 
