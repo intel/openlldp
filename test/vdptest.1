@@ -272,12 +272,12 @@ Several definitions using the same
 .I name
 are not allowed.
 .TP
-.B "\-C\fIname,new=new-name,changes\fP"
+.B "\-C\fInew=new-name,name=old-name,changes\fP"
 Copy the profile entry named
-.I name
-and assign it
+.I old-name
+and assign it to
 .IR new-name.
-After the first comma, list the fields which 
+After the second comma list the fields which 
 are to be changed using the same syntax as in 
 the profile definition.
 If an error is encountered during keyword parsing
@@ -401,15 +401,11 @@ flag. If this option is not set then the following default values
 are used: delaytime (1 second), waittime (1 second) and number of acknowledgements
 reads (1).
 .SH "EXAMPLES"
-.EX
-vdptest -Aname=thomas2,mgrid=1,typeid=123452,typeidver=1,
-	uuid=a1412857-60f7-4ce1-e95a-2164943f53dd,map=2-52:54:00:8e:50:53 -S
-.EE
-.sp 1
 Define a profile and show its definition.
 .sp 1
 .EX
-vdptest -C thomas2,new=unknown,typeid=99999
+vdptest -Aname=thomas2,mgrid=1,typeid=123452,typeidver=1,
+	uuid=a1412857-60f7-4ce1-e95a-2164943f53dd,map=2-52:54:00:8e:50:53 -S
 .EE
 .sp 1
 Copies the entry named
@@ -425,7 +421,7 @@ is the
 field.
 .sp 1
 .EX
-vdptest -i eth2 -F vdptest.cfg -a unknown,w=10,r=2,e=3 -s
+vdptest -C thomas2,new=unknown,typeid=99999
 .EE
 .sp 1
 Use interface eth2 and read the VSI configuration from file
@@ -438,8 +434,7 @@ times and expected the error code 3 from the switch.
 Wait one second before termintation.
 .sp 1
 .EX
-vdptest -i eth2 -F vdptest.cfg -Cthomas2,new=x1,mgrid=2 \(rs
-	-athomas2,w=10,r=2,e=3 -s -a x1,w=5
+vdptest -i eth2 -F vdptest.cfg -a unknown,w=10,r=2,e=3 -s
 .EE
 .sp 1
 Use interface eth2 and read the VSI configuration from file
@@ -455,10 +450,15 @@ Send an ASSOCIATION command with parameters stored in
 wait one second and
 send an ASSOCIATION command with parameters stored in 
 .IR x1 .
+.sp 1
+.EX
+vdptest -i eth2 -F vdptest.cfg -Cthomas2,new=x1,mgrid=2 \(rs
+	-athomas2,w=10,r=2,e=3 -s -a x1,w=5
+.EE
 .SH FILES
 /var/run/lldpad.pid
 .SH "ENVIRONMENT"
-Linux RHEL
+Linux
 .SH "SEE ALSO"
 lldpad(8), lldptool(8)
 .SH DIAGNOSTICS
