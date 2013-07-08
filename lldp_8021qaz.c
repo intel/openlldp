@@ -419,7 +419,7 @@ inline void set_prio_map(u32 *prio_map, u8 prio, int tc)
  *
  * Returns 0 on success, error value otherwise.
  */
-static int get_dcbx_hw(const char *ifname, __u8 *dcbx)
+int get_dcbx_hw(const char *ifname, __u8 *dcbx)
 {
 	int err = 0;
 	struct nlattr *attr;

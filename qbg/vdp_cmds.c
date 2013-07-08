@@ -381,32 +381,23 @@ static int test_arg_mode(struct cmd *cmd, UNUSED char *arg, char *argvalue,
 static int get_arg_role(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 			char *obuf, int obuf_len)
 {
-	struct vdp_data *vd;
+	char arg_path[VDP_BUF_SIZE];
+	const char *p;
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
 
 	switch (cmd->tlvid) {
 	case ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE:
-		vd = vdp_data(cmd->ifname);
+		snprintf(arg_path, sizeof(arg_path), "%s.%s", VDP_PREFIX, arg);
 
-		if (!vd) {
-			LLDPAD_ERR("%s: could not find vdp_data for %s\n",
-				    __FILE__, cmd->ifname);
-			return cmd_device_not_found;
-		}
+		if (get_cfg(cmd->ifname, cmd->type,
+			    arg_path, &p, CONFIG_TYPE_STRING))
+			p = VAL_STATION;
 
-		if (vd->role == VDP_ROLE_STATION)
-			snprintf(obuf, obuf_len, "%02x%s%04x%s",
-				 (unsigned int) strlen(arg), arg,
-				 (unsigned int) strlen(VAL_STATION),
-				 VAL_STATION);
-		else if (vd->role == VDP_ROLE_BRIDGE)
-			snprintf(obuf, obuf_len, "%02x%s%04x%s",
-				 (unsigned int) strlen(arg), arg,
-				 (unsigned int) strlen(VAL_BRIDGE), VAL_BRIDGE);
-		else
-			return cmd_failed;
+		snprintf(obuf, obuf_len, "%02x%s%04x%s",
+			 (unsigned int) strlen(arg), arg,
+			 (unsigned int) strlen(p), p);
 		break;
 	case INVALID_TLVID:
 		return cmd_invalid;
@@ -436,17 +427,11 @@ static int _set_arg_role(struct cmd *cmd, char *arg, char *argvalue, bool test)
 
 	vd = vdp_data(cmd->ifname);
 
-	if (!vd) {
-		LLDPAD_ERR("%s: could not find vdp_data for %s\n",
-			    __FILE__, cmd->ifname);
-		return cmd_device_not_found;
-	}
-
 	if (!strcasecmp(argvalue, VAL_BRIDGE)) {
-		if (!test)
+		if (!test && vd)
 			vd->role = VDP_ROLE_BRIDGE;
 	} else if (!strcasecmp(argvalue, VAL_STATION)) {
-		if (!test)
+		if (!test && vd)
 			vd->role = VDP_ROLE_STATION;
 	} else {
 		return cmd_invalid;

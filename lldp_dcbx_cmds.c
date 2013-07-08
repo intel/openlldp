@@ -544,14 +544,13 @@ int dcbx_clif_cmd(UNUSED void *data,
 	u8 feature;
 	u8 subtype;
 	u8 plen;
-	int ifindex;
 	char port_id[MAX_U8_BUF];
 	pg_attribs pg_data;
 	pfc_attribs pfc_data;
 	app_attribs app_data;
 	llink_attribs llink_data;
-	struct port *port;
 	struct dcbx_tlvs *dcbx;
+	int dcb_enable;
 
 	if (hexstr2bin(ibuf+DCB_CMD_OFF, &cmd, sizeof(cmd)) ||
 		hexstr2bin(ibuf+DCB_FEATURE_OFF, &feature, sizeof(feature)))
@@ -584,19 +583,14 @@ int dcbx_clif_cmd(UNUSED void *data,
 
 	memcpy(port_id, ibuf+DCB_PORT_OFF, plen);
 	port_id[plen] = '\0';
-	ifindex = get_ifidx(port_id);
 
-	/* Confirm port is a lldpad managed port */
-	port = port_find_by_ifindex(ifindex);
-	if (!port)
-		return cmd_device_not_found;
+	if (get_hw_state(port_id, &dcb_enable) < 0)
+		return cmd_not_capable;
 
-	dcbx = dcbx_data(port->ifname);
-	if (!dcbx)
-		return cmd_device_not_found;
-
+	dcbx = dcbx_data(port_id);
 	/* OPER and PEER cmd not applicable while in IEEE-DCBX modes */
-	if (dcbx->active == 0 && (cmd == CMD_GET_PEER || cmd == CMD_GET_OPER))
+	if ((!dcbx || dcbx->active == 0) &&
+	    (cmd == CMD_GET_PEER || cmd == CMD_GET_OPER))
 		return cmd_not_applicable;
 
 	switch(feature) {

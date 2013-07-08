@@ -238,5 +238,6 @@ inline int ieee8021qaz_clif_cmd(void *data, struct sockaddr_un *from,
 				socklen_t fromlen, char *ibuf, int ilen,
 				char *rbuf);
 int ieee8021qaz_check_operstate(void);
+int get_dcbx_hw(const char *ifname, __u8 *dcbx);
 
 #endif	/* _LLDP_8021QAZ_H */

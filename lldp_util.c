@@ -1212,7 +1212,7 @@ int get_arg_val_list(char *ibuf, int ilen, int *ioff,
 			*ioff += arglen;
 			*(arglens+i) = arglen;
 
-			if (ilen - *ioff > 2 * (int)sizeof(argvalue_len)) {
+			if (ilen - *ioff >= 2 * (int)sizeof(argvalue_len)) {
 				hexstr2bin(ibuf+*ioff, (u8 *)&argvalue_len,
 					   sizeof(argvalue_len));
 				argvalue_len = ntohs(argvalue_len);

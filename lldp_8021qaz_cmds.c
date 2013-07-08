@@ -132,7 +132,6 @@ static int
 get_arg_dcbx_mode(struct cmd *cmd, char *args, UNUSED char *arg_value,
 		  char *obuf, int obuf_len)
 {
-	struct ieee8021qaz_tlvs *tlvs;
 	char buf[250] = "";
 
 	if (cmd->cmd != cmd_gettlv)
@@ -146,10 +145,6 @@ get_arg_dcbx_mode(struct cmd *cmd, char *args, UNUSED char *arg_value,
 	default:
 		return cmd_not_applicable;
 	}
-
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
 
 	switch (lldpad_shm_get_dcbx(cmd->ifname)) {
 	case dcbx_subtype0:
@@ -173,11 +168,32 @@ get_arg_dcbx_mode(struct cmd *cmd, char *args, UNUSED char *arg_value,
 	return cmd_success;
 }
 
+#define MAX_DCBX_HW_RETRIES	5
+
+static bool is_dcbx_hw(const char *ifname)
+{
+	__u8 dcbx = 0;
+	int err, tries = 0;
+
+query_retry:
+	err = get_dcbx_hw(ifname, &dcbx);
+
+	if (err == -ENOMEM && tries < MAX_DCBX_HW_RETRIES) {
+		tries++;
+		goto query_retry;
+	}
+
+	if (err < 0 ||
+	    !(dcbx & DCB_CAP_DCBX_VER_IEEE) ||
+	    dcbx & DCB_CAP_DCBX_LLD_MANAGED)
+		return false;
+
+	return true;
+}
+
 static int set_arg_dcbx_mode(struct cmd *cmd, UNUSED char *args,
 			     char *arg_value, char *obuf, int obuf_len)
 {
-	struct ieee8021qaz_tlvs *tlvs;
-
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
 
@@ -190,12 +206,12 @@ static int set_arg_dcbx_mode(struct cmd *cmd, UNUSED char *args,
 		return cmd_not_applicable;
 	}
 
+	if (!is_dcbx_hw(cmd->ifname))
+		return cmd_not_capable;
+
 	if (strcmp(arg_value, "reset"))
 		return cmd_invalid;
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
 
 	lldpad_shm_set_dcbx(cmd->ifname, dcbx_subtype0);
 	snprintf(obuf, obuf_len, "mode = %s\n", arg_value);
@@ -214,8 +230,8 @@ test_arg_dcbx_mode(UNUSED struct cmd *cmd, UNUSED char *args,
 static int get_arg_willing(struct cmd *cmd, char *args,
 			   UNUSED char *arg_value, char *obuf, int obuf_len)
 {
-	int willing = 0;
-	struct ieee8021qaz_tlvs *tlvs;
+	char arg_path[256];
+	int willing, err;
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
@@ -230,26 +246,20 @@ static int get_arg_willing(struct cmd *cmd, char *args,
 		return cmd_not_applicable;
 	}
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-	switch (cmd->tlvid) {
-	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
-		willing = tlvs->ets->cfgl->willing;
-		break;
-	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC:
-		willing = tlvs->pfc->local.willing;
-		break;
-	}
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
+		 cmd->tlvid, args);
+	err = get_config_setting(cmd->ifname, cmd->type, arg_path, &willing,
+				 CONFIG_TYPE_INT);
 
-	if (willing)
-		snprintf(obuf, obuf_len, "%02x%s%04x%s",
-			(unsigned int) strlen(args), args,
-			(unsigned int) strlen(VAL_YES), VAL_YES);
+	if (err)
+		snprintf(obuf, obuf_len, "%02x%s%04d",
+			(unsigned int) strlen(args), args, 0);
 	else
 		snprintf(obuf, obuf_len, "%02x%s%04x%s",
 			(unsigned int) strlen(args), args,
-			(unsigned int) strlen(VAL_NO), VAL_NO);
+			willing ? (unsigned int)strlen(VAL_YES) :
+				  (unsigned int)strlen(VAL_NO),
+			willing ? VAL_YES : VAL_NO);
 
 	return cmd_success;
 }
@@ -263,8 +273,6 @@ static int _set_arg_willing(struct cmd *cmd, char *args,
 
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
-
-
 
 	/* To remain backward compatible and make it easier
 	 * for everyone use to {0|1} notation we still support
@@ -297,20 +305,23 @@ static int _set_arg_willing(struct cmd *cmd, char *args,
 		return cmd_not_applicable;
 	}
 
-	if (test)
+
+	if (test) {
+		if (!is_dcbx_hw(cmd->ifname))
+			return cmd_not_capable;
 		return cmd_success;
+	}
 
 	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
-	switch (cmd->tlvid) {
-	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
-		tlvs->ets->cfgl->willing = !!willing;
-		break;
-	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC:
-		tlvs->pfc->local.willing = !!willing;
-		break;
+	if (tlvs) {
+		switch (cmd->tlvid) {
+		case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
+			tlvs->ets->cfgl->willing = !!willing;
+			break;
+		case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_PFC:
+			tlvs->pfc->local.willing = !!willing;
+			break;
+		}
 	}
 
 	snprintf(obuf, obuf_len, "willing = %s\n",
@@ -340,7 +351,9 @@ static int test_arg_willing(struct cmd *cmd, char *args,
 static int get_arg_numtc(struct cmd *cmd, char *args,
 			 UNUSED char *arg_value, char *obuf, int obuf_len)
 {
-	struct ieee8021qaz_tlvs *tlvs;
+	char arg_path[256];
+	int max_tcs = 0;
+	int err = 0;
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
@@ -356,12 +369,18 @@ static int get_arg_numtc(struct cmd *cmd, char *args,
 		return cmd_not_applicable;
 	}
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
 
-	snprintf(obuf, obuf_len, "%02x%s%04x%i",
-		(unsigned int) strlen(args), args, 1, tlvs->ets->cfgl->max_tcs);
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
+		 cmd->tlvid, args);
+	err = get_config_setting(cmd->ifname, cmd->type,
+				 arg_path, &max_tcs, CONFIG_TYPE_INT);
+
+	if (!err)
+		snprintf(obuf, obuf_len, "%02x%s%04x%i",
+			 (unsigned int) strlen(args), args, 1, max_tcs);
+	else
+		snprintf(obuf, obuf_len, "%02x%s%04d",
+			 (unsigned int) strlen(args), args, 0);
 
 	return cmd_success;
 }
@@ -377,10 +396,9 @@ static int get_arg_up2tc(struct cmd *cmd, char *args,
 			 UNUSED char *arg_value,
 			 char *obuf, UNUSED int obuf_len)
 {
-	struct ieee8021qaz_tlvs *tlvs;
-	char buf[250] = "";
-	u32 *pmap = NULL;
-	int i;
+	char arg_path[256] = "";
+	const char *buf = "";
+	int err;
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
@@ -395,33 +413,18 @@ static int get_arg_up2tc(struct cmd *cmd, char *args,
 		return cmd_not_applicable;
 	}
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-	switch (cmd->tlvid) {
-	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
-		pmap = &tlvs->ets->cfgl->prio_map;
-		break;
-	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
-		pmap = &tlvs->ets->recl->prio_map;
-		break;
-	}
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
+		 cmd->tlvid, args);
+	err = get_config_setting(cmd->ifname, cmd->type,
+				 arg_path, &buf, CONFIG_TYPE_STRING);
 
-	for (i = 0; i < 8; i++) {
-		char cat[5];
-
-		if (i)
-			snprintf(cat, sizeof(cat), ",%i:%i", i,
-						get_prio_map(*pmap, i));
-		else
-			snprintf(cat, sizeof(cat), "%i:%i", i,
-						get_prio_map(*pmap, i));
-		strncat(buf, cat, sizeof(buf) - strlen(buf) - 1);
-	}
-
-	snprintf(obuf, obuf_len, "%02x%s%04x%s",
-		(unsigned int) strlen(args), args,
-		(unsigned int) strlen(buf), buf);
+	if (!err)
+		snprintf(obuf, obuf_len, "%02x%s%04x%s",
+			(unsigned int) strlen(args), args,
+			(unsigned int) strlen(buf), buf);
+	else
+		snprintf(obuf, obuf_len, "%02x%s%04d",
+			(unsigned int) strlen(args), args, 0);
 
 	return cmd_success;
 }
@@ -433,35 +436,33 @@ _set_arg_up2tc(struct cmd *cmd, char *args, const char *arg_value,
 	struct ieee8021qaz_tlvs *tlvs;
 	char arg_path[256];
 	char *toked_maps, *parse;
-	u32 *pmap;
-	u32 save_pmap;
-	u8 max;
-	int i, err = cmd_success;
+	u32 *pmap = NULL;
+	u8 max = MAX_TCS;
+	int err = cmd_success;
 
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
 
+	tlvs = ieee8021qaz_data(cmd->ifname);
+
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
-		tlvs = ieee8021qaz_data(cmd->ifname);
-		if (!tlvs)
-			return cmd_device_not_found;
-		pmap = &tlvs->ets->cfgl->prio_map;
-		max = tlvs->ets->cfgl->max_tcs;
+		if (tlvs) {
+			pmap = &tlvs->ets->cfgl->prio_map;
+			max = tlvs->ets->cfgl->max_tcs;
+		}
 		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
-		tlvs = ieee8021qaz_data(cmd->ifname);
-		if (!tlvs)
-			return cmd_device_not_found;
-		pmap = &tlvs->ets->recl->prio_map;
-		max = MAX_TCS;
+		if (tlvs) {
+			pmap = &tlvs->ets->recl->prio_map;
+			max = MAX_TCS;
+		}
 		break;
 	case INVALID_TLVID:
 		return cmd_invalid;
 	default:
 		return cmd_not_applicable;
 	}
-	save_pmap = *pmap;
 
 	parse = strdup(arg_value);
 	if (!parse)
@@ -526,29 +527,25 @@ _set_arg_up2tc(struct cmd *cmd, char *args, const char *arg_value,
 			}
 
 			mask = ~(0xffffffff & (0xF << (4 * (7-prio))));
-			*pmap &= mask;
-			*pmap |= tc << (4 * (7-prio));
+			if (pmap && !test) {
+				*pmap &= mask;
+				*pmap |= tc << (4 * (7-prio));
+			}
 			toked_maps = strtok(NULL, ",");
 		}
-	} else {
+	} else if (pmap && !test) {
 		*pmap = 0;
 	}
 
 	if (test) {
-		*pmap = save_pmap;
+		if (!is_dcbx_hw(cmd->ifname))
+			return cmd_not_capable;
 		free(parse);
 		return cmd_success;
 	}
 
 	/* Build output buffer */
-	strncat(obuf, "up2tc = ", obuf_len - strlen(obuf) - 1);
-	for (i = 0; i < 8; i++) {
-		char cat[5];
-
-		snprintf(cat, sizeof(cat), "%i:%i ", i, get_prio_map(*pmap, i));
-		strncat(obuf, cat, obuf_len - strlen(obuf) - 1);
-	}
-	strncat(obuf, "\n", obuf_len - strlen(obuf) - 1);
+	snprintf(obuf, obuf_len, "up2tc = %s\n", arg_value);
 
 	/* Update configuration file with new attribute */
 	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
@@ -576,26 +573,17 @@ static int test_arg_up2tc(struct cmd *cmd, char *args,
 static int get_arg_tcbw(struct cmd *cmd, char *args,
 			UNUSED char *arg_value, char *obuf, UNUSED int obuf_len)
 {
-	struct ieee8021qaz_tlvs *tlvs;
-	char buf[250] = "";
-	int i;
-	u8 *bmap;
+	char arg_path[250] = "";
+	const char *buf = "";
+	int err;
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
 
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
-		tlvs = ieee8021qaz_data(cmd->ifname);
-		if (!tlvs)
-			return cmd_device_not_found;
-		bmap = tlvs->ets->cfgl->tc_bw;
 		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
-		tlvs = ieee8021qaz_data(cmd->ifname);
-		if (!tlvs)
-			return cmd_device_not_found;
-		bmap = tlvs->ets->recl->tc_bw;
 		break;
 	case INVALID_TLVID:
 		return cmd_invalid;
@@ -603,17 +591,18 @@ static int get_arg_tcbw(struct cmd *cmd, char *args,
 		return cmd_not_applicable;
 	}
 
-	for (i = 0; i < 8; i++) {
-		char cat[6];
-		if (i)
-			snprintf(cat, sizeof(cat), ",%i", bmap[i]);
-		else
-			snprintf(cat, sizeof(cat), "%i", bmap[i]);
-		strncat(buf, cat, sizeof(buf) - strlen(buf) - 1);
-	}
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
+		 cmd->tlvid, args);
+	err = get_config_setting(cmd->ifname, cmd->type, arg_path, &buf,
+				 CONFIG_TYPE_STRING);
 
-	snprintf(obuf, obuf_len, "%02x%s%04x%s", (unsigned int) strlen(args),
-		args, (unsigned int) strlen(buf), buf);
+	if (!err)
+		snprintf(obuf, obuf_len, "%02x%s%04x%s",
+			 (unsigned int) strlen(args), args,
+			 (unsigned int) strlen(buf), buf);
+	else
+		snprintf(obuf, obuf_len, "%02x%s%04d",
+			 (unsigned int) strlen(args), args, 0);
 
 	return cmd_success;
 }
@@ -626,7 +615,7 @@ _set_arg_tcbw(struct cmd *cmd, char *args, const char *arg_value,
 	char arg_path[256];
 	char *toked_bw, *parse;
 	int i, err = cmd_success;
-	u8 *tcbw, percent[8] = {0}, total = 0;
+	u8 *tcbw = NULL, percent[8] = {0}, total = 0;
 
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
@@ -634,15 +623,13 @@ _set_arg_tcbw(struct cmd *cmd, char *args, const char *arg_value,
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
 		tlvs = ieee8021qaz_data(cmd->ifname);
-		if (!tlvs)
-			return cmd_device_not_found;
-		tcbw = tlvs->ets->cfgl->tc_bw;
+		if (tlvs)
+			tcbw = tlvs->ets->cfgl->tc_bw;
 		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
 		tlvs = ieee8021qaz_data(cmd->ifname);
-		if (!tlvs)
-			return cmd_device_not_found;
-		tcbw = tlvs->ets->recl->tc_bw;
+		if (tlvs)
+			tcbw = tlvs->ets->recl->tc_bw;
 		break;
 	case INVALID_TLVID:
 		return cmd_invalid;
@@ -668,9 +655,11 @@ _set_arg_tcbw(struct cmd *cmd, char *args, const char *arg_value,
 		err = cmd_invalid;
 		goto invalid;
 	} else if (test) {
+		if (!is_dcbx_hw(cmd->ifname))
+			return cmd_not_capable;
 		free(parse);
 		return cmd_success;
-	} else {
+	} else if (tcbw) {
 		memcpy(tcbw, percent, sizeof(*tcbw) * MAX_TCS);
 	}
 
@@ -708,26 +697,17 @@ static int test_arg_tcbw(struct cmd *cmd, char *args,
 static int get_arg_tsa(struct cmd *cmd, char *args, UNUSED char *arg_value,
 		       char *obuf, UNUSED int obuf_len)
 {
-	struct ieee8021qaz_tlvs *tlvs;
-	char buf[250] = "";
-	int i;
-	u8 *tsa;
+	const char *buf = "";
+	char arg_path[250] = "";
+	int err;
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
 
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
-		tlvs = ieee8021qaz_data(cmd->ifname);
-		if (!tlvs)
-			return cmd_device_not_found;
-		tsa = tlvs->ets->cfgl->tsa_map;
 		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
-		tlvs = ieee8021qaz_data(cmd->ifname);
-		if (!tlvs)
-			return cmd_device_not_found;
-		tsa = tlvs->ets->recl->tsa_map;
 		break;
 	case INVALID_TLVID:
 		return cmd_invalid;
@@ -735,40 +715,18 @@ static int get_arg_tsa(struct cmd *cmd, char *args, UNUSED char *arg_value,
 		return cmd_not_applicable;
 	}
 
-	for (i = 0; i < 8; i++) {
-		char cnt[4];
-		int space_left;
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
+		 TLVID_PREFIX, cmd->tlvid, args);
+	err = get_config_setting(cmd->ifname, cmd->type, arg_path, &buf,
+				 CONFIG_TYPE_STRING);
 
-		if (i)
-			snprintf(cnt, sizeof(cnt), ",%i:", i);
-		else
-			snprintf(cnt, sizeof(cnt), "%i:", i);
-		strncat(buf, cnt, sizeof(buf) - strlen(buf) - 1);
-
-		space_left = sizeof(buf) - strlen(buf) - 1;
-		switch (tsa[i]) {
-		case IEEE8021Q_TSA_STRICT:
-			strncat(buf, "strict", space_left);
-			break;
-		case IEEE8021Q_TSA_CBSHAPER:
-			strncat(buf, "cb_shaper", space_left);
-			break;
-		case IEEE8021Q_TSA_ETS:
-			strncat(buf, "ets", space_left);
-			break;
-		case IEEE8021Q_TSA_VENDOR:
-			strncat(buf, "vendor", space_left);
-			break;
-		default:
-			strncat(buf, "unknown", space_left);
-			break;
-		}
-	}
-
-	snprintf(obuf, obuf_len, "%02x%s%04x%s",
-		(unsigned int) strlen(args), args,
-		(unsigned int) strlen(buf), buf);
-
+	if (!err)
+		snprintf(obuf, obuf_len, "%02x%s%04x%s",
+			(unsigned int) strlen(args), args,
+			(unsigned int) strlen(buf), buf);
+	else
+		snprintf(obuf, obuf_len, "%02x%s%04d",
+			(unsigned int) strlen(args), args, 0);
 
 	return cmd_success;
 }
@@ -781,7 +739,7 @@ _set_arg_tsa(struct cmd *cmd, char *args, const char *arg_value,
 	char arg_path[256];
 	char *toked_maps, *parse;
 	int i, err = cmd_success;
-	u8 *tsa;
+	u8 *tsa = NULL;
 
 	if (cmd->cmd != cmd_settlv)
 		return cmd_invalid;
@@ -789,15 +747,13 @@ _set_arg_tsa(struct cmd *cmd, char *args, const char *arg_value,
 	switch (cmd->tlvid) {
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSCFG:
 		tlvs = ieee8021qaz_data(cmd->ifname);
-		if (!tlvs)
-			return cmd_device_not_found;
-		tsa = tlvs->ets->cfgl->tsa_map;
+		if (tlvs)
+			tsa = tlvs->ets->cfgl->tsa_map;
 		break;
 	case (OUI_IEEE_8021 << 8) | LLDP_8021QAZ_ETSREC:
 		tlvs = ieee8021qaz_data(cmd->ifname);
-		if (!tlvs)
-			return cmd_device_not_found;
-		tsa = tlvs->ets->recl->tsa_map;
+		if (tlvs)
+			tsa = tlvs->ets->recl->tsa_map;
 		break;
 	case INVALID_TLVID:
 		return cmd_invalid;
@@ -840,15 +796,17 @@ _set_arg_tsa(struct cmd *cmd, char *args, const char *arg_value,
 				goto invalid;
 			}
 
-			if (!test)
+			if (!test && tsa)
 				tsa[tc] = type;
 			toked_maps = strtok(NULL, ",");
 		}
-	} else if (!test) {
+	} else if (!test && tsa) {
 		memset(tsa, 0, MAX_TCS);
 	}
 
 	if (test) {
+		if (!is_dcbx_hw(cmd->ifname))
+			return cmd_not_capable;
 		free(parse);
 		return cmd_success;
 	}
@@ -862,22 +820,24 @@ _set_arg_tsa(struct cmd *cmd, char *args, const char *arg_value,
 		strncat(obuf, cnt, obuf_len - strlen(obuf) - 1);
 
 		space_left = obuf_len - strlen(obuf) - 1;
-		switch (tsa[i]) {
-		case IEEE8021Q_TSA_STRICT:
-			strncat(obuf, "strict ", space_left);
-			break;
-		case IEEE8021Q_TSA_CBSHAPER:
-			strncat(obuf, "cb_shaper ", space_left);
-			break;
-		case IEEE8021Q_TSA_ETS:
-			strncat(obuf, "ets ", space_left);
-			break;
-		case IEEE8021Q_TSA_VENDOR:
-			strncat(obuf, "vendor ", space_left);
-			break;
-		default:
-			strncat(obuf, "unknown ", space_left);
-			break;
+		if (tsa) {
+			switch (tsa[i]) {
+			case IEEE8021Q_TSA_STRICT:
+				strncat(obuf, "strict ", space_left);
+				break;
+			case IEEE8021Q_TSA_CBSHAPER:
+				strncat(obuf, "cb_shaper ", space_left);
+				break;
+			case IEEE8021Q_TSA_ETS:
+				strncat(obuf, "ets ", space_left);
+				break;
+			case IEEE8021Q_TSA_VENDOR:
+				strncat(obuf, "vendor ", space_left);
+				break;
+			default:
+				strncat(obuf, "unknown ", space_left);
+				break;
+			}
 		}
 	}
 	strncat(obuf, "\n", obuf_len - strlen(obuf) - 1);
@@ -907,11 +867,8 @@ static int test_arg_tsa(struct cmd *cmd, char *args, char *arg_value,
 static int get_arg_enabled(struct cmd *cmd, char *args, UNUSED char *arg_value,
 			   char *obuf, UNUSED int obuf_len)
 {
-	struct ieee8021qaz_tlvs *tlvs;
-	char buf[20] = "";
-	int i;
-	bool first;
-	u8 pfc;
+	char arg_path[256];
+	int err, pfc;
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
@@ -925,33 +882,17 @@ static int get_arg_enabled(struct cmd *cmd, char *args, UNUSED char *arg_value,
 		return cmd_not_applicable;
 	}
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
+	snprintf(arg_path, sizeof(arg_path),
+		 "%s%08x.%s", TLVID_PREFIX, cmd->tlvid, args);
+	err = get_config_setting(cmd->ifname, cmd->type, arg_path, &pfc,
+				 CONFIG_TYPE_INT);
 
-	pfc = tlvs->pfc->local.pfc_enable;
-
-	first = true;
-	for (i = 0; i < 8; i++) {
-		if (pfc & (1 << i)) {
-			char val[3];
-
-			if (first) {
-				snprintf(val, sizeof(val), "%i", i);
-				first = false;
-			} else {
-				snprintf(val, sizeof(val), ",%i", i);
-			}
-			strncat(buf, val, sizeof(buf) - strlen(buf) - 1);
-		}
-	}
-
-	if (first)
-		strncpy(buf, "none", sizeof(buf));
-
-	snprintf(obuf, obuf_len, "%02x%s%04x%s",
-		(unsigned int) strlen(args), args,
-		(unsigned int) strlen(buf), buf);
+	if (!err)
+		snprintf(obuf, obuf_len, "%02x%s%04x%i",
+			(unsigned int) strlen(args), args, 2, pfc);
+	else
+		snprintf(obuf, obuf_len, "%02x%s%04d",
+			(unsigned int) strlen(args), args, 0);
 
 
 	return cmd_success;
@@ -978,10 +919,6 @@ static int _set_arg_enabled(struct cmd *cmd, char *args,
 	default:
 		return cmd_not_applicable;
 	}
-
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
 
 	parse = strdup(arg_value);
 	if (!parse)
@@ -1014,6 +951,8 @@ static int _set_arg_enabled(struct cmd *cmd, char *args,
 	}
 
 	if (test) {
+		if (!is_dcbx_hw(cmd->ifname))
+			return cmd_not_capable;
 		free(parse);
 		return cmd_success;
 	}
@@ -1040,7 +979,10 @@ static int _set_arg_enabled(struct cmd *cmd, char *args,
 		 "%s%08x.%s", TLVID_PREFIX, cmd->tlvid, args);
 	set_config_setting(cmd->ifname, cmd->type, arg_path, &mask,
 			   CONFIG_TYPE_INT);
-	tlvs->pfc->local.pfc_enable = mask;
+
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (tlvs)
+		tlvs->pfc->local.pfc_enable = mask;
 	somethingChangedLocal(cmd->ifname, cmd->type);
 invalid:
 	free(parse);
@@ -1062,7 +1004,9 @@ static int test_arg_enabled(struct cmd *cmd, char *args,
 static int get_arg_delay(struct cmd *cmd, char *args,
 			 UNUSED char *arg_value, char *obuf, int obuf_len)
 {
-	struct ieee8021qaz_tlvs *tlvs;
+	unsigned int delay;
+	char arg_path[256];
+	int err;
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
@@ -1076,13 +1020,17 @@ static int get_arg_delay(struct cmd *cmd, char *args,
 		return cmd_not_applicable;
 	}
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
+	snprintf(arg_path, sizeof(arg_path),
+		 "%s%08x.%s", TLVID_PREFIX, cmd->tlvid, args);
+	err = get_config_setting(cmd->ifname, cmd->type, arg_path, &delay,
+				 CONFIG_TYPE_INT);
 
-	snprintf(obuf, obuf_len, "%02x%s%04x%02x",
-		(unsigned int) strlen(args), args, 2,
-		tlvs->pfc->local.delay);
+	if (!err)
+		snprintf(obuf, obuf_len, "%02x%s%04x%02x",
+			(unsigned int) strlen(args), args, 2, delay);
+	else
+		snprintf(obuf, obuf_len, "%02x%s%04d",
+			(unsigned int) strlen(args), args, 0);
 
 	return cmd_success;
 }
@@ -1106,14 +1054,15 @@ static int _set_arg_delay(struct cmd *cmd, char *args,
 		return cmd_not_applicable;
 	}
 
-	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
-
-	if (test)
+	if (test) {
+		if (!is_dcbx_hw(cmd->ifname))
+			return cmd_not_capable;
 		return cmd_success;
+	}
 
-	tlvs->pfc->local.delay = delay;
+	tlvs = ieee8021qaz_data(cmd->ifname);
+	if (tlvs)
+		tlvs->pfc->local.delay = delay;
 
 	snprintf(obuf, obuf_len, "delay = %i\n", delay);
 
@@ -1140,13 +1089,38 @@ static int test_arg_delay(struct cmd *cmd, char *args,
 	return _set_arg_delay(cmd, args, arg_value, obuf, obuf_len, true);
 }
 
+static void arg_app_strncat_hw(char *new_app, int hw)
+{
+		switch (hw) {
+		case IEEE_APP_SET:
+			strncat(new_app, "hw (pending set)\n",
+				sizeof(new_app) - strlen(new_app) - 2);
+			break;
+		case IEEE_APP_DEL:
+			strncat(new_app, "hw (pending delete)\n",
+				sizeof(new_app) - strlen(new_app) - 2);
+			break;
+		case IEEE_APP_DONE:
+			strncat(new_app, "hw (set)\n",
+				sizeof(new_app) - strlen(new_app) - 2);
+			break;
+		default:
+			strncat(new_app, " hw (unknown)\n",
+				sizeof(new_app) - strlen(new_app) - 2);
+			break;
+		}
+}
+
 static int get_arg_app(struct cmd *cmd, char *args, UNUSED char *arg_value,
 		       char *obuf, int obuf_len)
 {
 	struct ieee8021qaz_tlvs *tlvs;
-	int  i = 0;
 	struct app_obj *np;
 	char app_buf[2048] = "(prio,sel,proto)\n";
+	char new_app[80] = "";
+	const char *app;
+	u8 prio, sel;
+	int proto, hw = -1, i;
 
 	if (cmd->cmd != cmd_gettlv)
 		return cmd_invalid;
@@ -1161,54 +1135,92 @@ static int get_arg_app(struct cmd *cmd, char *args, UNUSED char *arg_value,
 	}
 
 	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
+	for (i = 0; i < MAX_APP_ENTRIES; i++) {
+		char arg_path[256];
+		char *parse, *app_tuple;
+		int err;
 
-	LIST_FOREACH(np, &tlvs->app_head, entry) {
-		char new_app[80];
-		char state[15];
-		struct dcb_app *dcb_app = &np->app;
+		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s%i",
+			 TLVID_PREFIX, TLVID_8021(LLDP_8021QAZ_APP),
+			 ARG_APP, i);
+		errno = 0;
+		err = get_config_setting(cmd->ifname, cmd->type, arg_path,
+					 &app, CONFIG_TYPE_STRING);
+		if (err)
+			continue;
 
-		switch (np->hw) {
-		case IEEE_APP_SET:
-			strcpy(state, "pending set");
+		/* Parse cfg file input, bounds checking done on set app cmd */
+		parse = strdup(app);
+		if (!parse)
 			break;
-		case IEEE_APP_DEL:
-			strcpy(state, "pending delete");
+		app_tuple = strtok(parse, ",");
+		if (!app_tuple)
 			break;
-		case IEEE_APP_DONE:
-			strcpy(state, "set");
+		prio = atoi(app_tuple);
+		app_tuple = strtok(NULL, ",");
+		if (!app_tuple)
 			break;
-		default:
-			strcpy(state, "unknown");
-			break;
-		}
+		sel = atoi(app_tuple);
 
-		if (dcb_app->selector == 1) {
+		app_tuple = strtok(NULL, ",");
+		if (!app_tuple)
+			break;
+
+		/* APP Data can be in hex or integer form */
+		errno = 0;
+		proto = (int) strtol(app_tuple, NULL, 0);
+		if (sel == 1) {
 			snprintf(new_app, sizeof(new_app),
-				"%i:(%i,%i,0x%04x) %s (%s)\n", i,
-				dcb_app->priority,
-				dcb_app->selector,
-				dcb_app->protocol,
-				np->peer ? "peer" : "local",
-				state);
+				"%i:(%i,%i,0x%04x) local ", i,
+				prio, sel, proto);
 		} else {
 			snprintf(new_app, sizeof(new_app),
-				"%i:(%i,%i,%i) %s hw (%s)\n", i,
-				dcb_app->priority,
-				dcb_app->selector,
-				dcb_app->protocol,
-				np->peer ? "peer" : "local",
-				state);
+				"%i:(%i,%i,%i) local ", i,
+				prio, sel, proto);
 		}
+
+		if (tlvs) {
+			LIST_FOREACH(np, &tlvs->app_head, entry) {
+				if (np->app.selector == sel &&
+				    np->app.protocol == proto &&
+				    np->app.priority == prio &&
+				    !np->peer)
+					hw = np->hw;
+			}
+		}
+
+		arg_app_strncat_hw(new_app, hw);
 		strncat(app_buf, new_app, sizeof(app_buf) - strlen(app_buf) - 2);
-		i++;
+	}
+
+	if (tlvs) {
+		LIST_FOREACH(np, &tlvs->app_head, entry) {
+			if (!np->peer)
+				continue;
+
+			if (np->app.selector == 1) {
+				snprintf(new_app, sizeof(new_app),
+					"%i:(%i,%i,0x%04x) peer ", i,
+					np->app.priority,
+					np->app.selector,
+					np->app.protocol);
+			} else {
+				snprintf(new_app, sizeof(new_app),
+					"%i:(%i,%i,%i) peer ", i,
+					np->app.priority,
+					np->app.selector,
+					np->app.protocol);
+			}
+
+			arg_app_strncat_hw(new_app, np->hw);
+			strncat(app_buf, new_app,
+				sizeof(app_buf) - strlen(app_buf) - 2);
+		}
 	}
 
 	snprintf(obuf, obuf_len, "%02x%s%04x%s",
 		(unsigned int) strlen(args), args,
 		(unsigned int) strlen(app_buf), app_buf);
-
 
 	return cmd_success;
 }
@@ -1242,8 +1254,6 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	}
 
 	tlvs = ieee8021qaz_data(cmd->ifname);
-	if (!tlvs)
-		return cmd_device_not_found;
 
 	parse = strdup(arg_value);
 	if (!parse)
@@ -1298,8 +1308,11 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 
 	free(parse);
 
-	if (test)
+	if (test) {
+		if (!is_dcbx_hw(cmd->ifname))
+			return cmd_not_capable;
 		return cmd_success;
+	}
 
 	snprintf(new_argval, sizeof(new_argval),
 		 "%1u,%1u,%5u", (u8) prio, (u8) sel, (u16)pid);
@@ -1341,6 +1354,9 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 		return cmd_failed;
 
 	/* Build app noting we verified prio, sel, and pid inputs */
+	if (!tlvs)
+		goto write_app_config;
+
 	ieee8021qaz_mod_app(&tlvs->app_head, 0, (u8) prio, (u8) sel, (u16) pid,
 		(cmd->ops & op_delete) ? op_delete : 0);
 	ieee8021qaz_app_sethw(cmd->ifname, &tlvs->app_head);
@@ -1348,45 +1364,28 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	i = 0;
 	LIST_FOREACH(np, &tlvs->app_head, entry) {
 		char new_app[80];
-		char state[15];
-		struct dcb_app *dcb_app = &np->app;
 
-		switch (np->hw) {
-		case IEEE_APP_SET:
-			strcpy(state, "pending set");
-			break;
-		case IEEE_APP_DEL:
-			strcpy(state, "pending delete");
-			break;
-		case IEEE_APP_DONE:
-			strcpy(state, "set");
-			break;
-		default:
-			strcpy(state, "unknown");
-			break;
-		}
-
-		if (dcb_app->selector == 1) {
+		if (np->app.selector == 1) {
 			snprintf(new_app, sizeof(new_app),
-				"%i:(%i,%i,0x%04x) %s (%s)\n", i,
-				dcb_app->priority,
-				dcb_app->selector,
-				dcb_app->protocol,
-				np->peer ? "peer" : "local",
-				state);
+				"%i:(%i,%i,0x%04x) %s ", i,
+				np->app.priority,
+				np->app.selector,
+				np->app.protocol,
+				np->peer ? "peer" : "local");
 		} else {
 			snprintf(new_app, sizeof(new_app),
-				"%i:(%i,%i,%i) %s (%s)\n", i,
-				dcb_app->priority,
-				dcb_app->selector,
-				dcb_app->protocol,
-				np->peer ? "peer" : "local",
-				state);
+				"%i:(%i,%i,%i) %s ", i,
+				np->app.priority,
+				np->app.selector,
+				np->app.protocol,
+				np->peer ? "peer" : "local");
 		}
+		arg_app_strncat_hw(new_app, np->hw);
 		strncat(obuf, new_app, obuf_len - strlen(obuf) - 2);
 		i++;
 	}
 
+write_app_config:
 	somethingChangedLocal(cmd->ifname, cmd->type);
 
 	if (cmd->ops & op_delete)
@@ -1434,7 +1433,7 @@ get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 			 TLVID_PREFIX, cmd->tlvid, arg);
 
-		if (!is_tlv_txdisabled(cmd->ifname, cmd->type, cmd->tlvid))
+		if (is_tlv_txenabled(cmd->ifname, cmd->type, cmd->tlvid))
 			value = true;
 		else
 			value = false;
@@ -1500,8 +1499,11 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	err = get_config_setting(cmd->ifname, cmd->type, arg_path,
 				 &curr, CONFIG_TYPE_BOOL);
 
-	if (test)
+	if (test) {
+		if (!is_dcbx_hw(cmd->ifname))
+			return cmd_not_capable;
 		return cmd_success;
+	}
 
 	snprintf(obuf, obuf_len, "enabled = %s\n", value ? "yes" : "no");
 
