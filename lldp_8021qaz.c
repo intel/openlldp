@@ -492,6 +492,7 @@ static int get_dcbx_hw(const char *ifname, __u8 *dcbx)
 	if (!attr) {
 		LLDPAD_DBG("%s: %s: nlmsg_find_attr failed, no GDCBX support\n",
 			    __func__, ifname);
+		err = -EOPNOTSUPP;
 		goto out;
 	}
 
@@ -540,8 +541,7 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	/* If hardware is not DCBX IEEE compliant or it is managed
 	 * by an LLD agent most likely a firmware agent abort
 	 */
-	if (!(dcbx & DCB_CAP_DCBX_VER_IEEE) ||
-	    (dcbx & DCB_CAP_DCBX_LLD_MANAGED))
+	if (dcbx & DCB_CAP_DCBX_LLD_MANAGED)
 		return;
 
 	/* If 802.1Qaz is already configured no need to continue */
@@ -628,8 +628,10 @@ initialized:
 	/* Query hardware and set maximum number of TCs with hardware values */
 	len = get_ieee_hw(ifname, &ets, &pfc, &data, &cnt);
 	if (len > 0) {
-		tlvs->ets->cfgl->max_tcs = ets->ets_cap;
-		tlvs->pfc->local.pfc_cap = pfc->pfc_cap;
+		if (ets)
+			tlvs->ets->cfgl->max_tcs = ets->ets_cap;
+		if (pfc)
+			tlvs->pfc->local.pfc_cap = pfc->pfc_cap;
 
 		free(ets);
 		free(pfc);
@@ -639,7 +641,7 @@ initialized:
 	/* if the dcbx field is filled in by the dcbx query then the
 	 * kernel is supports IEEE mode, so make IEEE DCBX active by default.
 	 */
-	if (!dcbx || (dcbx_get_legacy_version(ifname) & ~MASK_DCBX_FORCE)) {
+	if (dcbx_get_legacy_version(ifname) & ~MASK_DCBX_FORCE) {
 		tlvs->active = false;
 	} else {
 		tlvs->active = true;
