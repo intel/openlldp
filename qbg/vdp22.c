@@ -317,7 +317,7 @@ void vdp22_stop(char *ifname)
  * made and ECP protocols are supported by both sides.
  */
 static struct vdp22 *vdp22_create(const char *ifname,
-				  struct vdp22_user_data *eud)
+				  struct vdp22_user_data *eud, int role)
 {
 	struct vdp22 *vdp;
 
@@ -328,6 +328,7 @@ static struct vdp22 *vdp22_create(const char *ifname,
 		return NULL;
 	}
 	strncpy(vdp->ifname, ifname, sizeof vdp->ifname);
+	vdp->myrole = role;
 	LIST_INIT(&vdp->prof22_head);
 	LIST_INSERT_HEAD(&eud->head, vdp, entry);
 	LLDPAD_DBG("%s:%s create vdp data\n", __func__, ifname);
@@ -359,12 +360,12 @@ int vdp22_query(const char *ifname)
 /*
  * Enable the interface for VDP protocol support.
  */
-void vdp22_start(const char *ifname)
+void vdp22_start(const char *ifname, int role)
 {
 	struct vdp22_user_data *vud;
 	struct vdp22 *vdp;
 
-	LLDPAD_DBG("%s:%s start vdp\n", __func__, ifname);
+	LLDPAD_DBG("%s:%s start vdp role:%d\n", __func__, ifname, role);
 	vud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP22);
 	if (!vud) {
 		LLDPAD_ERR("%s:%s no VDP22 module\n", __func__, ifname);
@@ -372,7 +373,7 @@ void vdp22_start(const char *ifname)
 	}
 	vdp = vdp22_findif(ifname, vud);
 	if (!vdp)
-		vdp = vdp22_create(ifname, vud);
+		vdp = vdp22_create(ifname, vud, role);
 }
 
 /*

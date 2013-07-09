@@ -452,11 +452,11 @@ static void evb22_ifup(char *ifname, struct lldp_agent *agent)
 /*
  * Start all modules which depend on EVB capabilities: ECP, VDP, CDCP.
  */
-static void evb22_start_modules(char *ifname)
+static void evb22_start_modules(char *ifname, int role)
 {
-	LLDPAD_DBG("%s:%s START\n", __func__, ifname);
+	LLDPAD_DBG("%s:%s START role:%d\n", __func__, ifname, role);
 	ecp22_start(ifname);
-	vdp22_start(ifname);
+	vdp22_start(ifname, role);
 }
 
 /*
@@ -478,7 +478,8 @@ static int evb22_timer(struct port *port, struct lldp_agent *agent)
 	if (!ed->vdp_start
 	    && evb_ex_rrstat(ed->out.station_s) == EVB_RRSTAT_YES) {
 		ed->vdp_start = true;
-		evb22_start_modules(port->ifname);
+		evb22_start_modules(port->ifname,
+				    evb_ex_evbmode(ed->policy.evb_mode));
 	}
 	return 0;
 }

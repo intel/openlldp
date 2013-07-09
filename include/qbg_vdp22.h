@@ -98,6 +98,7 @@ struct vdp22 {		/* Per interface VSI/VDP data */
 	unsigned long long ka_us;	/* Keep alive timeout in micro secs */
 	unsigned long long resp_us;	/* Response timeout in micro secs */
 	unsigned char gpid;		/* Supports group ids in VDP */
+	unsigned char myrole;		/* Station or bridge role */
 	unsigned short input_len;	/* Length of input data from ECP */
 	unsigned char input[ETH_DATA_LEN];	/* Input data from ECP */
 	LIST_HEAD(profile22_head, vsi22_profile) prof22_head;
@@ -110,7 +111,7 @@ struct vdp22_user_data {		/* Head for all VDP data */
 
 struct lldp_module *vdp22_register(void);
 void vdp22_unregister(struct lldp_module *);
-void vdp22_start(const char *);
+void vdp22_start(const char *, int);
 void vdp22_stop(char *);
 int vdp22_query(const char *);
 int vdp22_addreq(struct vsi22_profile *, struct vdp22 *);
