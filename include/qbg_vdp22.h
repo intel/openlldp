@@ -59,6 +59,10 @@ enum vdp22_cmdresp {		/* VDP22 Protocol command responses */
 	VDP22_RESP_NONE = 255	/* No response returned so far */
 };
 
+enum {
+	VSI22_ID_UUID,			/* VSI ID is RFC4122 UUID */
+};
+
 struct vdp22_mac_vlan {		/* MAC,VLAN entry anchored by profiles */
 	unsigned char mac[ETH_ALEN];
 	unsigned short vlan;
