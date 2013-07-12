@@ -849,7 +849,7 @@ void ecp22_stop(char *ifname)
  * Update data exchanged via EVB protocol.
  * Returns true when data update succeeded.
  */
-static int data_from_evb(char *ifname, struct evb22_to_ecp22 *ptr)
+static int ecp22_data_from_evb(char *ifname, struct evb22_to_ecp22 *ptr)
 {
 	struct ecp22_user_data *eud;
 	struct ecp22 *ecp;
@@ -859,6 +859,8 @@ static int data_from_evb(char *ifname, struct evb22_to_ecp22 *ptr)
 	if (ecp) {
 		ecp->max_rte = ptr->max_rte;
 		ecp->max_retries = ptr->max_retry;
+		LLDPAD_DBG("%s:%s max_rte:%d max_retries:%d\n", __func__,
+			   ifname, ecp->max_rte, ecp->max_retries);
 		return 0;
 	}
 	return -ENOENT;
@@ -983,7 +985,7 @@ static int ecp22_notify(int sender_id, char *ifname, void *data)
 	LLDPAD_DBG("%s:%s sender-id:%#x data_type:%d\n", __func__, ifname,
 		   sender_id, qbg->data_type);
 	if (sender_id == LLDP_MOD_EVB22 && qbg->data_type == EVB22_TO_ECP22)
-		return data_from_evb(ifname, &qbg->u.a);
+		return ecp22_data_from_evb(ifname, &qbg->u.a);
 	if (sender_id == LLDP_MOD_VDP22 && qbg->data_type == VDP22_TO_ECP22)
 		return data_from_vdp(ifname, &qbg->u.c);
 	return 0;
