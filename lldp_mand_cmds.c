@@ -721,6 +721,13 @@ int mand_clif_cmd(UNUSED void  *data,
 		(unsigned int)strlen(cmd.ifname), cmd.ifname);
 	roff = strlen(rbuf);
 
+	/* Confirm port is a valid LLDP port */
+	if (!get_ifidx(cmd.ifname) || !is_valid_lldp_device(cmd.ifname)) {
+		free(argvals);
+		free(args);
+		return cmd_device_not_found;
+	}
+
 	switch (cmd.cmd) {
 	case cmd_getstats:
 		if (numargs)
