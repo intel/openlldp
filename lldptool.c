@@ -497,12 +497,15 @@ static int request(struct clif *clif, int argc, char *argv[])
 			break;
 		case 'g':
 			if (!strcasecmp(optarg, "nearestbridge") ||
+			    !strcasecmp(optarg, "nearest_bridge") ||
 			    !strcasecmp(optarg, "nb"))
 				command.type = NEAREST_BRIDGE;
 			else if (!strcasecmp(optarg, "nearestcustomerbridge") ||
+				 !strcasecmp(optarg, "nearest_customer_bridge") ||
 				 !strcasecmp(optarg, "ncb"))
 				command.type = NEAREST_CUSTOMER_BRIDGE;
-			else if (!strcasecmp(optarg, "nearestnontmprbridge") ||
+			else if (!strcasecmp(optarg, "nearestnontpmrbridge") ||
+				 !strcasecmp(optarg, "nearest_nontpmr_bridge") ||
 				 !strcasecmp(optarg, "nntpmrb"))
 				command.type = NEAREST_NONTPMR_BRIDGE;
 			else {
