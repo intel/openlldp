@@ -46,10 +46,14 @@
 #include "lldp_rtnl.h"
 
 static struct nla_policy ifla_vf_policy[IFLA_VF_MAX + 1] = {
-	[IFLA_VF_MAC] = { .minlen = sizeof(struct ifla_vf_mac),
-			  .maxlen = sizeof(struct ifla_vf_mac)},
-	[IFLA_VF_VLAN] = { .minlen = sizeof(struct ifla_vf_vlan),
-			   .maxlen = sizeof(struct ifla_vf_vlan)},
+	[IFLA_VF_MAC] = {
+		.minlen = sizeof(struct ifla_vf_mac),
+		.maxlen = sizeof(struct ifla_vf_mac)
+	},
+	[IFLA_VF_VLAN] = {
+		.minlen = sizeof(struct ifla_vf_vlan),
+		.maxlen = sizeof(struct ifla_vf_vlan)
+	}
 };
 
 static struct nla_policy ifla_port_policy[IFLA_PORT_MAX + 1] = {
