@@ -421,7 +421,7 @@ is the
 field.
 .sp 1
 .EX
-vdptest -C thomas2,new=unknown,typeid=99999
+vdptest -Cnew=unknown,name=thomas2,typeid=99999
 .EE
 .sp 1
 Use interface eth2 and read the VSI configuration from file
@@ -452,15 +452,13 @@ send an ASSOCIATION command with parameters stored in
 .IR x1 .
 .sp 1
 .EX
-vdptest -i eth2 -F vdptest.cfg -Cthomas2,new=x1,mgrid=2 \(rs
-	-athomas2,w=10,r=2,e=3 -s -a x1,w=5
+vdptest -i eth2 -F vdptest.cfg -Cnew=x1,name=thomas2,2mgrid=blabla \(rs
+	-a thomas2,w=10,r=2,e=3 -s -a x1,w=5
 .EE
-.SH FILES
-/var/run/lldpad.pid
 .SH "ENVIRONMENT"
 Linux
 .SH "SEE ALSO"
-lldpad(8), lldptool(8)
+lldpad(8), lldptool(8), libvirtd(8)
 .SH DIAGNOSTICS
 Exit status is zero on success and non zero on failure or mismatch.
 .SH AUTHOR
