@@ -205,6 +205,8 @@ static int vdpnl_vfinfolist(struct nlattr *vfinfolist, struct vdpnl_vsi *vsi)
 		return -EINVAL;
 	}
 	nla_for_each_nested(le1, vfinfolist, rem) {
+		bool have_mac = false, have_vid = false;
+
 		if (nla_type(le1) != IFLA_VF_INFO) {
 			LLDPAD_ERR("%s:parsing of IFLA_VFINFO_LIST failed\n",
 				   __func__);
@@ -220,6 +222,7 @@ static int vdpnl_vfinfolist(struct nlattr *vfinfolist, struct vdpnl_vsi *vsi)
 			struct ifla_vf_mac *mac = RTA_DATA(vf[IFLA_VF_MAC]);
 
 			memcpy(vsi->maclist->mac, mac->mac, ETH_ALEN);
+			have_mac = true;
 		}
 
 		if (vf[IFLA_VF_VLAN]) {
@@ -227,7 +230,14 @@ static int vdpnl_vfinfolist(struct nlattr *vfinfolist, struct vdpnl_vsi *vsi)
 
 			vsi->maclist->vlan = vlan->vlan;
 			vsi->maclist->qos = vlan->qos;
+			have_vid = true;
 		}
+		if (have_vid && have_mac)
+			vsi->filter_fmt = VDP22_FFMT_MACVID;
+		else if (have_vid)
+			vsi->filter_fmt = VDP22_FFMT_VID;
+		else
+			return -EINVAL;
 	}
 	return 0;
 }
@@ -382,7 +392,6 @@ static int vdpnl_setlink(struct nlmsghdr *nlh, size_t len)
 
 	memset(&p, 0, sizeof p);
 	memset(&mac, 0, sizeof mac);
-	p.filter_fmt = VDP22_FFMT_MACVID;
 	p.vsiid_fmt = VDP22_ID_UUID;
 	p.macsz = 1;
 	p.maclist = &mac;
