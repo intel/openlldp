@@ -60,7 +60,7 @@ enum vdp22_cmdresp {		/* VDP22 Protocol command responses */
 };
 
 enum {
-	VSI22_ID_UUID,			/* VSI ID is RFC4122 UUID */
+	VDP22_ID_UUID,			/* VSI ID is RFC4122 UUID */
 };
 
 struct vdp22_mac_vlan {		/* MAC,VLAN entry anchored by profiles */

@@ -77,7 +77,7 @@ static int vdpnl_get(struct nlmsghdr *nlh, struct vdpnl_vsi *p)
 
 	if (nlmsg_parse(nlh, sizeof(struct ifinfomsg),
 			(struct nlattr **)&tb, IFLA_MAX, NULL)) {
-		LLDPAD_ERR("%s: error parsing GETLINK request\n", __func__);
+		LLDPAD_ERR("%s:error parsing GETLINK request\n", __func__);
 		return -EINVAL;
 	}
 
@@ -87,11 +87,11 @@ static int vdpnl_get(struct nlmsghdr *nlh, struct vdpnl_vsi *p)
 		memcpy(p->ifname, (char *)RTA_DATA(tb[IFLA_IFNAME]),
 		       sizeof p->ifname);
 	} else if (!if_indextoname(p->ifindex, p->ifname)) {
-		LLDPAD_ERR("%s: ifindex %d without interface name\n", __func__,
+		LLDPAD_ERR("%s:ifindex %d without interface name\n", __func__,
 			   p->ifindex);
 		return -EINVAL;
 	}
-	LLDPAD_DBG("%s: IFLA_IFNAME:%s ifindex:%d\n", __func__, p->ifname,
+	LLDPAD_DBG("%s:IFLA_IFNAME:%s ifindex:%d\n", __func__, p->ifname,
 		   p->ifindex);
 	return 0;
 }
@@ -102,22 +102,23 @@ static void vdpnl_show(struct vdpnl_vsi *vsi)
 	struct vdpnl_mac *mac;
 	int i;
 
-	LLDPAD_DBG("%s: IFLA_IFNAME=%s index:%d\n", __func__, vsi->ifname,
+	LLDPAD_DBG("%s:IFLA_IFNAME:%s index:%d\n", __func__, vsi->ifname,
 		   vsi->ifindex);
 	for (i = 0, mac = vsi->maclist; i < vsi->macsz; ++i, ++mac) {
-		LLDPAD_DBG("%s: IFLA_VF_MAC=%2x:%2x:%2x:%2x:%2x:%2x\n",
+		LLDPAD_DBG("%s:IFLA_VF_MAC:%2x:%2x:%2x:%2x:%2x:%2x\n",
 			   __func__, mac->mac[0], mac->mac[1], mac->mac[2],
 			   mac->mac[3], mac->mac[4], mac->mac[5]);
-		LLDPAD_DBG("%s: IFLA_VF_VLAN=%d\n", __func__, mac->vlan);
+		LLDPAD_DBG("%s:IFLA_VF_VLAN:%d QOS:%d\n", __func__, mac->vlan,
+			   mac->qos);
 	}
-	LLDPAD_DBG("%s: IFLA_PORT_VSI_TYPE=mgr_id:%d type_id:%ld "
+	LLDPAD_DBG("%s:IFLA_PORT_VSI_TYPE:mgr_id:%d type_id:%ld "
 		   "typeid_version:%d\n",
 		   __func__, vsi->vsi_mgrid, vsi->vsi_typeid,
 		   vsi->vsi_typeversion);
 	vdp_uuid2str(vsi->vsi_uuid, instance, sizeof(instance));
-	LLDPAD_DBG("%s: IFLA_PORT_INSTANCE_UUID=%s\n", __func__, instance);
-	LLDPAD_DBG("%s: IFLA_PORT_REQUEST=%d\n", __func__, vsi->request);
-	LLDPAD_DBG("%s: IFLA_PORT_RESPONSE=%d\n", __func__, vsi->response);
+	LLDPAD_DBG("%s:IFLA_PORT_INSTANCE_UUID:%s\n", __func__, instance);
+	LLDPAD_DBG("%s:IFLA_PORT_REQUEST:%d\n", __func__, vsi->request);
+	LLDPAD_DBG("%s:IFLA_PORT_RESPONSE:%d\n", __func__, vsi->response);
 }
 
 /*
@@ -131,27 +132,27 @@ static int vdpnl_vfports(struct nlattr *vfports, struct vdpnl_vsi *vsi)
 	int rem;
 
 	if (!vfports) {
-		LLDPAD_DBG("%s: FOUND NO IFLA_VF_PORTS\n", __func__);
+		LLDPAD_DBG("%s:FOUND NO IFLA_VF_PORTS\n", __func__);
 		return -EINVAL;
 	}
 
 	nla_for_each_nested(tb_vf_ports, vfports, rem) {
 		if (nla_type(tb_vf_ports) != IFLA_VF_PORT) {
-			LLDPAD_DBG("%s: not a IFLA_VF_PORT skipping\n",
+			LLDPAD_DBG("%s:not a IFLA_VF_PORT skipping\n",
 				   __func__);
 			continue;
 		}
 		if (nla_parse_nested(tb3, IFLA_PORT_MAX, tb_vf_ports,
 			ifla_port_policy)) {
-			LLDPAD_ERR("%s: IFLA_PORT_MAX parsing failed\n",
+			LLDPAD_ERR("%s:IFLA_PORT_MAX parsing failed\n",
 				   __func__);
 			return -EINVAL;
 		}
 		if (tb3[IFLA_PORT_VF])
-			LLDPAD_DBG("%s: IFLA_PORT_VF=%d\n", __func__,
+			LLDPAD_DBG("%s:IFLA_PORT_VF:%d\n", __func__,
 			    *(uint32_t *) RTA_DATA(tb3[IFLA_PORT_VF]));
 		if (tb3[IFLA_PORT_PROFILE])
-			LLDPAD_DBG("%s: IFLA_PORT_PROFILE=%s\n", __func__,
+			LLDPAD_DBG("%s:IFLA_PORT_PROFILE:%s\n", __func__,
 				   (char *)RTA_DATA(tb3[IFLA_PORT_PROFILE]));
 		if (tb3[IFLA_PORT_HOST_UUID]) {
 			unsigned char *uuid;
@@ -159,7 +160,7 @@ static int vdpnl_vfports(struct nlattr *vfports, struct vdpnl_vsi *vsi)
 			uuid = (unsigned char *)
 				RTA_DATA(tb3[IFLA_PORT_HOST_UUID]);
 			vdp_uuid2str(uuid, instance, sizeof(instance));
-			LLDPAD_DBG("%s: IFLA_PORT_HOST_UUID=%s\n", __func__,
+			LLDPAD_DBG("%s:IFLA_PORT_HOST_UUID:%s\n", __func__,
 				   instance);
 		}
 		if (tb3[IFLA_PORT_VSI_TYPE]) {
@@ -200,17 +201,17 @@ static int vdpnl_vfinfolist(struct nlattr *vfinfolist, struct vdpnl_vsi *vsi)
 	int rem;
 
 	if (!vfinfolist) {
-		LLDPAD_ERR("%s: IFLA_VFINFO_LIST missing\n", __func__);
+		LLDPAD_ERR("%s:IFLA_VFINFO_LIST missing\n", __func__);
 		return -EINVAL;
 	}
 	nla_for_each_nested(le1, vfinfolist, rem) {
 		if (nla_type(le1) != IFLA_VF_INFO) {
-			LLDPAD_ERR("%s: parsing of IFLA_VFINFO_LIST failed\n",
+			LLDPAD_ERR("%s:parsing of IFLA_VFINFO_LIST failed\n",
 				   __func__);
 			return -EINVAL;
 		}
 		if (nla_parse_nested(vf, IFLA_VF_MAX, le1, ifla_vf_policy)) {
-			LLDPAD_ERR("%s: parsing of IFLA_VF_INFO failed\n",
+			LLDPAD_ERR("%s:parsing of IFLA_VF_INFO failed\n",
 				   __func__);
 			return -EINVAL;
 		}
@@ -225,6 +226,7 @@ static int vdpnl_vfinfolist(struct nlattr *vfinfolist, struct vdpnl_vsi *vsi)
 			struct ifla_vf_vlan *vlan = RTA_DATA(vf[IFLA_VF_VLAN]);
 
 			vsi->maclist->vlan = vlan->vlan;
+			vsi->maclist->qos = vlan->qos;
 		}
 	}
 	return 0;
@@ -241,7 +243,7 @@ static int vdpnl_set(struct nlmsghdr *nlh, struct vdpnl_vsi *vsi)
 
 	if (nlmsg_parse(nlh, sizeof(struct ifinfomsg),
 			(struct nlattr **)&tb, IFLA_MAX, NULL)) {
-		LLDPAD_ERR("%s: error parsing SETLINK request\n", __func__);
+		LLDPAD_ERR("%s:error parsing SETLINK request\n", __func__);
 		return -EINVAL;
 	}
 
@@ -251,7 +253,7 @@ static int vdpnl_set(struct nlmsghdr *nlh, struct vdpnl_vsi *vsi)
 			sizeof vsi->ifname);
 	else {
 		if (!if_indextoname(ifinfo->ifi_index, vsi->ifname)) {
-			LLDPAD_ERR("%s: can not find name for interface %i\n",
+			LLDPAD_ERR("%s:can not find name for interface %i\n",
 				   __func__, ifinfo->ifi_index);
 			return -ENXIO;
 		}
@@ -276,7 +278,7 @@ static int vdpnl_error(int err, struct nlmsghdr *from, size_t len)
 {
 	struct nlmsgerr nlmsgerr;
 
-	LLDPAD_DBG("%s: error %d\n", __func__, err);
+	LLDPAD_DBG("%s:error %d\n", __func__, err);
 	nlmsgerr.error = err;
 	nlmsgerr.msg = *from;
 	memset(from, 0, len);
@@ -322,12 +324,12 @@ static void vdpnl_reply2(struct vdpnl_vsi *p, struct nlmsghdr *nlh)
 	mynla_put(nlh, IFLA_PORT_INSTANCE_UUID, sizeof p->vsi_uuid,
 		  p->vsi_uuid);
 	vdp_uuid2str(p->vsi_uuid, instance, sizeof instance);
-	LLDPAD_DBG("%s: IFLA_PORT_INSTANCE_UUID=%s\n", __func__, instance);
+	LLDPAD_DBG("%s:IFLA_PORT_INSTANCE_UUID:%s\n", __func__, instance);
 	mynla_put_u32(nlh, IFLA_PORT_VF, PORT_SELF_VF);
-	LLDPAD_DBG("%s: IFLA_PORT_VF=%d\n", __func__,  PORT_SELF_VF);
+	LLDPAD_DBG("%s:IFLA_PORT_VF:%d\n", __func__,  PORT_SELF_VF);
 	if (p->response != VDP_RESPONSE_NO_RESPONSE) {
 		mynla_put_u16(nlh, IFLA_PORT_RESPONSE, p->response);
-		LLDPAD_DBG("%s: IFLA_PORT_RESPONSE=%d\n", __func__,
+		LLDPAD_DBG("%s:IFLA_PORT_RESPONSE:%d\n", __func__,
 			   p->response);
 	}
 }
@@ -365,7 +367,7 @@ static int vdpnl_getlink(struct nlmsghdr *nlh, size_t len)
 	} while (rc == 1);
 	if (rc < 0)
 		return vdpnl_error(rc, nlh, len);
-	LLDPAD_DBG("%s: message-size:%d\n", __func__, nlh->nlmsg_len);
+	LLDPAD_DBG("%s:message-size:%d\n", __func__, nlh->nlmsg_len);
 	return nlh->nlmsg_len;
 }
 
@@ -381,7 +383,7 @@ static int vdpnl_setlink(struct nlmsghdr *nlh, size_t len)
 	memset(&p, 0, sizeof p);
 	memset(&mac, 0, sizeof mac);
 	p.filter_fmt = VDP22_FFMT_MACVID;
-	p.vsiid_fmt = VSI22_ID_UUID;
+	p.vsiid_fmt = VDP22_ID_UUID;
 	p.macsz = 1;
 	p.maclist = &mac;
 	rc = vdpnl_set(nlh, &p);
@@ -407,7 +409,7 @@ int vdpnl_recv(unsigned char *buf, size_t buflen)
 {
 	struct nlmsghdr *nlh = (struct nlmsghdr *)buf;
 
-	LLDPAD_DBG("%s: buflen:%zd nlh.nl_pid:%d nlh_type:%d nlh_seq:%d "
+	LLDPAD_DBG("%s:buflen:%zd nlh.nl_pid:%d nlh_type:%d nlh_seq:%d "
 		   "nlh_len:%d\n", __func__, buflen, nlh->nlmsg_pid,
 		   nlh->nlmsg_type, nlh->nlmsg_seq, nlh->nlmsg_len);
 
@@ -417,7 +419,7 @@ int vdpnl_recv(unsigned char *buf, size_t buflen)
 	case RTM_GETLINK:
 		return vdpnl_getlink(nlh, buflen);
 	default:
-		LLDPAD_ERR("%s: unknown type %d\n", __func__, nlh->nlmsg_type);
+		LLDPAD_ERR("%s:unknown type %d\n", __func__, nlh->nlmsg_type);
 	}
 	return -ENODEV;
 }
@@ -499,7 +501,7 @@ int vdpnl_send(struct vdpnl_vsi *vsi)
 	mynla_nest_end(nlh, vf_port);
 	mynla_nest_end(nlh, vf_ports);
 	vdpnl_show(vsi);
-	LLDPAD_DBG("%s: nlh.nl_pid:%d nlh_type:%d nlh_seq:%d nlh_len:%d\n",
+	LLDPAD_DBG("%s:nlh.nl_pid:%d nlh_type:%d nlh_seq:%d nlh_len:%d\n",
 		    __func__, nlh->nlmsg_pid, nlh->nlmsg_type, nlh->nlmsg_seq,
 		    nlh->nlmsg_len);
 	return event_trigger(nlh, vsi->req_pid);
