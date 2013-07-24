@@ -236,6 +236,8 @@ static int vdpnl_vfinfolist(struct nlattr *vfinfolist, struct vdpnl_vsi *vsi)
 			vsi->maclist->qos = vlan->qos;
 			have_vid = true;
 		}
+		LLDPAD_DBG("%s:have_vid:%d have_mac:%d\n", __func__, have_vid,
+			   have_mac);
 		if (have_vid && have_mac)
 			vsi->filter_fmt = VDP22_FFMT_MACVID;
 		else if (have_vid)
