@@ -858,7 +858,7 @@ static int check_typeid(char *value, struct vdpdata *profile)
 			    progname, no);
 		}
 #ifdef MYDEBUG
-		printf("%s:typeid:%d ec:%d\n", __func__, profile->mgrid, ec);
+		printf("%s:typeid:%d ec:%d\n", __func__, profile->typeid, ec);
 #endif
 	}
 	return ec;
@@ -880,7 +880,8 @@ static int check_typeidversion(char *value, struct vdpdata *profile)
 			    progname, no);
 		}
 #ifdef MYDEBUG
-		printf("%s:typeidver:%d ec:%d\n", __func__, profile->mgrid, ec);
+		printf("%s:typeidver:%d ec:%d\n", __func__, profile->typeidver,
+		       ec);
 #endif
 	}
 	return ec;
