@@ -85,30 +85,38 @@ static char *print_mode(char *s, size_t length, struct vsi_profile *p)
 	return s;
 }
 
-static int
-get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
-		    char *obuf, int obuf_len)
+static int vdp_cmdok(struct cmd *cmd, cmd_status expected)
 {
-	int value;
-	char *s;
-	char arg_path[VDP_BUF_SIZE];
-
-	if (cmd->cmd != cmd_gettlv)
+	if (cmd->cmd != expected)
 		return cmd_invalid;
 
 	switch (cmd->tlvid) {
 	case ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE:
-		snprintf(arg_path, sizeof(arg_path), "%s.%s", VDP_PREFIX, arg);
-
-		if (get_cfg(cmd->ifname, cmd->type, arg_path, &value,
-			    CONFIG_TYPE_BOOL))
-			value = false;
-		break;
+		return cmd_success;
 	case INVALID_TLVID:
 		return cmd_invalid;
 	default:
 		return cmd_not_applicable;
 	}
+}
+
+static int
+get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
+		    char *obuf, int obuf_len)
+{
+	cmd_status good_cmd = vdp_cmdok(cmd, cmd_gettlv);
+	int value;
+	char *s;
+	char arg_path[VDP_BUF_SIZE];
+
+	if (good_cmd != cmd_success)
+		return good_cmd;
+
+	snprintf(arg_path, sizeof(arg_path), "%s.%s", VDP_PREFIX, arg);
+
+	if (get_cfg(cmd->ifname, cmd->type, arg_path, &value,
+		    CONFIG_TYPE_BOOL))
+		value = false;
 
 	if (value)
 		s = VAL_YES;
@@ -124,20 +132,12 @@ get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 				bool test)
 {
+	cmd_status good_cmd = vdp_cmdok(cmd, cmd_settlv);
 	int value, err;
 	char arg_path[VDP_BUF_SIZE];
 
-	if (cmd->cmd != cmd_settlv)
-		return cmd_invalid;
-
-	switch (cmd->tlvid) {
-	case ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE:
-		break;
-	case INVALID_TLVID:
-		return cmd_invalid;
-	default:
-		return cmd_not_applicable;
-	}
+	if (good_cmd != cmd_success)
+		return good_cmd;
 
 	if (!strcasecmp(argvalue, VAL_YES))
 		value = 1;
@@ -322,20 +322,12 @@ out_free:
 
 static int _set_arg_mode(struct cmd *cmd, char *argvalue, bool test)
 {
+	cmd_status good_cmd = vdp_cmdok(cmd, cmd_settlv);
 	struct vsi_profile *profile, *p;
 	struct vdp_data *vd;
 
-	if (cmd->cmd != cmd_settlv)
-		return cmd_invalid;
-
-	switch (cmd->tlvid) {
-	case ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE:
-		break;
-	case INVALID_TLVID:
-		return cmd_invalid;
-	default:
-		return cmd_not_applicable;
-	}
+	if (good_cmd != cmd_success)
+		return good_cmd;
 
 	profile = vdp_parse_mode_line(argvalue);
 	if (profile == NULL)
@@ -381,49 +373,33 @@ static int test_arg_mode(struct cmd *cmd, UNUSED char *arg, char *argvalue,
 static int get_arg_role(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 			char *obuf, int obuf_len)
 {
+	cmd_status good_cmd = vdp_cmdok(cmd, cmd_gettlv);
 	char arg_path[VDP_BUF_SIZE];
 	const char *p;
 
-	if (cmd->cmd != cmd_gettlv)
-		return cmd_invalid;
+	if (good_cmd != cmd_success)
+		return good_cmd;
 
-	switch (cmd->tlvid) {
-	case ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE:
-		snprintf(arg_path, sizeof(arg_path), "%s.%s", VDP_PREFIX, arg);
+	snprintf(arg_path, sizeof(arg_path), "%s.%s", VDP_PREFIX, arg);
+	if (get_cfg(cmd->ifname, cmd->type,
+		    arg_path, &p, CONFIG_TYPE_STRING))
+		p = VAL_STATION;
 
-		if (get_cfg(cmd->ifname, cmd->type,
-			    arg_path, &p, CONFIG_TYPE_STRING))
-			p = VAL_STATION;
-
-		snprintf(obuf, obuf_len, "%02x%s%04x%s",
-			 (unsigned int) strlen(arg), arg,
-			 (unsigned int) strlen(p), p);
-		break;
-	case INVALID_TLVID:
-		return cmd_invalid;
-	default:
-		return cmd_not_applicable;
-	}
+	snprintf(obuf, obuf_len, "%02x%s%04x%s",
+		 (unsigned int) strlen(arg), arg,
+		 (unsigned int) strlen(p), p);
 
 	return cmd_success;
 }
 
 static int _set_arg_role(struct cmd *cmd, char *arg, char *argvalue, bool test)
 {
+	cmd_status good_cmd = vdp_cmdok(cmd, cmd_settlv);
 	struct vdp_data *vd;
 	char arg_path[VDP_BUF_SIZE];
 
-	if (cmd->cmd != cmd_settlv)
-		return cmd_invalid;
-
-	switch (cmd->tlvid) {
-	case ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE:
-		break;
-	case INVALID_TLVID:
-		return cmd_invalid;
-	default:
-		return cmd_not_applicable;
-	}
+	if (good_cmd != cmd_success)
+		return good_cmd;
 
 	vd = vdp_data(cmd->ifname);
 
