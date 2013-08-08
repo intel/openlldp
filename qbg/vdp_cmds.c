@@ -92,6 +92,9 @@ static int vdp_cmdok(struct cmd *cmd, cmd_status expected)
 
 	switch (cmd->tlvid) {
 	case ((LLDP_MOD_VDP) << 8) | LLDP_VDP_SUBTYPE:
+		if (cmd->type != NEAREST_CUSTOMER_BRIDGE)
+			return cmd_agent_not_supported;
+
 		return cmd_success;
 	case INVALID_TLVID:
 		return cmd_invalid;

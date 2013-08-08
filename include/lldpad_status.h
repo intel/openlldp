@@ -44,6 +44,7 @@ typedef enum {
     cmd_not_capable,
     cmd_not_applicable,
     cmd_no_access,
+    cmd_agent_not_supported,
 } cmd_status;
 
 #endif /* LLDPAD_STATUS_H */

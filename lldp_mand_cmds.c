@@ -565,6 +565,10 @@ int get_tlvs(struct cmd *cmd, char *rbuf, int rlen)
 	u16 type, len;
 	int res;
 
+	/* VDP 0.2 protocol for nearest customer bridge only */
+	if (cmd->tlvid == (OUI_IEEE_8021Qbg << 8)
+	    && cmd->type != NEAREST_CUSTOMER_BRIDGE)
+		return cmd_agent_not_supported;
 	if (cmd->ops & op_local) {
 		res = get_local_tlvs(cmd->ifname, cmd->type, &tlvs[0], &size);
 		if (res)

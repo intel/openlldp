@@ -167,8 +167,12 @@ static int evb_cmdok(struct cmd *cmd, cmd_status expected)
 {
 	if (cmd->cmd != expected)
 		return cmd_invalid;
+
 	switch (cmd->tlvid) {
 	case TLVID_8021Qbg(LLDP_EVB_SUBTYPE):
+		if (cmd->type != NEAREST_CUSTOMER_BRIDGE)
+			return cmd_agent_not_supported;
+
 		return cmd_success;
 	case INVALID_TLVID:
 		return cmd_invalid;

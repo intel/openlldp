@@ -349,6 +349,9 @@ static char *print_status(cmd_status status)
 	case cmd_no_access:
 		str = "Access denied";
 		break;
+	case cmd_agent_not_supported:
+		str = "TLV does not support agent type";
+		break;
 	default:
 		str = "Unknown status";
 		break;

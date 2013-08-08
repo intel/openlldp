@@ -326,7 +326,7 @@ static void process_clif_cmd(  struct clif_data *cd,
 					 rsize - strlen(rbuf) - 1);
 
 	/* update status and compute final length */
-	rbuf[CLIF_STAT_OFF] = hexlist[(status & 0x0f1) >> 4];
+	rbuf[CLIF_STAT_OFF] = hexlist[(status & 0xf0) >> 4];
 	rbuf[CLIF_STAT_OFF+1] = hexlist[status & 0x0f];
 	*rlen = strlen(rbuf);
 }
