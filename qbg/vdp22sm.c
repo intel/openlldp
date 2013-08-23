@@ -151,6 +151,8 @@ static const char *const vdp22_states_n[] = {
  * Forward definition of function prototypes.
  */
 static void vdp22st_run(struct vsi22 *);
+static void vdp22br_run(struct vsi22 *);
+static void vdp22_station_info(struct vsi22 *);
 
 /*
  * Functions to get and set VLAN, PS and PCP bits.
@@ -724,9 +726,8 @@ static bool vdp22st_move_state(struct vsi22 *vsi)
 				newstate = VDP22_ASSOC_COMPL;
 			else
 				newstate = VDP22_END;
-		}
-		if (vsi->resp_vsi_mode == VDP22_PREASSOC
-		    || vsi->resp_vsi_mode == VDP22_PREASSOC_WITH_RR)
+		} else if (vsi->resp_vsi_mode == VDP22_PREASSOC
+			   || vsi->resp_vsi_mode == VDP22_PREASSOC_WITH_RR)
 			newstate = VDP22_PREASSOC_NEW;
 		else if (vsi->resp_vsi_mode == VDP22_DEASSOC)
 			newstate = VDP22_END;
@@ -1203,6 +1204,8 @@ static void ptlv_2_vsi22(struct vsi22 *vsip, struct vdp22_ptlv *ptlv)
 			offset += ptlv_2_fdata(&fid[i], cp + offset, vsip->fif);
 		if (vsip->vdp->myrole == VDP22_STATION)
 			vdp22_bridge_info(vsip);
+		else
+			vdp22_station_info(vsip);
 		return;
 	}
 	LLDPAD_DBG("%s:%s TLV ignored\n", __func__, vsip->vdp->ifname);
@@ -1319,4 +1322,407 @@ static void vdp22_ecp22in(UNUSED void *ctx, void *parm)
 int vdp22_from_ecp22(struct vdp22 *vdp)
 {
 	return eloop_register_timeout(0, 100 * 1000, vdp22_ecp22in, NULL, vdp);
+}
+
+/*
+ * Bridge state machine code starts here.
+ */
+static void vdp22br_init(struct vsi22 *p)
+{
+	LLDPAD_DBG("%s:%s vsi:%p(%02x)\n", __func__, p->vdp->ifname, p,
+		   p->vsi[0]);
+	p->flags = 0;
+	p->cc_vsi_mode = VDP22_DEASSOC;
+	p->resp_vsi_mode = VDP22_RESP_NONE;
+	p->smi.localchg = true;		/* Change triggered by station */
+	p->smi.kato = false;
+	p->smi.resp_ok = false;		/* Response from VSI manager */
+	/* FOLLOWING MEMBERS NOT USED BY BRIDGE STATE MACHINE */
+	p->smi.deassoc = p->smi.acktimeout = p->smi.ackreceived = false;
+	p->smi.txmit = false;
+	p->smi.txmit_error = 0;
+}
+
+/*
+ * VSI bridge time out handler.
+ */
+static void vdp22br_handle_kato(UNUSED void *ctx, void *data)
+{
+	struct vsi22 *p = data;
+
+	LLDPAD_DBG("%s:%s timeout keep alive timer for %#02x\n",
+		   __func__, p->vdp->ifname, p->vsi[0]);
+	p->smi.kato = true;
+	vdp22br_run(p);
+}
+
+/*
+ * Starts the VSI bridge keep alive timer.
+ */
+static int vdp22br_start_katimer(struct vsi22 *p)
+{
+	unsigned int usecs, secs;
+
+	p->smi.kato = false;
+	vdp22_timeout(p->vdp, p->vdp->vdp_rka, &secs, &usecs);
+	LLDPAD_DBG("%s:%s start keep alive timer for %p(%02x) [%i,%i]\n",
+		   __func__, p->vdp->ifname, p, p->vsi[0], secs, usecs);
+	return eloop_register_timeout(secs, usecs, vdp22br_handle_kato, NULL,
+				      (void *)p);
+}
+
+/*
+ * Stops the bridge keep alive timer.
+ */
+static int vdp22br_stop_katimer(struct vsi22 *p)
+{
+	LLDPAD_DBG("%s:%s stop keep alive timer for %p(%02x)\n", __func__,
+		   p->vdp->ifname, p, p->vsi[0]);
+	return eloop_cancel_timeout(vdp22br_handle_kato, NULL, (void *)p);
+}
+
+/*
+ * Bridge resource processing timers.
+ */
+static void vdp22br_handle_resto(UNUSED void *ctx, void *data)
+{
+	struct vsi22 *p = data;
+
+	LLDPAD_DBG("%s:%s timeout resource wait delay for %p(%#02x)\n",
+		   __func__, p->vdp->ifname, p, p->vsi[0]);
+	p->smi.resp_ok = true;
+	vdp22br_run(p);
+}
+
+static int vdp22br_stop_restimer(struct vsi22 *p)
+{
+	LLDPAD_DBG("%s:%s stop resource wait timer for %p(%02x)\n",
+		   __func__, p->vdp->ifname, p, p->vsi[0]);
+	return eloop_cancel_timeout(vdp22br_handle_resto, NULL, (void *)p);
+}
+
+/*
+ * Start resource wait delay timer.
+ */
+static int vdp22br_start_restimer(struct vsi22 *p)
+{
+	unsigned long long towait = (1 << p->vdp->vdp_rwd) * 10;
+	unsigned int secs, usecs;
+
+	p->smi.resp_ok = false;
+	p->resp_vsi_mode = VDP22_RESP_NONE;
+	secs = towait / USEC_PER_SEC;
+	usecs = towait % USEC_PER_SEC;
+	LLDPAD_DBG("%s:%s start resource wait timer for %p(%02x) [%i,%i]\n",
+		   __func__, p->vdp->ifname, p, p->vsi[0], secs, usecs);
+	return eloop_register_timeout(secs, usecs, vdp22br_handle_resto, NULL,
+				      (void *)p);
+}
+
+static void vdp22br_process(struct vsi22 *p)
+{
+	int rc, error = 0;
+
+	LLDPAD_DBG("%s:%s vsi:%p(%02x) id:%ld\n", __func__,
+		   p->vdp->ifname, p, p->vsi[0], p->type_id);
+	vdp22br_start_restimer(p);
+	p->resp_vsi_mode = VDP22_RESP_SUCCESS;
+	rc = vdp22br_resources(p, &error);
+	switch (rc) {
+	case VDP22_RESP_TIMEOUT:
+		break;
+	case VDP22_RESP_KEEP:
+		p->status = VDP22_KEEPBIT | make_status(error);
+		goto rest;
+	case VDP22_RESP_DEASSOC:
+		if (error > (1 << VDP22_STATUS_SHIFT))
+			p->status = VDP22_HARDBIT;
+		/* Fall through intended */
+	case VDP22_RESP_SUCCESS:
+rest:
+		p->status |= VDP22_ACKBIT | make_status(error);
+		vdp22br_stop_restimer(p);
+		p->smi.resp_ok = true;
+		break;
+	}
+	p->resp_vsi_mode = rc;
+	LLDPAD_DBG("%s:%s resp_vsi_mode:%d status:%#x\n", __func__,
+		   p->vdp->ifname, p->resp_vsi_mode, p->status);
+}
+
+static void vdp22br_end(struct vsi22 *p)
+{
+	LLDPAD_DBG("%s:%s vsi:%p(%02x)\n", __func__, p->vdp->ifname, p,
+		   p->vsi[0]);
+	vdp22_listdel_vsi(p);
+}
+
+/*
+ * Add a VSI to bridge state machine.
+ */
+static void vdp22br_addvsi(struct vsi22 *p)
+{
+	LLDPAD_DBG("%s:%s vsi:%p(%02x)\n", __func__, p->vdp->ifname, p,
+		   p->vsi[0]);
+	p->smi.state = VDP22_BR_BEGIN;
+	p->flags = VDP22_BUSY;
+	LIST_INSERT_HEAD(&p->vdp->vsi22_que, p, node);
+	vdp22br_run(p);
+}
+
+/*
+ * Send a bridge reply. Allocate send buffer on stack and create packed TLVs.
+ */
+static void vdp22br_reply(struct vsi22 *vsi)
+{
+	unsigned short len = mgr22_ptlv_sz() + vsi22_ptlv_sz(vsi);
+	unsigned char buf[len];
+	struct qbg22_imm qbg;
+
+	qbg.data_type = VDP22_TO_ECP22;
+	qbg.u.c.len = len;
+	qbg.u.c.data = buf;
+	mgr22_2tlv(vsi, buf);
+	vsi22_2tlv(vsi, buf + mgr22_ptlv_sz(), vsi->status);
+	modules_notify(LLDP_MOD_ECP22, LLDP_MOD_VDP22, vsi->vdp->ifname, &qbg);
+	vsi->flags &= ~VDP22_BUSY;
+	vsi->smi.localchg = false;
+	LLDPAD_DBG("%s:%s len:%hd rc:%d\n", __func__, vsi->vdp->ifname, len,
+		   vsi->smi.txmit_error);
+}
+
+/*
+ * Send a keep status TLV as bridge reply.
+ */
+static void vdp22br_sendack(struct vsi22 *p, unsigned char status)
+{
+	LLDPAD_DBG("%s:%s vsi:%p(%02x)\n", __func__, p->vdp->ifname, p,
+		   p->vsi[0]);
+	p->status = status;
+	vdp22br_reply(p);
+}
+
+/*
+ * Send a de-associate TLV as bridge reply.
+ */
+static void vdp22br_deassoc(struct vsi22 *p, unsigned char status)
+{
+	LLDPAD_DBG("%s:%s vsi:%p(%02x)\n", __func__, p->vdp->ifname, p,
+		   p->vsi[0]);
+	p->vsi_mode = VDP22_DEASSOC;
+	vdp22br_sendack(p, status);
+}
+
+/*
+ * Change bridge state machine into a new state.
+ */
+static void vdp22br_change_state(struct vsi22 *p, enum vdp22br_states new)
+{
+	switch (new) {
+	case VDP22_BR_INIT:
+		assert(p->smi.state == VDP22_BR_BEGIN);
+		break;
+	case VDP22_BR_PROCESS:
+		assert(p->smi.state == VDP22_BR_WAITCMD_2
+		       || p->smi.state == VDP22_BR_INIT);
+		break;
+	case VDP22_BR_SEND:
+		assert(p->smi.state == VDP22_BR_PROCESS);
+		break;
+	case VDP22_BR_KEEP:
+		assert(p->smi.state == VDP22_BR_PROCESS);
+		break;
+	case VDP22_BR_DEASSOC:
+		assert(p->smi.state == VDP22_BR_PROCESS);
+		break;
+	case VDP22_BR_WAITCMD:
+		assert(p->smi.state == VDP22_BR_SEND
+		       || p->smi.state == VDP22_BR_ALIVE);
+		break;
+	case VDP22_BR_WAITCMD_2:
+		assert(p->smi.state == VDP22_BR_WAITCMD);
+		break;
+	case VDP22_BR_ALIVE:
+		assert(p->smi.state == VDP22_BR_WAITCMD_2);
+		break;
+	case VDP22_BR_DEASSOCIATED:
+		assert(p->smi.state == VDP22_BR_PROCESS
+		       || p->smi.state == VDP22_BR_WAITCMD);
+		break;
+	case VDP22_BR_END:
+		assert(p->smi.state == VDP22_BR_DEASSOC
+		       || p->smi.state == VDP22_BR_DEASSOCIATED);
+		break;
+	default:
+		LLDPAD_ERR("%s:%s VDP bridge machine INVALID STATE %d\n",
+			   __func__, p->vdp->ifname, new);
+	}
+	LLDPAD_DBG("%s:%s state change %s -> %s\n", __func__,
+		   p->vdp->ifname, vdp22br_state_name(p->smi.state),
+		   vdp22br_state_name(new));
+	p->smi.state = new;
+}
+
+/*
+ * vdp22br_move_state - advances the VDP bridge state machine state
+ *
+ * returns true or false
+ *
+ * Switches the state machine to the next state depending on the input
+ * variables. Returns true or false depending on wether the state machine
+ * can be run again with the new state or has to stop at the current state.
+ */
+static bool vdp22br_move_state(struct vsi22 *p)
+{
+	LLDPAD_DBG("%s:%s state %s\n", __func__, p->vdp->ifname,
+		   vdp22br_state_name(p->smi.state));
+	switch (p->smi.state) {
+	case VDP22_BR_BEGIN:
+		vdp22br_change_state(p, VDP22_BR_INIT);
+		return true;
+	case VDP22_BR_INIT:
+		vdp22br_change_state(p, VDP22_BR_PROCESS);
+		return true;
+	case VDP22_BR_PROCESS:
+		if (!p->smi.resp_ok)	/* No resource wait response */
+			return false;
+		/* Assumes status and error bits set accordingly */
+		if (p->resp_vsi_mode == VDP22_RESP_NONE) {	/* Timeout */
+			if (p->cc_vsi_mode == VDP22_ASSOC)
+				vdp22br_change_state(p, VDP22_BR_KEEP);
+			else
+				vdp22br_change_state(p, VDP22_BR_DEASSOCIATED);
+		} else if (p->resp_vsi_mode == VDP22_RESP_SUCCESS)
+			vdp22br_change_state(p, VDP22_BR_SEND);
+		else if (p->resp_vsi_mode == VDP22_RESP_KEEP)
+			vdp22br_change_state(p, VDP22_BR_KEEP);
+		else
+			vdp22br_change_state(p, VDP22_BR_DEASSOC);
+		return true;
+	case VDP22_BR_SEND:
+	case VDP22_BR_KEEP:
+		vdp22br_change_state(p, VDP22_BR_WAITCMD);
+		return true;
+	case VDP22_BR_DEASSOC:
+		vdp22br_change_state(p, VDP22_BR_END);
+		return true;
+	case VDP22_BR_WAITCMD:
+		if (p->smi.localchg) {		/* New station request */
+			vdp22br_change_state(p, VDP22_BR_WAITCMD_2);
+			return true;
+		}
+		if (p->smi.kato) {		/* Keep alive timeout */
+			vdp22br_change_state(p, VDP22_BR_DEASSOCIATED);
+			return true;
+		}
+		return false;
+	case VDP22_BR_WAITCMD_2:		/* Handle station msg */
+		if (p->cc_vsi_mode == p->vsi_mode)
+			vdp22br_change_state(p, VDP22_BR_ALIVE);
+		else
+			vdp22br_change_state(p, VDP22_BR_PROCESS);
+		return true;
+	case VDP22_BR_DEASSOCIATED:
+		vdp22br_change_state(p, VDP22_BR_END);
+		return true;
+	case VDP22_BR_ALIVE:
+		vdp22br_change_state(p, VDP22_BR_WAITCMD);
+		return true;
+	case VDP22_BR_END:
+		return false;
+	default:
+		LLDPAD_DBG("%s:%s unhandled state %s\n", __func__,
+			    p->vdp->ifname, vdp22br_state_name(p->smi.state));
+	}
+	return false;
+}
+
+/*
+ * Run bridge state machine.
+ */
+static void vdp22br_run(struct vsi22 *p)
+{
+	vdp22br_move_state(p);
+	do {
+		LLDPAD_DBG("%s:%s state %s\n", __func__,
+			   p->vdp->ifname,
+			   vdp22br_state_name(p->smi.state));
+
+		switch (p->smi.state) {
+		case VDP22_BR_INIT:
+			vdp22br_init(p);
+			break;
+		case VDP22_BR_PROCESS:
+			vdp22br_process(p);
+			break;
+		case VDP22_BR_SEND:
+			vdp22br_reply(p);
+			break;
+		case VDP22_BR_KEEP:
+			vdp22br_sendack(p, VDP22_KEEPBIT);
+			break;
+		case VDP22_BR_DEASSOC:
+			vdp22br_deassoc(p, p->status);
+			break;
+		case VDP22_BR_WAITCMD:
+			vdp22br_start_katimer(p);
+			break;
+		case VDP22_BR_WAITCMD_2:
+			break;
+		case VDP22_BR_ALIVE:
+			vdp22br_sendack(p, VDP22_ACKBIT);
+			break;
+		case VDP22_BR_DEASSOCIATED:
+			vdp22br_deassoc(p, 0);
+			break;
+		case VDP22_BR_END:
+			vdp22br_end(p);
+			break;
+		}
+	} while (vdp22br_move_state(p) == true);
+}
+
+/*
+ * Process the request from the station.
+ *
+ * NOTE:
+ * - Parameter vsip and associated fid data is on stack memory.
+ * - New filter information data assigned to new_fdata/new_no_fdata.
+ */
+static void vdp22_station_info(struct vsi22 *vsip)
+{
+	struct vdp22 *vdp = vsip->vdp;
+	struct vsi22 *hit = vdp22_findvsi(vsip->vdp, vsip);
+
+	LLDPAD_DBG("%s:%s received VSI hit:%p\n", __func__, vdp->ifname, hit);
+	vdp22_showvsi(vsip);
+	if (!hit) {
+		if (vsip->vsi_mode == VDP22_DEASSOC) {
+			/* Nothing allocated and de-assoc --> return ack */
+			vsip->status = VDP22_ACKBIT;
+		} else {
+			/* Create VSI & enter init state */
+			struct vsi22 *new = vdp22_copy_vsi(vsip);
+
+			if (new)
+				return vdp22br_addvsi(new);
+			vsip->status = VDP22_ACKBIT
+					| make_status(VDP22_RESP_NO_RESOURCES);
+		}
+		/* Send back response without state machine resources */
+		return vdp22br_reply(vsip);
+	}
+	LLDPAD_DBG("%s:%s vsi_mode:%d flags:%#lx\n", __func__, vdp->ifname,
+		   hit->vsi_mode, hit->flags);
+	if (hit->flags & VDP22_BUSY)
+		return;
+	vdp22br_stop_katimer(hit);
+	if (!vdp22_cmp_fdata(hit, vsip)) {
+		LLDPAD_DBG("%s:%s TODO mismatch filter data [%02x]\n",
+			   __func__, vsip->vdp->ifname, vsip->vsi[0]);
+		return;
+	}
+	hit->smi.localchg = true;
+	hit->vsi_mode = vsip->vsi_mode;		/* Take new request */
+	vdp22br_run(hit);
 }
