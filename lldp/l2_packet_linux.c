@@ -33,6 +33,7 @@
 #include <linux/if_packet.h>
 #include <linux/pkt_sched.h>
 #include <net/if.h>
+#include <errno.h>
 #include "eloop.h"
 #include "ports.h"
 #include "messages.h"
@@ -144,8 +145,9 @@ static void l2_packet_receive(int sock, void *eloop_ctx, UNUSED void *sock_ctx)
 		       &fromlen);
 
 	if (res < 0) {
-		LLDPAD_INFO("receive ERROR = %d\n", res);
-		perror("l2_packet_receive - recvfrom");
+		LLDPAD_INFO("receive if %s ERROR = %d\n", l2->ifname, errno);
+		if (errno != ENETDOWN)
+			perror("l2_packet_receive - recvfrom");
 		return;
 	}
 
