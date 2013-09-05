@@ -31,6 +31,7 @@
 
 extern bool daemonize;
 extern int loglvl;
+extern int omit_tstamp;
 
 void log_message(int loglvl, const char *pFormat, ...)
 	__attribute__((__format__(__printf__, 2, 3)));

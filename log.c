@@ -59,7 +59,7 @@ void log_message(int level, const char *format, ...)
 	if (daemonize)
 		vsyslog(level, format, vb);
 	else if (loglvl >= level) {
-		if (!bypass_time)
+		if (!omit_tstamp && !bypass_time)
 			showtime();
 		vprintf(format, vb);
 		bypass_time = strchr(format, '\n') == 0;

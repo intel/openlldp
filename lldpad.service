@@ -4,7 +4,7 @@ After=syslog.target network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/sbin/lldpad
+ExecStart=/usr/sbin/lldpad -t
 ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]

@@ -10,11 +10,12 @@ lldpad \- Link Layer Discovery Protocol (LLDP) agent daemon
 .SH SYNOPSIS
 .B lldpad [-h]
 .B [-v]
-.B [-V]
+.BI "[-V" " level" "]"
 .B [-d]
 .B [-k]
 .B [-p]
 .B [-s]
+.B [-t]
 .BI "[-f" " filename" "]"
 .SH DESCRIPTION
 Executes the LLDP protocol for supported network interfaces.  The list of TLVs currently supported are:
@@ -134,7 +135,7 @@ run lldpad as a daemon
 .B \-v
 show lldpad version
 .TP
-.B \-V
+.BI "-V" " level"
 set lldpad debugging level. Uses syslog debug levels see syslog.2 for details.
 .TP
 .B \-k
@@ -149,6 +150,9 @@ remove lldpad state records from shared memory
 .TP
 .B \-p
 do not create PID file /var/run/lldpad.pid on startup
+.TP
+.B \-t
+omit timestamps from logging messages
 .PP
 
 .SH NOTE

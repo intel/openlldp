@@ -83,6 +83,7 @@ struct lldp_module *(*register_tlv_table[])(void) = {
 char *cfg_file_name = NULL;
 bool daemonize = 0;
 int loglvl = LOG_WARNING;
+int omit_tstamp;
 
 static const char *lldpad_version =
 "lldpad v" VERSION_STR "\n"
@@ -124,16 +125,17 @@ static void usage(void)
 {
 	fprintf(stderr,
 		"\n"
-		"usage: lldpad [-hdkspv] [-f configfile]"
+		"usage: lldpad [-hdksptv] [-f configfile] [-V level]"
 		"\n"
 		"options:\n"
 		"   -h  show this usage\n"
-		"   -f  use configfile instead of default\n"
 		"   -d  run daemon in the background\n"
 		"   -k  terminate current running lldpad\n"
 		"   -s  remove lldpad state records\n"
 		"   -p  Do not create PID file\n"
+		"   -t  omit timestamps in log messages\n"
 		"   -v  show version\n"
+		"   -f  use configfile instead of default\n"
 		"   -V  set syslog level\n");
 
 	exit(1);
@@ -232,7 +234,7 @@ int main(int argc, char *argv[])
 	int rc = 1;
 
 	for (;;) {
-		c = getopt(argc, argv, "dhkvspf:V:");
+		c = getopt(argc, argv, "hdksptvf:V:");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -254,6 +256,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'p':
 			pid_file = 0;
+			break;
+		case 't':
+			omit_tstamp = 1;
 			break;
 		case 'v':
 			print_v = 1;
