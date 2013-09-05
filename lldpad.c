@@ -434,9 +434,6 @@ int main(int argc, char *argv[])
 	openlog("lldpad", LOG_CONS | LOG_PID, LOG_DAEMON);
 	setlogmask(LOG_UPTO(loglvl));
 
-	if (check_cfg_file())
-		exit(1);
-
 	/* setup event netlink interface for user space processes.
 	 * This needs to be setup first to ensure it gets lldpads
 	 * pid as netlink address.
