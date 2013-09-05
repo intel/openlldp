@@ -229,6 +229,7 @@ int main(int argc, char *argv[])
 	int pid_file = 1;
 	pid_t pid;
 	int cnt;
+	int rc = 1;
 
 	for (;;) {
 		c = getopt(argc, argv, "dhkvspf:V:");
@@ -328,29 +329,6 @@ int main(int argc, char *argv[])
 		exit (0);
 	}
 
-	if (pid_file) {
-		fd = open(PID_FILE, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-		if (fd < 0) {
-			LLDPAD_ERR("error opening lldpad lock file");
-			exit(1);
-		}
-
-		if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
-			if (errno == EWOULDBLOCK) {
-				fprintf(stderr, "lldpad is already running\n");
-				if (read(fd, buf, sizeof(buf)) > 0) {
-					fprintf(stderr, "pid of existing"
-						"lldpad is %s\n", buf);
-				}
-				LLDPAD_ERR("lldpad already running");
-			} else {
-				perror("error locking lldpad lock file");
-				LLDPAD_ERR("error locking lldpad lock file");
-			}
-			exit(1);
-		}
-	}
-
 	lldpad_oom_adjust();
 
 	/* initialize lldpad user data */
@@ -377,23 +355,30 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	/* From this point on we know we're the only instance */
 	if (daemonize && daemon(1, 0)) {
 		LLDPAD_ERR("error daemonizing lldpad");
-		goto out;
+		exit(1);
 	}
 
 	if (pid_file) {
-		if (lseek(fd, 0, SEEK_SET) < 0) {
-			LLDPAD_ERR("error seeking lldpad lock file\n");
+		fd = open(PID_FILE, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+		if (fd < 0) {
+			LLDPAD_ERR("error opening lldpad pid file");
 			exit(1);
+		}
+
+		if (lseek(fd, 0, SEEK_SET) < 0) {
+			LLDPAD_ERR("error seeking lldpad pid file\n");
+			goto out_fail;
 		}
 
 		memset(buf, 0, sizeof(buf));
 		sprintf(buf, "%u\n", getpid());
 		if (write(fd, buf, sizeof(buf)) < 0)
-			perror("error writing to lldpad lock file");
+			perror("error writing to lldpad pid file");
 		if (fsync(fd) < 0)
-			perror("error syncing lldpad lock file");
+			perror("error syncing lldpad pid file");
 
 		close(fd);
 	}
@@ -401,23 +386,17 @@ int main(int argc, char *argv[])
 	pid = lldpad_shm_getpid();
 	if (pid < 0) {
 		LLDPAD_ERR("error getting shm pid");
-		if (pid_file)
-			unlink(PID_FILE);
-		exit(1);
+		goto out_fail;
 	} else if (pid == PID_NOT_SET) {
 		if (!lldpad_shm_setpid(getpid())) {
 			perror("lldpad_shm_setpid failed");
 			LLDPAD_ERR("lldpad_shm_setpid failed\n");
-			if (pid_file)
-				unlink(PID_FILE);
-			exit (1);
+			goto out_fail;
 		}
 	} else if (pid != DONT_KILL_PID) {
 		if (!kill(pid, 0)) {
 			LLDPAD_ERR("lldpad already running");
-			if (pid_file)
-				unlink(PID_FILE);
-			exit(1);
+			goto out_fail;
 		}
 		/* pid in shm no longer has a process, go ahead
                  * and let this lldpad instance execute.
@@ -425,9 +404,7 @@ int main(int argc, char *argv[])
 		if (!lldpad_shm_setpid(getpid())) {
 			perror("lldpad_shm_setpid failed");
 			LLDPAD_ERR("error overwriting shm pid");
-			if (pid_file)
-				unlink(PID_FILE);
-			exit (1);
+			goto out_fail;
 		}
 	}
 
@@ -439,38 +416,39 @@ int main(int argc, char *argv[])
 	 * pid as netlink address.
 	 */
 	if (event_iface_init_user_space() < 0) {
-		LLDPAD_ERR("lldpad failed to start - failed to register user space event interface\n");
-		exit(1);
+		LLDPAD_ERR("lldpad failed to start - "
+			   "failed to register user space event interface\n");
+		closelog();
+		goto out_fail;
 	}
 
 	init_modules();
 
 	eloop_register_signal_terminate(eloop_terminate, NULL);
-	eloop_register_signal_reconfig(lldpad_reconfig, NULL); 
+	eloop_register_signal_reconfig(lldpad_reconfig, NULL);
 
 	/* setup LLDP agent */
 	if (!start_lldp_agents()) {
 		LLDPAD_ERR("failed to initialize LLDP agent\n");
-		exit(1);
+		goto out;
 	}
 
 	/* setup event RT netlink interface */
 	if (event_iface_init() < 0) {
 		LLDPAD_ERR("failed to register event interface\n");
-		exit(1);
+		goto out;
 	}
 
 	/* Find available interfaces and add adapters */
 	init_ports();
 
 	if (ctrl_iface_register(clifd) < 0) {
-		if (!daemonize)
-			fprintf(stderr, "failed to register control interface\n");
 		LLDPAD_ERR("lldpad failed to start - "
 			   "failed to register control interface\n");
 		goto out;
 	}
 
+	rc = 0;
 	eloop_run();
 
 	clean_lldp_agents();
@@ -480,12 +458,13 @@ int main(int argc, char *argv[])
 	event_iface_deinit();
 	stop_lldp_agents();
 out:
+	eloop_destroy();
+	if (!eloop_terminated())
+		rc = 1;
 	destroy_cfg();
 	closelog();
+out_fail:
 	if (pid_file)
 		unlink(PID_FILE);
-	eloop_destroy();
-	if (eloop_terminated())
-		exit(0);
-	exit(1);
+	exit(rc);
 }
