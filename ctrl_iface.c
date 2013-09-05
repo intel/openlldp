@@ -411,6 +411,42 @@ int ctrl_iface_register(struct clif_data *clifd)
 					clifd, NULL);
 }
 
+int ctrl_iface_systemd_socket()
+{
+	char *env, *ptr;
+	unsigned int p, l;
+
+	env = getenv("LISTEN_PID");
+	if (!env)
+		return -1;
+
+	p = strtoul(env, &ptr, 10);
+	if (ptr && ptr == env) {
+		LLDPAD_DBG("Invalid value '%s' for LISTEN_PID\n", env);
+		return -1;
+	}
+	if ((pid_t)p != getpid()) {
+		LLDPAD_DBG("Invalid PID '%d' from LISTEN_PID\n", p);
+		return -1;
+	}
+	env = getenv("LISTEN_FDS");
+	if (!env) {
+		LLDPAD_DBG("LISTEN_FDS is not set\n");
+		return -1;
+	}
+	l = strtoul(env, &ptr, 10);
+	if (ptr && ptr == env) {
+		LLDPAD_INFO("Invalid value '%s' for LISTEN_FDS\n", env);
+		return -1;
+	}
+	if (l != 1) {
+		LLDPAD_INFO("LISTEN_FDS specified %d fds\n", l);
+		return -1;
+	}
+	/* systemd returns fds with an offset of '3' */
+	return 3;
+}
+
 int ctrl_iface_init(struct clif_data *clifd)
 {
 	struct sockaddr_un addr;
@@ -421,6 +457,11 @@ int ctrl_iface_init(struct clif_data *clifd)
 	clifd->ctrl_sock = -1;
 	clifd->ctrl_dst = NULL;
 
+	s = ctrl_iface_systemd_socket();
+	if (s != -1) {
+		LLDPAD_INFO("using fd %d from systemd\n", s);
+		goto out;
+	}
 	s = socket(AF_LOCAL, SOCK_DGRAM, 0);
 	if (s < 0) {
 		perror("socket(AF_LOCAL)");
@@ -444,6 +485,7 @@ int ctrl_iface_init(struct clif_data *clifd)
 		   &feature_on, sizeof(feature_on));
 
 	LLDPAD_INFO("bound ctrl iface to %s\n", &addr.sun_path[1]);
+out:
 	clifd->ctrl_sock = s;
 
 	return 0;

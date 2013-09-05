@@ -121,23 +121,22 @@ pkgconfig_DATA = lldpad.pc liblldp_clif.pc
 dist_noinst_DATA = lldpad.spec README COPYING ChangeLog
 
 ## lldpad.init is listed here because it gets installed from install-data-local
-dist_noinst_SCRIPTS = lldpad.init
+dist_noinst_SCRIPTS = lldpad.service lldpad.socket
 
 ## special hooks to handle the init script
-install-data-local: lldpad.init
-	$(MKDIR_P) $(DESTDIR)/etc/init.d
-	$(INSTALL_SCRIPT) lldpad.init $(DESTDIR)/etc/init.d/lldpad
+install-data-local: lldpad.service lldpad.socket
+	$(MKDIR_P) $(DESTDIR)/usr/lib/systemd/system
+	$(INSTALL_SCRIPT) lldpad.service $(DESTDIR)/usr/lib/systemd/system/lldpad.service
+	$(INSTALL_SCRIPT) lldpad.socket $(DESTDIR)/usr/lib/systemd/system/lldpad.socket
 
 BASH_COMPLETION_DIR=/etc/bash_completion.d/
 
 install-data-hook:
-	/sbin/chkconfig --add lldpad || true
 	## provide support for bash completion
 	$(MKDIR_P) $(DESTDIR)/$(BASH_COMPLETION_DIR)
 	$(INSTALL_SCRIPT) ${srcdir}/contrib/bash_completion/* $(DESTDIR)/$(BASH_COMPLETION_DIR)
 
 uninstall-local:
-	/sbin/chkconfig --del lldpad || true
 	rm -f '$(DESTDIR)/etc/init.d/lldpad'
 	rm -f '$(includedir)/dcbd/clif_cmds.h'
 	rm -f '$(includedir)/dcbd'

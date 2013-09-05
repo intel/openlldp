@@ -5,6 +5,8 @@ After=syslog.target network.target
 [Service]
 Type=simple
 ExecStart=/usr/sbin/lldpad
+ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]
 WantedBy=multi-user.target
+Also=lldpad.socket
