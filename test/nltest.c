@@ -1156,12 +1156,14 @@ void print_pfc(struct ieee_pfc *pfc)
 
 	printf("\t requests: ");
 	for (i = 0; i < 8; i++)
-		printf("%lli ", pfc->requests[i]);
+		printf("%llu ",
+		       (unsigned long long)pfc->requests[i]);
 	printf("\n");
 
 	printf("\t requests: ");
 	for (i = 0; i < 8; i++)
-		printf("%lli ", pfc->indications[i]);
+		printf("%llu ",
+		       (unsigned long long)pfc->indications[i]);
 	printf("\n");
 }
 
