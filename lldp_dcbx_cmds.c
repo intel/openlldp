@@ -229,7 +229,7 @@ static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, true);
 }
 
-struct arg_handlers *dcbx_get_arg_handlers()
+struct arg_handlers *dcbx_get_arg_handlers(void)
 {
 	return &arg_handlers[0];
 }
