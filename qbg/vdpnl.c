@@ -369,17 +369,17 @@ static int vdpnl_getlink(struct nlmsghdr *nlh, size_t len)
 		return vdpnl_error(rc, nlh, len);
 	vdpnl_reply1(&p, nlh, len);
 	vf_ports = mynla_nest_start(nlh, IFLA_VF_PORTS);
-	vf_port = mynla_nest_start(nlh, IFLA_VF_PORT);
 	/* Iterate over all profiles */
 	do {
 		rc = vdp22_query(p.ifname) ? vdp22_status(++i, &p)
 					   : vdp_status(++i, &p);
-		if (rc == 1)
+		if (rc == 1) {
+			vf_port = mynla_nest_start(nlh, IFLA_VF_PORT);
 			vdpnl_reply2(&p, nlh);
-		if (rc == 0) {
 			mynla_nest_end(nlh, vf_port);
-			mynla_nest_end(nlh, vf_ports);
 		}
+		if (rc == 0)
+			mynla_nest_end(nlh, vf_ports);
 	} while (rc == 1);
 	if (rc < 0)
 		return vdpnl_error(rc, nlh, len);
