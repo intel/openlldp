@@ -67,21 +67,38 @@
 #define CMD_EXTERN	'E'	/* External command */
 #define CMD_SETDF	'X'	/* Change defaults */
 
+#define	FIF_VID		1	/* Vlan id */
+#define	FIF_VIDMAC	2	/* Vlan+mac id */
+#define	FIF_GRPVID	3	/* Group+Vlan id */
+#define	FIF_GRPVIDMAC	4	/* group+Vlan+mac id */
+
+#define	MIGTO		16	/* M-bit migrate to indicator */
+#define	MIGFROM		32	/* S-bit migrate from indicator */
+
 /*
  * Set the define MYDEBUG to any value for detailed debugging
  */
+
+enum {				/* Netlink message format for lldpad */
+	nlmsg_v0 = 1,		/* IEEE 802.1 QBG version 0.2 */
+	nlmsg_v2		/* IEEE 802.1 QBG version 2.2 */
+};
 
 enum {
 	f_map,
 	f_mgrid,
 	f_typeid,
 	f_typeidver,
-	f_uuid
+	f_uuid,
+	f_hints,
+	f_2mgrid
 };
 
 struct macvlan {
 	unsigned char mac[ETH_ALEN];	/* MAC address */
-	unsigned short vlanid;	/* VLAN Id */
+	unsigned short vlanid;		/* VLAN Id */
+	unsigned long gpid;		/* Group */
+	unsigned short newvid;		/* New vlan id returned from switch */
 };
 
 static struct vdpdata {
@@ -92,7 +109,11 @@ static struct vdpdata {
 	unsigned char typeidver;	/* Type ID version */
 	unsigned int typeid;	/* Type ID */
 	unsigned char uuid[UUIDLEN];	/* Instance ID */
+	unsigned char mgrid2[UUIDLEN];	/* Manager ID VDP22 */
 	struct macvlan addr[10];	/* Pairs of MAC/VLAN */
+	unsigned char fif;	/* Filter info format */
+	unsigned char hints;	/* Migrate to/from hits */
+	unsigned char nlmsg_v;	/* Version of netlink messaage to use */
 } vsidata[32];
 
 static struct command {		/* Command structure */
@@ -483,6 +504,8 @@ static int addvfs(struct nl_msg *nl_msg, struct vdpdata *vdp, unsigned char cmd)
 		op = PORT_REQUEST_PREASSOCIATE_RR;
 		break;
 	}
+	if (vdp->hints)
+		op |= vdp->hints;
 
 	vsi.vsi_mgr_id = vdp->mgrid;
 	vsi.vsi_type_version = vdp->typeidver;
@@ -505,6 +528,9 @@ static int addvfs(struct nl_msg *nl_msg, struct vdpdata *vdp, unsigned char cmd)
 	return 0;
 }
 
+/*
+ * Add filter information and use SPOOFCHK to send group information
+ */
 static int addmacs(struct nl_msg *nl_msg, struct vdpdata *vdp)
 {
 	int i;
@@ -518,7 +544,7 @@ static int addmacs(struct nl_msg *nl_msg, struct vdpdata *vdp)
 		if (!(vfinfo = nla_nest_start(nl_msg, IFLA_VF_INFO)))
 			return -ENOMEM;
 
-		if (vdp->addr[i].mac) {
+		if (vdp->fif == FIF_VIDMAC || vdp->fif == FIF_GRPVIDMAC) {
 			struct ifla_vf_mac ifla_vf_mac;
 
 			ifla_vf_mac.vf = PORT_SELF_VF;
@@ -528,11 +554,11 @@ static int addmacs(struct nl_msg *nl_msg, struct vdpdata *vdp)
 				return -ENOMEM;
 		}
 
-		if (vdp->addr[i].vlanid) {
+		if (vdp->fif) {
 			struct ifla_vf_vlan ifla_vf_vlan = {
 				.vf = PORT_SELF_VF,
-				.vlan = vdp->addr[i].vlanid,
-				.qos = 0,
+				.vlan = vdp->addr[i].vlanid & 0xfff,
+				.qos = (vdp->addr[i].vlanid >> 12) & 7
 			};
 
 			if (nla_put(nl_msg, IFLA_VF_VLAN, sizeof ifla_vf_vlan,
@@ -759,37 +785,78 @@ static struct vdpdata *nextfree()
 
 static int check_map(char *value, struct vdpdata *profile)
 {
-	char *delim = strchr(value, '-');
-	unsigned long vlan;
-	int i, ec, x[ETH_ALEN];
+	char *delim2 = 0, *slash, *delim = strchr(value, '-');
+	unsigned long vlan, newvlan = 0, gpid = 0;
+	int fif, i, ec, x[ETH_ALEN];
+	int have_mac = 1, have_gpid = 1;
 
-	if (!delim) {
-		fprintf(stderr, "%s invalid map format %s\n", progname, value);
-		return -1;
+	if (!delim)
+		have_gpid = have_mac = 0;
+	else {
+		*delim = '\0';
+		delim2 = strchr(delim + 1, '-');
+		if (!delim2)
+			have_gpid = 0;
+		else {
+			*delim2 = '\0';
+			if (delim + 1 == delim2)	/* -- and no mac */
+				have_mac = 0;
+		}
 	}
-	vlan = getnumber("map", value, '-', &ec);
+	memset(x, 0, sizeof(x));
+	slash = strchr(value, '/');
+	if (slash) {		/* Expect replacement vid */
+		*slash = '\0';
+		newvlan = getnumber("map", slash + 1, '\0', &ec);
+		if (ec) {
+			fprintf(stderr, "%s invalid new vlanid %s\n", progname,
+				value);
+			return -1;
+		}
+		if (newvlan >= 0x10000) {
+			fprintf(stderr, "%s new vlanid %ld too high\n",
+				progname, newvlan);
+			return -1;
+		}
+		profile->nlmsg_v = nlmsg_v2;
+	}
+	vlan = getnumber("map", value, '\0', &ec);
 	if (ec) {
 		fprintf(stderr, "%s invalid vlanid %s\n", progname, value);
 		return -1;
 	}
-	if (vlan >= 4095) {
+	if (vlan >= 0x10000) {
 		fprintf(stderr, "%s vlanid %ld too high\n", progname, vlan);
 		return -1;
 	}
-	++delim;
-	ec = sscanf(delim, "%02x:%02x:%02x:%02x:%02x:%02x", &x[0], &x[1],
-	    &x[2], &x[3], &x[4], &x[5]);
-	if (ec != ETH_ALEN) {
-		fprintf(stderr, "%s mac %s invalid\n", progname, delim);
-		return -1;
+	fif = FIF_VID;
+	if (have_mac) {
+		ec = sscanf(delim + 1, "%02x:%02x:%02x:%02x:%02x:%02x", &x[0],
+				&x[1], &x[2], &x[3], &x[4], &x[5]);
+		if (ec != ETH_ALEN) {
+			fprintf(stderr, "%s mac %s invalid\n", progname, delim);
+			return -1;
+		}
+		/* Check for last character */
+		delim = strrchr(delim + 1, ':') + 2;
+		if (*delim && (strchr("0123456789abcdefABCDEF", *delim) == 0
+			|| *(delim + 1) != '\0')) {
+			fprintf(stderr, "%s last mac part %s invalid\n",
+					progname, delim);
+			return -1;
+		}
+		fif = FIF_VIDMAC;
 	}
-	/* Check for last character */
-	delim = strrchr(value, ':') + 2;
-	if (*delim && (strchr("0123456789abcdefABCDEF", *delim) == 0
-		|| *(delim + 1) != '\0')) {
-		fprintf(stderr, "%s last mac part %s invalid\n", progname,
-		    delim);
-		return -1;
+	/* Check for optional group identifier */
+	if (have_gpid && *(delim2 + 1)) {
+		gpid = getnumber("group", delim2 + 1, '\0', &ec);
+		if (ec) {
+			fprintf(stderr, "%s invalid groupid %s\n", progname,
+				delim2 + 1);
+			return -1;
+		}
+		fif += 2;
+		profile->nlmsg_v = nlmsg_v2;
 	}
 #ifdef MYDEBUG
 	for (i = 0; i < ETH_ALEN; ++i)
@@ -797,7 +864,18 @@ static int check_map(char *value, struct vdpdata *profile)
 	puts("");
 
 #endif
+	if (profile->fif && profile->fif != fif) {
+		fprintf(stderr, "%s invalid filter info format %d use %d\n",
+		    progname, FIF_VIDMAC, profile->fif);
+		return -1;
+	}
+	profile->fif = fif;
 	for (ec = 0; ec < profile->pairs; ++ec) {
+		if (DIM(profile->addr) == i) {
+			fprintf(stderr, "%s too many mac addresses\n",
+			    progname);
+			return -1;
+		}
 		for (i = 0; i < ETH_ALEN; ++i)
 			if (profile->addr[ec].mac[i] != x[i])
 				break;
@@ -809,6 +887,8 @@ static int check_map(char *value, struct vdpdata *profile)
 	}
 	ec = profile->pairs++;
 	profile->addr[ec].vlanid = vlan;
+	profile->addr[ec].newvid = newvlan;
+	profile->addr[ec].gpid = gpid;
 	for (i = 0; i < ETH_ALEN; ++i)
 		profile->addr[ec].mac[i] = x[i];
 	profile->modified |= 1 << f_map;
@@ -892,11 +972,17 @@ static int check_mgrid(char *value, struct vdpdata *profile)
 	unsigned long no;
 	int ec;
 
+	if (profile->nlmsg_v == nlmsg_v2) {
+		fprintf(stderr, "%s: mgrid and 2mgrid specified\n", progname);
+		return -1;
+	}
 	no = getnumber("mgrid", value, '\0', &ec);
 	if (!ec) {
-		if (no <= 255) {
+		if (no <= 255 && no > 0) {
+			profile->nlmsg_v = nlmsg_v0;
 			profile->mgrid = no;
 			profile->modified |= 1 << f_mgrid;
+			memset(profile->mgrid2, 0, UUIDLEN);
 		} else {
 			ec = -1;
 			fprintf(stderr, "%s: invalid mgrid %ld\n", progname,
@@ -908,6 +994,44 @@ static int check_mgrid(char *value, struct vdpdata *profile)
 	}
 	return ec;
 }
+
+static int check_2mgrid(char *value, struct vdpdata *profile)
+{
+	if (profile->nlmsg_v == nlmsg_v0) {
+		fprintf(stderr, "%s: mgrid and 2mgrid specified\n", progname);
+		return -1;
+	}
+	strncpy((char *)profile->mgrid2, value, UUIDLEN - 1);
+	profile->mgrid2[UUIDLEN - 1] = '\0';
+	profile->mgrid = 0;
+	profile->modified |= 1 << f_mgrid;
+	profile->nlmsg_v = nlmsg_v2;
+	return 0;
+}
+
+static int check_hints(char *value, struct vdpdata *profile)
+{
+	int rc = 0;
+
+	if (!strcmp(value, "to")) {
+		profile->hints = MIGTO;
+		profile->modified |= 1 << f_hints;
+		profile->nlmsg_v = nlmsg_v2;
+	} else if (!strcmp(value, "from")) {
+		profile->hints = MIGFROM;
+		profile->modified |= 1 << f_hints;
+		profile->nlmsg_v = nlmsg_v2;
+	} else if (!strcmp(value, "none")) {
+		profile->hints = 0;
+		profile->modified |= 1 << f_hints;
+		profile->nlmsg_v = nlmsg_v2;
+	} else {
+		fprintf(stderr, "%s: invalid hints %s\n", progname, value);
+		rc = -1;
+	}
+	return rc;
+}
+
 
 /*
  * Return true if the character is valid for a key
@@ -957,7 +1081,9 @@ static char *keytable[] = {
 	"typeidver",
 	"typeid",
 	"uuid",
-	"name"
+	"name",
+	"2mgrid",
+	"hints"
 };
 
 static int findkeyword(char *word)
@@ -995,6 +1121,12 @@ static int checkword(char *word, char *value, struct vdpdata *profile)
 		break;
 	case 5:
 		rc = check_name(value, profile);
+		break;
+	case 6:
+		rc = check_2mgrid(value, profile);
+		break;
+	case 7:
+		rc = check_hints(value, profile);
 		break;
 	}
 #ifdef MYDEBUG
@@ -1035,14 +1167,20 @@ static int has_key(struct vdpdata *found)
 static void print_pairs(struct vdpdata *found)
 {
 	int i;
-	char buf[32];
 
 	for (i = 0; i < found->pairs; ++i) {
-		unsigned char *xp = found->addr[i].mac;
+		printf("\t%hd", found->addr[i].vlanid);
+		if (found->addr[i].newvid)
+			printf("/%hd", found->addr[i].newvid);
+		if (found->fif == FIF_VIDMAC || found->fif == FIF_GRPVIDMAC) {
+			unsigned char *xp = found->addr[i].mac;
 
-		sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x",
-		    xp[0], xp[1], xp[2], xp[3], xp[4], xp[5]);
-		printf("\t%hd %s\n", found->addr[i].vlanid, buf);
+			printf(" %02x:%02x:%02x:%02x:%02x:%02x",
+				xp[0], xp[1], xp[2], xp[3], xp[4], xp[5]);
+		}
+		if (found->fif == FIF_GRPVID || found->fif == FIF_GRPVIDMAC)
+			printf(" %ld", found->addr[i].gpid);
+		printf("\n");
 	}
 }
 
@@ -1050,8 +1188,16 @@ static void print_profile(struct vdpdata *found)
 {
 	char uuid[64];
 
-	printf("key:%s mgrid:%d typeid:%#x typeidver:%d\n",
-	    found->key, found->mgrid, found->typeid, found->typeidver);
+	if (found->mgrid)
+		sprintf(uuid, "%d", found->mgrid);
+	else
+		strcpy(uuid, (char *)found->mgrid2);
+	printf("key:%s version:%d fif:%d mgrid:%s typeid:%#x typeidver:%d",
+	       found->key, found->nlmsg_v, found->fif, uuid, found->typeid,
+	       found->typeidver);
+	if (found->hints)
+		printf(" hints:%s", found->hints == MIGTO ? "to" : "from");
+	printf("\n");
 	uuid2buf(found->uuid, uuid);
 	printf("\tuuid:%s\n", uuid);
 	if (found->pairs)
@@ -1064,17 +1210,23 @@ static int change_profile(struct vdpdata *change, struct vdpdata *alter)
 	printf("%s alter->modified:%#x\n", __func__, alter->modified);
 #endif
 	if ((alter->modified & (1 << f_map))) {
+		change->fif = alter->fif;
 		change->pairs = alter->pairs;
 		memcpy(change->addr, alter->addr, sizeof alter->addr);
 	}
-	if ((alter->modified & (1 << f_mgrid)))
+	if ((alter->modified & (1 << f_mgrid))) {
 		change->mgrid = alter->mgrid;
+		memcpy(change->mgrid2, alter->mgrid2, UUIDLEN);
+	}
 	if ((alter->modified & (1 << f_typeid)))
 		change->typeid = alter->typeid;
 	if ((alter->modified & (1 << f_typeidver)))
 		change->typeidver = alter->typeidver;
 	if ((alter->modified & (1 << f_uuid)))
 		memcpy(change->uuid, alter->uuid, sizeof change->uuid);
+	if ((alter->modified & (1 << f_hints)))
+		change->hints = alter->hints;
+	change->nlmsg_v = alter->nlmsg_v;
 	return 0;
 }
 
@@ -1095,7 +1247,7 @@ static void show_profiles(char *thisone)
 
 /*
  * Parse the profile string of the form
- * key=###,mgrid=###,typeid=###,typeidver=###,uuid=###,mac=xxx,vlan=xxx{1,10}
+ * key=###,mgrid=###|2mgrid=xxx,typeid=###,typeidver=###,uuid=xxx,map=xxx{1,10}
  */
 static int parse_profile(char *profile, struct vdpdata *target)
 {
@@ -1159,15 +1311,21 @@ static void find_field(unsigned char mode, char *buf)
 			strcat(buf, ",");
 		strcat(buf, "uuid");
 	}
+	if ((mode & (1 << f_hints)) == 0) {
+		if (comma)
+			strcat(buf, ",");
+		strcat(buf, "hints");
+	}
 }
 
 static void isvalid_profile(struct vdpdata *vdp)
 {
 	char buf[64];
 	unsigned char mode = 1 << f_map | 1 << f_mgrid |
-	    1 << f_typeid | 1 << f_typeidver | 1 << f_uuid;
+				1 << f_typeid | 1 << f_typeidver | 1 << f_uuid;
+	unsigned char optmode = 1 << f_hints;
 
-	if (vdp->modified != mode) {
+	if ((vdp->modified & ~optmode) != mode) {
 		find_field(vdp->modified, buf);
 		fprintf(stderr, "%s key %s misses profile fields %s\n",
 		    progname, vdp->key, buf);
@@ -1198,6 +1356,11 @@ static int make_profiles(char *profile, char *newkey)
 		if (!(found = findkey(nextone.key))) {
 			fprintf(stderr, "%s profile key %s does not exit\n",
 			    progname, nextone.key);
+			return -1;
+		}
+		if (!strcmp(newkey, found->key)) {
+			fprintf(stderr, "%s profile key %s already exits\n",
+				progname, newkey);
 			return -1;
 		}
 		if (!(vdp = nextfree())) {

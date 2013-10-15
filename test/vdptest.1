@@ -1,5 +1,5 @@
 .PU
-.TH vdptest 1 "LLDPAD" "Revision: 0.1"
+.TH vdptest 1 "LLDPAD" "Revision: 0.2"
 .SH NAME
 vdptest \- VDP/VSI Protocol Test Program for LLDPAD
 .SH SYNOPSIS
@@ -94,7 +94,8 @@ should be used for testing and debug purposes only.
 Profile is a comma separated list of key '=' value
 pairs describing the VSI profile data.
 Profiles consists of the following keywords,
-they are all mandatory:
+they are all mandatory with the execption of 
+hints:
 .TP
 name:
 Defines the name of the entry.
@@ -105,9 +106,19 @@ starting
 with a character.
 .TP
 mgrid:
-Defines the manager identifier for this entry.
+Defines the 1 byte manager identifier for this entry
+as defined by the IEEE 802.1 Qbg draft version 0.2.
 The value should be a number in the
 range of 0..255 inclusive.
+.TP
+2mgrid:
+Defines the 16 byte manager identifier for this entry
+as defined by the  IEEE 802.1 Qbg ratified standard.
+Either the 
+.B mgrid
+or the
+.B 2mgrid
+should be used for an entry.
 .TP
 typeid:
 Defines the type identifier for this entry.
@@ -130,26 +141,77 @@ The string is converted into 16 byte UUID
 with 2 nibbles converted into one byte.
 .TP
 map:
-Defines a VLAN-MAC address pair for this entry.
+Defines a VLAN-MAC-GROUP address triple for this entry.
 The value is of the following format:
 .EX
-vlanid-aa:bb:cc:dd:ee:ff
+vlanid[/newvid][-[aa:bb:cc:dd:ee:ff][-grid]]
 .EE
 Vlandid is converted into a number ranging
-from 0..4095.
-Following the vlanid is a dash (\-) and
-an MAC address. 
+from 0..65535.
+If the vlanid is followed by an option slash ('/') 
+the number following the slash is the new vlan identifier
+expected from the switch.
+Following the vlanid is an optional dash (\-) and
+a MAC address. 
 The MAC address is a 6 byte value, each byte
 delimited by a colon (':').
+A second optional dash (\-) can be
+specified to supply a group identifier.
+If omitted the group identifier is assumed to
+be zero and is ignored.
 This keyword can be listed several times to allow
-multiple MAC-VLAN pairs per entry.
+multiple MAC-VLAN-GROUP triples per entry.
+.sp 1
+The form of this entry determines the format of the
+filter information data send to the switch.
+The input
+.EX
+map=1
+.EE
+is converted to filter information format
+.IR VID .
+The input
+.EX
+map=1--123
+.EE
+is converted to filter information format
+.IR GROUP/VID .
+The input
+.EX
+map=1-11:22:33:44:55:66
+.EE
+is converted to filter information format
+.IR VID/MAC .
+The input
+.EX
+map=1-11:22:33:44:55:66-123
+.EE
+is converted to filter information format
+.IR GROUP/VID/MAC .
+Note that filter information formats can not be mixed in
+a single entry. Multiple
+map entries have to be of the same format.
+.TP
+hints:
+This keyword is optional and if omitted defaults to
+.IR none .
+Indicates support for IEEE 802.1 Qbg ratified standard
+virtual machine migration.
+Valid keywords are
+.I none
+(no indicate no migration support),
+.I to
+(to indicate the virtual machine is migrating to this VSI)
+and
+.I from
+(to indicate the virtual machine is migrating from this VSI).
 .TP
 Example:
 Here is an example of a profile definition:
 .EX
-name=thomas2,mgrid=1,typeid=123452,typeidver=1,\(rs
+name=thomas2,mgrid=1,typeid=123452,typeidver=1,hints=none\(rs
 	uuid=a1412857-60f7-4ce1-e95a-2164943f53dd,\(rs
-	map=2-52:54:00:8e:50:53
+	map=2-52:54:00:8e:50:53-9999,map=0/10-52:54:00:8e:50:54-8888
 .EE
 .SS Commands
 Command is  an option character followed
@@ -455,6 +517,8 @@ send an ASSOCIATION command with parameters stored in
 vdptest -i eth2 -F vdptest.cfg -Cnew=x1,name=thomas2,2mgrid=blabla \(rs
 	-a thomas2,w=10,r=2,e=3 -s -a x1,w=5
 .EE
+.SH FILES
+/var/run/lldpad.pid, /var/lib/lldpad/lldpad.conf
 .SH "ENVIRONMENT"
 Linux
 .SH "SEE ALSO"
