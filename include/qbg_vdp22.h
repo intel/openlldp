@@ -58,32 +58,11 @@
 #include	<linux/if_ether.h>
 #include	<linux/if_link.h>
 
+#include	<qbg_vdp22def.h>
+
 enum vdp22_role {		/* State for VDP22 bridge processing */
 	VDP22_BRIDGE = 1,	/* Bridge role */
 	VDP22_STATION		/* State role */
-};
-
-/*
- * Define VDP22 filter info formats.
- */
-enum vdp22_ffmt {
-	 VDP22_FFMT_VID = 1,
-	 VDP22_FFMT_MACVID,
-	 VDP22_FFMT_GROUPVID,
-	 VDP22_FFMT_GROUPMACVID
-};
-
-/*
- * Define VDP22 VSI Profile modes.
- */
-enum vdp22_modes {
-	VDP22_ENDTLV = 0,
-	VDP22_PREASSOC,
-	VDP22_PREASSOC_WITH_RR,
-	VDP22_ASSOC,
-	VDP22_DEASSOC,
-	VDP22_MGRID,
-	VDP22_OUI = 0x7f
 };
 
 enum vdp22_cmdresp {			/* VDP22 Protocol command responses */
@@ -101,14 +80,7 @@ enum vdp22_cmdresp {			/* VDP22 Protocol command responses */
 
 enum {
 	VDP22_MGRIDSZ = 16,		/* Size of manager identifier */
-	VDP22_IDSZ = 16,		/* Size of vsi identifier */
-	VDP22_ID_IP4 = 1,		/* VSI ID is IPv4 address */
-	VDP22_ID_IP6,			/* VSI ID is IPv6 address */
-	VDP22_ID_MAC,			/* VSI ID is IEEE 802 MAC address */
-	VDP22_ID_LOCAL,			/* VSI ID is locally defined */
-	VDP22_ID_UUID,			/* VSI ID is RFC4122 UUID */
-	VDP22_MTOBIT = 16,		/* VSI indicate migration to */
-	VDP22_SUSPBIT = 32		/* VSI indicate migration from */
+	VDP22_IDSZ = 16			/* Size of vsi identifier */
 };
 
 struct vsi_origin {		/* Originator of VSI request */
