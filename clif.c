@@ -240,7 +240,7 @@ pid_t clif_getpid(void)
 {
 	struct clif *clif_conn;
 	char buf[MAX_CLIF_MSGBUF];
-	size_t len;
+	size_t len = sizeof(buf);
 	char *ppong;
 	int ret;
 	pid_t lldpad = 0;		/* LLDPAD process identifier */
