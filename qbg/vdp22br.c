@@ -76,6 +76,42 @@ static void trigger_deassoc(struct vdp22 *vdp)
 	eloop_register_timeout(35, 0, deassoc, ifname_buf, &deassoc_qbg);
 	LLDPAD_DBG("%s:%s\n", __func__, vdp->ifname);
 }
+
+static void change_vlan0(struct vsi22 *p, unsigned short idx, int with_qos)
+{
+	if (p->fif == VDP22_FFMT_MACVID)
+		p->fdata[idx].vlan = vdp22_set_vlanid(p->type_id);
+	else
+		p->fdata[idx].vlan = vdp22_set_vlanid(p->fdata[idx].grpid);
+	if (with_qos)
+		p->fdata[idx].vlan |= vdp22_set_qos(8 + (p->type_ver & 7));
+}
+
+static int change_fid(struct vsi22 *p)
+{
+	unsigned short idx = p->type_ver >> 4 & 0xf;
+
+	if (idx >= p->no_fdata)
+		return VDP22_RESP_NOADDR;
+	if (p->type_id == 204) {
+		p->fdata[idx].vlan = vdp22_set_vlanid(p->fdata[idx].grpid)
+					| vdp22_set_qos(8 + (p->type_ver & 7));
+	} else if (p->type_id == 205) {
+		p->fdata[idx].vlan = vdp22_set_vlanid(p->type_id);
+	} else if (p->type_id == 206) {
+		p->fdata[idx].vlan = vdp22_get_vlanid(p->fdata[idx].vlan)
+					| vdp22_set_qos(8 + (p->type_ver & 7));
+	} else if (p->type_id == 207) {
+		p->fdata[idx].vlan = vdp22_set_vlanid(p->fdata[idx].grpid);
+	} else if (p->type_id == 208 && p->fif != VDP22_FFMT_VID) {
+		int i;
+
+		for (i = 0; i < p->no_fdata; ++i)
+			if (!vdp22_get_vlanid(p->fdata[i].vlan))
+				change_vlan0(p, i, idx);
+	}
+	return 0;
+}
 #endif
 
 int vdp22br_resources(struct vsi22 *p, int *error)
@@ -91,28 +127,63 @@ int vdp22br_resources(struct vsi22 *p, int *error)
 				VDP22_RESP_SUCCESS;
 #ifdef BUILD_DEBUG
 	/*
-	 * Trigger errors, type_ver_id determines when fired.
+	 * Trigger errors
 	 * Typeid 199 trigger delayed bridge resource availability
 	 * Typeid 200 trigger de-assoc
-	 * Typeid 201 trigger error response
-	 * Typeid 202 trigger error response with keep bit set
+	 * Typeid 201 trigger de-assoc error response
+	 * Typeid 202 trigger keep error response with keep bit set
+	 * Typeid 203 trigger de-assoc error response with hard bit set
+	 * Typeid 199-202 type_ver determines when fired.
+	 *
+	 * Typeid 204 replace VLAN with groupid as VLAN ID and type_ver as QoS
+	 * Typeid 205 replace VLAN 0 with typeid as VLAN ID
+	 * Typeid 206 replace QoS 0 with type_ver as QoS
+	 * Typeid 207 replace VLAN with groupid as VLAN ID
+	 * For typeid 204-207 use upper nipple of type_ver as index into fid
+	 * array.
+	 *
+	 * Typeid 208 replace all VLAN 0
+	 * - with typeid as VLAN ID (filter format MAC/VID)
+	 * - with group identifier as VLAN ID (filter format GROUP/[MAC/]VID)
+	 * - use upper nibble of type_ver to indicate a QoS change (true),
+	 *   lower nibble of type_ver is QoS value.
 	 */
-	if (p->type_id == 199 && called == p->type_ver) {
-		LLDPAD_DBG("%s:%s timeout\n", __func__, p->vdp->ifname);
-		rc = VDP22_RESP_TIMEOUT;
-	}
-
-	if (p->type_id == 200)
+	switch (p->type_id) {
+	case 199:
+		if (called == p->type_ver) {
+			rc = VDP22_RESP_TIMEOUT;
+		}
+		break;
+	case 200:
 		trigger_deassoc(p->vdp);
-	else if (p->type_id == 201 && called == p->type_ver) {
-		*error = VDP22_RESP_NO_VSIMGR;
-		 rc = VDP22_RESP_DEASSOC;
-	} else if (p->type_id == 202 && called == p->type_ver) {
-		*error = VDP22_RESP_NO_VSIMGR;
-		rc = VDP22_RESP_KEEP;
+		break;
+	case 201:
+	case 203:
+		if (called == p->type_ver) {
+			*error = VDP22_RESP_NO_RESOURCES;
+			rc = VDP22_RESP_DEASSOC;
+			if (p->type_id == 203)
+				*error |= 0x10;
+		}
+		break;
+	case 202:
+		if (called == p->type_ver) {
+			*error = VDP22_RESP_NO_VSIMGR;
+			rc = VDP22_RESP_KEEP;
+		}
+		break;
+	case 204:
+	case 205:
+	case 206:
+	case 207:
+	case 208:
+		*error = change_fid(p);
+		if (*error == VDP22_RESP_NOADDR)
+			rc = VDP22_RESP_DEASSOC;
+		break;
 	}
 #endif
-	LLDPAD_DBG("%s:%s resp_vsi_mode:%d status:%#x\n", __func__,
-		   p->vdp->ifname, p->resp_vsi_mode, p->status);
+	LLDPAD_DBG("%s:%s resp_vsi_mode:%d rc:%d error:%d\n", __func__,
+		   p->vdp->ifname, p->resp_vsi_mode, rc, *error);
 	return rc;
 }
