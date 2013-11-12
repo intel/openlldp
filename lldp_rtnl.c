@@ -75,6 +75,11 @@ void mynla_put(struct nlmsghdr *nlh, int type, size_t len, void *data)
 	nlh->nlmsg_len += NLA_HDRLEN + NLA_ALIGN(len);
 }
 
+void mynla_put_u8(struct nlmsghdr *nlh, int type, __u8 data)
+{
+	mynla_put(nlh, type, sizeof data, &data);
+}
+
 void mynla_put_u16(struct nlmsghdr *nlh, int type, __u16 data)
 {
 	mynla_put(nlh, type, sizeof data, &data);
@@ -84,6 +89,94 @@ void mynla_put_u32(struct nlmsghdr *nlh, int type, __u32 data)
 {
 	mynla_put(nlh, type, sizeof data, &data);
 }
+
+void mynla_put_s32(struct nlmsghdr *nlh, int type, __s32 data)
+{
+	mynla_put(nlh, type, sizeof data, &data);
+}
+
+void mynla_get(const struct nlattr *nla, size_t len, void *data)
+{
+	memcpy(data, mynla_data(nla), len);
+}
+
+__s32 mynla_get_s32(const struct nlattr *nla)
+{
+	return *(__u32 *)mynla_data(nla);
+}
+
+__u32 mynla_get_u32(const struct nlattr *nla)
+{
+	return *(__u32 *)mynla_data(nla);
+}
+
+__u16 mynla_get_u16(const struct nlattr *nla)
+{
+	return *(__u16 *)mynla_data(nla);
+}
+
+__u8 mynla_get_u8(const struct nlattr *nla)
+{
+	return *(__u8 *)mynla_data(nla);
+}
+
+void *mynla_data(const struct nlattr *nla)
+{
+	return (char *)nla + NLA_HDRLEN;
+}
+
+int mynla_payload(const struct nlattr *nla)
+{
+	return nla->nla_len - NLA_HDRLEN;
+}
+
+int mynla_type(const struct nlattr *nla)
+{
+	return nla->nla_type & ~NLA_F_NESTED;
+}
+
+int mynla_ok(const struct nlattr *nla, int rest)
+{
+	return rest >= (int) sizeof(*nla) &&
+	       nla->nla_len >= sizeof(*nla) && nla->nla_len <= rest;
+}
+
+struct nlattr *mynla_next(const struct nlattr *nla, int *rest)
+{
+	int len = NLA_ALIGN(nla->nla_len);
+
+	*rest -= len;
+	return (struct nlattr *)((char *)nla + len);
+}
+
+static inline int mynla_attr_size(int payload)
+{
+	return NLA_HDRLEN + payload;
+}
+
+int mynla_total_size(int payload)
+{
+	return NLA_ALIGN(mynla_attr_size(payload));
+}
+
+/*
+ * Parse a list of netlink attributes.
+ * Return 0 on success and errno when the parsing fails.
+ */
+int mynla_parse(struct nlattr **tb, size_t tb_len, struct nlattr *pos,
+		int attrlen)
+{
+	unsigned short nla_type;
+
+	while (mynla_ok(pos, attrlen)) {
+		nla_type = mynla_type(pos);
+		if (nla_type < tb_len)
+			tb[nla_type] = (struct nlattr *)pos;
+		pos = mynla_next(pos, &attrlen);
+	}
+	return (attrlen) ? -EINVAL : 0;
+}
+
 
 typedef int rtnl_handler(struct nlmsghdr *nh, void *arg);
 

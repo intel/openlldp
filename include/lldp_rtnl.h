@@ -39,8 +39,22 @@
 void mynla_nest_end(struct nlmsghdr *, struct nlattr *);
 struct nlattr *mynla_nest_start(struct nlmsghdr *, int);
 void mynla_put(struct nlmsghdr *, int, size_t, void *);
+void mynla_put_u8(struct nlmsghdr *, int, __u8);
 void mynla_put_u16(struct nlmsghdr *, int, __u16);
 void mynla_put_u32(struct nlmsghdr *, int, __u32);
+void mynla_put_s32(struct nlmsghdr *nlh, int type, __s32);
+__u8 mynla_get_u8(const struct nlattr *);
+__u16 mynla_get_u16(const struct nlattr *);
+__u32 mynla_get_u32(const struct nlattr *);
+__s32 mynla_get_s32(const struct nlattr *);
+void mynla_get(const struct nlattr *, size_t, void *);
+void *mynla_data(const struct nlattr *);
+int mynla_payload(const struct nlattr *);
+int mynla_type(const struct nlattr *);
+int mynla_ok(const struct nlattr *, int);
+int mynla_total_size(int);
+struct nlattr *mynla_next(const struct nlattr *, int *);
+int mynla_parse(struct nlattr **, size_t, struct nlattr *, int);
 
 int get_operstate(char *ifname);
 int set_operstate(char *ifname, __u8 operstate);
