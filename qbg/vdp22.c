@@ -222,9 +222,7 @@ static void vdp22_delete_vsi(struct vsi22 *p)
 {
 	LLDPAD_DBG("%s:%s vsi:%p(%02x)\n", __func__, p->vdp->ifname, p,
 		   p->vsi[0]);
-LLDPAD_DBG("%s:%p no_fdata:%d\n", __func__, p->fdata, p->no_fdata);
 	free(p->fdata);
-LLDPAD_DBG("%s:%p\n", __func__, p);
 	free(p);
 }
 
@@ -403,7 +401,7 @@ static void copy_filter(unsigned char fif, struct fid22 *fp,
 	switch (fif) {
 	case VDP22_FFMT_GROUPMACVID:
 	case VDP22_FFMT_GROUPVID:
-		fp->grpid = 0;		/* TODO take from vdpnl */
+		fp->grpid = from->gpid;
 		if (fif == VDP22_FFMT_GROUPVID)
 			goto vid;
 		/* Fall through intended */
@@ -503,9 +501,13 @@ static struct vsi22 *vdp22_alloc_vsi(struct vdpnl_vsi *vsi, struct vdp22 *vdp,
 	p->vdp = vdp;
 	p->vsi_mode = vsi->request;
 	p->cc_vsi_mode = VDP22_DEASSOC;
+	p->hints = vsi->hints;
 	p->status = VDP22_RESP_NONE;
 	p->flags = VDP22_BUSY | VDP22_NLCMD;
-	snprintf((char *)p->mgrid, sizeof(p->mgrid), "%d", vsi->vsi_mgrid);
+	if (vsi->nl_version == vdpnl_nlf2)
+		memcpy(p->mgrid, vsi->vsi_mgrid2, sizeof(p->mgrid));
+	else
+		p->mgrid[0] = vsi->vsi_mgrid;
 	p->type_ver = vsi->vsi_typeversion;
 	p->type_id = vsi->vsi_typeid;
 	p->vsi_fmt = VDP22_ID_UUID;
@@ -537,6 +539,7 @@ static struct vsi22 *vdp22_alloc_vsi(struct vdpnl_vsi *vsi, struct vdp22 *vdp,
 	LLDPAD_DBG("%s:%s vsi:%p(%02x)\n", __func__, vsi->ifname, p, p->vsi[0]);
 	return p;
 error1:
+	vdp22_showvsi(p);
 	vdp22_delete_vsi(p);
 	return NULL;
 }
@@ -863,6 +866,22 @@ struct lldp_module *vdp22_register(void)
 	return mod;
 }
 
+static void copy_fid(struct vdpnl_vsi *vsi, struct vsi22 *p)
+{
+	int i;
+
+	vsi->filter_fmt = p->fif;
+	for (i = 0; i < vsi->macsz; ++i) {
+		if( i == p->no_fdata)
+			break;
+		vsi->maclist[i].gpid = p->fdata[i].grpid;
+		vsi->maclist[i].vlan = vdp22_get_vlanid(p->fdata[i].vlan);
+		vsi->maclist[i].qos = vdp22_get_qos(p->fdata[i].vlan);
+		vsi->maclist[i].changed = 1;
+	}
+	vsi->macsz = i;
+}
+
 /*
  * Query a VSI request from buddy and report its progress. Use the interface
  * name to determine the VSI profile list. Return one entry in parameter 'vsi'
@@ -898,9 +917,7 @@ int vdp22_status(int number, struct vdpnl_vsi *vsi)
 		memcpy(vsi->vsi_uuid, p->vsi, sizeof(vsi->vsi_uuid));
 		p->flags &= ~VDP22_NLCMD;
 		if (p->flags & VDP22_RETURN_VID) {
-			vsi->maclist->vlan = p->fdata[0].vlan;
-			memcpy(vsi->maclist->mac, p->fdata[0].mac,
-			       sizeof(vsi->maclist->mac));
+			copy_fid(vsi, p);
 			p->flags &= ~VDP22_RETURN_VID;
 		}
 		if (vsi->response != VDP22_RESP_NONE &&

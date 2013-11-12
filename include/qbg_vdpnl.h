@@ -34,21 +34,32 @@
 
 #define	MAX_PAYLOAD	4096	/* Maximum Payload Size */
 
+enum {
+	vdpnl_nlf1 = 1,		/* Netlink message format 1 (draft 0.2) */
+	vdpnl_nlf2		/* Netlink message format 2 (ratified) */
+};
+
 struct vdpnl_mac {		/* MAC-VLAN pair */
 	unsigned short vlan;		/* Vlan identifier */
 	unsigned char mac[ETH_ALEN];	/* Mac address */
 	unsigned char qos;		/* Quality of service */
+	unsigned char changed;		/* Vlan changed by switch */
+	unsigned long gpid;		/* Group identifer */
 };
 
 struct vdpnl_vsi {		/* Data structure for VSI data via netlink */
-	char ifname[IFNAMSIZ];		/* Interface name */
+	char ifname[IFNAMSIZ + 1];	/* Interface name */
 	int ifindex;			/* Index number */
+	int vf;				/* Virtual function number */
+	unsigned char hints;		/* VSI request mode migrition hints */
 	unsigned char request;		/* VSI request mode */
 	unsigned short response;	/* VSI response code */
 	unsigned char vsi_mgrid;
 	unsigned char vsi_typeversion;
 	unsigned char vsiid_fmt;
 	unsigned char vsi_uuid[PORT_UUID_MAX];
+	unsigned char vsi_mgrid2[PORT_UUID_MAX];
+	unsigned char nl_version;	/* Netlink message format version */
 	unsigned long vsi_typeid;
 	unsigned long req_seq;
 	pid_t req_pid;
