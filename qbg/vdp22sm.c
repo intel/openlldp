@@ -488,7 +488,7 @@ static void vdp22st_wait_syscmd(struct vsi22 *vsip)
 }
 
 /*
- * Station rocessing state, send packed tlvs to bridge. Allocate send buffer
+ * Station processing state, send packed tlvs to bridge. Allocate send buffer
  * on stack and create packed TLVs.
  */
 static void vdp22st_process(struct vsi22 *vsi)
@@ -1039,11 +1039,35 @@ out:
 }
 
 /*
+ * Test for returned filter information.
+ * Set VDP22_RETURN_VID bit in flags when VLAN id or QoS change is detected.
+ */
+static void vdp22_cpfid(struct vsi22 *hit, struct vsi22 *from)
+{
+	int i;
+	struct fid22 *hitm = hit->fdata, *fromm = from->fdata;
+
+	LLDPAD_DBG("%s:%s no_fdata:%hd,%hd\n", __func__, hit->vdp->ifname,
+		   from->no_fdata, hit->no_fdata);
+	if (hit->no_fdata != from->no_fdata)
+		return;
+	for (i = 0; i < hit->no_fdata; ++i, ++hitm, ++fromm) {
+		LLDPAD_DBG("%s:%s vlan:%#hx,%#hx\n", __func__,
+			   hit->vdp->ifname, hitm->vlan,  fromm->vlan);
+		if (hitm->vlan != fromm->vlan) {
+			hitm->vlan = fromm->vlan;
+			hit->flags |= VDP22_RETURN_VID;
+		}
+	}
+	LLDPAD_DBG("%s:%s flags:%#lx\n", __func__,  hit->vdp->ifname,
+		   hit->flags);
+}
+
+/*
  * Input from bridge side.
  *
  * NOTE:
  * - Parameter vsip and associated fid data is on stack memory.
- * - New filter information data assigned to new_fdata/new_no_fdata.
  */
 static void vdp22_bridge_info(struct vsi22 *vsip)
 {
@@ -1071,9 +1095,7 @@ static void vdp22_bridge_info(struct vsi22 *vsip)
 	if (vdp22_cmp_fdata(hit, vsip)) {
 		hit->smi.resp_ok = true;
 		hit->resp_vsi_mode = vsip->vsi_mode;	/* Take response */
-		if (hit->flags & VDP22_RETURN_VID)
-			LLDPAD_DBG("%s:%s TODO return vid + qos\n", __func__,
-				   vsip->vdp->ifname);
+		vdp22_cpfid(hit, vsip);			/* Take filter */
 		if (hit->cc_vsi_mode != VDP22_DEASSOC
 		    && (hit->resp_vsi_mode == VDP22_DEASSOC
 			|| bad_error(hit->status))
