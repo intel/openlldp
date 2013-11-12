@@ -541,8 +541,6 @@ static void vdp22st_end(struct vsi22 *vsi)
 		   " resp_vsi_mode:%d\n", __func__,
 		   vsi->vdp->ifname, vsi, vsi->vsi[0], vsi->flags,
 		   vsi->vsi_mode, vsi->cc_vsi_mode, vsi->resp_vsi_mode);
-	if (vsi->vsi_mode != vsi->resp_vsi_mode && !vsi->status)
-		vsi->status = make_status(VDP22_RESP_OTHER);
 	vsi->vsi_mode = vsi->cc_vsi_mode = VDP22_DEASSOC;
 	vsi->flags |= VDP22_DELETE_ME;
 	vsi->flags &= ~VDP22_BUSY;
