@@ -1414,16 +1414,17 @@ static void vdp22br_process(struct vsi22 *p)
 	LLDPAD_DBG("%s:%s vsi:%p(%02x) id:%ld\n", __func__,
 		   p->vdp->ifname, p, p->vsi[0], p->type_id);
 	vdp22br_start_restimer(p);
+	p->status = 0;
 	p->resp_vsi_mode = VDP22_RESP_SUCCESS;
 	rc = vdp22br_resources(p, &error);
 	switch (rc) {
 	case VDP22_RESP_TIMEOUT:
 		break;
 	case VDP22_RESP_KEEP:
-		p->status = VDP22_KEEPBIT | make_status(error);
+		p->status = VDP22_KEEPBIT;
 		goto rest;
 	case VDP22_RESP_DEASSOC:
-		if (error > (1 << VDP22_STATUS_SHIFT))
+		if (error >= (1 << VDP22_STATUS_SHIFT))
 			p->status = VDP22_HARDBIT;
 		/* Fall through intended */
 	case VDP22_RESP_SUCCESS:
@@ -1525,6 +1526,7 @@ static void vdp22br_change_state(struct vsi22 *p, enum vdp22br_states new)
 		break;
 	case VDP22_BR_WAITCMD:
 		assert(p->smi.state == VDP22_BR_SEND
+		       || p->smi.state == VDP22_BR_KEEP
 		       || p->smi.state == VDP22_BR_ALIVE);
 		break;
 	case VDP22_BR_WAITCMD_2:
@@ -1647,7 +1649,7 @@ static void vdp22br_run(struct vsi22 *p)
 			vdp22br_reply(p);
 			break;
 		case VDP22_BR_KEEP:
-			vdp22br_sendack(p, VDP22_KEEPBIT);
+			vdp22br_sendack(p, p->status);
 			break;
 		case VDP22_BR_DEASSOC:
 			vdp22br_deassoc(p, p->status);
