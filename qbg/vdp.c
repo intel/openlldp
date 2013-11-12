@@ -1822,6 +1822,7 @@ int vdp_status(int number, struct vdpnl_vsi *vsi)
 	}
 	if (ret) {
 		vdp_trace_profile(p);
+		vsi->macsz = 0;
 		vsi->response = p->response;
 		memcpy(vsi->vsi_uuid, p->instance, sizeof vsi->vsi_uuid);
 		if (p->response != VDP_RESPONSE_NO_RESPONSE
