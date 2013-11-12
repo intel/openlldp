@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include <net/if.h>
 
@@ -134,11 +135,41 @@ static void showvsifid(char *txt, unsigned char fif, unsigned short no,
 }
 
 /*
+ * Convert a mgrid to a printable string.
+ */
+static void mgrid2str(struct vsi22 *p, char *buf, size_t len)
+{
+	int i, nul;
+	bool print = false;
+
+	/* Find last non nul byte */
+	for (nul = sizeof(p->mgrid) - 1; nul >= 0; --nul) {
+		if (p->mgrid[nul] != '\0')
+			break;
+	}
+	if (nul == 0) {
+		sprintf(buf, "%d", p->mgrid[0]);
+		return;
+	}
+	for (i = 0; i <= nul; ++i) {
+		if (isprint(p->mgrid[i]))
+			print = true;
+		else
+			break;
+	}
+	if (print)
+		strncpy(buf, (char *)p->mgrid, len);
+	else
+		vdp22_local2str(p->mgrid, buf, len);
+}
+
+/*
  * Print VSI data
  */
 void vdp22_showvsi(struct vsi22 *p)
 {
 	char idbuf[VDP_UUID_STRLEN + 2];
+	char mgridbuf[VDP_UUID_STRLEN + 2];
 
 	switch (p->vsi_fmt) {
 	case VDP22_ID_UUID:
@@ -161,11 +192,12 @@ void vdp22_showvsi(struct vsi22 *p)
 		break;
 	}
 
+	mgrid2str(p, mgridbuf, sizeof(mgridbuf));
 	LLDPAD_DBG("vsi:%p flags:%#lx vsi_mode:%d,%d status:%#x"
 		   " mgrid:%s id:%ld(%#lx) version:%d"
 		   " id_fmt:%d %s format:%d no:%d\n",
 		   p, p->flags, p->vsi_mode, p->cc_vsi_mode, p->status,
-		   p->mgrid, p->type_id,
+		   mgridbuf, p->type_id,
 		   p->type_id, p->type_ver, p->vsi_fmt, idbuf,
 		   p->fif, p->no_fdata);
 	if (p->fdata)
