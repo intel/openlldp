@@ -101,31 +101,36 @@ static void showvsifid(char *txt, unsigned char fif, unsigned short no,
 	for (i = 0; i < no; ++i, ++fe) {
 		switch (fif) {
 		case VDP22_FFMT_GROUPVID:
-			LLDPAD_DBG("%s:grpid:%ld vlan:%d ps:%d pcp:%d"
+			LLDPAD_DBG("%s:grpid:%ld vlan:%d qos:%d"
 				   " pid:%d seq:%ld\n", txt, fe->grpid,
-				   fe->vlan, fe->ps, fe->pcp,
+				   vdp22_get_vlanid(fe->vlan),
+				   vdp22_get_qos(fe->vlan),
 				   fe->requestor.req_pid,
 				   fe->requestor.req_seq);
 			break;
 		case VDP22_FFMT_GROUPMACVID:
 			mac2str(fe->mac, idbuf, sizeof idbuf);
-			LLDPAD_DBG("%s:mac:%s grpid:%ld vlan:%d ps:%d"
-				   " pcp:%d pid:%d seq:%ld\n", txt, idbuf,
-				   fe->grpid, fe->vlan, fe->ps, fe->pcp,
+			LLDPAD_DBG("%s:mac:%s grpid:%ld vlan:%d"
+				   " qos:%d pid:%d seq:%ld\n", txt, idbuf,
+				   fe->grpid, vdp22_get_vlanid(fe->vlan),
+				   vdp22_get_qos(fe->vlan),
 				   fe->requestor.req_pid,
 				   fe->requestor.req_seq);
 			break;
 		case VDP22_FFMT_VID:
-			LLDPAD_DBG("%s:vlan:%d ps:%d pcp:%d pid:%d seq:%ld\n",
-				   txt, fe->vlan, fe->ps, fe->pcp,
+			LLDPAD_DBG("%s:vlan:%d qos:%d pid:%d seq:%ld\n",
+				   txt, vdp22_get_vlanid(fe->vlan),
+				   vdp22_get_qos(fe->vlan),
 				   fe->requestor.req_pid,
 				   fe->requestor.req_seq);
 			break;
 		case VDP22_FFMT_MACVID:
 			mac2str(fe->mac, idbuf, sizeof idbuf);
-			LLDPAD_DBG("%s:mac:%s vlan:%d ps:%d pcp:%d"
-				   " pid:%d seq:%ld\n", txt, idbuf, fe->vlan,
-				   fe->ps, fe->pcp, fe->requestor.req_pid,
+			LLDPAD_DBG("%s:mac:%s vlan:%d qos:%d"
+				   " pid:%d seq:%ld\n", txt, idbuf,
+				   vdp22_get_vlanid(fe->vlan),
+				   vdp22_get_qos(fe->vlan),
+				   fe->requestor.req_pid,
 				   fe->requestor.req_seq);
 			break;
 		default:
@@ -408,8 +413,6 @@ static void copy_filter(unsigned char fif, struct fid22 *fp,
 	case VDP22_FFMT_VID:
 vid:
 		fp->vlan = from->vlan;
-		fp->pcp = from->qos;
-		fp->ps = fp->pcp ? 1 : 0;
 		break;
 	}
 }
@@ -426,9 +429,9 @@ static bool check_mac(struct fid22 *fp)
 
 static bool check_vid(struct fid22 *fp)
 {
-	if (fp->vlan > 0 && (fp->vlan < 2 || fp->vlan > 4094))
-		return false;
-	if (fp->pcp & ~7)
+	unsigned short num = vdp22_get_vlanid(fp->vlan);
+
+	if (num > 0 && (num < 2 || num > 4094))
 		return false;
 	return true;
 }
@@ -935,7 +938,6 @@ int vdp22_nlback(struct vsi22 *vsi)
 	nl.filter_fmt = vsi->fif;
 	for (i = 0; i < nl.macsz; ++i) {
 		nlmac[i].vlan = vsi->fdata[i].vlan;
-		nlmac[i].qos = vsi->fdata[i].pcp;
 		memcpy(nlmac[i].mac, vsi->fdata[i].mac, sizeof(nlmac[i].mac));
 		nl.req_pid = vsi->fdata[i].requestor.req_pid;
 		nl.req_seq = vsi->fdata[i].requestor.req_seq;

@@ -96,8 +96,6 @@ struct fid22 {				/* Filter data: GROUP,MAC,VLAN entry */
 	unsigned long grpid;		/* Group identifier */
 	unsigned char mac[ETH_ALEN];	/* MAC address */
 	unsigned short vlan;		/* VLAN idenfier */
-	unsigned char ps;		/* PS field */
-	unsigned char pcp;		/* PCP valid when PS true */
 	struct vsi_origin requestor;
 };
 
@@ -177,4 +175,32 @@ struct vsi22 *vdp22_copy_vsi(struct vsi22 *);
 void vdp22_listdel_vsi(struct vsi22 *);
 int vdp22br_resources(struct vsi22 *, int *);
 int vdp22_local2str(const u8 *, char *, size_t);
+
+/*
+ * Functions to get and set vlan identifier and qos.
+ */
+static inline unsigned short vdp22_get_ps(unsigned short x)
+{
+	return (x >> 15) & 0x1;
+}
+
+static inline unsigned short vdp22_get_qos(unsigned short x)
+{
+	return (x >> 12) & 0xf;
+}
+
+static inline unsigned short vdp22_set_qos(unsigned short x)
+{
+	return (x & 0xf) << 12;
+}
+
+static inline unsigned short vdp22_get_vlanid(unsigned short x)
+{
+	return x & 0xfff;
+}
+
+static inline unsigned short vdp22_set_vlanid(unsigned short x)
+{
+	return (x & 0xfff);
+}
 #endif

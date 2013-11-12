@@ -155,39 +155,6 @@ static void vdp22br_run(struct vsi22 *);
 static void vdp22_station_info(struct vsi22 *);
 
 /*
- * Functions to get and set VLAN, PS and PCP bits.
- */
-static inline unsigned short vsi22_get_pcp(unsigned short x)
-{
-	return (x >> 12) & 7;
-}
-
-static inline unsigned short vsi22_set_pcp(unsigned short x)
-{
-	return (x & 7) << 12;
-}
-
-static inline unsigned short vsi22_get_vlanid(unsigned short x)
-{
-	return x & 0xfff;
-}
-
-static inline unsigned short vsi22_set_vlanid(unsigned short x)
-{
-	return (x & 0xfff);
-}
-
-static inline unsigned short vsi22_get_ps(unsigned short x)
-{
-	return (x >> 15) & 1;
-}
-
-static inline unsigned short vsi22_set_ps(unsigned short x)
-{
-	return (x & 1) << 15;
-}
-
-/*
  * Return size of packed and unpacked VSI tlv.
  */
 static inline size_t mgr22_tlv_sz(void)
@@ -335,25 +302,23 @@ static size_t vsi22_2tlv_fdata(unsigned char *cp, struct fid22 *p,
 			       unsigned char fif)
 {
 	size_t nbytes = 0;
-	unsigned short x = vsi22_set_vlanid(p->vlan) |
-				vsi22_set_pcp(p->pcp) | vsi22_set_ps(p->ps);
 
 	switch (fif) {
 	case VDP22_FFMT_VID:
-		nbytes = append_2o(cp, x);
+		nbytes = append_2o(cp, p->vlan);
 		break;
 	case VDP22_FFMT_MACVID:
 		nbytes = append_nb(cp, p->mac, sizeof(p->mac));
-		nbytes += append_2o(cp + nbytes, x);
+		nbytes += append_2o(cp + nbytes, p->vlan);
 		break;
 	case VDP22_FFMT_GROUPVID:
 		nbytes = append_4o(cp, p->grpid);
-		nbytes += append_2o(cp + nbytes, x);
+		nbytes += append_2o(cp + nbytes, p->vlan);
 		break;
 	case VDP22_FFMT_GROUPMACVID:
 		nbytes = append_4o(cp, p->grpid);
 		nbytes += append_nb(cp + nbytes, p->mac, sizeof(p->mac));
-		nbytes += append_2o(cp + nbytes, x);
+		nbytes += append_2o(cp + nbytes, p->vlan);
 		break;
 	}
 	return nbytes;
@@ -947,15 +912,19 @@ static void vdp22_addvsi(struct vsi22 *vsip, struct vdp22 *vdp)
  * All fields are compared, even if some are not used. Unused field are
  * initialized to zeros and always match.
  */
-static bool cmp_fdata1(struct fid22 *p1, struct fid22 *p2)
+static bool cmp_fdata1(struct fid22 *p1, struct fid22 *p2, unsigned char fif)
 {
-	bool is_good = (p1->grpid == p2->grpid)
-			&& !memcmp(p1->mac, p2->mac, sizeof(p1->mac));
+	bool is_good = true;
 
+	if (fif == VDP22_FFMT_MACVID || fif == VDP22_FFMT_GROUPMACVID)
+		is_good = !memcmp(p1->mac, p2->mac, sizeof(p1->mac));
+	if (fif == VDP22_FFMT_GROUPVID || fif == VDP22_FFMT_GROUPMACVID)
+		is_good = (p1->grpid == p2->grpid);
 	if (is_good) {
-		if (p1->ps)
-			is_good = (p1->pcp == p2->pcp && p1->ps == p2->ps);
-		if (is_good && p1->vlan)
+		if (vdp22_get_vlanid(p1->vlan))
+			is_good = (vdp22_get_vlanid(p1->vlan) ==
+					vdp22_get_vlanid(p2->vlan));
+		if (is_good && vdp22_get_ps(p1->vlan))
 			is_good = (p1->vlan == p2->vlan);
 	}
 	return is_good;
@@ -971,8 +940,10 @@ static bool vdp22_cmp_fdata(struct vsi22 *p, struct vsi22 *vsip)
 		struct fid22 *p1 = &p->fdata[i];
 		struct fid22 *p2 = &vsip->fdata[i];
 
-		if (!cmp_fdata1(p1, p2))
+		if (!cmp_fdata1(p1, p2, p->fif)) {
+			p->status = VDP22_RESP_NOADDR;
 			return false;
+		}
 	}
 	return true;
 }
@@ -1158,9 +1129,6 @@ static size_t ptlv_2_fdata(struct fid22 *fidp, const unsigned char *cp,
 		offset += extract_2o(&fidp->vlan, cp + offset);
 		break;
 	}
-	fidp->pcp = vsi22_get_pcp(fidp->vlan);
-	fidp->ps = vsi22_get_ps(fidp->vlan);
-	fidp->vlan = vsi22_get_vlanid(fidp->vlan);
 	return offset;
 }
 
