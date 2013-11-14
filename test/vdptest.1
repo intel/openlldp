@@ -89,6 +89,9 @@ terminates.
 .br
 .B vdptest
 should be used for testing and debug purposes only.
+It should be noted that there is no state stored in vdptest between calls, but
+will be stored in lldpad (until the process restarts).
+A profile must be created and acted upon on in the same vdptest command.
 .SS Profiles
 .br
 Profile is a comma separated list of key '=' value
@@ -492,7 +495,9 @@ Use the VSI definition named
 .I unknown
 and send an ASSOCIATION command to the switch.
 Wait up to 10 seconds for the status confirmation 2
-times and expected the error code 3 from the switch.
+times and expected the error code 3 from the switch
+(NOTE that this will cause vdptest to return FAILURE under
+normal conditions).
 Wait one second before termintation.
 .sp 1
 .EX
