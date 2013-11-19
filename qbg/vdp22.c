@@ -77,7 +77,7 @@ int vdp22_ipv62str(const u8 *p, char *dst, size_t size)
 	return -1;
 }
 
-int vdp22_local2str(const u8 *p, char *dst, size_t size)
+static int vdp22_local2str(const u8 *p, char *dst, size_t size)
 {
 	if (dst && size > VDP_UUID_STRLEN) {
 		snprintf(dst, size, "%02x%02x%02x%02x%02x%02x%02x%02x"
