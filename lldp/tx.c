@@ -118,8 +118,6 @@ void txInitializeLLDP(struct lldp_agent *agent)
 	}
 
 	agent->tx.state  = TX_LLDP_INITIALIZE;
-	agent->rx.state = LLDP_WAIT_PORT_OPERATIONAL;
-
 	agent->tx.localChange = false;
 	agent->stats.statsFramesOutTotal = 0;
 	agent->timers.reinitDelay   = REINIT_DELAY;
