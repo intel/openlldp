@@ -870,16 +870,17 @@ static void copy_fid(struct vdpnl_vsi *vsi, struct vsi22 *p)
 {
 	int i;
 
+	vsi->maclist = calloc(p->no_fdata, sizeof(*vsi->maclist));
+	if (!vsi->maclist)
+		return;
+	vsi->macsz = p->no_fdata;
 	vsi->filter_fmt = p->fif;
-	for (i = 0; i < vsi->macsz; ++i) {
-		if( i == p->no_fdata)
-			break;
+	for (i = 0; i < p->no_fdata; ++i) {
 		vsi->maclist[i].gpid = p->fdata[i].grpid;
 		vsi->maclist[i].vlan = vdp22_get_vlanid(p->fdata[i].vlan);
 		vsi->maclist[i].qos = vdp22_get_qos(p->fdata[i].vlan);
 		vsi->maclist[i].changed = 1;
 	}
-	vsi->macsz = i;
 }
 
 /*

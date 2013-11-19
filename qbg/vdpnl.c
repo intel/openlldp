@@ -360,14 +360,10 @@ static void vdpnl_reply2(struct vdpnl_vsi *p, struct nlmsghdr *nlh)
 static int vdpnl_getlink(struct nlmsghdr *nlh, size_t len)
 {
 	struct vdpnl_vsi p;
-	struct vdpnl_mac mac;
 	int i = 0, rc;
 	struct nlattr *vf_ports, *vf_port;
 
 	memset(&p, 0, sizeof p);
-	memset(&mac, 0, sizeof mac);
-	p.macsz = 1;
-	p.maclist = &mac;
 	rc = vdpnl_get(nlh, &p);
 	if (rc)
 		return vdpnl_error(rc, nlh, len);
@@ -382,9 +378,13 @@ static int vdpnl_getlink(struct nlmsghdr *nlh, size_t len)
 			vdpnl_reply2(&p, nlh);
 			mynla_nest_end(nlh, vf_port);
 		}
-		if (rc == 0)
-			mynla_nest_end(nlh, vf_ports);
+		if (p.maclist) {
+			free(p.maclist);
+			p.maclist = NULL;
+			p.macsz = 0;
+		}
 	} while (rc == 1);
+	mynla_nest_end(nlh, vf_ports);
 	if (rc < 0)
 		return vdpnl_error(rc, nlh, len);
 	LLDPAD_DBG("%s:message-size:%d\n", __func__, nlh->nlmsg_len);
