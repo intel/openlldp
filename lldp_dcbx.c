@@ -484,7 +484,7 @@ void dcbx_unregister(struct lldp_module *mod)
 
 void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 {
-	int ifindex;
+	int ifindex, ret;
 	struct port *port;
 	struct dcbx_tlvs *tlvs;
 	struct dcbd_user_data *dud;
@@ -531,14 +531,12 @@ void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 	if (dcb_support.dcbx && !(dcb_support.dcbx & DCB_CAP_DCBX_HOST))
 		return;
 
-	/* if no adminStatus setting or wrong setting for adminStatus,
-	 * then set adminStatus to enabledRxTx.
-	 */
-	if (get_config_setting(ifname, agent->type, ARG_ADMINSTATUS,
-			       &adminstatus, CONFIG_TYPE_INT) ||
-				adminstatus == enabledTxOnly ||
-				adminstatus == enabledRxOnly) {
-
+	/* if no adminStatus setting default to enabled for DCBX */
+	ret = get_config_setting(ifname, agent->type,
+				 ARG_ADMINSTATUS,
+				 &adminstatus,
+				 CONFIG_TYPE_INT);
+	if (ret != cmd_success) {
 		/* set enableTx to true if it is not already set */
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
 			(OUI_CEE_DCBX << 8) | 1, ARG_TLVTXENABLE);
