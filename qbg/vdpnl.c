@@ -68,38 +68,6 @@ static struct nla_policy ifla_port_policy[IFLA_PORT_MAX + 1] = {
 	[IFLA_PORT_RESPONSE]      = { .type = NLA_U16 },
 };
 
-/*
- * Retrieve name of interface and its index value from the netlink messaage
- * and store it in the data structure.
- * The GETLINK message may or may not contain the IFLA_IFNAME attribute.
- * Return 0 on success and errno on error.
- */
-static int vdpnl_get(struct nlmsghdr *nlh, struct vdpnl_vsi *p)
-{
-	struct nlattr *tb[IFLA_MAX + 1];
-	struct ifinfomsg *ifinfo;
-
-	if (nlmsg_parse(nlh, sizeof(struct ifinfomsg),
-			(struct nlattr **)&tb, IFLA_MAX, NULL)) {
-		LLDPAD_ERR("%s:error parsing GETLINK request\n", __func__);
-		return -EINVAL;
-	}
-
-	ifinfo = (struct ifinfomsg *)NLMSG_DATA(nlh);
-	p->ifindex = ifinfo->ifi_index;
-	if (tb[IFLA_IFNAME]) {
-		memcpy(p->ifname, (char *)RTA_DATA(tb[IFLA_IFNAME]),
-		       sizeof p->ifname);
-	} else if (!if_indextoname(p->ifindex, p->ifname)) {
-		LLDPAD_ERR("%s:ifindex %d without interface name\n", __func__,
-			   p->ifindex);
-		return -EINVAL;
-	}
-	LLDPAD_DBG("%s:IFLA_IFNAME:%s ifindex:%d\n", __func__, p->ifname,
-		   p->ifindex);
-	return 0;
-}
-
 static void vdpnl_show(struct vdpnl_vsi *vsi)
 {
 	char instance[VDP_UUID_STRLEN + 2];
@@ -308,46 +276,102 @@ static int vdpnl_error(int err, struct nlmsghdr *from, size_t len)
 }
 
 /*
- * Build the first part of the netlink reply message for status inquiry.
- * It contains the header and the ifinfo data structure.
- */
-static void vdpnl_reply1(struct vdpnl_vsi *p, struct nlmsghdr *nlh, size_t len)
-{
-	struct nlmsghdr to;
-	struct ifinfomsg ifinfo;
-
-	to.nlmsg_type = NLMSG_DONE;
-	to.nlmsg_seq = nlh->nlmsg_seq;
-	to.nlmsg_pid = nlh->nlmsg_pid;
-	to.nlmsg_flags = 0;
-	to.nlmsg_len = NLMSG_SPACE(sizeof ifinfo);
-
-	memset(&ifinfo, 0, sizeof ifinfo);
-	ifinfo.ifi_index = p->ifindex;
-	memset(nlh, 0, len);
-	memcpy(nlh, &to, sizeof to);
-	memcpy(NLMSG_DATA(nlh), &ifinfo, sizeof ifinfo);
-}
-
-/*
  * Build the variable part of the netlink reply message for status inquiry.
  * It contains the UUID and the response field for the VSI profile.
  */
-static void vdpnl_reply2(struct vdpnl_vsi *p, struct nlmsghdr *nlh)
+static void vdpnl_reply2(struct vdpnl_vsi *p, struct nl_msg *nlh)
 {
 	char instance[VDP_UUID_STRLEN + 2];
 
-	mynla_put(nlh, IFLA_PORT_INSTANCE_UUID, sizeof p->vsi_uuid,
+	nla_put(nlh, IFLA_PORT_INSTANCE_UUID, sizeof p->vsi_uuid,
 		  p->vsi_uuid);
 	vdp_uuid2str(p->vsi_uuid, instance, sizeof instance);
 	LLDPAD_DBG("%s:IFLA_PORT_INSTANCE_UUID:%s\n", __func__, instance);
-	mynla_put_u32(nlh, IFLA_PORT_VF, PORT_SELF_VF);
+	nla_put_u32(nlh, IFLA_PORT_VF, PORT_SELF_VF);
 	LLDPAD_DBG("%s:IFLA_PORT_VF:%d\n", __func__,  PORT_SELF_VF);
 	if (p->response != VDP_RESPONSE_NO_RESPONSE) {
-		mynla_put_u16(nlh, IFLA_PORT_RESPONSE, p->response);
+		nla_put_u16(nlh, IFLA_PORT_RESPONSE, p->response);
 		LLDPAD_DBG("%s:IFLA_PORT_RESPONSE:%d\n", __func__,
 			   p->response);
 	}
+}
+
+/*
+ * Return bytes needed for one VSI in a netlink message.
+ */
+static size_t vdp_nllen(void)
+{
+	size_t needed;
+
+	needed = nla_total_size(sizeof(struct nlattr)) /* IFLA_VF_PORT */
+		+ nla_total_size(4);	/* IFLA_PORT_VF */
+		+ nla_total_size(PORT_UUID_MAX); /* IFLA_PORT_INSTANCE_UUID */
+		+ nla_total_size(2);	/* IFLA_PORT_RESPONSE */
+	return needed;
+}
+
+/*
+ * Get interface name (either from netlink message for from ifi_index).
+ * Return error when no interface available.
+ */
+static int vdpnl_ifname(struct vdpnl_vsi *p, struct nlattr *tb)
+{
+	int rc = 0;
+
+	if (tb)
+		nla_strlcpy(p->ifname, tb, sizeof(p->ifname));
+	else if (!if_indextoname(p->ifindex, p->ifname)) {
+		LLDPAD_ERR("%s:ifindex %d without interface name\n", __func__,
+			   p->ifindex);
+		rc = -EINVAL;
+	}
+	return rc;
+}
+
+/*
+ * Parse a received netlink request message and return a filled VSI data
+ * structure.
+ */
+static struct nla_policy  pc_max[IFLA_MAX + 1] = {
+	[IFLA_IFNAME] = {
+				.minlen = 1,
+				.maxlen = IFNAMSIZ + 1,
+				.type = NLA_STRING
+			}
+};
+
+/*
+ * Retrieve name of interface and its index value from the netlink messaage
+ * and store it in the data structure.
+ * The GETLINK message may or may not contain the IFLA_IFNAME attribute.
+ * Return 0 on success and errno on error.
+ */
+static int vdpnl_get(struct vdpnl_vsi *p, struct nlmsghdr *nlh)
+{
+	int rc;
+	struct nlattr *tb[IFLA_MAX + 1];
+	struct ifinfomsg *ifinfo = (struct ifinfomsg *)NLMSG_DATA(nlh);
+
+	memset(tb, 0, sizeof(tb));
+	rc = nla_parse(tb, sizeof(tb) / sizeof(tb[0]),
+			 (struct nlattr *)IFLA_RTA(NLMSG_DATA(nlh)),
+			 IFLA_PAYLOAD(nlh), pc_max);
+	if (rc) {
+		LLDPAD_ERR("%s:error parsing GETLINK request\n", __func__);
+		return -EINVAL;
+	}
+	p->ifindex = ifinfo->ifi_index;
+	return vdpnl_ifname(p, tb[IFLA_IFNAME]);
+}
+
+/*
+ * Free an malloc'ed maclist array.
+ */
+void vdp22_freemaclist(struct vdpnl_vsi *vsi)
+{
+	vsi->macsz = 0;
+	free(vsi->maclist);
+	vsi->maclist = NULL;
 }
 
 /*
@@ -359,36 +383,54 @@ static void vdpnl_reply2(struct vdpnl_vsi *p, struct nlmsghdr *nlh)
  */
 static int vdpnl_getlink(struct nlmsghdr *nlh, size_t len)
 {
+	struct nlmsghdr *nlh_new;
+	struct nl_msg *msg;
 	struct vdpnl_vsi p;
-	int i = 0, rc;
+	int i = 0, rc = -ENOMEM;
 	struct nlattr *vf_ports, *vf_port;
+	struct ifinfomsg ifinfo;
+	size_t mylen = nla_total_size(sizeof(struct ifinfomsg))
+			+ nla_total_size(sizeof(struct nlattr));
+			/* Header + IFLA_VF_PORTS */
 
+	mylen = nlmsg_total_size(mylen);
+	memset(&ifinfo, 0, sizeof ifinfo);
 	memset(&p, 0, sizeof p);
-	rc = vdpnl_get(nlh, &p);
-	if (rc)
+	msg = nlmsg_alloc_size(len);
+	if (msg)
+		rc = vdpnl_get(&p, nlh);
+	if (rc) {
+		nlmsg_free(msg);
 		return vdpnl_error(rc, nlh, len);
-	vdpnl_reply1(&p, nlh, len);
-	vf_ports = mynla_nest_start(nlh, IFLA_VF_PORTS);
+	}
+	nlmsg_put(msg, nlh->nlmsg_pid, nlh->nlmsg_seq, NLMSG_DONE, 0, 0);
+	ifinfo.ifi_index = p.ifindex;
+	nlmsg_append(msg, &ifinfo, sizeof(ifinfo), 0);
+
+	vf_ports = nla_nest_start(msg, IFLA_VF_PORTS);
 	/* Iterate over all profiles */
 	do {
 		rc = vdp22_query(p.ifname) ? vdp22_status(++i, &p)
 					   : vdp_status(++i, &p);
-		if (rc == 1) {
-			vf_port = mynla_nest_start(nlh, IFLA_VF_PORT);
-			vdpnl_reply2(&p, nlh);
-			mynla_nest_end(nlh, vf_port);
+		mylen += vdp_nllen();
+		if (rc == 1 && mylen < len) {
+			vf_port = nla_nest_start(msg, IFLA_VF_PORT);
+			vdpnl_reply2(&p, msg);
+			nla_nest_end(msg, vf_port);
 		}
-		if (p.maclist) {
-			free(p.maclist);
-			p.maclist = NULL;
-			p.macsz = 0;
-		}
+		vdp22_freemaclist(&p);
 	} while (rc == 1);
-	mynla_nest_end(nlh, vf_ports);
-	if (rc < 0)
+	nla_nest_end(msg, vf_ports);
+	if (rc < 0) {
+		nlmsg_free(msg);
 		return vdpnl_error(rc, nlh, len);
-	LLDPAD_DBG("%s:message-size:%d\n", __func__, nlh->nlmsg_len);
-	return nlh->nlmsg_len;
+	}
+	nlh_new = nlmsg_hdr(msg);
+	rc = nlh_new->nlmsg_len;
+	memcpy((unsigned char *)nlh, nlh_new, rc);
+	nlmsg_free(msg);
+	LLDPAD_DBG("%s:message-size:%d\n", __func__, rc);
+	return rc;
 }
 
 /*
@@ -446,7 +488,7 @@ int vdpnl_recv(unsigned char *buf, size_t buflen)
 /*
  * Add one entry in the list of MAC,VLAN pairs.
  */
-static void add_pair(struct vdpnl_mac *mac, struct nlmsghdr *nlh)
+static void add_pair(struct vdpnl_mac *mac, struct nl_msg *nlh)
 {
 	struct nlattr *vfinfo;
 	struct ifla_vf_mac ifla_vf_mac = {
@@ -459,25 +501,25 @@ static void add_pair(struct vdpnl_mac *mac, struct nlmsghdr *nlh)
 		.qos = mac->qos
 	};
 
-	vfinfo = mynla_nest_start(nlh, IFLA_VF_INFO);
+	vfinfo = nla_nest_start(nlh, IFLA_VF_INFO);
 	memcpy(ifla_vf_mac.mac, mac->mac, sizeof mac->mac);
-	mynla_put(nlh, IFLA_VF_MAC, sizeof ifla_vf_mac, &ifla_vf_mac);
-	mynla_put(nlh, IFLA_VF_VLAN, sizeof ifla_vf_vlan, &ifla_vf_vlan);
-	mynla_nest_end(nlh, vfinfo);
+	nla_put(nlh, IFLA_VF_MAC, sizeof ifla_vf_mac, &ifla_vf_mac);
+	nla_put(nlh, IFLA_VF_VLAN, sizeof ifla_vf_vlan, &ifla_vf_vlan);
+	nla_nest_end(nlh, vfinfo);
 }
 
 /*
  * Walk along the MAC,VLAN ID list and add each entry into the message.
  */
-static void add_mac_vlan(struct vdpnl_vsi *vsi, struct nlmsghdr *nlh)
+static void add_mac_vlan(struct vdpnl_vsi *vsi, struct nl_msg *nlh)
 {
 	struct nlattr *vfinfolist;
 	int i;
 
-	vfinfolist = mynla_nest_start(nlh, IFLA_VFINFO_LIST);
+	vfinfolist = nla_nest_start(nlh, IFLA_VFINFO_LIST);
 	for (i = 0; i < vsi->macsz; ++i)
 		add_pair(&vsi->maclist[i], nlh);
-	mynla_nest_end(nlh, vfinfolist);
+	nla_nest_end(nlh, vfinfolist);
 }
 
 /*
@@ -488,40 +530,46 @@ static void add_mac_vlan(struct vdpnl_vsi *vsi, struct nlmsghdr *nlh)
  */
 int vdpnl_send(struct vdpnl_vsi *vsi)
 {
-	unsigned char buf[MAX_PAYLOAD];
-	struct nlmsghdr *nlh = (struct nlmsghdr *)buf;
+	struct nlmsghdr *nlh;
 	struct nlattr *vf_ports, *vf_port;
 	struct ifinfomsg ifinfo;
 	struct ifla_port_vsi portvsi;
+	struct nl_msg *msg;
+	int rc = -ENOMEM;
 
-	memset(buf, 0, sizeof buf);
-	nlh->nlmsg_pid = getpid();
-	nlh->nlmsg_seq = vsi->req_seq;
-	nlh->nlmsg_type = RTM_SETLINK;
-	nlh->nlmsg_len = NLMSG_SPACE(sizeof ifinfo);
+	msg = nlmsg_alloc();
+	if (!msg) {
+		LLDPAD_DBG("%s:%s error allocating netlink message memory:\n",
+			   __func__, vsi->ifname);
+		return rc;
+	}
+	nlmsg_put(msg,  getpid(), vsi->req_seq, RTM_SETLINK, 0, 0);
 
 	memset(&ifinfo, 0, sizeof ifinfo);
 	ifinfo.ifi_index = vsi->ifindex;
-	memcpy(NLMSG_DATA(nlh), &ifinfo, sizeof ifinfo);
-	mynla_put(nlh, IFLA_IFNAME, 1 + strlen(vsi->ifname), vsi->ifname);
+	nlmsg_append(msg, &ifinfo, sizeof(ifinfo), 0);
+	nla_put_string(msg, IFLA_IFNAME, vsi->ifname);
 
-	add_mac_vlan(vsi, nlh);
+	add_mac_vlan(vsi, msg);
 	portvsi.vsi_mgr_id = vsi->vsi_mgrid;
 	portvsi.vsi_type_id[0] = vsi->vsi_typeid & 0xff;
 	portvsi.vsi_type_id[1] = (vsi->vsi_typeid >> 8) & 0xff;
 	portvsi.vsi_type_id[2] = (vsi->vsi_typeid >> 16) & 0xff;
 	portvsi.vsi_type_version = vsi->vsi_typeversion;
-	vf_ports = mynla_nest_start(nlh, IFLA_VF_PORTS);
-	vf_port = mynla_nest_start(nlh, IFLA_VF_PORT);
-	mynla_put(nlh, IFLA_PORT_VSI_TYPE, sizeof portvsi, &portvsi);
-	mynla_put(nlh, IFLA_PORT_INSTANCE_UUID, PORT_UUID_MAX, vsi->vsi_uuid);
-	mynla_put_u32(nlh, IFLA_PORT_VF, PORT_SELF_VF);
-	mynla_put_u16(nlh, IFLA_PORT_REQUEST, vsi->request);
-	mynla_nest_end(nlh, vf_port);
-	mynla_nest_end(nlh, vf_ports);
+	vf_ports = nla_nest_start(msg, IFLA_VF_PORTS);
+	vf_port = nla_nest_start(msg, IFLA_VF_PORT);
+	nla_put(msg, IFLA_PORT_VSI_TYPE, sizeof portvsi, &portvsi);
+	nla_put(msg, IFLA_PORT_INSTANCE_UUID, PORT_UUID_MAX, vsi->vsi_uuid);
+	nla_put_u32(msg, IFLA_PORT_VF, PORT_SELF_VF);
+	nla_put_u16(msg, IFLA_PORT_REQUEST, vsi->request);
+	nla_nest_end(msg, vf_port);
+	nla_nest_end(msg, vf_ports);
 	vdpnl_show(vsi);
+	nlh = nlmsg_hdr(msg);
 	LLDPAD_DBG("%s:nlh.nl_pid:%d nlh_type:%d nlh_seq:%d nlh_len:%d\n",
 		    __func__, nlh->nlmsg_pid, nlh->nlmsg_type, nlh->nlmsg_seq,
 		    nlh->nlmsg_len);
-	return event_trigger(nlh, vsi->req_pid);
+	rc = event_trigger(nlh, vsi->req_pid);
+	nlmsg_free(msg);
+	return rc;
 }
