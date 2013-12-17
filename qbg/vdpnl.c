@@ -402,7 +402,7 @@ static int vdpnl_setlink(struct nlmsghdr *nlh, size_t len)
 
 	memset(&p, 0, sizeof p);
 	memset(&mac, 0, sizeof mac);
-	p.vsiid_fmt = VDP22_ID_UUID;
+	p.vsi_idfmt = VDP22_ID_UUID;
 	p.macsz = 1;
 	p.maclist = &mac;
 	rc = vdpnl_set(nlh, &p);

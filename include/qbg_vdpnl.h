@@ -56,7 +56,7 @@ struct vdpnl_vsi {		/* Data structure for VSI data via netlink */
 	unsigned short response;	/* VSI response code */
 	unsigned char vsi_mgrid;
 	unsigned char vsi_typeversion;
-	unsigned char vsiid_fmt;
+	unsigned char vsi_idfmt;
 	unsigned char vsi_uuid[PORT_UUID_MAX];
 	unsigned char vsi_mgrid2[PORT_UUID_MAX];
 	unsigned char nl_version;	/* Netlink message format version */

@@ -330,11 +330,11 @@ static bool check_filterfmt(unsigned char filter_fmt)
 /*
  * Check if VSI identifier is valid.
  */
-static bool check_vsiid(unsigned char vsiid_fmt, unsigned char *vsi_uuid)
+static bool check_vsiid(unsigned char fmt, unsigned char *vsi_uuid)
 {
 	bool rc = true;
 
-	switch (vsiid_fmt) {
+	switch (fmt) {
 	case VDP22_ID_IP4:
 		if (!is_ipv4(vsi_uuid))
 			rc = false;
@@ -368,12 +368,12 @@ static bool check_vsinl(struct vdpnl_vsi *vsi)
 {
 	bool rc;
 
-	rc =  check_vsiid(vsi->vsiid_fmt, vsi->vsi_uuid)
+	rc =  check_vsiid(vsi->vsi_idfmt, vsi->vsi_uuid)
 		&& check_vsirequest(vsi->request)
 		&& check_filterfmt(vsi->filter_fmt);
 	LLDPAD_DBG("%s:%s request:%d filter_fmt:%d vsi_fmt:%d rc:%d\n",
 		   __func__, vsi->ifname, vsi->request, vsi->filter_fmt,
-		   vsi->vsiid_fmt, rc);
+		   vsi->vsi_idfmt, rc);
 	return rc;
 }
 
@@ -951,7 +951,7 @@ int vdp22_nlback(struct vsi22 *vsi)
 	nl.vsi_mgrid = atoi((const char *)vsi->mgrid);
 	nl.vsi_typeversion = vsi->type_ver;
 	nl.vsi_typeid = vsi->type_id;
-	nl.vsiid_fmt = VDP22_ID_UUID;
+	nl.vsi_idfmt = VDP22_ID_UUID;
 	memcpy(nl.vsi_uuid, vsi->vsi, sizeof(nl.vsi_uuid));
 	nl.filter_fmt = vsi->fif;
 	for (i = 0; i < nl.macsz; ++i) {
