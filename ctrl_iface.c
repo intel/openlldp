@@ -73,7 +73,7 @@ struct clif_cmds {
 			   socklen_t fromlen,
 			   char *ibuf, int ilen,
 			   char *rbuf, int rlen);
-};	
+};
 
 static const struct clif_cmds cmd_tbl[] = {
 	{ DCB_CMD,     clif_iface_module },
@@ -117,7 +117,6 @@ int clif_iface_module(struct clif_data *clifd,
 	}
 
 	mod = find_module_by_id(&lldp_head, module_id);
-
 	if (mod && mod->ops && mod->ops->client_cmd)
 		return  (mod->ops->client_cmd)(clifd, from, fromlen,
 			 cmd_start, cmd_len, rbuf+strlen(rbuf), rlen);
@@ -156,17 +155,14 @@ int clif_iface_attach(struct clif_data *clifd,
 	char *tlv, *str, *tokenize;
 	const char *delim = ",";
 	int i, tlv_count = 0;
-	u8 *ptr;
 
 	dst = malloc(sizeof(*dst));
 	if (dst == NULL)
-		return 1;
+		return cmd_failed;
 	memset(dst, 0, sizeof(*dst));
 	memcpy(&dst->addr, from, sizeof(struct sockaddr_un));
 	dst->addrlen = fromlen;
 	dst->debug_level = MSG_INFO;
-	dst->next = clifd->ctrl_dst;
-	clifd->ctrl_dst = dst;
 
 	/*
 	 * There are two cases here one, the user provided
@@ -175,7 +171,6 @@ int clif_iface_attach(struct clif_data *clifd,
 	 * user sent a comma seperated string of tlv module
 	 * ids it expects events from
 	 */
-
 	/* set default string to DCBX Events */
 	if (ibuf[1] == '\0') {
 		u32 hex = LLDP_MOD_DCBX;
@@ -206,8 +201,11 @@ int clif_iface_attach(struct clif_data *clifd,
 	/* Populate tlv_types from comma separated string */
 	tokenize = strtok(str, delim);
 	for (i=0; tokenize; i++) {
-		ptr = (u8*)&dst->tlv_types[i];
-		hexstr2bin(tokenize, ptr, 4);
+		char *myend;
+
+		dst->tlv_types[i] = strtol(tokenize, &myend, 16);
+		if (*myend)		/* No hexnumber for module id */
+			goto err_types;
 		tokenize = strtok(NULL, delim);
 	}
 
@@ -215,13 +213,17 @@ int clif_iface_attach(struct clif_data *clifd,
 	dst->tlv_types[i] = ~0;
 	free(tlv);
 
+	/* Insert new node at beginning */
+	dst->next = clifd->ctrl_dst;
+	clifd->ctrl_dst = dst;
 	LLDPAD_DBG("CTRL_IFACE monitor attached\n");
 	snprintf(rbuf, rlen, "%c", ATTACH_CMD);
 
-	return 0;
+	return cmd_success;
 err_types:
 	free(tlv);
 err_tlv:
+	free(dst);
 	LLDPAD_DBG("CTRL_IFACE monitor attach error\n");
 	snprintf(rbuf, rlen, "%c", ATTACH_CMD);
 
@@ -572,8 +574,7 @@ void ctrl_iface_send(struct clif_data *clifd, int level, u32 moduleid,
 		next = dst->next;
 		send = 0;
 		/* Does dst receive these event messages? */
-		send = is_ctrl_listening(dst, moduleid); 
-
+		send = is_ctrl_listening(dst, moduleid);
 		/* Yes */
 		if (send && level >= dst->debug_level) {
 			msg.msg_name = &dst->addr;
