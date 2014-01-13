@@ -968,3 +968,20 @@ int vdp22_nlback(struct vsi22 *vsi)
 	return 0;
 }
 
+/*
+ * Query role. Return error when interface not available or interface is
+ * running in bridge mode.
+ */
+int vdp22_info(const char *ifname)
+{
+	int rc = 0;
+	struct vdp22 *vdp = vdp22_findif(ifname, NULL);
+
+	if (!vdp)
+		rc = -ENODEV;
+	else if (vdp->myrole == VDP22_BRIDGE)
+		rc = -EOPNOTSUPP;
+	LLDPAD_DBG("%s:%s rc:%d\n", __func__, ifname, rc);
+	return rc;
+
+}
