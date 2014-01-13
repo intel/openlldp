@@ -215,11 +215,11 @@ int clif_recv(struct clif *clif, char *reply, size_t *reply_len)
 }
 
 
-int clif_pending(struct clif *clif)
+int clif_pending_wait(struct clif *clif, int waittime)
 {
 	struct timeval tv;
 	fd_set rfds;
-	tv.tv_sec = 0;
+	tv.tv_sec = waittime;
 	tv.tv_usec = 0;
 	FD_ZERO(&rfds);
 	FD_SET(clif->s, &rfds);
@@ -227,6 +227,10 @@ int clif_pending(struct clif *clif)
 	return FD_ISSET(clif->s, &rfds);
 }
 
+int clif_pending(struct clif *clif)
+{
+	return clif_pending_wait(clif, 0);
+}
 
 int clif_get_fd(struct clif *clif)
 {

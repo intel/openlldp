@@ -152,8 +152,12 @@ int clif_recv(struct clif *clif, char *reply, size_t *reply_len);
  * message available to be received with clif_recv(). clif_pending() is
  * only used for event messages, i.e., clif_attach() must have been used to
  * register the client interface as an event monitor.
+ *
+ * clif_pending_wait - Same as clif_pending, but allows the specification
+ * 			of maximum wait time in seconds.
  */
 int clif_pending(struct clif *clif);
+int clif_pending_wait(struct clif *clif, int waittime);
 
 
 /**
