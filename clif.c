@@ -279,3 +279,155 @@ out:
 	clif_close(clif_conn);
 	return lldpad;
 }
+
+/*
+ * Command line interface for vdp22 module.
+ * Includes for lldptool like access to lldpad
+ */
+#include <stdbool.h>
+#include <ctype.h>
+#include <errno.h>
+#include "include/qbg22.h"
+#include "include/lldp_mand_clif.h"	/* Defines op_XXXX */
+#include </usr/include/sys/queue.h>	/* Needed by agent.h */
+#include "lldp/agent.h"			/* Nearest customer bridge define */
+
+/*
+ * Send a command via clif_xxx to lldpad.
+ * Return negavite numbers when a send/reply error occurs.
+ * Lldpad returns cmd_success for success and cmd_xxx for failure.
+ */
+static int tool_send(struct clif *connp, char *cmd, size_t cmd_len,
+		     char *reply, size_t *reply_len, int *lldpad_rc)
+{
+	int rc;
+
+	*lldpad_rc = 0;
+	rc = clif_request(connp, cmd, cmd_len, reply, reply_len, NULL);
+	if (!rc) {
+		if (1 != sscanf(reply, "R%02x", lldpad_rc))
+			rc = -3;
+	}
+	return rc;
+}
+
+/*
+ * Prepend the lldpad fan out information in front of the command.
+ * We use the vsi parameter.
+ */
+static int hdr_set(char *ifname, char *s, size_t sz, char *cmd, size_t cmd_len)
+{
+	int rc;
+
+	/* All command messages begin this way */
+	rc = snprintf(s, sz, "%c%08x%c%1x%02x%08x%02zx%s%02x%08x03vsi%04zx%s",
+		MOD_CMD, LLDP_MOD_VDP22, CMD_REQUEST, CLIF_MSG_VERSION,
+		cmd_settlv, op_arg | op_argval | op_config,
+		strlen(ifname), ifname, NEAREST_CUSTOMER_BRIDGE,
+		(LLDP_MOD_VDP22 << 8) | LLDP_MOD_VDP22_SUBTYPE,
+		cmd_len, cmd);
+	return (rc < 0 || rc > (int)sz) ? -EFBIG : 0;
+}
+
+/*
+ * Remove all whitespace and nonprintable characters from string.
+ */
+static void kill_white(char *s)
+{
+	char *cp = s;
+
+	for (; *s != '\0'; ++s) {
+		if (isspace(*s))
+			continue;
+		if (isprint(*s))
+			*cp++ = *s;
+	}
+	*cp = '\0';
+}
+
+/*
+ * Send a VSI command to the vdp22 module and expect a reply. The reply can be
+ * an aknowledgement (error code 0) or an error code != 0 which means the
+ * command contained an error and was not accepted.
+ */
+int clif_vsi(struct clif *connp, char *ifname, char *cmd, char *reply,
+	     size_t *reply_len)
+{
+	int rc, resp;
+	char cmd2[MAX_CLIF_MSGBUF];
+
+	kill_white(cmd);
+	rc = hdr_set(ifname, cmd2, sizeof(cmd2), cmd, strlen(cmd));
+	if (rc)
+		return rc;
+	rc = tool_send(connp, cmd2, strlen(cmd2), reply, reply_len, &resp);
+	if (!rc)
+		rc = resp;
+	return rc;
+}
+
+/*
+ * Test if this is an event message from vdp22 module.
+ */
+static bool test_evt(char *msg, size_t *msg_len)
+{
+	bool is_evt = true;
+	unsigned int module;
+
+	if (*msg_len < 12 || msg[MSG_TYPE] != MOD_CMD
+	    || msg[MOD_MSG_TYPE] != EVENT_MSG
+	    || sscanf(&msg[MSG_TYPE + 1], "%08x", &module) != 1
+	    || module != LLDP_MOD_VDP22)
+		is_evt = false;
+	return is_evt;
+}
+
+/*
+ * Wait for an event message from lldpad module. After checking for the correct
+ * event message, the header of the event message is removed.
+ *
+ * Returns
+ * <0 on error or time out.
+ * =0 number of bytes on successful message reception (in reply_len parameter).
+ */
+#define	EVTHEADER	12		/* # of bytes in event message as hdr */
+int clif_vsievt(struct clif *clif, char *reply, size_t *reply_len, int wait)
+{
+	if (clif == NULL || wait < 0)
+		return -EINVAL;
+	if (clif_pending_wait(clif, wait)) {
+		if (clif_recv(clif, reply, reply_len) == 0) {
+			if (test_evt(reply, reply_len)) {
+				*reply_len -= EVTHEADER;
+				memmove(reply, reply + EVTHEADER, *reply_len);
+				reply[*reply_len] = '\0';
+				return 0;
+			} else
+				return -EBADF;
+		} else
+			return -EIO;
+	}
+	return -EAGAIN;
+}
+/*
+ * Send a VSI command to the vdp22 mode and expect a reply. The reply can
+ * an aknowledgement (error code 0) or an error code != 0 which means the
+ * command contained an error and was not accepted.
+ *
+ * Wait for the event message from lldpad to return the VSI association data
+ * from the switch
+ */
+int clif_vsiwait(struct clif *connp, char *ifname, char *cmd, char *reply,
+		 size_t *reply_len, int wait)
+{
+	int rc;
+	size_t reply_len2 = *reply_len;
+
+	rc = clif_vsi(connp, ifname, cmd, reply, reply_len);
+	if (!rc) {
+		rc = clif_vsievt(connp, reply, &reply_len2, wait);
+		if (!rc)
+			*reply_len = reply_len2;
+	}
+	return rc;
+}

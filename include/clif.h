@@ -154,7 +154,7 @@ int clif_recv(struct clif *clif, char *reply, size_t *reply_len);
  * register the client interface as an event monitor.
  *
  * clif_pending_wait - Same as clif_pending, but allows the specification
- * 			of maximum wait time in seconds.
+ *			of maximum wait time in seconds.
  */
 int clif_pending(struct clif *clif);
 int clif_pending_wait(struct clif *clif, int waittime);
@@ -184,4 +184,68 @@ int clif_get_fd(struct clif *clif);
  * its PID. Extract the PID and return it to the caller.
  */
 pid_t clif_getpid(void);
+
+/**
+ * clif_vsi - Send a VDP22 association command to the running lldpad process
+ * @clif: Control interface data from clif_open()
+ * @ifname: Name of the interface to apply the VSI command
+ * @cmd: Buffer containing the VSI command
+ * @reply: Buffer for the reply data
+ * @reply_len: Length of the reply buffer
+ * Returns: cmd_success when VSI command was accepted and cmd_failure if not.
+ *
+ * This commands sends an VSI association command encoded as ascii string
+ * to the lldpad VPD22 module. The module decodes the ascii string and checks
+ * for consistency. Any white space in the ascii string is removed. The
+ * format of the ascii string is explained in the man page.
+ *
+ * If the command is invalid cmd_failure is returned.
+ * Other cmd_success is returned. In this case the command was accepted and
+ * sent to the switch. The switch may still deny the request. The switch
+ * response is sent via an event message.
+ *
+ * Note: This command can only be sent when the clif_attach() functions has
+ * been called with successful return code.
+ */
+int clif_vsi(struct clif *clif, char *ifname, char *cmd, char *reply,
+	     size_t *reply_len);
+
+/**
+ * clif_vsievt - Wait for event message from lldpad after clif_vsi()
+ * @clif: Control interface data from clif_open()
+ * @reply: Buffer for the reply data
+ * @reply_len: Length of the reply buffer
+ * @waittime: Maximum number of seconds to wait for event message
+ * Returns:
+ * 0: on success (a message was received and reply_len contains the number
+ *    of bytes of the message)
+ * -EINVAL: Invalid parameters, for example negative wait time.
+ * -EAGAIN: No message received.
+ * -EIO: Message pending but receive function failed.
+ * -EBADF: Message received but was no event message.
+ *
+ * This function waits up to waittime seconds for an event message from
+ * lldpad. An event message is expected when the clif_vsi() successfully
+ * submitted an VSI command. The event message contains the reply from the
+ * switch. The event message is in acsii and the format is explained in the
+ * man page.
+ */
+int clif_vsievt(struct clif *clif, char *reply, size_t *reply_len, int waitime);
+
+/**
+ * clif_vsiwait - Send VSI command and wait for event message.
+ * @clif: Control interface data from clif_open()
+ * @ifname: Name of the interface to apply the VSI command
+ * @cmd: Buffer containing the VSI command
+ * @reply: Buffer for the reply data
+ * @reply_len: Length of the reply buffer
+ * @waittime: Maximum number of seconds to wait for event message
+ * Returns: see clif_vsi() and clif_vsievt().
+ *
+ * This function is a combination of clif_vsi() and clif_vsievt(). It sends
+ * the vsi command and on successful reception of the VSI command calls
+ * clif_vsievt() to receive the response.
+ */
+int clif_vsiwait(struct clif *clif, char *ifname, char *cmd, char *reply,
+		 size_t *reply_len, int waittime);
 #endif /* CLIF_H */
