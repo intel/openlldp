@@ -410,7 +410,7 @@ static int vdpnl_getlink(struct nlmsghdr *nlh, size_t len)
 	vf_ports = nla_nest_start(msg, IFLA_VF_PORTS);
 	/* Iterate over all profiles */
 	do {
-		rc = vdp22_query(p.ifname) ? vdp22_status(++i, &p)
+		rc = vdp22_query(p.ifname) ? vdp22_status(++i, &p, 0)
 					   : vdp_status(++i, &p);
 		mylen += vdp_nllen();
 		if (rc == 1 && mylen < len) {
@@ -449,7 +449,7 @@ static int vdpnl_setlink(struct nlmsghdr *nlh, size_t len)
 	p.maclist = &mac;
 	rc = vdpnl_set(nlh, &p);
 	if (!rc)
-		rc = vdp22_query(p.ifname) ? vdp22_request(&p)
+		rc = vdp22_query(p.ifname) ? vdp22_request(&p, 0)
 					   : vdp_request(&p);
 	return vdpnl_error(rc, nlh, len);
 }
@@ -543,7 +543,7 @@ int vdpnl_send(struct vdpnl_vsi *vsi)
 			   __func__, vsi->ifname);
 		return rc;
 	}
-	nlmsg_put(msg,  getpid(), vsi->req_seq, RTM_SETLINK, 0, 0);
+	nlmsg_put(msg, getpid(), vsi->req_seq, RTM_SETLINK, 0, 0);
 
 	memset(&ifinfo, 0, sizeof ifinfo);
 	ifinfo.ifi_index = vsi->ifindex;

@@ -785,21 +785,22 @@ void vdp22_start(const char *ifname, int role)
 /*
  * Handle a VSI request from buddy.
  */
-int vdp22_request(struct vdpnl_vsi *vsi)
+int vdp22_request(struct vdpnl_vsi *vsi, int clif)
 {
 	int rc;
 	struct vsi22 *p;
 	struct vdp22 *vdp;
 
-	LLDPAD_DBG("%s:%s\n", __func__, vsi->ifname);
+	LLDPAD_DBG("%s:%s clif:%d\n", __func__, vsi->ifname, clif);
 	vdp = vdp22_findif(vsi->ifname, NULL);
 	if (vdp) {
 		if (vdp->myrole == VDP22_BRIDGE) {
 			rc = -EOPNOTSUPP;
 			goto out;
 		}
-		/* Adjust numbering for VDP22 protocol */
-		vsi->request += 1;
+		/* Adjust numbering for VDP 0.2 protocol from netlink */
+		if (!clif)
+			vsi->request += 1;
 		p = vdp22_alloc_vsi(vsi, vdp, &rc);
 		if (p) {
 			rc = vdp22_addreq(p, vdp);
@@ -885,6 +886,32 @@ static void copy_fid(struct vdpnl_vsi *vsi, struct vsi22 *p)
 }
 
 /*
+ * Fill the VSI data to return to caller. Currently returned data depends
+ * on requestor:
+ * 1. Via netlink message from libvirtd and vdptest:
+ *    Return UUID, Response when available. changed FID.
+ * 2. Via lldptool:
+ *    All data.
+ */
+static void copy_vsi(struct vdpnl_vsi *vsi, struct vsi22 *p, int clif)
+{
+	/* For netlink reply */
+	vsi->response = p->status;
+	memcpy(vsi->vsi_uuid, p->vsi, sizeof(vsi->vsi_uuid));
+	/* For client interface reply */
+	vsi->vsi_typeid = p->type_id;
+	vsi->vsi_typeversion = p->type_ver;
+	memcpy(vsi->vsi_mgrid2, p->mgrid, sizeof(vsi->vsi_mgrid2));
+	vsi->vsi_idfmt = p->vsi_fmt;
+	vsi->hints = p->cc_vsi_mode;
+	p->flags &= ~VDP22_NLCMD;
+	if (clif || (p->flags & VDP22_RETURN_VID)) {
+		copy_fid(vsi, p);
+		p->flags &= ~VDP22_RETURN_VID;
+	}
+}
+
+/*
  * Query a VSI request from buddy and report its progress. Use the interface
  * name to determine the VSI profile list. Return one entry in parameter 'vsi'
  * use the structure members response and vsi_uuid.
@@ -893,13 +920,13 @@ static void copy_fid(struct vdpnl_vsi *vsi, struct vsi22 *p)
  * 0  end of queue (no VSI data returned)
  * <0 errno
  */
-int vdp22_status(int number, struct vdpnl_vsi *vsi)
+int vdp22_status(int number, struct vdpnl_vsi *vsi, int clif)
 {
 	struct vdp22 *vdp;
 	struct vsi22 *p;
 	int i = 0, ret = 0;
 
-	LLDPAD_DBG("%s:%s\n", __func__, vsi->ifname);
+	LLDPAD_DBG("%s:%s clif:%d\n", __func__, vsi->ifname, clif);
 	vdp = vdp22_findif(vsi->ifname, NULL);
 	if (!vdp) {
 		LLDPAD_ERR("%s:%s has not yet been configured\n", __func__,
@@ -915,13 +942,7 @@ int vdp22_status(int number, struct vdpnl_vsi *vsi)
 	}
 	if (ret) {
 		vdp22_showvsi(p);
-		vsi->response = p->status;
-		memcpy(vsi->vsi_uuid, p->vsi, sizeof(vsi->vsi_uuid));
-		p->flags &= ~VDP22_NLCMD;
-		if (p->flags & VDP22_RETURN_VID) {
-			copy_fid(vsi, p);
-			p->flags &= ~VDP22_RETURN_VID;
-		}
+		copy_vsi(vsi, p, clif);
 		if (vsi->response != VDP22_RESP_NONE &&
 		    (p->flags & VDP22_DELETE_ME))
 			vdp22_listdel_vsi(p);
