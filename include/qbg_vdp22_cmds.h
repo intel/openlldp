@@ -1,9 +1,9 @@
 /*******************************************************************************
 
-  Implementation of EVB TLVs for LLDP
-  (c) Copyright IBM Corp. 2010, 2013
+  Implementation of VDP 22 (ratified standard) according to IEEE 802.1Qbg
+  (c) Copyright IBM Corp. 2014
 
-  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
+  Author(s): Thomas Richter <tmricht@linux.vnet.ibm.com>
 
   This program is free software; you can redistribute it and/or modify it
   under the terms and conditions of the GNU General Public License,
@@ -24,22 +24,17 @@
 *******************************************************************************/
 
 /*
- * Header file for small utility functions called throught qbg modules.
+ * Command interface for vdp22 module.
  */
 
-#ifndef QBG_UTILS_H
-#define QBG_UTILS_H
+#ifndef QBG_VDP22_CMDS_H
+#define QBG_VDP22_CMDS_H
 
-void hexdump_frame(const char *, char *, const unsigned char *, size_t);
-int modules_notify(int, int, char *, void *);
+struct arg_handlers *vdp22_arg_handlers();
+int vdp22_clif_cmd(void *, struct sockaddr_un *, socklen_t, char *, int, char *,
+		   int);
+#define VAL_STATION		"station"
+#define VAL_BRIDGE		"bridge"
+#define ARG_VDP22_VSI		"vsi"
 
-/*
- * Required buffer space to display a VSI ID (as UUID or other formats).
- * VDP_UUID_STRLEN = strlen("fa9b7fff-b0a0-4893-abcd-beef4ff18f8f")
- *                or strlen("fa9b:7fff:b0a0:4893:abcd:beef:4ff1:8f8f")
- */
-#define VDP_UUID_STRLEN 40
-
-/* Convert VSI IDs to strings */
-int vdp_uuid2str(const unsigned char *, char *, size_t);
 #endif
