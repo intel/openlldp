@@ -41,6 +41,7 @@
 #include "qbg22.h"
 #include "qbg_vdp22.h"
 #include "qbg_utils.h"
+#include "qbg_vdp22_cmds.h"
 
 /*
  * VDP22 helper functions
@@ -838,10 +839,18 @@ void vdp22_unregister(struct lldp_module *mod)
 	LLDPAD_DBG("%s:done\n", __func__);
 }
 
+static int clnt(void *data, struct sockaddr_un *from, socklen_t fromlen,
+		      char *ibuf, int ilen, char *rbuf, int rlen)
+{
+	return vdp22_clif_cmd(data, from, fromlen, ibuf, ilen, rbuf, rlen);
+}
+
 static const struct lldp_mod_ops vdp22_ops =  {
 	.lldp_mod_register	= vdp22_register,
 	.lldp_mod_unregister	= vdp22_unregister,
-	.lldp_mod_notify	= vdp22_notify
+	.lldp_mod_notify	= vdp22_notify,
+	.get_arg_handler	= vdp22_arg_handlers,
+	.client_cmd		= clnt,
 };
 
 struct lldp_module *vdp22_register(void)
@@ -952,41 +961,83 @@ int vdp22_status(int number, struct vdpnl_vsi *vsi, int clif)
 }
 
 /*
+ * Find out if vsi command was received via netlink interface or via
+ * attached control interface. Pid equals zero means control interface.
+ */
+static pid_t havepid(struct vsi22 *vsi)
+{
+	pid_t mypid = 0;
+	int i;
+
+	for (i = 0; i < vsi->no_fdata; ++i)
+		mypid = vsi->fdata[i].requestor.req_pid;
+	return mypid;
+}
+
+/*
  * Convert and VSI22 to VDP netlink format and send it back to the originator.
  */
-int vdp22_nlback(struct vsi22 *vsi)
+static int vdp22_back(struct vsi22 *vsi, pid_t to,
+		      int (*fct)(struct vdpnl_vsi *))
 {
 	int i;
 	struct vdpnl_vsi nl;
 	struct vdpnl_mac nlmac[vsi->no_fdata];
 
-	LLDPAD_DBG("%s:%s vsi:%p(%#2x)\n", __func__, vsi->vdp->ifname,
-		   vsi, vsi->vsi[0]);
-
+	LLDPAD_DBG("%s:%s to:%d\n", __func__, vsi->vdp->ifname, to);
 	memset(&nl, 0, sizeof(nl));
 	memset(nlmac, 0, sizeof(nlmac));
 	nl.maclist = nlmac;
 	nl.macsz = vsi->no_fdata;
 	memcpy(nl.ifname, vsi->vdp->ifname, sizeof(nl.ifname));
-	nl.request = vsi->vsi_mode - 1;		/* Maintain old number */
+	nl.request = vsi->vsi_mode;
 	nl.response = vsi->status;
-	nl.vsi_mgrid = atoi((const char *)vsi->mgrid);
+	nl.vsi_mgrid = vsi->mgrid[0];
+	memcpy(nl.vsi_mgrid2, vsi->mgrid, sizeof(nl.vsi_mgrid2));
 	nl.vsi_typeversion = vsi->type_ver;
 	nl.vsi_typeid = vsi->type_id;
 	nl.vsi_idfmt = VDP22_ID_UUID;
 	memcpy(nl.vsi_uuid, vsi->vsi, sizeof(nl.vsi_uuid));
 	nl.filter_fmt = vsi->fif;
 	for (i = 0; i < nl.macsz; ++i) {
-		nlmac[i].vlan = vsi->fdata[i].vlan;
+		nlmac[i].vlan = vdp22_get_vlanid(vsi->fdata[i].vlan);
+		nlmac[i].qos = vdp22_get_qos(vsi->fdata[i].vlan);
 		memcpy(nlmac[i].mac, vsi->fdata[i].mac, sizeof(nlmac[i].mac));
 		nl.req_pid = vsi->fdata[i].requestor.req_pid;
 		nl.req_seq = vsi->fdata[i].requestor.req_seq;
 	}
-
-	vdpnl_send(&nl);
+	if (to)
+		nl.request -= 1;		/* Maintain old number */
+	(*fct)(&nl);
 	if (vsi->flags & VDP22_DELETE_ME)
 		vdp22_listdel_vsi(vsi);
 	return 0;
+}
+
+/*
+ * Send information back to netlink clients. When command was received via
+ * control interface do not send back anything.
+ */
+int vdp22_nlback(struct vsi22 *vsi)
+{
+	pid_t nl_pid = havepid(vsi);
+
+	LLDPAD_DBG("%s:%s vsi:%p(%#2x) nl_pid:%d\n", __func__, vsi->vdp->ifname,
+		   vsi, vsi->vsi[0], nl_pid);
+	return (nl_pid) ? vdp22_back(vsi, nl_pid, vdpnl_send) : 0;
+}
+
+/*
+ * Send information back to attached clients. When command was received via
+ * netlink message do not send back anything.
+ */
+int vdp22_clntback(struct vsi22 *vsi)
+{
+	pid_t nl_pid = havepid(vsi);
+
+	LLDPAD_DBG("%s:%s vsi:%p(%#2x) nl_pid:%d\n", __func__, vsi->vdp->ifname,
+		   vsi, vsi->vsi[0], nl_pid);
+	return (!nl_pid) ? vdp22_back(vsi, 0, vdp22_sendevent) : 0;
 }
 
 /*

@@ -532,6 +532,12 @@ static void vdp22st_txka(struct vsi22 *vsip)
 
 /*
  * Station remove a VSI from the VDP22 protocol state machine.
+ * Notification of clients depends on the interface used to establish the
+ * association:
+ * 1. When through netlink interface (draft 0.2) the client is polling for some
+ *    time. In this case send a netlink message only when no command pending.
+ * 2. When through attached client (draft 2.2) the client is waiting for
+ *    response (time out in operation on client side) and does not poll.
  */
 static void vdp22st_end(struct vsi22 *vsi)
 {
@@ -545,7 +551,8 @@ static void vdp22st_end(struct vsi22 *vsi)
 	vsi->flags |= VDP22_DELETE_ME;
 	vsi->flags &= ~VDP22_BUSY;
 	if (vsi->flags & VDP22_NOTIFY)
-		vdp22_nlback(vsi);
+		vdp22_nlback(vsi);	/* Notify netlink when no cmd pending */
+	vdp22_clntback(vsi);		/* Notify attached client */
 }
 
 /*
@@ -799,6 +806,7 @@ static void vdp22st_run(struct vsi22 *vsi)
 		case VDP22_ASSOC_NEW:
 		case VDP22_PREASSOC_NEW:
 			vdp22st_assoc_new(vsi, vsi->resp_vsi_mode);
+			vdp22_clntback(vsi);
 			break;
 		case VDP22_ASSOC_COMPL:
 			vdp22st_assoc_compl(vsi);
