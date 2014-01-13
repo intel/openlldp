@@ -45,9 +45,10 @@
 /*
  * Modules Identifications
  */
-#define LLDP_MOD_EVB22		0x80c2
+#define	LLDP_MOD_EVB22		0x80c2
 #define	LLDP_MOD_ECP22		0x80c3
 #define	LLDP_MOD_VDP22		0x80c4
+#define	LLDP_MOD_VDP22_SUBTYPE	0
 
 
 enum {				/* Identify data type in union below */
