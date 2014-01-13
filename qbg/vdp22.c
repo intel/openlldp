@@ -410,7 +410,8 @@ static void copy_filter(unsigned char fif, struct fid22 *fp,
 		/* Fall through intended */
 	case VDP22_FFMT_VID:
 vid:
-		fp->vlan = from->vlan;
+		fp->vlan = vdp22_set_vlanid(from->vlan)
+				| vdp22_set_qos(from->qos);
 		break;
 	}
 }
