@@ -4,9 +4,13 @@ evb22 \- Show / manipulate EVB IEEE 802.1 Ratified Standard TLV configuration
 .SH SYNOPSIS
 .B lldptool -t -i ethx -g ncb -V evb
 .sp
-.B lldptool -t -i ethx -g ncb -V evb -c evbmode
+.B lldptool -t -i ethx -g ncb -V evb -c
+.sp
+.B lldptool -t -i ethx -g ncb -V evb -c enabletx
 .sp
 .B lldptool -T -i ethx -g ncb -V evb -c enabletx=[yes|no]
+.sp
+.B lldptool -t -i ethx -g ncb -V evb -c evbmode
 .sp
 .B lldptool -T -i ethx -g ncb -V evb -c evbmode=[bridge|station]
 .sp
@@ -84,11 +88,18 @@ detailed in this manual page.
 .SH ARGUMENTS
 The invocation without command line option '-c' and
 argument displays the
-complete EVB, ECP and VDP protocol settings.
+complete EVB, ECP and VDP protocol settings
+in a pretty print out.
 See below for a detailed description 
 on how to interpret the output.
 .TP
 \fB\-c\fP \fItext\fP
+Use of the command line option '-c' without
+any argument displays all known parameters
+in the format of
+.IR  key = value ,
+which is suitable
+for post processing.
 Use command line option '-c' and one of the
 following arguments to display and
 set individual parameters.
@@ -180,6 +191,7 @@ EVB Configuration TLV
 	r/l:0 rka:8
 .fi
 .DE
+.P
 This output is displayed when enabletx has been enabled.
 The first line shows the currently known status
 of the bridge.
@@ -211,8 +223,7 @@ Display the locally configured value for RTE
 Set the value for RTE to its maximum value
 .B lldptool -T -g ncb -i eth0 -V evb -c rte=7
 .TP
-Set the value for enabletx to yes to transmit EVB TLV
-to the switch.
+Set the value for enabletx to yes
 .B lldptool -T -g ncb -i eth0 -V evb -c enabletx=yes
 .SH NOTES
 Currently the code in lldpad reflects 
