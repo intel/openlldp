@@ -1317,7 +1317,7 @@ static void vdp22_ecp22in(UNUSED void *ctx, void *parm)
  */
 int vdp22_from_ecp22(struct vdp22 *vdp)
 {
-	return eloop_register_timeout(0, 100 * 1000, vdp22_ecp22in, NULL, vdp);
+	return eloop_register_timeout(0, 2 * 1000, vdp22_ecp22in, NULL, vdp);
 }
 
 /*
