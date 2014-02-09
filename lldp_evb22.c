@@ -475,8 +475,7 @@ static int evb22_timer(struct port *port, struct lldp_agent *agent)
 	ed = evb22_data(port->ifname, agent->type);
 	if (!ed)
 		return 0;
-	if (!ed->vdp_start
-	    && evb_ex_rrstat(ed->out.station_s) == EVB_RRSTAT_YES) {
+	if (!ed->vdp_start) {
 		ed->vdp_start = true;
 		evb22_start_modules(port->ifname,
 				    evb_ex_evbmode(ed->policy.evb_mode));

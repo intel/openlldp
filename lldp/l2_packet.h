@@ -40,7 +40,7 @@
 #define ETH_P_LLDP 0x88cc
 
 #define ETH_P_ECP	0x88b7		/* Draft 0.2 */
-#define ETH_P_ECP22	0x8890		/* Ratified standard */
+#define ETH_P_ECP22	0x8940		/* Ratified standard */
 
 #ifndef ETH_MIN_DATA_LEN
 #define ETH_MIN_DATA_LEN	(ETH_ZLEN - ETH_HLEN)

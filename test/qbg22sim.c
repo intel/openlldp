@@ -59,7 +59,7 @@
 #define	MYDEBUG		0
 #define	DIM(x)		(sizeof(x)/sizeof(x[0]))
 #define ETH_P_LLDP	0x88cc
-#define ETH_P_ECP	0x8890
+#define ETH_P_ECP	0x8940
 #define MACSTR		"%02x:%02x:%02x:%02x:%02x:%02x"
 #define MAC2STR(a)	(a)[0] & 0xff, (a)[1] & 0xff, (a)[2] & 0xff, \
 			(a)[3] & 0xff, (a)[4] & 0xff, (a)[5] & 0xff
