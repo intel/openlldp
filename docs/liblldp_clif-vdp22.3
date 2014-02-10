@@ -1,0 +1,303 @@
+.TH liblldp_clif 3 "February 2014" "open-lldp" "Linux"
+.SH NAME
+clif_vsi,clif_vsievt,clif_vsiwait \- Manipulate VDP IEEE 802.1 Ratified Standard Assocications
+.SH SYNOPSIS
+#include "include/clif.h"
+.sp 1
+.B "int clif_vsi(struct clif *connp, char *ifname, char *cmd, char *reply, size_t *reply_len);"
+.sp 1
+.B "int clif_vsievt(struct clif *connp, char *reply, size_t *reply_len, int wait);"
+.sp 1
+.B "int clif_vsiwait(struct clif *connp, char *ifname, char *cmd, char *reply, size_t *reply_len, int wait);"
+.sp 1
+.SH DESCRIPTION
+The Virtual station interface Discovery Protocol
+is a protocol to manage the association and deassociation of virtual
+machine network interfaces (VSIs) between the station and an adjacent switch.
+VDP is typically used with the local switch in VEPA mode and the adjacent
+switch port in reflective relay (also called haripin) mode.
+This allows all traffic to be sent to the switch for processing.
+Reflective relay mode is negotiated via EVB TLVs (see lldptool-evb).
+.P
+This man pages describes the IEEE 802.1 Qbg ratified standard
+dated from July 5th, 2012. This differs from the draft 0.2 which is
+implemented as well, see
+.BR lldptool-vdp (8).
+For clarification in this man page
+the version complying to the ratified standard is
+called VDP22 and the version complying to the draft 0.2 is called VDP.
+.SS VSI Parameter
+Each VDP22 TLVs contains a command mode, manager identifier,
+type identifier, type identifier version, VSI instance identifier,
+migiration hints and filter information.
+The fields are explained next:
+.TP
+.B "Command Mode:"
+The command mode determines the type 
+of the VSI association to be established.
+It is an ascii string can be one of:
+.RS
+.IP assoc:
+Create an VSI association.
+.IP preassoc:
+Create an VSI preassociation. The association
+is only announced to the switch.
+.IP preassoc-rr:
+Create an VSI preassociation. The association
+is only announced to the switch and the 
+switch should reserve the resources.
+.IP deassoc:
+Delete an VSI association.
+.RE
+Other strings are not recognized and return an error.
+.TP
+.B "Manager identifier:"
+The manager identifier is a string of up to 16
+alphanumeric characters.
+It can also be an UUID according to RFC 4122
+with optional dashes in between.
+.TP
+.B "Type Identifier:"
+The type identifier is a number in the range
+of 0 to 2^24 - 1.
+.TP
+.B "Type Identifier Version:"
+The type identifer version is a number
+in the range of 0 to 255.
+.TP
+.B "VSI Instance Identifier:"
+The VSI instance identifier is
+an UUID according to RFC 4122
+with optional dashes in between.
+.TP
+.B "Migration Hints:"
+The migiration hints is a string aiding in 
+migration of virtual machines:
+.RS
+.IP none:
+No hints available.
+.IP from:
+The virtual machine is migriting away.
+.IP to:
+The virtual machine is migriting to.
+.RE
+.TP
+.B "Filter Information Data:"
+The filter information data can be supplied in four
+different formats:
+.RS
+.IP "vlan (1)"
+A vlan number only, also known as filter information format 1.
+The vlan identifier is a number in the range of 1 to 2^16 - 1.
+The high order 4 bits are used as quality of service bits.
+The vlan identifier can be zero, a vlan identifier is then
+selected by the switch. Refer to IEEE 802.1 Qbg ratified
+standard for details.
+.IP "vlan-mac (2)"
+A vlan number and MAC address delimited by a slash ('-'),
+also known as filter information format 2.
+The MAC address is specified in the format xx:xx:xx:xx:xx:xx.
+The colons are mandatory.
+For vlan details see (1).
+.IP "vlan-mac-group (4)"
+A vlan number, MAC address and group identifier, 
+each delimited by a slash ('-'),
+also known as filter information format 4.
+The group identifier is a 32 bit number.
+For vlan and MAC address details see (1) and (2).
+.IP "vlan--group (3)"
+A vlan number and group identifier, 
+delimited by two slashes ('--'),
+also known as filter information format 3.
+For vlan and group details see (1) and (4).
+.RE
+Several filter information fields can be supplied.
+The have to be separated by comma (',') and must be
+of the same format.
+.SS clif_vsi
+This function sends a VSI command to
+.BR lldpad (8).
+Parameter 
+.I connp
+is a pointer to the connection information.
+This information is obtained by calling
+.I clif_open
+and
+.IR clif_attach .
+Parameter 
+.I ifname
+is the interface name 
+.B lldpad 
+(8) uses to send the VSI data.
+Parameter 
+.I cmd
+points to a character string containing the VSI command.
+The layout of the VSI command has been explained above.
+All VSI fields are concatenated together and separated to
+by commas (',') to form one large string.
+Parameter
+.I reply
+is a pointer to a character array to receive the reply from 
+.BR lldpad (8).
+Parameter
+.I reply_len
+holds the maximum number of characters available in the array 
+pointed to by
+.IR reply .
+On successful return of the call, 
+.I reply_len
+contains the number of characters stored by 
+.BR lldpad (8)
+as the response of the command.
+.P
+The functions returns zero on success and the 
+.I reply
+and
+.I reply_len
+parameters are set.
+.I Reply_len
+contains the number of bytes in the
+memory area pointed to by
+.IR reply .
+.I Reply
+contains the same information and format as the 
+.I cmd
+parameter with several exceptions:
+.RS
+.IP "Command Mode:"
+This field should be the same as in 
+.I cmd
+parameter. If it contains
+.I deassoc
+then the command failed and the field
+.I ",igration hints"
+contains an error numner.
+.IP "Migration Hints:"
+This field contains the error number on why the command
+was not accepted by
+.BR lldpad (8).
+This command failed to pass the 
+.BR lldpad (8)
+sanity checks.
+Note that the command was not even sent to the switch
+for processing.
+If no error occured, this field contains a dash ('-').
+.IP "Filter Information Data:"
+If parameter
+.I cmd
+contained the a 
+.I "vlan identifier"
+of value zero or a
+.I "group identifier"
+the switch is allowed to assign a 
+different 
+.IR "vlan identifier" ,
+which is saved and returned in the reply buffer.
+.RE
+All the other fields should be returned unchanged.
+.P
+The function returns zero when the command was accepted by
+.BR lldpad (8).
+Otherwise it returns a positive number on why the command was not
+accepted.
+.SS clif_vsievt
+After a successful return of
+.IR clif_vsi ,
+.BR lldpad (8)
+has sent the command to the switch and waits for a response from the switch.
+The switch can still deny the request.
+Function
+.I clif_vsievt
+waits for
+parameter
+.I wait
+seconds for a reply from
+.BR lldpad (8).
+Parameter
+.I reply_len
+specifies the maximum buffer size pointed to by parameter
+.IR reply.
+If a response was received in
+.I wait 
+seconds, the function
+returns zero and sets
+.I reply_len
+to the number of bytes received and
+.I reply
+contains the response.
+The format is the same as in 
+.IR clif_vsi .
+.P
+Since the switch can disassociate an established
+VSI association any time, it is recommended
+to call 
+.I clif_vsievt
+periodically to check for disassociate event
+messages from 
+.IR lldpad (8).
+.P
+If the functions fails it returns
+.IP -EINVAL
+No attachment to
+.BR lldpad (8)
+or 
+.I wait
+is negative.
+.IP -EAGAIN
+No message was received during the wait.
+.IP -EIO
+Message was received but could not be read.
+.IP -EBADF
+Message was received but was not an event message.
+.SS clif_vsiwait
+This function combines
+.I clif_vsi 
+and 
+.I clif_vsievt
+into one function call.
+.SH EXAMPLE & USAGE
+Code sample to create an VSI association on 
+.IR eth0 :
+.P
+.nf
+.DS
+char ok[MAX_CLIF_MSGBUF];
+int rc;
+size_t ok_len = sizeof(ok);
+char *cmd ="assoc,blabla,12345,1,00000000-1111-2222-3333-aabbccddeeff"
+		",none,10-aa:bb:00:00:00:10,11-aa:bb:00:00:00:11";
+struct clif *tool_conn = clif_open();
+
+if (!tool_conn) {
+	 fprintf(stderr, "%s can not open connection to LLDPAD\n",
+		 progname);
+	 exit(5);
+}
+
+/* Attach to the vdp22 module */
+if (clif_attach(tool_conn, "80c4")) {
+	fprintf(stderr, "%s can not attach to LLDPAD\n", progname);
+	clif_close(tool_conn);
+	tool_conn = NULL;
+	exit(5);
+}
+
+rc = clif_vsiwait(tool_conn, "eth0", cmd, ok, &ok_len, 5);
+if (!rc) {
+	/* Parse the response in ok */
+	....
+}
+clif_detach(tool_conn));
+clif_close(tool_conn);
+.DE
+.fi
+.SH SEE ALSO
+.BR lldptool-vdp (8),
+.BR lldptool-evb (8),
+.BR lldptool-evb22 (8),
+.BR lldptool (8),
+.BR lldpad (8)
+.br
+IEEE 802.1Qbg (http://www.ieee802.org/1/pages/802.1bg.html)
+.SH AUTHOR
+Thomas Richter
