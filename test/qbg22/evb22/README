@@ -1,0 +1,132 @@
+#
+#  Implementation of EVB according to IEEE 802.1Qbg ratified standard
+#  (c) Copyright IBM Corp. 2014
+#
+#  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
+#
+#  This program is free software; you can redistribute it and/or modify it
+#  under the terms and conditions of the GNU General Public License,
+#  version 2, as published by the Free Software Foundation.
+#
+#  This program is distributed in the hope it will be useful, but WITHOUT
+#  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+#  more details.
+#
+#  You should have received a copy of the GNU General Public License along with
+#  this program; if not, write to the Free Software Foundation, Inc.,
+#  51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+#
+#  The full GNU General Public License is included in this distribution in
+#  the file called "COPYING".
+#
+
+
+Test cases for IEEE802.1Qbg ratified standard EVB module. 
+To test this setup:
+- on bridge_ns 'qbg22sim -v -v -v -d 30 veth2' to display any messages.
+- on 'qbg22sim -v -v -v -d 20 veth0 brtest.evb' to send 5 messages.
+On netns2 name space messages with EVB TLV should be displayed.
+
+Files
+=====
+There are 3 shell scripts which are executed on f18a
+allevb.sh:	Runs all test cases with file names [1-9]*.evb. Uses
+		runevb.sh to execute one test case.
+		On success the exit code is zero, on failure none zero.
+		A none zero exit code termintes the evball.sh immediately.
+runevb.sh	Runs one test case. 
+		Return 0 on success and none zero otherwise.
+		Uses ssh for remote communication between virtual machines
+		and predefined pathes/IP addresses.
+24.sh		<Test case number>.sh contain shell scripts to be executed
+		on the remote virtual machine. Usually done to change some
+		lldpad configuration settings during execution of lldpad.
+
+Tests
+=====
+The following test cases are executed. Each test case has a number.
+All test cases need a lldpad.conf configuration file and an qbg22sim input
+file:
+- The qbg22sim input files have the extension .evb.
+- The lldpad configuration file has the extension -lldpad.conf
+
+The purpose is to trigger an EVB DU exchange between qbg22sim and llpdad.
+The exchanged data can be inspected automaticly with little inteligence
+(see qbg22sim.1) or manually.
+
+Test	Description
+1	Neither station nor bridge support refective-relay.
+2	Station denies reflective-relay but bridge offers it.
+3	Station request reflective-relay but bridge does not support it.
+4	Station request reflective-relay and bridge supports it.
+5	Station request reflective-relay and bridge supports it. After some
+	time bridge turns off reflective relay support.
+6	Station request reflective-relay and bridge supports it. After some
+	time station does not request reflective relay support anymore.
+7	Use different RTE value. Local value is higher.
+8	Use different RTE value. Local value is lower.
+9	Use different RKA value. Local value is higher.
+10	Use different RKA value. Local value is lower.
+11	Use different RWD value. Local value is lower.
+12	Use different RWD value. Local value is higher.
+13	Use different retry value. Local value is higher.
+14	Use different retry value. Local value is lower.
+20	Station request reflective-relay and bridge supports it. Bridge sets
+	group id support, but station denies this.
+21	Station request reflective-relay and bridge supports it. Station sets
+	group id support, but bridge denies this.
+22	Station request reflective-relay and bridge supports it. Bridge sets
+	group id support, station sets group id support.
+23	Station request reflective-relay and bridge supports it. Bridge sets
+	group id support, station sets group id support. Bridge turns it off.
+24	Station request reflective-relay and bridge supports it. Bridge sets
+	group id support, station sets group id support. Station turns it off.
+30	Lldpad runs as bridge no reflective relay support.
+31	Lldpad runs as bridge with reflective relay support.
+32	Lldpad runs as bridge with reflective relay support and bgid support.
+33	Lldpad runs as bridge with reflective relay support and bgid support.
+		Station runs with reflective relay and sgid support
+80	Check for lldptool command using evb22 protocol display evb22
+90	Check for lldptool command using evb22 protocol display evb22
+81-89	Check for lldptool command using evb22 protocol turn off various parms
+
+Remarks:
+On some tests the warning "expect_reply reply to message sent (xx sec) missing
+may appear or not. This is randon, sometime all tests run without any warning
+at all, sometimes several tests display this warning.
+The warning can be ignored. The warning is displayed be the qbg22sim program
+only when an expected reply has not been received in time (1 second).
+The reason is:
+1. qbg22sim sends out and LLDP message
+2. lldpad receives the message and updates its MIB
+3. lldpad waits about 900ms until it sends out its updated LLDP TLS
+4. Mostly qbg22sim gets the reply from lldpad before it sends the next EVB TLV
+   one second later. In vary rare cases the TLVs are received after the timer
+   in qbg22sim expired and the next message is sent. When the next message is
+   sent and no reply received, the warning is issue.
+5. This is no problem at all. The LLDP standard says the messages are exchanged
+   in 1 second intervals without any handshaking at all. Each party simply
+   transmit its current status.
+
+Test Execution
+==============
+Directory structure:
+The following directory structure is assumed:
+/home/richter/dcn/qbg/mywork/open-lldp	--> lldpad
+/home/richter/dcn/qbg/mywork/open-lldp	--> qbg22sim
+/home/richter/dcn/qbg/mywork/nstest/qbg22/evb22	--> EVB protocol test cases
+
+To allow flexibility the path to execute the executables can be specified.
+Set the PATH variable properly.
+
+Select the qbg22sim simulation program by adding a symbolic link
+directory
+1. cd /home/richter/dcn/qbg/mywork/test/qbg22/evb22
+2. Create a symbolic link to the qbg22sim program
+   to use. Something like 'ln -s ../../../open-lldp-new/qbg22sim'
+3. Add the environment variable LLDPAD_DIR=abc to select an different lldpad
+   executable. For example the invocation 
+   LLDPAD_DIR=open-lldp-new evball.sh
+   selects the file /home/richter/dcn/qbg/mywork/open-lldp-new/lldpad
+   for execution.

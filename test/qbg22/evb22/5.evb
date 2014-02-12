@@ -1,0 +1,75 @@
+/*
+ *  Implementation of EVB according to IEEE 802.1Qbg
+ *  (c) Copyright IBM Corp. 2014
+ *
+ *  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
+ *
+ *  This program is free software; you can redistribute it and/or modify it
+ *  under the terms and conditions of the GNU General Public License,
+ *  version 2, as published by the Free Software Foundation.
+ *
+ *  This program is distributed in the hope it will be useful, but WITHOUT
+ *  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ *  more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with
+ *  this program; if not, write to the Free Software Foundation, Inc.,
+ *  51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ *  The full GNU General Public License is included in this distribution in
+ *  the file called "COPYING".
+ *
+ */
+
+/*
+ * EVB Protocol test data. Define a complete LLDP DU in hex. One complete set
+ * is needed for each transmission.
+ * The first column defines the run time of the test program  in seconds
+ * when the remaining data on this line will be sent. The rest of the line are
+ * data fields which define the TLVs.
+ * Line limit is 5KB, long lines can be split  with \\ as last character.
+ *
+ * The files are preprocessed with cpp before being read by the test program.
+ *
+ * The data fields per line are
+ * 1. time
+ * 2. destination MAC
+ * 3. source MAC (dash(-) replaced by the senders MAC address)
+ * 4. ethertype
+ * 5. Severval TLVs according to standard 802.3ad (Mandatory TLV are
+ *    chassis-id, port-id, ttl and end)
+ * 6. Optional. Several TLVs starting with @ which are expected results.
+ *    Its an error is it is missing in the reply or TLV differs.
+ */
+/*
+ * EVB negotiation
+ * - bridge offers support for reflective relay. 
+ * - station request it.
+ * - bridge withdraws reflective relay support some time later.
+ */
+
+#include	"defines.evb"
+
+5	lldpad_mac - lldp_type chassis_tlv port_tlv ttl_tlv120 \\
+		evb_brrr end_tlv @evbhead:02:04:counts
+6	lldpad_mac - lldp_type chassis_tlv port_tlv ttl_tlv120 \\
+		evbhead:03:04:00:40:00 end_tlv @evbhead:03:05:counts
+7	lldpad_mac - lldp_type chassis_tlv port_tlv ttl_tlv120 \\
+		evbhead:03:05:00:40:00 end_tlv @evbhead:03:05:counts
+8	lldpad_mac - lldp_type chassis_tlv port_tlv ttl_tlv120 \\
+		evbhead:03:05:00:40:00 end_tlv @evbhead:03:05:counts
+41	lldpad_mac - lldp_type chassis_tlv port_tlv ttl_tlv120 \\
+		evbhead:03:05:00:40:00 end_tlv @evbhead:03:05:counts
+60	lldpad_mac - lldp_type chassis_tlv port_tlv ttl_tlv120 \\
+		evbhead:00:06:00:40:00 end_tlv @evbhead:00:04:counts
+61	lldpad_mac - lldp_type chassis_tlv port_tlv ttl_tlv120 \\
+		evbhead:00:04:00:40:00 end_tlv @evbhead:00:04:counts
+62	lldpad_mac - lldp_type chassis_tlv port_tlv ttl_tlv120 \\
+		evbhead:00:04:00:40:00 end_tlv @evbhead:00:04:counts
+63	lldpad_mac - lldp_type chassis_tlv port_tlv ttl_tlv120 \\
+		evbhead:00:04:00:40:00 end_tlv @evbhead:00:04:counts
+64	lldpad_mac - lldp_type chassis_tlv port_tlv ttl_tlv120 \\
+		evbhead:00:04:00:40:00 end_tlv @evbhead:00:04:counts
+
+75	lldpad_mac - lldp_type chassis_tlv port_tlv ttl_tlv0 end_tlv

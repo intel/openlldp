@@ -1,0 +1,19 @@
+
+(c) Copyright IBM Corp. 2013
+
+Thomas Richter, IBM Research and Development, Germany, April 2013
+
+Test cases for IEEE802.1Qbg ratified standard QBG22 support.
+
+29-Apr-2013
+===========
+The test cases run on one machine using 2 network name spaces:
+1. Run on one machine using 2 network name spaces (requires linux-3.8 kernel).
+2. Create a pair of virtual network interfaces (veth0 and veth2) and assign
+   veth2 to network name space bridge_ns
+
+lldpad (station rile) uses the default network name space and veth0.
+The qbg22 simulator program qbg22sim uses bridge_ns and veth2 interface.
+The lldpad (bridge role) vor vpd22 protocol testing uses the bridge_ns and
+veth2 interface and creates an unnamed IPC name space to have its on shared
+memory segment.
