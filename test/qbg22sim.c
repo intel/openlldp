@@ -70,7 +70,7 @@
 
 static char *progname;
 static unsigned char eth_p_lldp[2] = { 0x88, 0xcc };
-static unsigned char eth_p_ecp[2] = { 0x88, 0x90 };
+static unsigned char eth_p_ecp[2] = { ETH_P_ECP >> 8, ETH_P_ECP & 0xff };
 
 static int verbose;
 static char *tokens[1024];	/* Used to parse command line params */
@@ -534,7 +534,10 @@ static int addone(void)
 		exit(3);
 	p->opr = valid_cmd();
 	if (p->opr) {
-		p->ether = validate("88:90", 0);
+		char ecp_str[8];
+
+		sprintf(ecp_str, "%02x:%02x", eth_p_ecp[0], eth_p_ecp[1]);
+		p->ether = validate(ecp_str, 0);
 		goto out;
 	}
 	p->dst = validate(tokens[1], 0);
