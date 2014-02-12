@@ -1,0 +1,52 @@
+/*
+ *  Implementation of EVB according to IEEE 802.1Qbg
+ *  (c) Copyright IBM Corp. 2014
+ *
+ *  Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
+ *
+ *  This program is free software; you can redistribute it and/or modify it
+ *  under the terms and conditions of the GNU General Public License,
+ *  version 2, as published by the Free Software Foundation.
+ *
+ *  This program is distributed in the hope it will be useful, but WITHOUT
+ *  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ *  more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with
+ *  this program; if not, write to the Free Software Foundation, Inc.,
+ *  51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ *  The full GNU General Public License is included in this distribution in
+ *  the file called "COPYING".
+ *
+ */
+
+/*
+ * ECP Protocol test data. Define a complete ECP DU in hex. One complete set
+ * is needed for each transmission.
+ */
+/*
+ * Very common defines
+ */
+
+#define	lldpad_mac	01:80:c2:00:00:00
+#define	lldp_type	88:cc
+#define chassis_tlv	02:07:06:64:75:6d:6d:79:00
+#define	port_tlv	04:05:05:65:74:68:30
+#define	ttl_tlv120	06:02:00:78
+#define	ttl_tlv0	06:02:00:00
+#define	end_tlv		00:00
+
+#define	evbhead		fe:09:00:80:c2:0d
+#define	def_counts	68:88:08		/* Default ECP values */
+
+/* Bridge denies reflective-relay */
+#define	evb_norr	evbhead:00:00:00:40:00
+#define	evb_norr_ack	evbhead:00:00:def_counts
+
+#define	ecp_type	89:40
+
+/* Bridge offers reflective-relay */
+#define	evb_brrr	evbhead:02:00:00:40:00
+#define	evb_brrr_ack	evbhead:02:00:def_counts

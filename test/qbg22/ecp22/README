@@ -1,0 +1,80 @@
+
+Implementation of EVB according to IEEE 802.1Qbg
+(c) Copyright IBM Corp. 2014
+
+Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
+
+This program is free software; you can redistribute it and/or modify it
+under the terms and conditions of the GNU General Public License,
+version 2, as published by the Free Software Foundation.
+
+This program is distributed in the hope it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+more details.
+
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+
+The full GNU General Public License is included in this distribution in
+the file called "COPYING".
+
+Thomas Richter, IBM Research and Development, Germany, Aug 2012
+
+Test cases for IEEE802.1Qbg ratified standard ECP module.
+
+Files
+=====
+There are 3 shell scripts which are executed on f18a.
+allecp.sh:	Runs all test cases with file names [1-9]*.ecp. Uses
+		runecp.sh to execute one test case.
+		On success the exit code is zero, on failure none zero.
+		A none zero exit code termintes the programme immediately.
+runecp.sh	Runs one test case. Symbolic link to runevb.sh
+3.sh		<Test case number>.sh contain shell scripts to be executed
+		on the remote virtual machine. Usually done to change some
+		lldpad configuration settings during execution of lldpad.
+3.chk		Runs a shell script to scan the lldpad trace file and
+		checks for proper entries.
+
+Tests
+=====
+The following test cases are executed. Each test case has a number.
+All test cases need a lldpad.conf configuration file and an ECP test input
+file:
+- The ECP test input files have the extension .ecp. The test case number
+  is the base file name.
+- The lldpad configuration file has the extension -lldpad.conf.
+
+The purpose is to trigger an ECP DU exchange between qbg22sim and llpdad.
+The exchanged data can be inspected automaticly with little inteligence
+(see qbg22sim.1) or manually.
+
+Test	Description
+1	bridge does not support refective-relay.
+2	bridge supports refective-relay. Use same sequence number
+3	bridge supports refective-relay. Use different sequence numbers
+4	bridge supports refective-relay. Use different invalid version
+5	bridge supports refective-relay. Use different invalid subversion
+30	bridge supports refective-relay. Interface will go down and up
+	again during the ECP module run time.
+
+Remarks:
+
+Test Execution
+==============
+Directory structure:
+
+The following directory structure is assumed:
+/home/richter/dcn/qbg/mywork/open-lldp	--> lldpad to test on target f18b
+/home/richter/dcn/qbg/mywork/testns/qbg22/evb22	--> EVB protocol test cases
+/home/richter/dcn/qbg/mywork/testns/qbg22/ecp22	--> ECP protocol test cases
+
+Select the qbg22sim program by adding the path relative to test directory
+1. cd /home/richter/dcn/qbg/mywork/test/qbg22/ecp22
+2. Symbolic link such as ./qbg22sim --> ../../../lldpad/qbg22sim.
+3. Add the environment variable LLDPAD_DIR=abc to select an different lldpad
+   executable. For example the invocation 
+	LLDPAD_DIR=new ecpall.sh
+   selects the file /home/richter/dcn/qbg/mywork/new/lldpad for execution.
