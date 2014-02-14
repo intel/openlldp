@@ -118,7 +118,7 @@ struct lldp {			/* LLDP DUs */
 unsigned long runtime;		/* Program run time in seconds */
 static struct lldp *lldphead;	/* List of commands */
 static struct lldp *er_ecp;	/* Expected replies ECP protocol */
-static struct lldp *er_evb;	/* Expected replies ECP protocol */
+static struct lldp *er_evb;	/* Expected replies EVB protocol */
 
 struct ecphdr {			/* ECP header received */
 	unsigned char version;	/* Version number */
