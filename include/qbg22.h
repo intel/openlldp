@@ -72,6 +72,7 @@ struct evb22_to_vdp22 {		/* Notification from EVB to VDP */
 	unsigned char max_rwd;	/* Max number of resource wait delay */
 	unsigned char max_rka;	/* Max number of reinit keep alive */
 	unsigned char gpid;	/* Support group ids in VDP */
+	unsigned char evbon;	/* EVB TLV transmits enabled */
 };
 
 struct ecp22_to_ulp {		/* Notification from ECP to VDP, etc */

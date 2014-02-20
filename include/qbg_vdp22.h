@@ -152,6 +152,7 @@ struct vdp22 {				/* Per interface VSI/VDP data */
 	unsigned char vdp_rka;		/* Reinit keep alive exponent */
 	unsigned char gpid;		/* Supports group ids in VDP */
 	unsigned char myrole;		/* Station or bridge role */
+	unsigned char evbon;		/* True on EVB22 txmit enabled */
 	unsigned char br_down;		/* True when bridge down */
 	unsigned short input_len;	/* Length of input data from ECP */
 	unsigned char input[ETH_DATA_LEN];	/* Input data from ECP */

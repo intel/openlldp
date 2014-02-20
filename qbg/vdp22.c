@@ -649,9 +649,10 @@ static int data_from_evb(char *ifname, struct evb22_to_vdp22 *ptr)
 		vdp->vdp_rka = ptr->max_rka;
 		vdp->vdp_rwd = ptr->max_rwd;
 		vdp->gpid = ptr->gpid;
-		LLDPAD_DBG("%s:%s rwd:%d rka:%d gpid:%d retry:%d rte:%d\n",
+		vdp->evbon = ptr->evbon;
+		LLDPAD_DBG("%s:%s rwd:%d rka:%d gpid:%d retry:%d rte:%d evb:%d\n",
 			   __func__, ifname, ptr->max_rwd, ptr->max_rka,
-			   ptr->gpid, ptr->max_retry, ptr->max_rte);
+			   ptr->gpid, ptr->max_retry, ptr->max_rte, ptr->evbon);
 		rc = 0;
 	}
 	return rc;
@@ -795,6 +796,10 @@ int vdp22_request(struct vdpnl_vsi *vsi, int clif)
 	LLDPAD_DBG("%s:%s clif:%d\n", __func__, vsi->ifname, clif);
 	vdp = vdp22_findif(vsi->ifname, NULL);
 	if (vdp) {
+		if (!vdp->evbon) {
+			rc = -EPROTONOSUPPORT;
+			goto out;
+		}
 		if (vdp->myrole == VDP22_BRIDGE) {
 			rc = -EOPNOTSUPP;
 			goto out;

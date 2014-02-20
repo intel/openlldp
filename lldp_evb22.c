@@ -242,6 +242,7 @@ static void evb22_update_tlv(struct evb22_data *ed)
 	/* Support group identifiers when advertised by both sides */
 	qbg.u.b.gpid = evb_ex_bgid(ed->out.bridge_s)
 		       && evb_ex_sgid(ed->out.station_s);
+	qbg.u.b.evbon = ed->txmit;
 	modules_notify(LLDP_MOD_VDP22, LLDP_MOD_EVB22, ed->ifname, &qbg);
 }
 
