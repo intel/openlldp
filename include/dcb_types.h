@@ -41,11 +41,11 @@
 
 /* DCBX subtypes */
 typedef enum {
-	dcbx_subtype0 = 0,	/* auto IEEE */
-	dcbx_subtype1 = 1,	/* CIN */
-	dcbx_subtype2 = 2,	/* CEE */
-	dcbx_force_subtype1 = 5,/* FORCE CIN */
-	dcbx_force_subtype2 = 6,/* FORCE CEE */
+	DCBX_SUBTYPE0 = 0,	/* auto IEEE */
+	DCBX_SUBTYPE1 = 1,	/* CIN */
+	DCBX_SUBTYPE2 = 2,	/* CEE */
+	DCBX_FORCE_SUBTYPE1 = 5,/* FORCE CIN */
+	DCBX_FORCE_SUBTYPE2 = 6,/* FORCE CEE */
 } dcbx_subtype;
 
 
@@ -54,9 +54,9 @@ typedef enum {
 
 /* PFC configuration */
 typedef enum {
-	pfc_disabled   = 0x000,
-	pfc_enabled,
-	pfc_invalid,
+	PFC_DISABLED   = 0x000,
+	PFC_ENABLED,
+	PFC_INVALID,
 } pfc_type;
 
 /* Peer DCB TLV States */
@@ -70,10 +70,10 @@ typedef enum {
 typedef pfc_type dcb_pfc_type;
 
 typedef enum {
-	dcb_none       = 0x0000,
-	dcb_group,
-	dcb_link,
-	dcb_invalid,
+	DCB_NONE       = 0x0000,
+	DCB_GROUP,
+	DCB_LINK,
+	DCB_INVALID,
 } dcb_strict_priority_type;
 
 typedef pfc_type dcb_pfc_list_type[MAX_USER_PRIORITIES];

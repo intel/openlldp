@@ -253,8 +253,8 @@ int lldpad_shm_get_dcbx(const char *device_name)
 	for (i = 0; i < num_entries; i++) {
 		if (strcmp(shmaddr->ent[i].ifname, device_name) == 0) {
 			switch (shmaddr->ent[i].dcbx_mode) {
-			case dcbx_subtype1:
-			case dcbx_subtype2:
+			case DCBX_SUBTYPE1:
+			case DCBX_SUBTYPE2:
 				rval = shmaddr->ent[i].dcbx_mode;
 				break;
 			default:
@@ -303,8 +303,8 @@ int lldpad_shm_set_dcbx(const char *device_name, int dcbx_mode)
 	if (num_entries > MAX_LLDPAD_SHM_ENTRIES)
 		goto done;
 
-	if ((dcbx_mode != dcbx_subtype0) && (dcbx_mode != dcbx_subtype1) &&
-	    (dcbx_mode != dcbx_subtype2))
+	if ((dcbx_mode != DCBX_SUBTYPE0) && (dcbx_mode != DCBX_SUBTYPE1) &&
+	    (dcbx_mode != DCBX_SUBTYPE2))
 		goto done;
 
 	/* search for existing entry */

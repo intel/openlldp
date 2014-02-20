@@ -144,9 +144,9 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 			if (!entry)
 				continue;
 
-			if (entry->strict_priority == dcb_link)
+			if (entry->strict_priority == DCB_LINK)
 				strict++;
-			else if (fixpfc && fixpfc->admin[j] == pfc_enabled)
+			else if (fixpfc && fixpfc->admin[j] == PFC_ENABLED)
 				pfc++;
 			else
 				be++;
@@ -188,11 +188,11 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 				continue;
 
 			if (pgid < 0) {
-				if (entry->strict_priority == dcb_link) {
+				if (entry->strict_priority == DCB_LINK) {
 					pgid = cbe + cpfc + strict;
 					strict++;
 				} else if (fixpfc &&
-					   fixpfc->admin[j] == pfc_enabled) {
+					   fixpfc->admin[j] == PFC_ENABLED) {
 					pgid = cbe + pfc;
 					pfc++;
 				} else {
@@ -252,7 +252,7 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
 		fixpg->tx.up[i].bwgid = i;
 
-		if (fixpg->tx.up[i].strict_priority == dcb_link) {
+		if (fixpg->tx.up[i].strict_priority == DCB_LINK) {
 			fixpg->tx.up[i].percent_of_pg_cap = 0;
 			fixpg->rx.up[i].percent_of_pg_cap = 0;
 		} else {
@@ -314,7 +314,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 
 		/* Internally in the pg_attribs structure, a link strict PGID is 
 		 * maintained as a PGID value (0-7) with a corresponding
-		 * strict_priority field value of 'dcb_link'.  Only one link strict
+		 * strict_priority field value of 'DCB_LINK'.  Only one link strict
 		 * PGID is allowed.
 		*/
 		link_strict_pgid = LINK_STRICT_PGID;
@@ -323,7 +323,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 			tx_bw = tx_bw + pg->tx.pg_percent[i];
 
 			/* check for >1 link strict PGID */
-			if (pg->tx.up[i].strict_priority == dcb_link) {
+			if (pg->tx.up[i].strict_priority == DCB_LINK) {
 				if (link_strict_pgid == LINK_STRICT_PGID) {
 					link_strict_pgid = pg->tx.up[i].pgid;
 				} else if (pg->tx.up[i].pgid != link_strict_pgid) {
@@ -343,7 +343,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 			 */
 			for (i = 0; i < MAX_BW_GROUP; i++) {
 				if ((tx_bw != 0) || (pg->tx.up[i].strict_priority !=
-					dcb_link)) {
+					DCB_LINK)) {
 					LLDPAD_INFO("Invalid tx total BWG %d\n",
 							(int)tx_bw);
 					return cmd_bad_params;
@@ -356,7 +356,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 			rx_bw = rx_bw + pg->rx.pg_percent[i];
 
 			/* check for >1 link strict PGID */
-			if (pg->rx.up[i].strict_priority == dcb_link) {
+			if (pg->rx.up[i].strict_priority == DCB_LINK) {
 				if (link_strict_pgid == LINK_STRICT_PGID) {
 					link_strict_pgid = pg->rx.up[i].pgid;
 				} else if (pg->rx.up[i].pgid != link_strict_pgid) {
@@ -376,7 +376,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 			 */
 			for (i = 0; i < MAX_BW_GROUP; i++) {
 				if ((rx_bw != 0) || (pg->rx.up[i].strict_priority !=
-					dcb_link)) {
+					DCB_LINK)) {
 					LLDPAD_INFO("Invalid RX total BWG %d\n",
 							(int)rx_bw);
 					return cmd_bad_params;
@@ -403,7 +403,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 					(int)tx_bw_id);
 				return  cmd_bad_params;
 			}
-			if (pg->tx.up[i].strict_priority == dcb_link) {
+			if (pg->tx.up[i].strict_priority == DCB_LINK) {
 				tx_link_strict[tx_bw_id] = true;
 				/* Link strict should have zero bandwidth */
 				if (tx_bw){
@@ -425,7 +425,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 				LLDPAD_INFO("Invalid RX BW %i", rx_bw_id);
 				return cmd_bad_params;
 			}	   
-			if (pg->rx.up[i].strict_priority == dcb_link) {
+			if (pg->rx.up[i].strict_priority == DCB_LINK) {
 				rx_link_strict[rx_bw_id] = true;
 				/* Link strict class should have zero bandwidth */
 				if (rx_bw){
@@ -517,7 +517,7 @@ void rebalance_uppcts(pg_attribs *pg)
 		for (i = 0; i < MAX_USER_PRIORITIES; i++) {
 			if (pg->tx.up[i].bwgid == bwgid) {
 				uplist[num_found++] = (u8)i;
-				if (pg->tx.up[i].strict_priority == dcb_link) {
+				if (pg->tx.up[i].strict_priority == DCB_LINK) {
 					link_strict = true;
 					pg->tx.up[i].percent_of_pg_cap = 0;
 					pg->rx.up[i].percent_of_pg_cap = 0;
@@ -535,8 +535,8 @@ void rebalance_uppcts(pg_attribs *pg)
 				}
 				pg->tx.up[uplist[i]].percent_of_pg_cap = (u8)value;
 				pg->rx.up[uplist[i]].percent_of_pg_cap = (u8)value;
-				pg->tx.up[uplist[i]].strict_priority = dcb_none;
-				pg->rx.up[uplist[i]].strict_priority = dcb_none;
+				pg->tx.up[uplist[i]].strict_priority = DCB_NONE;
+				pg->rx.up[uplist[i]].strict_priority = DCB_NONE;
 			}
 		}
 	}

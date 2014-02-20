@@ -465,7 +465,7 @@ void print_dcb_cmd_response(char *buf, int status)
 	int version;
 	int dcb_cmd;
 	int feature;
-	int dcbx_st = dcbx_subtype1;
+	int dcbx_st = DCBX_SUBTYPE1;
 	int subtype = 0;
 	int plen = 0;
 	int doff;
@@ -634,16 +634,16 @@ void print_dcb_cmd_response(char *buf, int status)
 	case FEATURE_DCBX:
 		printf("DCBX Version:\t");
 		switch (*(buf+doff+DCBX_VERSION) ^ '0') {
-		case dcbx_subtype1:
+		case DCBX_SUBTYPE1:
 			printf("CIN\n");
 			break;
-		case dcbx_subtype2:
+		case DCBX_SUBTYPE2:
 			printf("CEE\n");
 			break;
-		case dcbx_force_subtype1:
+		case DCBX_FORCE_SUBTYPE1:
 			printf("FORCED CIN\n");
 			break;
-		case dcbx_force_subtype2:
+		case DCBX_FORCE_SUBTYPE2:
 			printf("FORCED CEE\n");
 			break;
 		default:
@@ -680,7 +680,7 @@ void print_dcb_cmd_response(char *buf, int status)
 		printf("\n");
 
 		if ((dcb_cmd != CMD_GET_PEER) ||
-			(dcb_cmd == CMD_GET_PEER && dcbx_st == dcbx_subtype1)) {
+			(dcb_cmd == CMD_GET_PEER && dcbx_st == DCBX_SUBTYPE1)) {
 			printf("uppct:     \t");
 			for (i=0; i<MAX_USER_PRIORITIES; i++) {
 				n = hex2int(buf+doff+PG_UP_PCNT(i));

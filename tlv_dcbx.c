@@ -107,7 +107,7 @@ struct unpacked_tlv *bld_dcbx1_tlv(struct dcbx_tlvs *dcbx)
 	struct unpacked_tlv *tlv = create_tlv();
 	struct  packed_tlv *ptlv =  NULL;
 	u8 oui[DCB_OUI_LEN] = INIT_DCB_OUI;
-	u8 subtype = dcbx_subtype1;
+	u8 subtype = DCBX_SUBTYPE1;
 	u32 offset = 0;
 
 	if (!tlv)
@@ -211,7 +211,7 @@ struct unpacked_tlv *bld_dcbx2_tlv(struct dcbx_tlvs *dcbx)
 	struct unpacked_tlv *tlv = create_tlv();
 	struct packed_tlv *ptlv =  NULL;
 	u8 oui[DCB_OUI_LEN] = INIT_DCB_OUI;
-	u8 subtype = dcbx_subtype2;
+	u8 subtype = DCBX_SUBTYPE2;
 	u32 offset = 0;
 
 	if (!tlv)
@@ -448,14 +448,14 @@ struct unpacked_tlv *bld_dcbx2_pg_tlv(struct dcbx_tlvs *dcbx, bool *success)
 
 		for (j=0,k=0 ; k < MAX_BANDWIDTH_GROUPS; j++, k=k+2) {
 			tmpbyte = 0;
-			if (pg_cfg.tx.up[k].strict_priority == dcb_link)
+			if (pg_cfg.tx.up[k].strict_priority == DCB_LINK)
 				tmpbyte = 0xf;
 			else
 				tmpbyte = pg_cfg.tx.up[k].pgid & 0xf;
 
 			tmpbyte <<= 4;
 
-			if (pg_cfg.tx.up[k+1].strict_priority == dcb_link)
+			if (pg_cfg.tx.up[k+1].strict_priority == DCB_LINK)
 				tmpbyte |= 0xf;
 			else
 				tmpbyte |= (pg_cfg.tx.up[k+1].pgid & 0xf);
@@ -873,7 +873,7 @@ bool unpack_dcbx1_tlvs(struct port *port, struct lldp_agent *agent,
 			break;
 		case DCB_PRIORITY_GROUPS_TLV:
 			/* store if subtype 2 is not present */
-			if (agent->rx.dcbx_st == dcbx_subtype1) {
+			if (agent->rx.dcbx_st == DCBX_SUBTYPE1) {
 				if (tlvs->manifest->dcbx_pg == NULL) {
 					tlvs->dcbdu |= RCVD_DCBX_TLV_PG;
 					tlvs->manifest->dcbx_pg = dcbtlv;
@@ -888,7 +888,7 @@ bool unpack_dcbx1_tlvs(struct port *port, struct lldp_agent *agent,
 			break;
 		case DCB_PRIORITY_FLOW_CONTROL_TLV:
 			/* store if subtype 2 is not present */
-			if (agent->rx.dcbx_st == dcbx_subtype1) {
+			if (agent->rx.dcbx_st == DCBX_SUBTYPE1) {
 				if (tlvs->manifest->dcbx_pfc == NULL) {
 					tlvs->dcbdu |= RCVD_DCBX_TLV_PFC;
 					tlvs->manifest->dcbx_pfc = dcbtlv;
@@ -903,7 +903,7 @@ bool unpack_dcbx1_tlvs(struct port *port, struct lldp_agent *agent,
 			break;
 		case DCB_APPLICATION_TLV:
 			/* store if subtype 2 is not present */
-			if ((agent->rx.dcbx_st == dcbx_subtype1) &&
+			if ((agent->rx.dcbx_st == DCBX_SUBTYPE1) &&
 				(dcbtlv->info[DCBX_HDR_SUB_TYPE_OFFSET]
 					== APP_FCOE_STYPE)) {
 				if (tlvs->manifest->dcbx_app == NULL) {
@@ -1213,7 +1213,7 @@ bool process_dcbx_pg_tlv(struct port *port, struct lldp_agent *agent)
 	if (agent == NULL)
 		return false;
 
-	if (agent->rx.dcbx_st == dcbx_subtype2) {
+	if (agent->rx.dcbx_st == DCBX_SUBTYPE2) {
 		if (tlvs->manifest->dcbx_pg->length != DCBX2_PG_LEN) {
 			LLDPAD_DBG("process_dcbx2_pg_tlv: ERROR - len\n");
 			return(false);
@@ -1258,7 +1258,7 @@ bool process_dcbx_pg_tlv(struct port *port, struct lldp_agent *agent)
 		peer_pg.protocol.Error_Flag |= DUP_DCBX_TLV_PG;
 	}
 
-	if (agent->rx.dcbx_st == dcbx_subtype2) {
+	if (agent->rx.dcbx_st == DCBX_SUBTYPE2) {
 		memset(used, false, sizeof(used));
 		for (j=0,k=0 ; k < MAX_BANDWIDTH_GROUPS; j++, k=k+2) {
 			u8 tmpbyte = tlvs->manifest->dcbx_pg->info
@@ -1268,14 +1268,14 @@ bool process_dcbx_pg_tlv(struct port *port, struct lldp_agent *agent)
 			peer_pg.tx.up[k].pgid = (tmpbyte >> 4) & 0xf;
 			peer_pg.rx.up[k].pgid = (tmpbyte >> 4) & 0xf;
 			if (peer_pg.tx.up[k+1].pgid == LINK_STRICT_PGID) {
-				peer_pg.tx.up[k+1].strict_priority = dcb_link;
-				peer_pg.rx.up[k+1].strict_priority = dcb_link;
+				peer_pg.tx.up[k+1].strict_priority = DCB_LINK;
+				peer_pg.rx.up[k+1].strict_priority = DCB_LINK;
 			} else {
 				used[peer_pg.tx.up[k+1].pgid] = true;
 			}
 			if (peer_pg.tx.up[k].pgid == LINK_STRICT_PGID) {
-				peer_pg.tx.up[k].strict_priority = dcb_link;
-				peer_pg.rx.up[k].strict_priority = dcb_link;
+				peer_pg.tx.up[k].strict_priority = DCB_LINK;
+				peer_pg.rx.up[k].strict_priority = DCB_LINK;
 			} else {
 				used[peer_pg.tx.up[k].pgid] = true;
 			}
@@ -1360,7 +1360,7 @@ bool process_dcbx_pfc_tlv(struct port *port, struct lldp_agent *agent)
 	if (agent == NULL)
 		return false;
 
-	if (agent->rx.dcbx_st == dcbx_subtype2) {
+	if (agent->rx.dcbx_st == DCBX_SUBTYPE2) {
 		if (tlvs->manifest->dcbx_pfc->length != DCBX2_PFC_LEN) {
 			LLDPAD_DBG("process_dcbx2_pfc_tlv: ERROR - len\n");
 			return(false);
@@ -1410,7 +1410,7 @@ bool process_dcbx_pfc_tlv(struct port *port, struct lldp_agent *agent)
 		temp = tlvs->manifest->dcbx_pfc->info[DCBX_PFC_MAP_OFFSET];
 		peer_pfc.admin[i] = (pfc_type)((temp >> i) & BIT0);
 	}
-	if (agent->rx.dcbx_st == dcbx_subtype2) {
+	if (agent->rx.dcbx_st == DCBX_SUBTYPE2) {
 		peer_pfc.num_tcs = tlvs->manifest->dcbx_pfc->info
 				[DCBX2_PFC__NUM_TC_OFFSET];
 	}
@@ -1437,7 +1437,7 @@ bool process_dcbx_app_tlv(struct port *port, struct lldp_agent *agent)
 		return false;
 
 	len = tlvs->manifest->dcbx_app->length;
-	if (agent->rx.dcbx_st == dcbx_subtype2) {
+	if (agent->rx.dcbx_st == DCBX_SUBTYPE2) {
 		if (len < DCBX2_APP_LEN) {
 			LLDPAD_DBG("process_dcbx2_app_tlv: ERROR - len\n");
 			return(false);
@@ -1481,7 +1481,7 @@ bool process_dcbx_app_tlv(struct port *port, struct lldp_agent *agent)
 		peer_app.protocol.Error_Flag |= DUP_DCBX_TLV_APP;
 	}
 
-	if (agent->rx.dcbx_st == dcbx_subtype2) {
+	if (agent->rx.dcbx_st == DCBX_SUBTYPE2) {
 		/* processs upper layer protocol IDs until we 
 		 * match Selector Field, FCoE or FIP ID and OUI */
 		len -= DCBX2_APP_DATA_OFFSET;
@@ -1550,7 +1550,7 @@ bool process_dcbx_app_tlv(struct port *port, struct lldp_agent *agent)
 			put_peer_app(port->ifname, APP_ISCSI_STYPE, &peer_app);
 		if (!fip)
 			put_peer_app(port->ifname, APP_FIP_STYPE, &peer_app);
-	} else if (agent->rx.dcbx_st == dcbx_subtype1) {
+	} else if (agent->rx.dcbx_st == DCBX_SUBTYPE1) {
 		sub_type = pBuf[DCBX_HDR_SUB_TYPE_OFFSET];
 		len = tlvs->manifest->dcbx_app->length -
 			sizeof(struct  dcbx_tlv_header);

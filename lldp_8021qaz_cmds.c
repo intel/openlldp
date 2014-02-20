@@ -147,13 +147,13 @@ get_arg_dcbx_mode(struct cmd *cmd, char *args, UNUSED char *arg_value,
 	}
 
 	switch (lldpad_shm_get_dcbx(cmd->ifname)) {
-	case dcbx_subtype0:
+	case DCBX_SUBTYPE0:
 		snprintf(buf, sizeof(buf), "auto");
 		break;
-	case dcbx_subtype1:
+	case DCBX_SUBTYPE1:
 		snprintf(buf, sizeof(buf), "CIN");
 		break;
-	case dcbx_subtype2:
+	case DCBX_SUBTYPE2:
 		snprintf(buf, sizeof(buf), "CEE");
 		break;
 	default:
@@ -213,7 +213,7 @@ static int set_arg_dcbx_mode(struct cmd *cmd, UNUSED char *args,
 		return cmd_invalid;
 
 
-	lldpad_shm_set_dcbx(cmd->ifname, dcbx_subtype0);
+	lldpad_shm_set_dcbx(cmd->ifname, DCBX_SUBTYPE0);
 	snprintf(obuf, obuf_len, "mode = %s\n", arg_value);
 
 	return cmd_success;

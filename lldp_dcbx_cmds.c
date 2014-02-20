@@ -298,10 +298,10 @@ static cmd_status set_dcbx_config(char *ibuf, int ilen)
 	if (ilen == DCBX_CFG_OFF + CFG_DCBX_DLEN) {
 		version = (*(ibuf+off+DCBX_VERSION)) ^ '0';
 		switch (version) {
-		case dcbx_subtype1:
-		case dcbx_subtype2:
-		case dcbx_force_subtype1:
-		case dcbx_force_subtype2:
+		case DCBX_SUBTYPE1:
+		case DCBX_SUBTYPE2:
+		case DCBX_FORCE_SUBTYPE1:
+		case DCBX_FORCE_SUBTYPE2:
 			rval = save_dcbx_version(version);
 			break;
 		default:
@@ -783,7 +783,7 @@ static cmd_status get_pg_data(pg_attribs *pg_data, int cmd, char *port_id,
 	for (i = 0; i < MAX_BANDWIDTH_GROUPS; i++)
 		sprintf(rbuf+PG_PG_PCNT(i), "%02x", pg_data->tx.pg_percent[i]);
 	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
-		if (pg_data->tx.up[i].strict_priority == dcb_link)
+		if (pg_data->tx.up[i].strict_priority == DCB_LINK)
 			value = LINK_STRICT_PGID;
 		else
 			value = pg_data->tx.up[i].pgid;
@@ -791,27 +791,27 @@ static cmd_status get_pg_data(pg_attribs *pg_data, int cmd, char *port_id,
 	}
 	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
 		if ((cmd != CMD_GET_PEER) ||
-			(cmd == CMD_GET_PEER && dcbx_st == dcbx_subtype1))
+			(cmd == CMD_GET_PEER && dcbx_st == DCBX_SUBTYPE1))
 			sprintf(rbuf+PG_UP_PCNT(i), "%02x",
 				pg_data->tx.up[i].percent_of_pg_cap);
-		else if (cmd == CMD_GET_PEER && dcbx_st == dcbx_subtype2)
+		else if (cmd == CMD_GET_PEER && dcbx_st == DCBX_SUBTYPE2)
 			sprintf(rbuf+PG_UP_PCNT(i), "%c%c",
 				CLIF_NOT_SUPPLIED, CLIF_NOT_SUPPLIED);
 	}
 	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
 		if ((cmd != CMD_GET_PEER) ||
-			(cmd == CMD_GET_PEER && dcbx_st == dcbx_subtype1)) {
-			if (pg_data->tx.up[i].strict_priority == dcb_link)
-				value = dcb_none;
+			(cmd == CMD_GET_PEER && dcbx_st == DCBX_SUBTYPE1)) {
+			if (pg_data->tx.up[i].strict_priority == DCB_LINK)
+				value = DCB_NONE;
 			else
 				value = pg_data->tx.up[i].strict_priority;
 			sprintf(rbuf+PG_UP_STRICT(i), "%1x", value);
-		} else if (cmd == CMD_GET_PEER && dcbx_st == dcbx_subtype2) {
+		} else if (cmd == CMD_GET_PEER && dcbx_st == DCBX_SUBTYPE2) {
 			sprintf(rbuf+PG_UP_STRICT(i), "%c", CLIF_NOT_SUPPLIED);
 		}
 	}
 
-	if ((cmd == CMD_GET_PEER && dcbx_st == dcbx_subtype1) ||
+	if ((cmd == CMD_GET_PEER && dcbx_st == DCBX_SUBTYPE1) ||
 		(cmd == CMD_GET_OPER))
 		sprintf(rbuf+PG_UP_NUM_TC, "%c", CLIF_NOT_SUPPLIED);
 	else
@@ -852,7 +852,7 @@ static int get_pfc_data(pfc_attribs *pfc_data, int cmd, char *port_id,
 		sprintf(rbuf+PFC_UP(i), "%1x", pfc_data->admin[i]);
 	}
 
-	if ((cmd == CMD_GET_PEER && dcbx_st == dcbx_subtype1) ||
+	if ((cmd == CMD_GET_PEER && dcbx_st == DCBX_SUBTYPE1) ||
 		(cmd == CMD_GET_OPER))
 		sprintf(rbuf+PFC_NUM_TC, "%c", CLIF_NOT_SUPPLIED);
 	else
@@ -972,7 +972,7 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 			flag = *(ibuf+off+PG_UP_PGID(i));
 			if (flag == CLIF_NOT_SUPPLIED) {
 				if (pg_data->tx.up[i].strict_priority ==
-					dcb_link)
+					DCB_LINK)
 					flag = LINK_STRICT_PGID;
 				else
 					flag = pg_data->tx.up[i].pgid;
@@ -1015,8 +1015,8 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 				pg_data->tx.up[i].strict_priority |= flag;
 				pg_data->rx.up[i].strict_priority |= flag;
 			} else {
-				pg_data->tx.up[i].strict_priority &= ~dcb_group;
-				pg_data->rx.up[i].strict_priority &= ~dcb_group;
+				pg_data->tx.up[i].strict_priority &= ~DCB_GROUP;
+				pg_data->rx.up[i].strict_priority &= ~DCB_GROUP;
 			}
 		}
 
@@ -1034,14 +1034,14 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 		for (i = 0; i < MAX_USER_PRIORITIES; i++) {
 			if (pg_data->tx.up[i].pgid == LINK_STRICT_PGID ||
 				(!used[pg_data->tx.up[i].pgid] &&
-				pg_data->tx.up[i].strict_priority & dcb_link)) {
+				pg_data->tx.up[i].strict_priority & DCB_LINK)) {
 				pg_data->tx.up[i].pgid = flag;
 				pg_data->rx.up[i].pgid = flag;
-				pg_data->tx.up[i].strict_priority = dcb_link;
-				pg_data->rx.up[i].strict_priority = dcb_link;
+				pg_data->tx.up[i].strict_priority = DCB_LINK;
+				pg_data->rx.up[i].strict_priority = DCB_LINK;
 			} else {
-				pg_data->tx.up[i].strict_priority &= ~dcb_link;
-				pg_data->rx.up[i].strict_priority &= ~dcb_link;
+				pg_data->tx.up[i].strict_priority &= ~DCB_LINK;
+				pg_data->rx.up[i].strict_priority &= ~DCB_LINK;
 			}
 		}
 	} else if (ilen != off) {
@@ -1098,9 +1098,9 @@ static int set_pfc_config(pfc_attribs *pfc_data, char *port_id, char *ibuf,
 			if (flag == CLIF_NOT_SUPPLIED)
 				continue;
 			if (flag)
-				pfc_data->admin[i] = pfc_enabled;
+				pfc_data->admin[i] = PFC_ENABLED;
 			else
-				pfc_data->admin[i] = pfc_disabled;
+				pfc_data->admin[i] = PFC_DISABLED;
 		}
 	} else if (ilen != off) {
 		/* at least needs to include the protocol settings */

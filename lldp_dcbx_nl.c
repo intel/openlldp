@@ -753,9 +753,9 @@ int set_hw_pfc(char *ifname, dcb_pfc_list_type pfc_data,
 
 	for (i = 0; i < MAX_TRAFFIC_CLASSES; i++) {
 		if (pfc_temp[i])
-			pfc[i] = pfc_enabled;
+			pfc[i] = PFC_ENABLED;
 		else
-			pfc[i] = pfc_disabled;
+			pfc[i] = PFC_DISABLED;
 	}
 
 	rval = set_pfc_cfg(ifname, &pfc[0]);

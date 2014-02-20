@@ -320,7 +320,7 @@ int dcbx_default_cfg_file(void)
 
 	tmp_setting = config_setting_add(dcbx_setting, "dcbx_version",
 		CONFIG_TYPE_INT);
-	if (!tmp_setting || !config_setting_set_int(tmp_setting, dcbx_subtype2))
+	if (!tmp_setting || !config_setting_set_int(tmp_setting, DCBX_SUBTYPE2))
 		goto error;
 
 	config_write_file(&lldpad_cfg, cfg_file_name);
@@ -1104,10 +1104,10 @@ int get_dcbx_version(int *result)
 
 	if (get_int_config(dcbx_setting, "dcbx_version", TYPE_INT, result)) {
 		switch (*result) {
-		case dcbx_subtype1:
-		case dcbx_subtype2:
-		case dcbx_force_subtype1:
-		case dcbx_force_subtype2:
+		case DCBX_SUBTYPE1:
+		case DCBX_SUBTYPE2:
+		case DCBX_FORCE_SUBTYPE1:
+		case DCBX_FORCE_SUBTYPE2:
 			rval = 1;
 			break;
 		default:

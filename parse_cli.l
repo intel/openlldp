@@ -226,19 +226,19 @@ gp	{ if (!cmd) {
 				BEGIN(cmddone);
 				}
 
-<getdcbxver>cee			{ dcbx_version = dcbx_subtype2;
+<getdcbxver>cee			{ dcbx_version = DCBX_SUBTYPE2;
 				BEGIN(cmddone);
 				}
 
-<getdcbxver>cin			{ dcbx_version = dcbx_subtype1;
+<getdcbxver>cin			{ dcbx_version = DCBX_SUBTYPE1;
 				BEGIN(cmddone);
 				}
 
-<getdcbxver>force-cee		{ dcbx_version = dcbx_force_subtype2;
+<getdcbxver>force-cee		{ dcbx_version = DCBX_FORCE_SUBTYPE2;
 				BEGIN(cmddone);
 				}
 
-<getdcbxver>force-cin		{ dcbx_version = dcbx_force_subtype1;
+<getdcbxver>force-cin		{ dcbx_version = DCBX_FORCE_SUBTYPE1;
 				BEGIN(cmddone);
 				}
 

@@ -261,7 +261,7 @@ static bool check_int(int int_setting)
 
 static bool check_priority(int priority_setting)
 {
-	if (priority_setting < dcb_none || priority_setting >= dcb_invalid)
+	if (priority_setting < DCB_NONE || priority_setting >= DCB_INVALID)
 		return false;
 	else
 		return true;

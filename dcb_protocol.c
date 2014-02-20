@@ -45,7 +45,7 @@
 #include "linux/dcbnl.h"
 
 static void handle_opermode_true(char *device_name);
-u8        gdcbx_subtype = dcbx_subtype2;
+u8        gdcbx_subtype = DCBX_SUBTYPE2;
 
 int set_configuration(char *device_name, u32 EventFlag);
 
@@ -1213,7 +1213,7 @@ int dcbx_remove_adapter(char *device_name)
 			LLDPAD_DBG("remove_adapter: oper llink not found\n");
 	}
 
-	lldpad_shm_set_dcbx(device_name, dcbx_subtype0);
+	lldpad_shm_set_dcbx(device_name, DCBX_SUBTYPE0);
 	return true;
 }
 
@@ -1343,7 +1343,7 @@ bool add_pg_defaults()
 		pg_data.tx.up[index].pgid = (u8)(index);
 		pg_data.tx.up[index].bwgid = (u8)index;
 		pg_data.tx.up[index].percent_of_pg_cap = BW_PERCENT;
-		pg_data.tx.up[index].strict_priority = dcb_none;
+		pg_data.tx.up[index].strict_priority = DCB_NONE;
 	}
 	temp = rmndr;
 	for (index=0; index < MAX_BANDWIDTH_GROUPS; index++) {
@@ -1357,7 +1357,7 @@ bool add_pg_defaults()
 		pg_data.rx.up[index].pgid = (u8)(index);
 		pg_data.rx.up[index].bwgid = (u8)index;
 		pg_data.rx.up[index].percent_of_pg_cap = BW_PERCENT;
-		pg_data.rx.up[index].strict_priority = dcb_none;
+		pg_data.rx.up[index].strict_priority = DCB_NONE;
 	}
 
 	snprintf(sTmp, MAX_DESCRIPTION_LEN, DEF_CFG_STORE);
@@ -1391,7 +1391,7 @@ bool add_pfc_defaults()
 	pfc_data.protocol.Advertise = 1;
 
 	for (index=0; index < MAX_TRAFFIC_CLASSES; index++)
-		pfc_data.admin[index] = pfc_disabled;
+		pfc_data.admin[index] = PFC_DISABLED;
 
 	snprintf(sTmp, MAX_DESCRIPTION_LEN, DEF_CFG_STORE);
 	/* Create pfc default data store for the device. */
@@ -1611,7 +1611,7 @@ cmd_status put_pg(char *device_name, pg_attribs *pg_data, pfc_attribs *pfc_data)
 
 		memcpy(&(it->second->rx), &(pg_data->rx), sizeof(pg_data->rx));
 		memcpy(&(it->second->tx), &(pg_data->tx), sizeof(pg_data->tx));
-		if (it->second->protocol.dcbx_st == dcbx_subtype2)
+		if (it->second->protocol.dcbx_st == DCBX_SUBTYPE2)
 			it->second->num_tcs = pg_data->num_tcs;
 
 		DCB_SET_FLAGS(EventFlag, DCB_LOCAL_CHANGE_PG);
@@ -1653,7 +1653,7 @@ cmd_status put_peer_pg(char *device_name,  pg_attribs *peer_pg_data)
 		goto Exit;
 	}
 
-	if (peer_pg_data->protocol.dcbx_st == dcbx_subtype2)
+	if (peer_pg_data->protocol.dcbx_st == DCBX_SUBTYPE2)
 		rebalance_uppcts(peer_pg_data);
 
 	/* detect config change */
@@ -1677,7 +1677,7 @@ cmd_status put_peer_pg(char *device_name,  pg_attribs *peer_pg_data)
 		sizeof(peer_pg_data->rx));
 	memcpy(&(peer_it->second->tx), &(peer_pg_data->tx),
 		sizeof(peer_pg_data->tx));
-	if (peer_it->second->protocol.dcbx_st == dcbx_subtype2)
+	if (peer_it->second->protocol.dcbx_st == DCBX_SUBTYPE2)
 		peer_it->second->num_tcs = peer_pg_data->num_tcs;
 Exit:
 	return result;
@@ -1777,7 +1777,7 @@ cmd_status put_pfc(char *device_name, pfc_attribs *pfc_data)
 
 		memcpy(it->second->admin, pfc_data->admin,
 			sizeof(pfc_data->admin));
-		if (it->second->protocol.dcbx_st == dcbx_subtype2)
+		if (it->second->protocol.dcbx_st == DCBX_SUBTYPE2)
 			it->second->num_tcs = pfc_data->num_tcs;
 
 		/* Run the protocol */
@@ -1835,7 +1835,7 @@ cmd_status put_peer_pfc(char *device_name, pfc_attribs *peer_pfc_data)
 
 	memcpy(peer_it->second->admin, &peer_pfc_data->admin,
 		sizeof(peer_pfc_data->admin));
-	if (peer_it->second->protocol.dcbx_st == dcbx_subtype2)
+	if (peer_it->second->protocol.dcbx_st == DCBX_SUBTYPE2)
 		peer_it->second->num_tcs = peer_pfc_data->num_tcs;
 Exit:
 	return result;
@@ -2575,7 +2575,7 @@ bool LocalPeerCompatible(char *device_name, u32 EventFlag, u32 Subtype)
 		ppg = Peer->second;
 
 		match = true;
-		if (ppg->protocol.dcbx_st == dcbx_subtype1) {
+		if (ppg->protocol.dcbx_st == DCBX_SUBTYPE1) {
 			for (i = 0; i < MAX_USER_PRIORITIES; i++) {
 				if (lpg->tx.up[i].bwgid !=
 					ppg->tx.up[i].bwgid)
@@ -3180,7 +3180,7 @@ cmd_status run_feature_protocol(char *device_name, u32 EventFlag, u32 Subtype)
 				goto ErrBadVersion;
 			}
 
-			if (feat_prot->dcbx_st == dcbx_subtype2) {
+			if (feat_prot->dcbx_st == DCBX_SUBTYPE2) {
 				/* Handle Peer expiration */
 				if (peer_ctrl_prot->second->RxDCBTLVState ==
 						DCB_PEER_EXPIRED) {
@@ -3210,7 +3210,7 @@ cmd_status run_feature_protocol(char *device_name, u32 EventFlag, u32 Subtype)
 					feat_prot->Syncd, __LINE__);
 				feat_prot->Oper_version =
 					feat_prot->Max_version;
-				if (feat_prot->dcbx_st == dcbx_subtype2) {
+				if (feat_prot->dcbx_st == DCBX_SUBTYPE2) {
 					feat_prot->Error = true;
 				} else {
 					feat_prot->Error = false;
@@ -3295,7 +3295,7 @@ cmd_status run_feature_protocol(char *device_name, u32 EventFlag, u32 Subtype)
 				feat_prot->Error_Flag = FEAT_ERR_NONE;
 				Err = feat_prot->Error;
 				/* Set_configuration to driver. */
-				if (feat_prot->dcbx_st == dcbx_subtype2) {
+				if (feat_prot->dcbx_st == DCBX_SUBTYPE2) {
 					feat_prot->Syncd = !(feat_prot->Error);
 					feat_prot->Error = false;
 					if (set_configuration(device_name,
@@ -3323,7 +3323,7 @@ cmd_status run_feature_protocol(char *device_name, u32 EventFlag, u32 Subtype)
 				feat_prot->Error_Flag = FEAT_ERR_NONE;
 				Err = feat_prot->Error;
 
-				if (feat_prot->dcbx_st == dcbx_subtype2) {
+				if (feat_prot->dcbx_st == DCBX_SUBTYPE2) {
 					feat_prot->OperMode =
 						!(peer_feat_prot->Error);
 					if (feat_prot->OperMode) {
@@ -3375,7 +3375,7 @@ cmd_status run_feature_protocol(char *device_name, u32 EventFlag, u32 Subtype)
 				Err = feat_prot->Error;
 
 				/* Set_configuration to driver. */
-				if (feat_prot->dcbx_st == dcbx_subtype2) {
+				if (feat_prot->dcbx_st == DCBX_SUBTYPE2) {
 					feat_prot->OperMode =
 						!peer_feat_prot->Error;
 					feat_prot->Syncd = !(feat_prot->Error);
@@ -3412,7 +3412,7 @@ cmd_status run_feature_protocol(char *device_name, u32 EventFlag, u32 Subtype)
 				Err = feat_prot->Error;
 				/* Set_configuration to driver. */
 
-				if (feat_prot->dcbx_st == dcbx_subtype2) {
+				if (feat_prot->dcbx_st == DCBX_SUBTYPE2) {
 					feat_prot->OperMode =
 						!peer_feat_prot->Error;
 					feat_prot->Syncd = !(feat_prot->Error);
@@ -3442,7 +3442,7 @@ cmd_status run_feature_protocol(char *device_name, u32 EventFlag, u32 Subtype)
 				Err = feat_prot->Error;
 
 				/* Set default configuration */
-				if (feat_prot->dcbx_st == dcbx_subtype2) {
+				if (feat_prot->dcbx_st == DCBX_SUBTYPE2) {
 					feat_prot->Syncd = feat_prot->Error;
 					feat_prot->Error = true;
 					if (set_configuration(device_name,
@@ -3464,7 +3464,7 @@ ErrProt:
 			if (peer_feat_prot->Error)
 				feat_prot->Error_Flag |= FEAT_ERR_PEER;
 
-			if (feat_prot->dcbx_st == dcbx_subtype1) {
+			if (feat_prot->dcbx_st == DCBX_SUBTYPE1) {
 				if (feat_prot->Error || peer_feat_prot->Error){
 					LLDPAD_DBG("  ## FEATURE ERROR: "
 						"%d, %d (Error_Flag 0x%x"
@@ -3483,7 +3483,7 @@ ErrProt:
 			}
 			if (ErrorChanged) {
 				LLDPAD_DBG("  ErrorChanged \n");
-				if (feat_prot->dcbx_st == dcbx_subtype1) {
+				if (feat_prot->dcbx_st == DCBX_SUBTYPE1) {
 					feat_prot->Syncd = false;
 					LLDPAD_DBG("  Set Syncd to %u [%u]\n",
 						feat_prot->Syncd, __LINE__);
@@ -3836,7 +3836,7 @@ cmd_status run_control_protocol(char *device_name, u32 EventFlag)
 						return cmd_device_not_found;
 					}
 					if (pg_dstore.protocol.dcbx_st ==
-						dcbx_subtype2) {
+						DCBX_SUBTYPE2) {
 						return cmd_success;
 					} else {
 						/* Send the updated DCB TLV */

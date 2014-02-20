@@ -210,7 +210,7 @@ int dcbx_bld_tlv(struct port *newport, struct lldp_agent *agent)
 		goto fail_add;
 	}
 
-	if (tlvs->dcbx_st == dcbx_subtype2) {
+	if (tlvs->dcbx_st == DCBX_SUBTYPE2) {
 		tlvs->pg2 = bld_dcbx2_pg_tlv(tlvs, &success);
 		if (!success) {
 			LLDPAD_INFO("bld_dcbx2_pg_tlv: failed\n");
@@ -224,7 +224,7 @@ int dcbx_bld_tlv(struct port *newport, struct lldp_agent *agent)
 		}
 	}
 
-	if (tlvs->dcbx_st == dcbx_subtype2) {
+	if (tlvs->dcbx_st == DCBX_SUBTYPE2) {
 		tlvs->pfc2 = bld_dcbx2_pfc_tlv(tlvs, &success);
 		if (!success) {
 			LLDPAD_INFO("bld_dcbx2_pfc_tlv: failed\n");
@@ -238,7 +238,7 @@ int dcbx_bld_tlv(struct port *newport, struct lldp_agent *agent)
 		}
 	}
 
-	if (tlvs->dcbx_st == dcbx_subtype2) {
+	if (tlvs->dcbx_st == DCBX_SUBTYPE2) {
 		tlvs->app2 = bld_dcbx2_app_tlv(tlvs, &success);
 		if (!success) {
 			LLDPAD_INFO("bld_dcbx2_app_tlv: failed\n");
@@ -259,7 +259,7 @@ int dcbx_bld_tlv(struct port *newport, struct lldp_agent *agent)
 		goto fail_add;
 	}
 
-	if (tlvs->dcbx_st == dcbx_subtype2) {
+	if (tlvs->dcbx_st == DCBX_SUBTYPE2) {
 		tlvs->dcbx2 = bld_dcbx2_tlv(tlvs);
 		if (tlvs->dcbx2 == NULL) {
 			LLDPAD_INFO("add_port:  bld_dcbx2_tlv failed\n");
@@ -364,7 +364,7 @@ struct packed_tlv* dcbx_gettlv(struct port *port, struct lldp_agent *agent)
 	dcbx_free_tlv(tlvs);
 
 	dcbx_bld_tlv(port, agent);
-	if (tlvs->dcbx_st == dcbx_subtype2) {
+	if (tlvs->dcbx_st == DCBX_SUBTYPE2) {
 		/* Load Type127 - dcbx subtype 2*/
 		if (tlv_ok(tlvs->dcbx2))
 			ptlv =  pack_tlv(tlvs->dcbx2);
@@ -733,12 +733,12 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 		if ((memcmp(tlv->info, &oui, DCB_OUI_LEN) != 0))
 			return SUBTYPE_INVALID;
 
-		if ((tlv->info[DCB_OUI_LEN] == dcbx_subtype2)
+		if ((tlv->info[DCB_OUI_LEN] == DCBX_SUBTYPE2)
 			&& (agent->lldpdu & RCVD_LLDP_DCBX2_TLV)) {
 			LLDPAD_INFO("Received duplicate DCBX2 TLVs\n");
 			return TLV_ERR;
 		}
-		if ((tlv->info[DCB_OUI_LEN] == dcbx_subtype1)
+		if ((tlv->info[DCB_OUI_LEN] == DCBX_SUBTYPE1)
 			&& (agent->lldpdu & RCVD_LLDP_DCBX1_TLV)) {
 			LLDPAD_INFO("Received duplicate DCBX1 TLVs\n");
 			return TLV_ERR;
@@ -748,14 +748,14 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 		 * the currently configured legacy dcbx mode.
 		 * However, capture if any legacy DCBX TLVs are recieved.
 		*/
-		if (tlv->info[DCB_OUI_LEN] == dcbx_subtype2) {
-			if (dcbx->dcbx_st == dcbx_subtype2)
+		if (tlv->info[DCB_OUI_LEN] == DCBX_SUBTYPE2) {
+			if (dcbx->dcbx_st == DCBX_SUBTYPE2)
 				dcbx->manifest->dcbx2 = tlv;
 			agent->lldpdu |= RCVD_LLDP_DCBX2_TLV;
 			dcbx->rxed_tlvs = true;
 			return TLV_OK;
-		} else if (tlv->info[DCB_OUI_LEN] == dcbx_subtype1) {
-			if (dcbx->dcbx_st == dcbx_subtype1)
+		} else if (tlv->info[DCB_OUI_LEN] == DCBX_SUBTYPE1) {
+			if (dcbx->dcbx_st == DCBX_SUBTYPE1)
 				dcbx->manifest->dcbx1 = tlv;
 			agent->lldpdu |= RCVD_LLDP_DCBX1_TLV;
 			dcbx->rxed_tlvs = true;
@@ -771,10 +771,10 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 
 		if (!dcbx->active && !ieee8021qaz_tlvs_rxed(dcbx->ifname) &&
 		    dcbx->rxed_tlvs && (not_present || enabled)) {
-			if (dcbx->dcbx_st == dcbx_subtype2)
+			if (dcbx->dcbx_st == DCBX_SUBTYPE2)
 				LLDPAD_DBG("CEE DCBX %s going ACTIVE\n",
 					   dcbx->ifname);
-			else if (dcbx->dcbx_st == dcbx_subtype1)
+			else if (dcbx->dcbx_st == DCBX_SUBTYPE1)
 				LLDPAD_DBG("CIN DCBX %s going ACTIVE\n",
 					   dcbx->ifname);
 			set_dcbx_mode(port->ifname,
