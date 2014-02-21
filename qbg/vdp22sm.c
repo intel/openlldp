@@ -53,12 +53,12 @@ struct vdp22_ptlv {			/* Packed TLV for VDP data exchange */
 
 enum {					/* VDP22 Protocol command responses */
 	USEC_PER_SEC = 1000000,		/* Microseconds per second */
-	VDP22_RESBIT = 1,		/* VSI reserved bit */
-	VDP22_ACKBIT = 2,		/* VSI Acknowledgement bit */
-	VDP22_KEEPBIT = 4,		/* VSI keep error bit */
-	VDP22_HARDBIT = 8,		/* VSI hard error bit */
-	VDP22_STATUS_MASK = 0xf0,	/* Status mask */
-	VDP22_STATUS_SHIFT = 4,		/* Status offset */
+	VDP22_RESBIT = 0x80,		/* VSI reserved bit */
+	VDP22_ACKBIT = 0x40,		/* VSI Acknowledgement bit */
+	VDP22_KEEPBIT = 0x20,		/* VSI keep error bit */
+	VDP22_HARDBIT = 0x10,		/* VSI hard error bit */
+	VDP22_STATUS_MASK = 0x0f,	/* Status mask */
+	VDP22_STATUS_SHIFT = 0,		/* Status offset */
 };
 
 /*
