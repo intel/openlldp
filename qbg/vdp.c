@@ -1469,12 +1469,22 @@ struct vsi_profile *vdp_add_profile(struct vdp_data *vd,
 		profile = p;
 	} else {
 
-		profile->response = VDP_RESPONSE_NO_RESPONSE;
+		/*
+		 * Libvirt sends dis-assoc command and no profile active.
+		 * Add to list with successful status to return the success
+		 * to libvirtd when it queries for results.
+		 */
+		if (profile->mode == VDP_MODE_DEASSOCIATE) {
+			profile->response = VDP_RESPONSE_SUCCESS;
+			LLDPAD_DBG("%s: dis-assoc without profile\n", __func__);
+		} else
+			profile->response = VDP_RESPONSE_NO_RESPONSE;
 
 		LIST_INSERT_HEAD(&vd->profile_head, profile, profile);
 	}
 
-	vdp_somethingChangedLocal(profile, true);
+	if (profile->response != VDP_RESPONSE_SUCCESS)
+		vdp_somethingChangedLocal(profile, true);
 
 	return profile;
 }
