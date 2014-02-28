@@ -1,0 +1,148 @@
+
+(c) Copyright IBM Corp. 2012, 2013
+
+Thomas Richter, IBM Research and Development, Germany, Mar 2013
+
+Test cases for IEEE802.1Qbg ratified standard VDP module.
+
+14-Jun-2013
+===========
+Some test cases run the lldpad program in station mode and in bridge mode
+This is achieved via namespaces for network and IPC. Additionally the
+lldpad in bridge mode does not create a pid run time file /var/run/lldpad.pid.
+Use the network name space bridge_ns and then create an unnamed IPC namespace
+and execute lldpad in bridge mode.
+
+Files
+=====
+ns_unshare	Executes a command and with prior set of namespaces. Used to 
+		set up an unnamed IPC namespace so 2 shared memory segments can
+		coexist for both lldpads (station and bridge role).
+runvdp.sh	Runs one test case.
+		Return 0 on success and none zero otherwise. Uses qbg22sim as
+		bridge simulator. Test case result is determined by the
+		qbg22sim program.
+vm.cfg		Configuration file for vdptest
+vm2.cfg		Configuration file for vdptest using netlink format 2
+
+Tests
+=====
+The following test cases are executed. Each test case has a number.
+All test cases need a lldpad.conf configuration file, a VDP test input
+file and a netlink command file to send request to lldpad:
+- The VDP test input files have the extension .vdp. The test case number
+  is the base file name. This can be a qbg22sim input file or an lldpad
+  bridge-role configuration file.
+- The lldpad configuration file has the extension -lldpad.conf
+- The netlink command file has the extension .nlc
+
+The purpose is to trigger an VDP DU exchange between qbg22sim and llpdad.
+The exchanged data can be inspected automaticly with little inteligence
+(see qbg22sim.1) or manually.
+
+All test case with numbers 1 to 99 use lldpad as station role and numbers
+higher then 100 use lldpad as station and bridge role.
+
+Test cases with number 200 and higher use netlink message format 2 to
+communicate between vdptest and llpdad.
+
+Test cases with number 300 and higher use lldptool to trigger VDP22 protocol.
+
+A (M) indication manual checking via lldpad trace output file inspection.
+
+Test	Description
+
+100	Run assoc test with EVB22 disabled
+101	Check if netlink message is ignored in bridge role.
+102	Run assoc test with RR disabled
+103	Run a simple assoc and de-assoc test
+104	Run two simple assoc and de-assoc test
+105	Run a simple pre-assoc and de-assoc test
+106	Run two simple pre-assoc and de-assoc test
+107	Run a simple pre-assoc-rr and de-assoc test
+108	Run assoc --> pre-assoc test
+110	Run pre-assoc --> pre-assoc-rr --> assoc --> de-assoc test
+111	Run pre-assoc --> pre-assoc -- de-assoc test
+112	Run pre-assoc-rr --> pre-assoc-rr -- de-assoc test
+113	Run assoc --> assoc -- de-assoc test
+114	Run de-assoc test
+
+115	Run assoc test with error response from switch
+116	Run pre-assoc test with error response in first keep alive from switch
+117	Run assoc test with de-assoc response in unsolicited message from switch
+118	Run pre-assoc test with error response from switch
+119	Run pre-assoc-rr test with error response in first keep alive from
+	switch
+120	Run pre-assoc test with de-assoc response in unsolicited message from
+	switch
+121	Run assoc test with keep-error response in first keep alive from switch
+122	Run pre-assoc test with hard-error response from switch switch
+123	Run assoc test with resource wait delay timeout on bridge.
+124	Run assoc test with keep alive timeout on bridge.
+
+200	Run assoc/de-assoc test with long manager-id
+201	Run assoc/de-assoc test with gpid and group support turned off
+202	Run assoc/de-assoc test with vlan 0 replacement (fif 1)
+	de-assoc fails due to wrong filter
+203	Run assoc/de-assoc test with vlan 0 replacement (fif 1)
+	de-assoc succeeds due to correct filter
+204	Run assoc/de-assoc test with qos 0 replacement (fif 1)
+	de-assoc fails due to incorrect filter
+205	Run assoc/de-assoc test with qos 0 replacement (fif 1)
+	de-assoc succeeds due to correct filter
+206	Run assoc/de-assoc test with qos 0 replacement (fif 1)
+	fails due to wrong filter index
+207	Run assoc/de-assoc test with qos 0 replacement (fif 1)
+	fails due to unexpected QoS returned
+208	Run assoc/de-assoc test with vlan/qos requested by caller (fif 1)
+209	Run assoc/de-assoc test with vlan/qos requested by caller but not 
+	confirmed by swtich (fif 1)
+210	Run assoc/de-assoc with multiple VID and one VID set to zero (fif 1)
+	fails because only one VID entry allowed, which is 0.
+211	Run assoc/de-assoc with multiple VIDs and expect QoS changed
+	for entry 4 (fif 1)
+212	Run assoc/de-assoc with multiple MAC/VIDs and expect all VLAN ID 0
+	changed (fif 2). De-assoc fails because of wrong filter.
+213	Run assoc/de-assoc with multiple MAC/VIDs and expect all VLAN ID 0
+	changed (fif 2). De-assoc succeeds.
+
+Tests with group identifer support
+220	Run assoc/de-assoc test with 1 filter entry (fif 4)
+221	Run assoc/de-assoc test with 1 vlan 0 replacement (fif 4)
+222	Run assoc/de-assoc test with several filter entries (fif 4)
+223	Run assoc/de-assoc test with several vlan 0 replacement (fif 4)
+224	Run assoc/de-assoc test with QoS replacement (fif 4)
+225	Run assoc/de-assoc test with several vlan 0 and QoS replacement (fif 4)
+
+Test with hint bits
+240	Run assoc/de-assoc test with suspend hints
+241	Run assoc/de-assoc test with migrate hints
+
+TODO
+Test case with multiple filter entries. Combiniation of filter data.
+Run assoc(1) and assoc(2) with deassoc(1,2)
+
+Run ethernet interface up/down tests while VSI actives
+Add filter info data to an existing VSI
+
+
+Remarks:
+
+Test Execution
+==============
+Directory structure:
+
+The following directory structure is assumed:
+/home/richter/dcn/qbg/mywork/open-lldp	--> lldpad to test on target f18b
+/home/richter/dcn/qbg/mywork/test/qbg22/evb22	--> EVB protocol test cases
+/home/richter/dcn/qbg/mywork/test/qbg22/ecp22	--> ECP protocol test cases
+/home/richter/dcn/qbg/mywork/test/qbg22/vdp22	--> VDP protocol test cases
+
+On local machine f18a:
+Select the evttest program by adding the path relative to test directory
+1. cd /home/richter/dcn/qbg/mywork/test/qbg22/vdp22
+2. Use a symbolic link such as ./qbg22sim --> ../../../xxx/qbg22sim.
+3. Add the environment variable LLDPAD_DIR=abc to select an different lldpad
+   executable. For example the invocation 
+   LLDPAD_DIR=new vdprun.sh 1.vdp
+   selects the file /home/richter/dcn/qbg/mywork/new/lldpad for execution.

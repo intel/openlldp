@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# Test case for LLDPAD VDP Testing according to IEEE 802.1Qbg
+#
+# Copyright (c) International Business Machines Corp., 2013
+#
+# Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms and conditions of the GNU General Public License,
+# version 2, as published by the Free Software Foundation.
+#
+# This program is distributed in the hope it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+#
+
+# 
+# Thomas Richter, IBM Research & Development, Boeblingen, Germany, 20-Apr-2014
+#
+# Execute a simple assoc without group id support in bridge and station.
+# Assign QoS by bridge and report back to caller, caller does not expected
+# changed QoS.
+#
+
+outfile=$(basename $0)
+dirfile=$(dirname $0)
+cd $dirfile
+
+../../../vdptest -v -v -v -F vm2.cfg -Cnew=vm2_xx1,name=vm2_206,map=2,e=250 -i veth0 -s,w=30 -a vm2_xx1 -s,w=10
+exit $?
