@@ -1432,7 +1432,7 @@ static void vdp22br_process(struct vsi22 *p)
 		p->status = VDP22_KEEPBIT;
 		goto rest;
 	case VDP22_RESP_DEASSOC:
-		if (error >= (1 << VDP22_STATUS_SHIFT))
+		if (error > VDP22_STATUS_MASK)
 			p->status = VDP22_HARDBIT;
 		/* Fall through intended */
 	case VDP22_RESP_SUCCESS:
