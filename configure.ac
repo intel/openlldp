@@ -1,5 +1,5 @@
 AC_INIT([lldpad], [0.9.46], [lldp-devel@open-lldp.org])
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 m4_pattern_allow([AM_PROG_AR])
 AM_PROG_AR
