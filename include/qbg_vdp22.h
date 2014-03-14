@@ -177,6 +177,8 @@ struct vsi22 *vdp22_copy_vsi(struct vsi22 *);
 void vdp22_listdel_vsi(struct vsi22 *);
 int vdp22br_resources(struct vsi22 *, int *);
 int vdp22_info(const char *);
+void vdp22_stop_timers(struct vsi22 *);
+int vdp22_start_localchange_timer(struct vsi22 *);
 
 /*
  * Functions to get and set vlan identifier and qos.

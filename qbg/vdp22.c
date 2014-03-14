@@ -696,6 +696,7 @@ void vdp22_stop(char *ifname)
 {
 	struct vdp22_user_data *vud;
 	struct vdp22 *vdp;
+	struct vsi22 *vsi;
 
 	LLDPAD_DBG("%s:%s stop vdp\n", __func__, ifname);
 	vud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP22);
@@ -708,7 +709,10 @@ void vdp22_stop(char *ifname)
 		LLDPAD_ERR("%s:%s no VDP22 data\n", __func__, ifname);
 		return;
 	}
-	vdp22_free_elem(vdp);
+
+	LIST_FOREACH(vsi, &vdp->vsi22_que, node) {
+		vdp22_stop_timers(vsi);
+	}
 }
 
 /*
@@ -772,6 +776,7 @@ void vdp22_start(const char *ifname, int role)
 {
 	struct vdp22_user_data *vud;
 	struct vdp22 *vdp;
+	struct vsi22 *vsi;
 
 	LLDPAD_DBG("%s:%s start vdp\n", __func__, ifname);
 	vud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP22);
@@ -780,8 +785,16 @@ void vdp22_start(const char *ifname, int role)
 		return;
 	}
 	vdp = vdp22_findif(ifname, vud);
-	if (!vdp)
+
+	if (!vdp) {
 		vdp = vdp22_create(ifname, vud, role);
+	} else {
+		LIST_FOREACH(vsi, &vdp->vsi22_que, node) {
+			vsi->smi.localchg = true;
+			vdp22_showvsi(vsi);
+			vdp22_start_localchange_timer(vsi);
+		}
+	}
 }
 
 /*

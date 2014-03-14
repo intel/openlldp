@@ -842,6 +842,26 @@ static void vdp22st_run(struct vsi22 *vsi)
 		vdp22st_end(vsi);
 }
 
+static void vdp22_localchange_handler(UNUSED void *eloop_data, void *user_ctx)
+{
+	struct vsi22 *vsi;
+
+	vsi = (struct vsi22 *) user_ctx;
+
+	if ((vsi->smi.localchg)) {
+		LLDPAD_DBG("%s:%s p->localChange %i p->ackReceived %i\n",
+			   __func__, vsi->vdp->ifname, vsi->smi.localchg,
+			  vsi->smi.ackreceived);
+		vdp22st_run(vsi);
+	}
+}
+
+int vdp22_start_localchange_timer(struct vsi22 *p)
+{
+	return eloop_register_timeout(0, 100, vdp22_localchange_handler, NULL,
+				      (void *) p);
+}
+
 /*
  * Checks if 2 VSI records are identical.
  *
@@ -1445,6 +1465,12 @@ rest:
 	p->resp_vsi_mode = rc;
 	LLDPAD_DBG("%s:%s resp_vsi_mode:%d status:%#x\n", __func__,
 		   p->vdp->ifname, p->resp_vsi_mode, p->status);
+}
+
+void vdp22_stop_timers(struct vsi22 *vsi)
+{
+	vdp22st_stop_acktimer(vsi);
+	vdp22st_stop_katimer(vsi);
 }
 
 static void vdp22br_end(struct vsi22 *p)
