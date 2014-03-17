@@ -427,6 +427,12 @@ static void evb22_ifup(char *ifname, struct lldp_agent *agent)
 	if (agent->type != NEAREST_CUSTOMER_BRIDGE)
 		return;
 	LLDPAD_DBG("%s:%s agent %d called\n", __func__, ifname, agent->type);
+	if (is_tlv_txenabled(ifname, agent->type,
+			     TLVID(OUI_IEEE_8021Qbg, LLDP_EVB_SUBTYPE))) {
+		LLDPAD_ERR("%s:%s evb draft 0.2 protocol already enabled\n",
+			   __func__, ifname);
+		return;
+	}
 
 	ed = evb22_data(ifname, agent->type);
 	if (ed) {

@@ -435,6 +435,18 @@ static int set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 				UNUSED char *obuf, UNUSED int obuf_len)
 {
+	/*
+	 * Make sure either evb draft 0.2 or evb ratified standard is
+	 * running at the same time but not both.
+	 */
+	if (!strcasecmp(argvalue, VAL_YES)
+	    && is_tlv_txenabled(cmd->ifname, cmd->type,
+				TLVID(OUI_IEEE_8021Qbg,
+				      LLDP_EVB_SUBTYPE))) {
+		LLDPAD_ERR("%s:%s evb draft 0.2 protocol already enabled\n",
+			   __func__, cmd->ifname);
+		return cmd_failed;
+	}
 	return scan_bool(cmd, arg, argvalue, true, 0);
 }
 
