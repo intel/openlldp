@@ -13,6 +13,7 @@ fi
 AM_CONDITIONAL([BUILD_DEBUG], [test "$enable_debug" = "yes"])
 
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_CXX
 AC_PROG_LEX
 AC_PROG_LIBTOOL
