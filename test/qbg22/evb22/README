@@ -84,11 +84,19 @@ Test	Description
 	group id support, station sets group id support. Station turns it off.
 25	Station request reflective-relay and bridge supports it. EVB TLV
 	transmission turned off.
+26	Station request reflective-relay and bridge supports it. EVB TLV
+	changed after 30 seconds via lldptool on station side
 30	Lldpad runs as bridge no reflective relay support.
 31	Lldpad runs as bridge with reflective relay support.
 32	Lldpad runs as bridge with reflective relay support and bgid support.
 33	Lldpad runs as bridge with reflective relay support and bgid support.
 		Station runs with reflective relay and sgid support
+41	Check for creation of evb.enableTx=off and evb22.enableTx=off
+42	Check for creation of evb.enableTx=on and evb22.enableTx=off
+43	Check for creation of evb.enableTx=off and evb22.enableTx=on
+44	Check for creation of evb.enableTx=on and evb22.enableTx=on
+45	Check for evb.enableTx=on and evb22.enableTx=on in config file
+46	Check for creation of evb22.enableTx=on and evb.enableTx=on
 80	Check for lldptool command using evb22 protocol display evb22 (-c only)
 90	Check for lldptool command using evb22 protocol display evb22
 81-89	Check for lldptool command using evb22 protocol turn off various parms
