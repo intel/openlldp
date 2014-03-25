@@ -412,7 +412,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 					return cmd_bad_params;
 				}
 			} else if (!tx_bw) {
-				LLDPAD_INFO("Zero BW on non LSP tc %i", i);
+				LLDPAD_INFO("Zero BW on non LSP tc %i\n", i);
 				/* Non link strict should have non zero bandwidth*/
 				return cmd_bad_params;
 			}
@@ -422,7 +422,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 			rx_bw_id = (u8)(pg->rx.up[i].bwgid);
 
 			if (rx_bw_id >= MAX_BW_GROUP) {
-				LLDPAD_INFO("Invalid RX BW %i", rx_bw_id);
+				LLDPAD_INFO("Invalid RX BW %i\n", rx_bw_id);
 				return cmd_bad_params;
 			}	   
 			if (pg->rx.up[i].strict_priority == DCB_LINK) {
@@ -434,7 +434,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 					return cmd_bad_params;
 				}
 			} else if (!rx_bw) {
-				LLDPAD_INFO("Zero BW on no LSP tc %i", i);
+				LLDPAD_INFO("Zero BW on no LSP tc %i\n", i);
 				/* Non link strict class should have non-zero bw */
 				return cmd_bad_params; /* DCB_RX_ERR_TC_BW_ZERO; */
 			}
@@ -457,7 +457,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 					return cmd_bad_params;
 				}
 			} else if (tx_bw_sum[i] != BW_PERCENT && tx_bw_sum[i] != 0) {
-				LLDPAD_INFO("Invalid BW sum on BWG %i %i",
+				LLDPAD_INFO("Invalid BW sum on BWG %i %i\n",
 						i, (int)tx_bw_sum[i]);
 				return cmd_bad_params;
 			}
@@ -476,7 +476,7 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 					return cmd_bad_params;
 				}
 			} else if (rx_bw_sum[i] != BW_PERCENT && rx_bw_sum[i] != 0) {
-				LLDPAD_INFO("Invalid BW sum on BWG %i %i",
+				LLDPAD_INFO("Invalid BW sum on BWG %i %i\n",
 						i, (int)rx_bw_sum[i]);
 				return cmd_bad_params;
 			}
