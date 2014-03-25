@@ -106,15 +106,9 @@ static int ecp22_txframe(struct ecp22 *ecp, char *txt, unsigned char *dst,
 	return l2_packet_send(ecp->l2, dst, htons(ETH_P_ECP22), ack, len);
 }
 
-/*
- * Append some data at the end of the transmit data buffer. Make sure the
- * End TLV always fits into the buffer.
- */
-static unsigned char end_tlv[2] = { 0x0, 0x0 };		/* END TLV */
-
 static void ecp22_append(u8 *buffer, u32 *pos, void *data, u32 len)
 {
-	if (*pos + len > ETH_FRAME_LEN - sizeof end_tlv)
+	if (*pos + len > ETH_FRAME_LEN)
 		return;
 	memcpy(buffer + *pos, data, len);
 	*pos += len;
@@ -169,7 +163,6 @@ static bool ecp22_build_ecpdu(struct ecp22 *ecp)
 
 	ptlv = p->ptlv;
 	ecp22_append(ecp->tx.frame, &fb_offset, ptlv->tlv, ptlv->size);
-	ecp22_append(ecp->tx.frame, &fb_offset, end_tlv, sizeof end_tlv);
 	ecp->tx.frame_len = MAX(fb_offset, (unsigned)ETH_ZLEN);
 	LIST_REMOVE(p, node);
 	ecp22_putnode(&ecp->isfree, p);
