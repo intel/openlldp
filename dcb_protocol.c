@@ -1599,9 +1599,9 @@ cmd_status put_pg(char *device_name, pg_attribs *pg_data, pfc_attribs *pfc_data)
 		feature_protocol_attribs *dStore = &(it->second->protocol);
 
 		if (dStore->Enable && !(pg_data->protocol.Enable))
-			LLDPAD_INFO("%s PG disabled", device_name);
+			LLDPAD_INFO("%s PG disabled\n", device_name);
 		else if (!(dStore->Enable) && pg_data->protocol.Enable)
-			LLDPAD_INFO("%s PG enabled", device_name);
+			LLDPAD_INFO("%s PG enabled\n", device_name);
 
 		dStore->Advertise_prev  = dStore->Advertise;
 		dStore->Advertise       = pg_data->protocol.Advertise;
@@ -1765,9 +1765,9 @@ cmd_status put_pfc(char *device_name, pfc_attribs *pfc_data)
 		feature_protocol_attribs *dStore = &(it->second->protocol);
 
 		if (dStore->Enable && !(pfc_data->protocol.Enable))
-			LLDPAD_INFO("%s PFC disabled", device_name);
+			LLDPAD_INFO("%s PFC disabled\n", device_name);
 		else if (!(dStore->Enable) && pfc_data->protocol.Enable)
-			LLDPAD_INFO("%s PFC enabled", device_name);
+			LLDPAD_INFO("%s PFC enabled\n", device_name);
 
 		dStore->Advertise_prev  = dStore->Advertise;
 		dStore->Advertise       = pfc_data->protocol.Advertise;
@@ -1934,9 +1934,9 @@ cmd_status put_app(char *device_name, u32 subtype, app_attribs *app_data)
 
 		feature_protocol_attribs *dStore = &(it->second->protocol);
 		if (dStore->Enable && !(app_data->protocol.Enable))
-			LLDPAD_INFO("%s APP disabled", device_name);
+			LLDPAD_INFO("%s APP disabled\n", device_name);
 		else if (!(dStore->Enable) && app_data->protocol.Enable)
-			LLDPAD_INFO("%s APP enabled", device_name);
+			LLDPAD_INFO("%s APP enabled\n", device_name);
 		dStore->Advertise_prev  = dStore->Advertise;
 		dStore->Advertise       = app_data->protocol.Advertise;
 		dStore->Enable          = app_data->protocol.Enable;
@@ -2040,9 +2040,9 @@ cmd_status put_llink(char *device_name, u32 subtype, llink_attribs *llink_data)
 		}
 		feature_protocol_attribs *dStore = &(it->second->protocol);
 		if (dStore->Enable && !(llink_data->protocol.Enable))
-			LLDPAD_INFO("%s LLINK disabled", device_name);
+			LLDPAD_INFO("%s LLINK disabled\n", device_name);
 		else if (!(dStore->Enable) && llink_data->protocol.Enable)
-			LLDPAD_INFO("%s LLINK enabled", device_name);
+			LLDPAD_INFO("%s LLINK enabled\n", device_name);
 		dStore->Advertise_prev  = dStore->Advertise;
 		dStore->Advertise       = llink_data->protocol.Advertise;
 		dStore->Enable          = llink_data->protocol.Enable;
@@ -3509,10 +3509,10 @@ OperChange:
 			if (feat_prot->OperMode != old_pg_opmode) {
 				pg_events = pg_events | EVENT_OPERMODE;
 				if (feat_prot->OperMode) {
-					LLDPAD_INFO("%s PG oper mode true",
+					LLDPAD_INFO("%s PG oper mode true\n",
 						device_name);
 				} else {
-					LLDPAD_INFO("%s PG oper mode false",
+					LLDPAD_INFO("%s PG oper mode false\n",
 						device_name);
 				}
 			}
@@ -3534,10 +3534,10 @@ OperChange:
 			if (feat_prot->OperMode != old_pfc_opmode) {
 				pfc_events = pfc_events | EVENT_OPERMODE;
 				if (feat_prot->OperMode) {
-					LLDPAD_INFO("%s PFC oper mode true",
+					LLDPAD_INFO("%s PFC oper mode true\n",
 						device_name);
 				} else {
-					LLDPAD_INFO("%s PFC oper mode false",
+					LLDPAD_INFO("%s PFC oper mode false\n",
 						device_name);
 				}
 			}
@@ -3563,10 +3563,10 @@ OperChange:
 			if (feat_prot->OperMode != old_app_opmode) {
 				app_events = app_events | EVENT_OPERMODE;
 				if (feat_prot->OperMode) {
-					LLDPAD_INFO("%s APP oper mode true",
+					LLDPAD_INFO("%s APP oper mode true\n",
 						device_name);
 				} else {
-					LLDPAD_INFO("%s APP oper mode false",
+					LLDPAD_INFO("%s APP oper mode false\n",
 						device_name);
 				}
 			}
