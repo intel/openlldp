@@ -1,3 +1,5 @@
+*/.dirstamp
+compile
 parse_cli.c
 *.o
 *.lo
