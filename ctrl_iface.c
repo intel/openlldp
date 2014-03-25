@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-  LLDP Agent Daemon (LLDPAD) Software 
+  LLDP Agent Daemon (LLDPAD) Software
   Copyright(c) 2007-2010 Intel Corporation.
 
   Substantially modified from:
@@ -192,7 +192,7 @@ int clif_iface_attach(struct clif_data *clifd,
 		tokenize = strtok(NULL, delim);
 		tlv_count++;
 	} while (tokenize);
-			
+
 	dst->tlv_types = malloc(sizeof(u32) * tlv_count);
 	if (!dst->tlv_types)
 		goto err_types;
@@ -280,7 +280,7 @@ int clif_iface_level(struct clif_data *clifd,
 	level = ibuf+1;
 	snprintf(rbuf, rlen, "%c", LEVEL_CMD);
 
-	LLDPAD_DBG("CTRL_IFACE LEVEL %s", level);
+	LLDPAD_DBG("CTRL_IFACE LEVEL %s\n", level);
 
 	dst = clifd->ctrl_dst;
 	while (dst) {
@@ -373,14 +373,14 @@ static void ctrl_iface_receive(int sock, void *eloop_ctx,
 	cred = (struct ucred *)CMSG_DATA(cmsg);
 
 	if (cmsg == NULL || cmsg->cmsg_type != SCM_CREDENTIALS) {
-		LLDPAD_INFO("%s: No sender credentials, ignoring",
+		LLDPAD_INFO("%s: No sender credentials, ignoring\n",
 			   __FUNCTION__);
 		sprintf(buf,"R%02x", cmd_bad_params);
 		sendto(sock, buf, 3, 0, (struct sockaddr *) &from, fromlen);
 		return;
 	}
 	if (cred->uid != 0) {
-		LLDPAD_INFO("%s: sender uid=%i, ignoring",
+		LLDPAD_INFO("%s: sender uid=%i, ignoring\n",
 			   __FUNCTION__, cred->uid);
 		sprintf(buf,"R%02x", cmd_no_access);
 		sendto(sock, buf, 3, 0, (struct sockaddr *) &from,
@@ -525,7 +525,7 @@ int is_ctrl_listening(struct ctrl_dst *dst, u32 type)
 	u32 term = ~0;
 	u32 all = 0;
 	u32 dcbx = LLDP_MOD_DCBX;
-	
+
 	if (!dst)
 		return 0;
 
