@@ -451,13 +451,13 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 			 */
 			if (tx_link_strict[i]) {
 				if (tx_bw_sum[i] && pg->tx.pg_percent[i]) {
-					LLDPAD_INFO("Non-zero LSP BW %d %d\n",
+					LLDPAD_INFO("Non-zero TX LSP BW %d %d\n",
 						i, (int)tx_bw_sum[i]);
 					/* Link strict group should have zero bw */
 					return cmd_bad_params;
 				}
 			} else if (tx_bw_sum[i] != BW_PERCENT && tx_bw_sum[i] != 0) {
-				LLDPAD_INFO("Invalid BW sum on BWG %i %i\n",
+				LLDPAD_INFO("Invalid TX BW sum on BWG %i %i\n",
 						i, (int)tx_bw_sum[i]);
 				return cmd_bad_params;
 			}
@@ -470,13 +470,13 @@ dcb_check_config (full_dcb_attrib_ptrs *attribs)
 			 */
 			if (rx_link_strict[i]) {
 				if (rx_bw_sum[i] && pg->rx.pg_percent[i]) {
-					LLDPAD_INFO("Non-zero BW on LSP tc "
-						"%u %u\n", i, rx_bw_sum[i]);
+					LLDPAD_INFO("Non-zero RX LSP BW %d %d\n",
+						i, (int)rx_bw_sum[i]);
 					/* Link strict group should have zero bw */
 					return cmd_bad_params;
 				}
 			} else if (rx_bw_sum[i] != BW_PERCENT && rx_bw_sum[i] != 0) {
-				LLDPAD_INFO("Invalid BW sum on BWG %i %i\n",
+				LLDPAD_INFO("Invalid RX BW sum on BWG %i %i\n",
 						i, (int)rx_bw_sum[i]);
 				return cmd_bad_params;
 			}
