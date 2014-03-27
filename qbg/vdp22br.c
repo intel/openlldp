@@ -67,14 +67,15 @@ static void deassoc(void *ctx, void *parm)
 static void trigger_deassoc(struct vdp22 *vdp)
 {
 	deassoc_qbg.data_type = VDP22_TO_ECP22;
-	deassoc_qbg.u.c.len = vdp->input_len - 2;
+	deassoc_qbg.u.c.len = vdp->input_len;
 	deassoc_qbg.u.c.data = deassoc_buf;
-	memcpy(deassoc_buf, vdp->input, vdp->input_len - 2);
+	memcpy(deassoc_buf, vdp->input, vdp->input_len);
 	deassoc_buf[18] = VDP22_DEASSOC << 1;	/* Offset of TLV */
 	deassoc_buf[18 + 2] = 0;
 	memcpy(ifname_buf, vdp->ifname, sizeof(ifname_buf));
 	eloop_register_timeout(35, 0, deassoc, ifname_buf, &deassoc_qbg);
-	LLDPAD_DBG("%s:%s\n", __func__, vdp->ifname);
+	LLDPAD_DBG("%s:%s vdp->input_len:%d\n", __func__, vdp->ifname,
+		   vdp->input_len);
 }
 
 static void change_vlan0(struct vsi22 *p, unsigned short idx, int with_qos)
