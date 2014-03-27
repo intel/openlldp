@@ -17,7 +17,7 @@ then
 	then
 		if ip netns exec bridge_ns ip link | fgrep -qi veth2
 		then
-			exit 0		# veth0 and veht2 exists
+			exit 0		# veth0 and veth2 exists
 		else
 			echo interface veth2 missing
 			ip netns del bridge_ns
@@ -28,7 +28,8 @@ then
 fi
 
 # create veth pair(veth0, veth2)
-ip link add veth0 type veth peer name veth2
+# with this mac address on veth0 e6:f1:20:5a:b0:e6 for evb testing
+ip link add veth0 address e6:f1:20:5a:b0:e6 type veth peer name veth2
 ip link set veth0 up
 ip addr add 50.0.0.1/24 dev veth0
 
