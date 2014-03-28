@@ -909,6 +909,8 @@ static void copy_fid(struct vdpnl_vsi *vsi, struct vsi22 *p)
 		vsi->maclist[i].vlan = vdp22_get_vlanid(p->fdata[i].vlan);
 		vsi->maclist[i].qos = vdp22_get_qos(p->fdata[i].vlan);
 		vsi->maclist[i].changed = 1;
+		memcpy(vsi->maclist[i].mac, p->fdata[i].mac,
+		       sizeof(vsi->maclist[i].mac));
 	}
 }
 
@@ -926,6 +928,7 @@ static void copy_vsi(struct vdpnl_vsi *vsi, struct vsi22 *p, int clif)
 	vsi->response = p->status;
 	memcpy(vsi->vsi_uuid, p->vsi, sizeof(vsi->vsi_uuid));
 	/* For client interface reply */
+	vsi->request = p->vsi_mode;
 	vsi->vsi_typeid = p->type_id;
 	vsi->vsi_typeversion = p->type_ver;
 	memcpy(vsi->vsi_mgrid2, p->mgrid, sizeof(vsi->vsi_mgrid2));
@@ -974,7 +977,8 @@ int vdp22_status(int number, struct vdpnl_vsi *vsi, int clif)
 		    (p->flags & VDP22_DELETE_ME))
 			vdp22_listdel_vsi(p);
 	}
-	LLDPAD_DBG("%s: entry:%d more:%d\n", __func__, number, ret);
+	LLDPAD_DBG("%s:%s entry:%d more:%d\n", __func__, vsi->ifname,
+		   number, ret);
 	return ret;
 }
 
