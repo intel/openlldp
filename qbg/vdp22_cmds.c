@@ -48,7 +48,7 @@
 #include "qbg_vdp22.h"
 #include "qbg_vdpnl.h"
 #include "qbg_vdp22_cmds.h"
-#include "lldp_mand_clif.h"
+#include "qbg_vdp22_clif.h"
 
 static int handle_get_arg(struct cmd *cmd, char *arg, char *argvalue,
 			  char *obuf, int obuf_len)
