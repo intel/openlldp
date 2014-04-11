@@ -189,6 +189,7 @@ pid_t clif_getpid(void);
  * clif_vsi - Send a VDP22 association command to the running lldpad process
  * @clif: Control interface data from clif_open()
  * @ifname: Name of the interface to apply the VSI command
+ * @tlvid: Number of tlv identifier
  * @cmd: Buffer containing the VSI command
  * @reply: Buffer for the reply data
  * @reply_len: Length of the reply buffer
@@ -207,8 +208,8 @@ pid_t clif_getpid(void);
  * Note: This command can only be sent when the clif_attach() functions has
  * been called with successful return code.
  */
-int clif_vsi(struct clif *clif, char *ifname, char *cmd, char *reply,
-	     size_t *reply_len);
+int clif_vsi(struct clif *clif, char *ifname, unsigned int tlvid, char *cmd,
+	     char *reply, size_t *reply_len);
 
 /**
  * clif_vsievt - Wait for event message from lldpad after clif_vsi()
@@ -236,6 +237,7 @@ int clif_vsievt(struct clif *clif, char *reply, size_t *reply_len, int waitime);
  * clif_vsiwait - Send VSI command and wait for event message.
  * @clif: Control interface data from clif_open()
  * @ifname: Name of the interface to apply the VSI command
+ * @tlvid: Number of tlv identifier
  * @cmd: Buffer containing the VSI command
  * @reply: Buffer for the reply data
  * @reply_len: Length of the reply buffer
@@ -246,6 +248,6 @@ int clif_vsievt(struct clif *clif, char *reply, size_t *reply_len, int waitime);
  * the vsi command and on successful reception of the VSI command calls
  * clif_vsievt() to receive the response.
  */
-int clif_vsiwait(struct clif *clif, char *ifname, char *cmd, char *reply,
-		 size_t *reply_len, int waittime);
+int clif_vsiwait(struct clif *clif, char *ifname, unsigned int tlvid,
+		 char *cmd, char *reply, size_t *reply_len, int waittime);
 #endif /* CLIF_H */

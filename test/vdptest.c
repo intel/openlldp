@@ -2426,6 +2426,21 @@ static void tool_close(void)
 /*
  * Convert VSI command mode to string.
  */
+static unsigned int request2tlvid(unsigned char cmd)
+{
+	switch (cmd) {
+	case CMD_ASSOC:
+		return VDP22_ASSOC;
+	case CMD_DEASSOC:
+		return VDP22_DEASSOC;
+	case CMD_PREASSOC:
+		return VDP22_PREASSOC;
+	case CMD_RRPREASSOC:
+		return VDP22_PREASSOC_WITH_RR;
+	}
+	return 0;
+}
+
 static const char *request2str(unsigned char cmd)
 {
 	switch (cmd) {
@@ -2608,8 +2623,8 @@ static void tool_lldp(struct command *cmdp, struct vdpdata *vdp)
 	memset(&back, 0, sizeof(back));
 	cmdp->sys_rc = cmdp->rc = 0;
 	vdp2str(cmd, sizeof(cmd), cmdp->cmd, vdp);
-	cmdp->rc = clif_vsiwait(tool_conn, ifname, cmd, ok, &ok_len,
-			      cmdp->waittime);
+	cmdp->rc = clif_vsiwait(tool_conn, ifname, request2tlvid(cmdp->cmd),
+				cmd, ok, &ok_len, cmdp->waittime);
 	if (!cmdp->rc) {
 		char *cmd = str2vdp(ok, &back, &cmdp->rc);
 		if (!cmd)

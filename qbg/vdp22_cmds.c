@@ -215,6 +215,8 @@ int vdp22_clif_cmd(UNUSED void *data, UNUSED struct sockaddr_un *from,
 	int numargs = 0;
 	int i, offset;
 
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.module_id = LLDP_MOD_VDP22;
 	/* Pull out the command elements of the command message */
 	hexstr2bin(ibuf + MSG_VER, (u8 *)&version, sizeof(u8));
 	version = version >> 4;
@@ -242,6 +244,10 @@ int vdp22_clif_cmd(UNUSED void *data, UNUSED struct sockaddr_un *from,
 		hexstr2bin(ibuf + ioff, (u8 *)&cmd.tlvid, sizeof(cmd.tlvid));
 		cmd.tlvid = ntohl(cmd.tlvid);
 		ioff += 2 * sizeof(cmd.tlvid);
+		if (cmd.tlvid != VDP22_ASSOC && cmd.tlvid != VDP22_DEASSOC
+		    && cmd.tlvid != VDP22_PREASSOC
+		    && cmd.tlvid != VDP22_PREASSOC_WITH_RR)
+			return cmd_invalid;
 	} else {
 		return cmd_not_applicable;
 	}
@@ -341,8 +347,8 @@ static int vdp22_cmdok(struct cmd *cmd, cmd_status expected)
 	if (cmd->cmd != expected)
 		return cmd_invalid;
 
-	switch (cmd->tlvid) {
-	case (LLDP_MOD_VDP22 << 8) | LLDP_MOD_VDP22_SUBTYPE:
+	switch (cmd->module_id) {
+	case LLDP_MOD_VDP22:
 		if (cmd->type != NEAREST_CUSTOMER_BRIDGE)
 			return cmd_agent_not_supported;
 

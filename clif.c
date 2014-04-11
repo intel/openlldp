@@ -1,6 +1,6 @@
 /*******************************************************************************
 
-  LLDP Agent Daemon (LLDPAD) Software 
+  LLDP Agent Daemon (LLDPAD) Software
   Copyright(c) 2007-2010 Intel Corporation.
 
   Substantially modified from:
@@ -179,7 +179,7 @@ static int clif_attach_helper(struct clif *clif, char *tlvs_hex, int attach)
 			return -1;
 		sprintf(buf, "D");
 	}
-		
+
 	ret = clif_request(clif, buf, strlen(buf), rbuf, &len, NULL);
 	free(buf);
 	if (ret < 0)
@@ -315,7 +315,8 @@ static int tool_send(struct clif *connp, char *cmd, size_t cmd_len,
  * Prepend the lldpad fan out information in front of the command.
  * We use the vsi parameter.
  */
-static int hdr_set(char *ifname, char *s, size_t sz, char *cmd, size_t cmd_len)
+static int hdr_set(char *ifname, char *s, size_t sz, unsigned int tlvid,
+		   char *cmd, size_t cmd_len)
 {
 	int rc;
 
@@ -323,8 +324,7 @@ static int hdr_set(char *ifname, char *s, size_t sz, char *cmd, size_t cmd_len)
 	rc = snprintf(s, sz, "%c%08x%c%1x%02x%08x%02zx%s%02x%08x03vsi%04zx%s",
 		MOD_CMD, LLDP_MOD_VDP22, CMD_REQUEST, CLIF_MSG_VERSION,
 		cmd_settlv, op_arg | op_argval | op_config,
-		strlen(ifname), ifname, NEAREST_CUSTOMER_BRIDGE,
-		(LLDP_MOD_VDP22 << 8) | LLDP_MOD_VDP22_SUBTYPE,
+		strlen(ifname), ifname, NEAREST_CUSTOMER_BRIDGE, tlvid,
 		cmd_len, cmd);
 	return (rc < 0 || rc > (int)sz) ? -EFBIG : 0;
 }
@@ -350,14 +350,14 @@ static void kill_white(char *s)
  * an aknowledgement (error code 0) or an error code != 0 which means the
  * command contained an error and was not accepted.
  */
-int clif_vsi(struct clif *connp, char *ifname, char *cmd, char *reply,
-	     size_t *reply_len)
+int clif_vsi(struct clif *connp, char *ifname, unsigned int tlvid,
+	     char *cmd, char *reply, size_t *reply_len)
 {
 	int rc, resp;
 	char cmd2[MAX_CLIF_MSGBUF];
 
 	kill_white(cmd);
-	rc = hdr_set(ifname, cmd2, sizeof(cmd2), cmd, strlen(cmd));
+	rc = hdr_set(ifname, cmd2, sizeof(cmd2), tlvid, cmd, strlen(cmd));
 	if (rc)
 		return rc;
 	rc = tool_send(connp, cmd2, strlen(cmd2), reply, reply_len, &resp);
@@ -417,13 +417,13 @@ int clif_vsievt(struct clif *clif, char *reply, size_t *reply_len, int wait)
  * Wait for the event message from lldpad to return the VSI association data
  * from the switch
  */
-int clif_vsiwait(struct clif *connp, char *ifname, char *cmd, char *reply,
-		 size_t *reply_len, int wait)
+int clif_vsiwait(struct clif *connp, char *ifname, unsigned int tlvid,
+		 char *cmd, char *reply, size_t *reply_len, int wait)
 {
 	int rc;
 	size_t reply_len2 = *reply_len;
 
-	rc = clif_vsi(connp, ifname, cmd, reply, reply_len);
+	rc = clif_vsi(connp, ifname, tlvid, cmd, reply, reply_len);
 	if (!rc) {
 		rc = clif_vsievt(connp, reply, &reply_len2, wait);
 		if (!rc)
