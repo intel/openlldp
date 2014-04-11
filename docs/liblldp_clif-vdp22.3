@@ -4,11 +4,11 @@ clif_vsi,clif_vsievt,clif_vsiwait \- Manipulate VDP IEEE 802.1 Ratified Standard
 .SH SYNOPSIS
 #include "include/clif.h"
 .sp 1
-.B "int clif_vsi(struct clif *connp, char *ifname, char *cmd, char *reply, size_t *reply_len);"
+.B "int clif_vsi(struct clif *connp, char *ifname, unsigned int tlvid, char *cmd, char *reply, size_t *reply_len);"
 .sp 1
 .B "int clif_vsievt(struct clif *connp, char *reply, size_t *reply_len, int wait);"
 .sp 1
-.B "int clif_vsiwait(struct clif *connp, char *ifname, char *cmd, char *reply, size_t *reply_len, int wait);"
+.B "int clif_vsiwait(struct clif *connp, char *ifname, unsigned int tlvid, char *cmd, char *reply, size_t *reply_len, int wait);"
 .sp 1
 .SH DESCRIPTION
 The Virtual station interface Discovery Protocol
@@ -129,6 +129,14 @@ Parameter
 is the interface name 
 .B lldpad 
 (8) uses to send the VSI data.
+Paramenter
+.I tlvid
+is the number of the VSI request.
+Valid numbers are
+1 (for Preassociation),
+2 (for Preassociation with resource reservation) and
+3 (for association),
+4 (for Deassociation).
 Parameter 
 .I cmd
 points to a character string containing the VSI command.
@@ -282,7 +290,7 @@ if (clif_attach(tool_conn, "80c4")) {
 	exit(5);
 }
 
-rc = clif_vsiwait(tool_conn, "eth0", cmd, ok, &ok_len, 5);
+rc = clif_vsiwait(tool_conn, "eth0", 1, cmd, ok, &ok_len, 5);
 if (!rc) {
 	/* Parse the response in ok */
 	....
