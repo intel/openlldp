@@ -50,31 +50,55 @@
 #include "qbg_vdp22_cmds.h"
 #include "qbg_vdp22_clif.h"
 
+/*
+ * Find module we are called for.
+ */
+static struct lldp_module *get_my_module(int thisid)
+{
+	struct lldp_module *np = NULL;
+
+	LIST_FOREACH(np, &lldp_head, lldp)
+		if (thisid == np->id)
+			break;
+	return np;
+}
+
+/*
+ * Find argument handlers for module we are called for.
+ */
+static struct arg_handlers *get_my_arghndl(int thisid)
+{
+	struct lldp_module *np;
+	struct arg_handlers *ah = NULL;
+
+	np = get_my_module(thisid);
+	if (np)
+		if (np->ops && np->ops->get_arg_handler)
+			ah = np->ops->get_arg_handler();
+	return ah;
+}
+
 static int handle_get_arg(struct cmd *cmd, char *arg, char *argvalue,
 			  char *obuf, int obuf_len)
 {
-	struct lldp_module *np;
 	struct arg_handlers *ah;
 	int rval, status = cmd_not_applicable;
 
-	LIST_FOREACH(np, &lldp_head, lldp) {
-		if (!np->ops->get_arg_handler)
+	ah = get_my_arghndl(cmd->module_id);
+	if (!ah)
+		return status;
+	for (; ah->arg; ++ah) {
+		if (!ah->handle_get)
 			continue;
-		if (!(ah = np->ops->get_arg_handler()))
-			continue;
-		while (ah->arg) {
-			if (!strcasecmp(ah->arg, arg) && ah->handle_get) {
-				rval = ah->handle_get(cmd, ah->arg, argvalue,
-						      obuf, obuf_len);
-
-				if (rval != cmd_success &&
-				    rval != cmd_not_applicable)
-					return rval;
-				else if (rval == cmd_success)
-					status = rval;
-				break;
-			}
-			ah++;
+		if (!strncasecmp(ah->arg, arg, strlen(ah->arg))) {
+			rval = ah->handle_get(cmd, arg, argvalue,
+					      obuf, obuf_len);
+			if (rval != cmd_success &&
+			    rval != cmd_not_applicable)
+				return rval;
+			else if (rval == cmd_success)
+				status = rval;
+			break;
 		}
 	}
 	return status;
@@ -83,33 +107,29 @@ static int handle_get_arg(struct cmd *cmd, char *arg, char *argvalue,
 static int handle_get(struct cmd *cmd, UNUSED char *arg, char *argvalue,
 		      char *obuf, int obuf_len)
 {
-	struct lldp_module *np;
 	struct arg_handlers *ah;
 	int rval;
 	char *nbuf;
 	int nbuf_len;
 
-	nbuf = obuf;
-	nbuf_len = obuf_len;
+	memset(obuf, 0, obuf_len);
+	nbuf = obuf + 12;
+	nbuf_len = obuf_len - 12;
 
-	LIST_FOREACH(np, &lldp_head, lldp) {
-		if (!np->ops->get_arg_handler)
+	ah = get_my_arghndl(cmd->module_id);
+	if (!ah)
+		return cmd_not_applicable;
+	for (; ah->arg; ++ah) {
+		if (strcmp(ah->arg, ARG_VDP22_VSI))
 			continue;
-		if (!(ah = np->ops->get_arg_handler()))
-			continue;
-		while (ah->arg) {
-			if (ah->handle_get && (ah->arg_class == TLV_ARG)) {
-				rval = ah->handle_get(cmd, ah->arg, argvalue,
-						      nbuf, nbuf_len);
+		if (ah->handle_get && (ah->arg_class == TLV_ARG)) {
+			rval = ah->handle_get(cmd, ah->arg, argvalue,
+					      nbuf, nbuf_len);
+			if (rval != cmd_success && rval != cmd_not_applicable)
+				return rval;
 
-				if (rval != cmd_success &&
-				    rval != cmd_not_applicable)
-					return rval;
-
-				nbuf_len -= strlen(nbuf);
-				nbuf = nbuf + strlen(nbuf);
-			}
-			ah++;
+			nbuf_len -= strlen(nbuf);
+			nbuf = nbuf + strlen(nbuf);
 		}
 	}
 	return cmd_success;
@@ -118,60 +138,48 @@ static int handle_get(struct cmd *cmd, UNUSED char *arg, char *argvalue,
 static int handle_test_arg(struct cmd *cmd, char *arg, char *argvalue,
 			   char *obuf, int obuf_len)
 {
-	struct lldp_module *np;
 	struct arg_handlers *ah;
 	int rval, status = cmd_not_applicable;
 
-	LIST_FOREACH(np, &lldp_head, lldp) {
-		if (!np->ops->get_arg_handler)
-			continue;
-		if (!(ah = np->ops->get_arg_handler()))
-			continue;
-		while (ah->arg) {
-			if (!strcasecmp(ah->arg, arg) && ah->handle_test) {
-				rval = ah->handle_test(cmd, ah->arg, argvalue,
-						      obuf, obuf_len);
-				if (rval != cmd_not_applicable &&
-				    rval != cmd_success)
-					return rval;
-				else if (rval == cmd_success)
-					status = rval;
-				break;
-			}
-			ah++;
+	ah = get_my_arghndl(cmd->module_id);
+	if (!ah)
+		return status;
+	for (; ah->arg; ++ah) {
+		if (!strcasecmp(ah->arg, arg) && ah->handle_test) {
+			rval = ah->handle_test(cmd, ah->arg, argvalue,
+					      obuf, obuf_len);
+			if (rval != cmd_not_applicable &&
+			    rval != cmd_success)
+				return rval;
+			else if (rval == cmd_success)
+				status = rval;
+			break;
 		}
 	}
-
 	return status;
 }
 
 static int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
 			  char *obuf, int obuf_len)
 {
-	struct lldp_module *np;
 	struct arg_handlers *ah;
 	int rval, status = cmd_not_applicable;
 
-	LIST_FOREACH(np, &lldp_head, lldp) {
-		if (!np->ops->get_arg_handler)
-			continue;
-		if (!(ah = np->ops->get_arg_handler()))
-			continue;
-		while (ah->arg) {
-			if (!strcasecmp(ah->arg, arg) && ah->handle_set) {
-				rval = ah->handle_set(cmd, ah->arg, argvalue,
-						      obuf, obuf_len);
-				if (rval != cmd_not_applicable &&
-				    rval != cmd_success)
-					return rval;
-				else if (rval == cmd_success)
-					status = rval;
-				break;
-			}
-			ah++;
+	ah = get_my_arghndl(cmd->module_id);
+	if (!ah)
+		return status;
+	for (; ah->arg; ++ah) {
+		if (!strcasecmp(ah->arg, arg) && ah->handle_set) {
+			rval = ah->handle_set(cmd, ah->arg, argvalue,
+					      obuf, obuf_len);
+			if (rval != cmd_not_applicable &&
+			    rval != cmd_success)
+				return rval;
+			else if (rval == cmd_success)
+				status = rval;
+			break;
 		}
 	}
-
 	return status;
 }
 
@@ -184,7 +192,7 @@ static int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
  *  aaaaaaaabbccddddddddeefffffgghhhhhhhhiijjjkkkkllll
  *
  * with
- * aaaaaaaa: 8 hex digits module identifier
+ * aaaaaaaa: 8 hex digits module identifier (which has been stripped already)
  * bb:  C for command and 2 or 3 for message version number
  * cc: 1 for get command and 2 for set command
  * dddddddd: 8 hex digits options, supported are op_arg, op_argval, op_conifg
@@ -200,6 +208,18 @@ static int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
  *
  * Note the kkkk and llll fields may show up more than once. It depends.
  * The total input length can be used to determine the number of arguaments.
+ *
+ * The member ops of struct cmd settings depends on the invoked with
+ * -T (cmd_gettlv) -a assoc:
+ * -c key      --> ops=(0x15) op_config,op_arg,op_local), numargs > 0
+ * -c key=abc  --> ops=(0x1d) op_config,op_arg,op_argval,op_local), numargs > 0
+ * -c          --> ops=0x11 (op_config,op_local), numargs = 0
+ * without -c --> ops=0x1 (op_local), numargs = 0
+ *
+ * Without flag op_config being set invoke a function which retrieves all
+ * TLVs for pretty printing. This is currently not supported.
+ *
+ * With flag op_config being set return all currently active VSI associations.
  */
 int vdp22_clif_cmd(UNUSED void *data, UNUSED struct sockaddr_un *from,
 		   UNUSED socklen_t fromlen,
