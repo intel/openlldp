@@ -288,7 +288,7 @@ out:
 #include <ctype.h>
 #include <errno.h>
 #include "include/qbg22.h"
-#include "include/lldp_mand_clif.h"	/* Defines op_XXXX */
+#include "include/qbg_vdp22_clif.h"	/* Defines op_XXXX */
 #include </usr/include/sys/queue.h>	/* Needed by agent.h */
 #include "lldp/agent.h"			/* Nearest customer bridge define */
 
