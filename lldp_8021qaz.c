@@ -525,7 +525,7 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	struct ieee_ets *ets = NULL;
 	struct ieee_pfc *pfc = NULL;
 	struct app_prio *data = NULL;
-	int err;
+	int err, no_set_status;
 
 	if (agent->type != NEAREST_BRIDGE)
 		return;
@@ -538,11 +538,19 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	if (err < 0)
 		return;
 
+	/* If admin has explicitly enabled Rx/Tx, don't override it */
+	no_set_status = get_config_setting(ifname, agent->type, ARG_ADMINSTATUS,
+						&adminstatus, CONFIG_TYPE_INT);
+
 	/* If hardware is not DCBX IEEE compliant or it is managed
 	 * by an LLD agent most likely a firmware agent abort
 	 */
-	if (dcbx & DCB_CAP_DCBX_LLD_MANAGED)
+	if (dcbx & DCB_CAP_DCBX_LLD_MANAGED) {
+		if (no_set_status)
+			set_lldp_agent_admin(ifname, agent->type,
+					     (adminstatus & enabledRxOnly));
 		return;
+	}
 
 	/* If 802.1Qaz is already configured no need to continue */
 	tlvs = ieee8021qaz_data(ifname);
@@ -552,8 +560,7 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	/* if there is no persistent adminStatus setting then set to enabledRx
 	 * but do not persist that as a setting.
 	 */
-	if (get_config_setting(ifname, agent->type, ARG_ADMINSTATUS,
-			       &adminstatus, CONFIG_TYPE_INT))
+	if (no_set_status)
 		set_lldp_agent_admin(ifname, agent->type, enabledRxOnly);
 
 	/* lookup port data */
