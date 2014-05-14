@@ -424,7 +424,7 @@ int get_dcbx_hw(const char *ifname, __u8 *dcbx)
 	int err = 0;
 	struct nlattr *attr;
 	struct sockaddr_nl dest_addr;
-	static struct nl_handle *nlhandle;
+	static struct nl_sock *nlsocket;
 	struct nl_msg *nlm = NULL;
 	unsigned char *msg = NULL;
 	struct nlmsghdr *hdr;
@@ -434,28 +434,28 @@ int get_dcbx_hw(const char *ifname, __u8 *dcbx)
 			   .dcb_pad = 0
 			  };
 
-	if (!nlhandle) {
-		nlhandle = nl_handle_alloc();
-		if (!nlhandle) {
-			LLDPAD_WARN("%s: %s: nl_handle_alloc failed, %s\n",
-				    __func__, ifname, nl_geterror());
+	if (!nlsocket) {
+		nlsocket = nl_socket_alloc();
+		if (!nlsocket) {
+			LLDPAD_WARN("%s: %s: nl_socket_alloc failed\n",
+				    __func__, ifname);
 			err = -ENOMEM;
 			goto out;
 		}
-		nl_socket_set_local_port(nlhandle, 0);
+		nl_socket_set_local_port(nlsocket, 0);
 	}
 
-	err = nl_connect(nlhandle, NETLINK_ROUTE);
+	err = nl_connect(nlsocket, NETLINK_ROUTE);
 	if (err < 0) {
 		LLDPAD_WARN("%s: %s nlconnect failed abort get ieee, %s\n",
-			    __func__, ifname, nl_geterror());
+			    __func__, ifname, nl_geterror(err));
 		goto out;
 	}
 
 	nlm = nlmsg_alloc_simple(RTM_GETDCB, NLM_F_REQUEST);
 	if (!nlm) {
-		LLDPAD_WARN("%s: %s nlmsg_alloc failed abort get ieee, %s\n",
-			    __func__, ifname, nl_geterror());
+		LLDPAD_WARN("%s: %s nlmsg_alloc failed abort get ieee\n",
+			    __func__, ifname);
 		err = -ENOMEM;
 		goto out;
 	}
@@ -472,14 +472,14 @@ int get_dcbx_hw(const char *ifname, __u8 *dcbx)
 	if (err < 0)
 		goto out;
 
-	err = nl_send_auto_complete(nlhandle, nlm);
+	err = nl_send_auto_complete(nlsocket, nlm);
 	if (err <= 0) {
 		LLDPAD_WARN("%s: %s 802.1Qaz get app attributes failed\n",
 			    __func__, ifname);
 		goto out;
 	}
 
-	err = nl_recv(nlhandle, &dest_addr, &msg, NULL);
+	err = nl_recv(nlsocket, &dest_addr, &msg, NULL);
 	if (err <= 0) {
 		LLDPAD_WARN("%s: %s: nl_recv returned %d\n", __func__, ifname,
 			    err);
@@ -500,8 +500,8 @@ int get_dcbx_hw(const char *ifname, __u8 *dcbx)
 out:
 	nlmsg_free(nlm);
 	free(msg);
-	if (nlhandle)
-		nl_close(nlhandle);
+	if (nlsocket)
+		nl_close(nlsocket);
 	return err;
 }
 
@@ -790,7 +790,7 @@ static int get_ieee_hw(const char *ifname, struct ieee_ets **ets,
 	int rem;
 	int itr = 0;
 	struct sockaddr_nl dest_addr;
-	static struct nl_handle *nlhandle;
+	struct nl_sock *nlsocket = NULL;
 	struct nl_msg *nlm;
 	unsigned char *msg = NULL;
 	struct nlmsghdr *hdr;
@@ -801,20 +801,19 @@ static int get_ieee_hw(const char *ifname, struct ieee_ets **ets,
 			   .dcb_pad = 0
 			  };
 
-	if (!nlhandle) {
-		nlhandle = nl_handle_alloc();
-		if (!nlhandle) {
-			LLDPAD_WARN("%s: %s: nl_handle_alloc failed, %s\n",
-				    __func__, ifname, nl_geterror());
-			*cnt = 0;
-			return -ENOMEM;
-		}
-		nl_socket_set_local_port(nlhandle, 0);
+	nlsocket = nl_socket_alloc();
+	if (!nlsocket) {
+		LLDPAD_WARN("%s: %s: nl_handle_alloc failed\n",
+			    __func__, ifname);
+		*cnt = 0;
+		return -ENOMEM;
 	}
+	nl_socket_set_local_port(nlsocket, 0);
 
-	if (nl_connect(nlhandle, NETLINK_ROUTE) < 0) {
+	err = nl_connect(nlsocket, NETLINK_ROUTE);
+	if (err < 0) {
 		LLDPAD_WARN("%s: %s nlconnect failed abort get ieee, %s\n",
-			    __func__, ifname, nl_geterror());
+			    __func__, ifname, nl_geterror(err));
 		goto out1;
 	}
 
@@ -836,14 +835,14 @@ static int get_ieee_hw(const char *ifname, struct ieee_ets **ets,
 	if (err < 0)
 		goto out;
 
-	err = nl_send_auto_complete(nlhandle, nlm);
+	err = nl_send_auto_complete(nlsocket, nlm);
 	if (err <= 0) {
 		LLDPAD_WARN("%s: %s 802.1Qaz get app attributes failed\n",
 			    __func__, ifname);
 		goto out;
 	}
 
-	err = nl_recv(nlhandle, &dest_addr, &msg, NULL);
+	err = nl_recv(nlsocket, &dest_addr, &msg, NULL);
 	if (err <= 0) {
 		LLDPAD_WARN("%s: %s: nl_recv returned %d\n", __func__, ifname,
 			    err);
@@ -940,7 +939,8 @@ static int get_ieee_hw(const char *ifname, struct ieee_ets **ets,
 out:
 	nlmsg_free(nlm);
 	free(msg);
-	nl_close(nlhandle);
+	nl_close(nlsocket);
+	nl_socket_free(nlsocket);
 out1:
 	*cnt = itr;
 	return err;
@@ -951,7 +951,7 @@ static int del_ieee_hw(const char *ifname, struct dcb_app *app_data)
 	int err = 0;
 	struct nlattr *ieee, *app;
 	struct sockaddr_nl dest_addr;
-	static struct nl_handle *nlhandle;
+	struct nl_sock *nlsocket;
 	struct nl_msg *nlm;
 	struct dcbmsg d = {
 			   .dcb_family = AF_UNSPEC,
@@ -959,19 +959,18 @@ static int del_ieee_hw(const char *ifname, struct dcb_app *app_data)
 			   .dcb_pad = 0
 			  };
 
-	if (!nlhandle) {
-		nlhandle = nl_handle_alloc();
-		if (!nlhandle) {
-			LLDPAD_WARN("%s: %s: nl_handle_alloc failed, %s\n",
-				    __func__, ifname, nl_geterror());
-			return -ENOMEM;
-		}
-		nl_socket_set_local_port(nlhandle, 0);
+	nlsocket = nl_socket_alloc();
+	if (!nlsocket) {
+		LLDPAD_WARN("%s: %s: nl_handle_alloc failed\n",
+			    __func__, ifname);
+		return -ENOMEM;
 	}
+	nl_socket_set_local_port(nlsocket, 0);
 
-	if (nl_connect(nlhandle, NETLINK_ROUTE) < 0) {
+	err = nl_connect(nlsocket, NETLINK_ROUTE);
+	if (err < 0) {
 		LLDPAD_WARN("%s: %s nlconnect failed abort hardware set, %s\n",
-			    __func__, ifname, nl_geterror());
+			    __func__, ifname, nl_geterror(err));
 		err = -EIO;
 		goto out1;
 	}
@@ -1013,7 +1012,7 @@ static int del_ieee_hw(const char *ifname, struct dcb_app *app_data)
 		nla_nest_end(nlm, app);
 	}
 	nla_nest_end(nlm, ieee);
-	err = nl_send_auto_complete(nlhandle, nlm);
+	err = nl_send_auto_complete(nlsocket, nlm);
 	if (err <= 0)
 		LLDPAD_WARN("%s: %s 802.1Qaz set attributes failed\n",
 			    __func__, ifname);
@@ -1021,7 +1020,8 @@ static int del_ieee_hw(const char *ifname, struct dcb_app *app_data)
 out:
 	nlmsg_free(nlm);
 out2:
-	nl_close(nlhandle);
+	nl_close(nlsocket);
+	nl_socket_free(nlsocket);
 out1:
 	return err;
 
@@ -1034,7 +1034,7 @@ static int set_ieee_hw(const char *ifname, struct ieee_ets *ets_data,
 	int err = 0;
 	struct nlattr *ieee, *app;
 	struct sockaddr_nl dest_addr;
-	static struct nl_handle *nlhandle;
+	struct nl_sock *nlsocket;
 	struct nl_msg *nlm;
 	struct dcbmsg d = {
 			   .dcb_family = AF_UNSPEC,
@@ -1042,15 +1042,13 @@ static int set_ieee_hw(const char *ifname, struct ieee_ets *ets_data,
 			   .dcb_pad = 0
 			  };
 
-	if (!nlhandle) {
-		nlhandle = nl_handle_alloc();
-		if (!nlhandle) {
-			LLDPAD_WARN("%s: %s: nl_handle_alloc failed, %s\n",
-				    __func__, ifname, nl_geterror());
-			return -ENOMEM;
-		}
-		nl_socket_set_local_port(nlhandle, 0);
+	nlsocket = nl_socket_alloc();
+	if (!nlsocket) {
+		LLDPAD_WARN("%s: %s: nl_handle_alloc failed\n",
+			    __func__, ifname);
+		return -ENOMEM;
 	}
+	nl_socket_set_local_port(nlsocket, 0);
 
 	if (!ets_data && !pfc_data && !app_data) {
 		err = 0;
@@ -1064,9 +1062,10 @@ static int set_ieee_hw(const char *ifname, struct ieee_ets *ets_data,
 		print_pfc(pfc_data);
 #endif
 
-	if (nl_connect(nlhandle, NETLINK_ROUTE) < 0) {
+	err = nl_connect(nlsocket, NETLINK_ROUTE);
+	if (err < 0) {
 		LLDPAD_WARN("%s: %s nlconnect failed abort hardware set, %s\n",
-			    __func__, ifname, nl_geterror());
+			    __func__, ifname, nl_geterror(err));
 		err = -EIO;
 		goto out1;
 	}
@@ -1122,7 +1121,7 @@ static int set_ieee_hw(const char *ifname, struct ieee_ets *ets_data,
 		nla_nest_end(nlm, app);
 	}
 	nla_nest_end(nlm, ieee);
-	err = nl_send_auto_complete(nlhandle, nlm);
+	err = nl_send_auto_complete(nlsocket, nlm);
 	if (err <= 0)
 		LLDPAD_WARN("%s: %s 802.1Qaz set attributes failed\n",
 			    __func__, ifname);
@@ -1130,7 +1129,8 @@ static int set_ieee_hw(const char *ifname, struct ieee_ets *ets_data,
 out:
 	nlmsg_free(nlm);
 out2:
-	nl_close(nlhandle);
+	nl_close(nlsocket);
+	nl_socket_free(nlsocket);
 out1:
 	return err;
 }

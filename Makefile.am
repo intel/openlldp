@@ -16,8 +16,8 @@ ACLOCAL_AMFLAGS = -I m4
 parse_cli.o: CFLAGS+=-U_FORTIFY_SOURCE -Wno-error
 
 ## system requires a shared libconfig
-AM_CFLAGS = -Wall -Werror -Wextra -Wformat=2 $(LIBCONFIG_CFLAGS)
-AM_LDFLAGS = $(LIBCONFIG_LIBS)
+AM_CFLAGS = -Wall -Werror -Wextra -Wformat=2 $(LIBCONFIG_CFLAGS) $(LIBNL_CFLAGS)
+AM_LDFLAGS = $(LIBCONFIG_LIBS) $(LIBNL_LIBS)
 
 ## header files to be installed, for programs using the client interface to lldpad 
 lldpad_includedir= ${includedir}/lldpad
@@ -88,7 +88,7 @@ lldptool_SOURCES = lldptool.c lldptool_cmds.c lldp_rtnl.c \
 		   lldp_orgspec_clif.c lldp_cisco_clif.c lldp_evb22_clif.c \
 		   weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
 lldptool_LDADD = ${srcdir}/liblldp_clif.la
-lldptool_LDFLAGS = -ldl -llldp_clif
+lldptool_LDFLAGS = -ldl -llldp_clif $(LIBNL_LIBS)
 
 if BUILD_DEBUG
 nltest_SOURCES = test/nltest.c test/nltest.h
