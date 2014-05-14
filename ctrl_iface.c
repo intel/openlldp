@@ -466,7 +466,7 @@ int ctrl_iface_init(struct clif_data *clifd)
 	}
 	s = socket(AF_LOCAL, SOCK_DGRAM, 0);
 	if (s < 0) {
-		perror("socket(AF_LOCAL)");
+		LLDPAD_WARN("failed to create CLI socket: %m\n");
 		goto fail;
 	}
 	/* enable receiving of the sender credentials */
@@ -479,7 +479,10 @@ int ctrl_iface_init(struct clif_data *clifd)
 		 "%s", LLDP_CLIF_SOCK);
 	addrlen = sizeof(sa_family_t) + strlen(addr.sun_path + 1) + 1;
 	if (bind(s, (struct sockaddr *) &addr, addrlen) < 0) {
-		perror("bind(AF_LOCAL)");
+		if (errno == EADDRINUSE)
+			LLDPAD_WARN("another lldpad instance is running\n");
+		else
+			LLDPAD_WARN("failed to bind CLI socket address: %m");
 		goto fail;
 	}
 	/* enable receiving of the sender credentials */
