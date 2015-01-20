@@ -1,3 +1,7 @@
+Changes from 0.9.46 to 1.0.1
+  Mostly fixes and man page updates
+  Added more testing infrastructure mostly for EVB
+  Updated netlink library to libnl3
 Changes from 0.9.45 tthrough 0.9.46
 - Add IEEE802.1Qbg EVB module support
 - add and improve test code evbest/nltest
