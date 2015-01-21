@@ -58,8 +58,11 @@
 #include "qbg_vdp22_oui.h"
 
 #define OUI_ENCODE_HNDLR(name) name##_oui_encode_hndlr
+#define OUI_PRNT_DECODE_HNDLR(name) name##_oui_print_decode_hndlr
+
 #define EXTERN_OUI_FN(name) \
-	extern bool name##_oui_encode_hndlr(char *, char *, size_t)
+	extern bool name##_oui_encode_hndlr(char *, char *, size_t); \
+	extern void name##_oui_print_decode_hndlr(char *)
 
 /* The handler declaration  for encoding OUI specific information should be
  * here. The corresponding decoder handler should be in lldpad.
@@ -70,7 +73,7 @@ EXTERN_OUI_FN(cisco);
 /* The OUI specific handlers should be added here */
 
 vdptool_oui_hndlr_tbl_t oui_hndlr_tbl[] = {
-	{"cisco", OUI_ENCODE_HNDLR(cisco)}
+	{"cisco", OUI_ENCODE_HNDLR(cisco), OUI_PRNT_DECODE_HNDLR(cisco)}
 };
 
 
@@ -508,6 +511,29 @@ void print_vsi_err_msg(char *key_val)
 		printf("\tInternal Error : %s\n", VSI22_TX_ERR_STR);
 }
 
+static void print_oui_vals(char *argvals)
+{
+	char oui_name[VDP22_OUI_MAX_NAME];
+	char *temp_argval = argvals;
+	char *oui_val;
+	int tbl_size, cnt;
+	u8 oui_name_len;
+
+	hexstr2bin(argvals, &oui_name_len, sizeof(oui_name_len));
+	if (oui_name_len >= VDP22_OUI_MAX_NAME)
+		return;
+	temp_argval = argvals + 2 * sizeof(oui_name_len);
+	oui_val = temp_argval + oui_name_len;
+	strncpy(oui_name, temp_argval, oui_name_len);
+	oui_name[oui_name_len] = '\0';
+	tbl_size = sizeof(oui_hndlr_tbl) / sizeof(vdptool_oui_hndlr_tbl_t);
+	for (cnt = 0; cnt < tbl_size; cnt++) {
+		if (!strncmp(oui_hndlr_tbl[cnt].oui_name, oui_name,
+			     VDP22_OUI_MAX_NAME))
+			oui_hndlr_tbl[cnt].oui_print_decode_hndlr(oui_val);
+	}
+}
+
 static void print_vsi(char **args, char **argvals, int numargs,
 		      bool err_flag)
 {
@@ -517,8 +543,12 @@ static void print_vsi(char **args, char **argvals, int numargs,
 		if (err_flag && (!strcmp(args[i], VSI22_ARG_HINTS_STR)))
 			print_vsi_err_msg(argvals[i]);
 		else {
-			printf("\t%s", args[i]);
-			printf(" = %s\n", argvals[i]);
+			if (!strcmp(args[i], VSI22_ARG_OUI_STR)) {
+				print_oui_vals(argvals[i]);
+			} else {
+				printf("\t%s", args[i]);
+				printf(" = %s\n", argvals[i]);
+			}
 		}
 	}
 }

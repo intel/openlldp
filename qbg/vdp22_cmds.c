@@ -434,6 +434,7 @@ static int catvsis(struct vdpnl_vsi *vsi, char *out, size_t out_len)
 	for (i = 1; vdp22_status(i, vsi, 1) > 0; ++i) {
 		if (wanted_req != vsi->request) {
 			vdp22_freemaclist(vsi);
+			vsinl_delete_oui(vsi);
 			continue;
 		}
 		rc = vdp_vdpnl2str(vsi, tmp_buf, out_len - used);
@@ -443,6 +444,7 @@ static int catvsis(struct vdpnl_vsi *vsi, char *out, size_t out_len)
 		if ((c < 0) || ((unsigned)c >= (out_len - used)))
 			return 0;
 		vdp22_freemaclist(vsi);
+		vsinl_delete_oui(vsi);
 		if (rc) {
 			used = strlen(out);
 		} else
@@ -533,6 +535,8 @@ static int get_vsi_partial_arg(UNUSED char *arg, char *orig_argvalue,
 			len = strlen(tmp_buf);
 			c = snprintf(out + used, out_len - used, "%04x%s",
 				     len, tmp_buf);
+			vdp22_freemaclist(vsinl);
+			vsinl_delete_oui(vsinl);
 			if ((c < 0) || ((unsigned)c >= (out_len - used)))
 				goto out_delvsi;
 			if (rc)

@@ -1010,6 +1010,37 @@ static void copy_fid(struct vdpnl_vsi *vsi, struct vsi22 *p)
 }
 
 /*
+ * This function copies the OUI from VSI22 to vdpnl structure.
+ */
+
+static void copy_oui(struct vdpnl_vsi *vsi, struct vsi22 *p)
+{
+	struct vdp22_oui_handler_s *oui_hndlr;
+	bool ret;
+	int idx;
+
+	vsi->oui_list = calloc(p->no_ouidata, sizeof(*vsi->oui_list));
+	if (!vsi->oui_list)
+		return;
+	vsi->ouisz = p->no_ouidata;
+	for (idx = 0; idx < p->no_ouidata; idx++) {
+		struct vdpnl_oui_data_s *to = &vsi->oui_list[idx];
+		struct vdp22_oui_data_s *from = &p->oui_str_data[idx];
+
+		oui_hndlr = vdp22_get_oui_hndlr(from->oui_name);
+		if (oui_hndlr == NULL) {
+			LLDPAD_ERR("%s: No handler registered for OUI %s\n",
+				   __func__, from->oui_name);
+			continue;
+		}
+		ret = oui_hndlr->vsi2vdpnl_hndlr(p, from, to);
+		if (!ret)
+			LLDPAD_ERR("%s: handler return error for oui %s\n",
+				   __func__, from->oui_name);
+	}
+}
+
+/*
  * Fill the VSI data to return to caller. Currently returned data depends
  * on requestor:
  * 1. Via netlink message from libvirtd and vdptest:
@@ -1033,6 +1064,7 @@ static void copy_vsi(struct vdpnl_vsi *vsi, struct vsi22 *p, int clif)
 	if (clif || (p->flags & VDP22_RETURN_VID)) {
 		copy_fid(vsi, p);
 		p->flags &= ~VDP22_RETURN_VID;
+		copy_oui(vsi, p);
 	}
 }
 

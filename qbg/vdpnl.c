@@ -365,6 +365,19 @@ static int vdpnl_get(struct vdpnl_vsi *p, struct nlmsghdr *nlh)
 }
 
 /*
+ * Delete the OUI structures of VSI22
+ */
+
+void vsinl_delete_oui(struct vdpnl_vsi *p)
+{
+	if ((p->ouisz == 0) || (p->oui_list == NULL))
+		return;
+	p->ouisz = 0;
+	free(p->oui_list);
+	p->oui_list = NULL;
+}
+
+/*
  * Free an malloc'ed maclist array.
  */
 void vdp22_freemaclist(struct vdpnl_vsi *vsi)
@@ -419,6 +432,7 @@ static int vdpnl_getlink(struct nlmsghdr *nlh, size_t len)
 			nla_nest_end(msg, vf_port);
 		}
 		vdp22_freemaclist(&p);
+		vsinl_delete_oui(&p);
 	} while (rc == 1);
 	nla_nest_end(msg, vf_ports);
 	if (rc < 0) {

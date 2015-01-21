@@ -244,6 +244,10 @@ static bool oui_str2vdpnl(struct vdpnl_vsi *vsi, char *p, unsigned short idx)
 	oui_hndlr = vdp22_get_oui_hndlr(oui_name);
 	if (!oui_hndlr)
 		return false;
+	if (!vsi->oui_list) {
+		LLDPAD_ERR("%s: Null OUI List\n", __func__);
+		return false;
+	}
 	strncpy(vsi->oui_list[idx].oui_name, oui_name,
 		sizeof(vsi->oui_list[idx].oui_name));
 	if (oui_hndlr->str2vdpnl_hndlr)
@@ -597,11 +601,16 @@ static void mgrid2str(char *to, struct vdpnl_vsi *p, size_t to_len)
 /*
  * Convert a vdpnl_vsi to string.
  */
+
 int vdp_vdpnl2str(struct vdpnl_vsi *p, char *s, size_t length)
 {
 	int c, i;
 	size_t total = 0;
 	char instance[VDP_UUID_STRLEN + 2];
+	struct vdp22_oui_handler_s *oui_hndlr;
+	int oui_total = 0;
+	int ret;
+	int idx;
 
 	mgrid2str(instance, p, sizeof(instance));
 	c = snprintf(s, length, "%02x%s%04x%s%02x%s%04x%s%02x%s%04x%lu%02x%s"
@@ -641,6 +650,34 @@ int vdp_vdpnl2str(struct vdpnl_vsi *p, char *s, size_t length)
 		s = check_and_update(&total, &length, s, c);
 		if (!c)
 			goto out;
+	}
+	for (idx = 0; idx < p->ouisz; idx++) {
+		struct vdpnl_oui_data_s *from = &p->oui_list[idx];
+
+		oui_total = 0;
+		oui_hndlr = vdp22_get_oui_hndlr(from->oui_name);
+		if (oui_hndlr == NULL) {
+			LLDPAD_ERR("%s: Unknown OUI Name %s\n", __func__,
+					from->oui_name);
+		} else {
+			c = snprintf(s, length, "%02x%s",
+				     (unsigned int)strlen(VSI22_ARG_OUI_STR),
+				     VSI22_ARG_OUI_STR);
+			s = check_and_update(&total, &length, s, c);
+			if (!s)
+				goto out;
+			ret = oui_hndlr->vdpnl2str_hndlr(from, s, &oui_total,
+							 length);
+			if (!ret) {
+				LLDPAD_ERR("%s: handler return error for "
+					   "oui %s\n", __func__,
+					   from->oui_name);
+				goto out;
+			}
+			s = check_and_update(&total, &length, s, oui_total);
+			if (!s)
+				goto out;
+		}
 	}
 
 out:

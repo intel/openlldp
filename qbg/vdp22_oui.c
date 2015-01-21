@@ -57,6 +57,11 @@ int oui_vdp_str2uuid(unsigned char *to, char *buffer, size_t max)
 	return vdp_str2uuid(to, buffer, max);
 }
 
+int oui_vdp_uuid2str(unsigned char *from, char *buffer, size_t max)
+{
+	return vdp_uuid2str(from, buffer, max);
+}
+
 int oui_vdp_hexstr2bin(const char *hex, unsigned char *buf, size_t len)
 {
 	return hexstr2bin(hex, buf, len);

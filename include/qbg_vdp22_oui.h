@@ -53,6 +53,7 @@ typedef struct vdptool_oui_data_s {
 typedef struct vdptool_oui_hndlr_tbl_s {
 	char *oui_name;
 	bool (*oui_cli_encode_hndlr)(char *dst, char *src, size_t len);
+	void (*oui_print_decode_hndlr)(char *dst);
 } vdptool_oui_hndlr_tbl_t;
 
 struct vdpnl_oui_data_s {
@@ -81,6 +82,11 @@ struct vdp22_oui_handler_s {
 	/* This handler converts the vdpnl structure to vsi22 structure */
 	bool (*vdpnl2vsi22_hndlr)(void *, struct vdpnl_oui_data_s *,
 				   struct vdp22_oui_data_s *);
+	/* This handler converts the vdpnl structure to string */
+	bool (*vdpnl2str_hndlr)(struct vdpnl_oui_data_s *, char *,
+				int *, int);
+	bool (*vsi2vdpnl_hndlr)(void *, struct vdp22_oui_data_s *,
+				struct vdpnl_oui_data_s *);
 	/* This handler creates the OUI fields for Tx */
 	size_t (*vdp_tx_hndlr)(char unsigned *,
 				struct vdp22_oui_data_s *, size_t);
@@ -95,6 +101,7 @@ struct vdp22_oui_handler_s {
 unsigned char vdp22_oui_get_vsi22_fmt(void *);
 unsigned char *vdp22_oui_get_vsi22_len(void *, unsigned char *);
 int oui_vdp_str2uuid(unsigned char *, char *, size_t);
+int oui_vdp_uuid2str(unsigned char *, char *, size_t);
 bool oui_vdp_hndlr_init(struct vdp22_oui_handler_s *);
 int oui_vdp_hexstr2bin(const char *hex, unsigned char *buf, size_t len);
 
