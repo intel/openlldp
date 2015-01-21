@@ -65,10 +65,12 @@
  * here. The corresponding decoder handler should be in lldpad.
  */
 
+EXTERN_OUI_FN(cisco);
 
 /* The OUI specific handlers should be added here */
 
 vdptool_oui_hndlr_tbl_t oui_hndlr_tbl[] = {
+	{"cisco", OUI_ENCODE_HNDLR(cisco)}
 };
 
 

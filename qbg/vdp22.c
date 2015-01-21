@@ -48,6 +48,7 @@
 #define EXTERN_FN(name)\
 extern bool name##_oui_init()
 
+EXTERN_FN(cisco);
 /* Init handlers for OUI. OUI handlers should be added in vdp22_oui_init_list.
  * First argument specifies the OUI code assigned to the Organization.
  * Second argument is the string which should match with the CLI and the third
@@ -55,6 +56,7 @@ extern bool name##_oui_init()
  */
 
 struct vdp22_oui_init_s vdp22_oui_init_list[] = {
+	{{0x00, 0x00, 0x0c}, "cisco", INIT_FN(cisco)}
 };
 
 struct vdp22_oui_handler_s vdp22_oui_list[MAX_NUM_OUI];

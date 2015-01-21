@@ -70,14 +70,15 @@ include/lldp_evb22.h lldp_evb22.c lldp_evb22_cmds.c \
 include/qbg22.h include/qbg_ecp22.h qbg/ecp22.c \
 include/qbg_vdp22.h qbg/vdp22.c qbg/vdpnl.c qbg/vdp22sm.c qbg/vdp22br.c \
 include/qbg_vdp22def.h qbg/vdp22_cmds.c qbg/vdp_ascii.c \
-include/qbg_vdp22_oui.h qbg/vdp22_oui.c
+include/qbg_vdp22_oui.h qbg/vdp22_oui.c include/vdp_cisco.h \
+qbg/vdp22cisco_oui.c
 
 lib_LTLIBRARIES = liblldp_clif.la
 liblldp_clif_la_LDFLAGS = -version-info 1:0:0
 liblldp_clif_includedir = ${srcdir}/include
 liblldp_clif_la_SOURCES = clif.c
 
-vdptool_SOURCES = vdptool.c lldp_util.c qbg/vdp22_clif.c
+vdptool_SOURCES = vdptool.c lldp_util.c qbg/vdp22_clif.c vdptool_cisco_oui.c
 vdptool_LDADD = ${srcdir}/liblldp_clif.la
 vdptool_LDFLAGS = -llldp_clif $(LIBNL_LIBS)
 
