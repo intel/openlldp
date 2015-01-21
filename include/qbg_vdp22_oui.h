@@ -92,4 +92,52 @@ struct vdp22_oui_handler_s {
 	unsigned long (*oui_ptlv_size_hndlr)(void *);
 };
 
+unsigned char vdp22_oui_get_vsi22_fmt(void *);
+unsigned char *vdp22_oui_get_vsi22_len(void *, unsigned char *);
+int oui_vdp_str2uuid(unsigned char *, char *, size_t);
+bool oui_vdp_hndlr_init(struct vdp22_oui_handler_s *);
+int oui_vdp_hexstr2bin(const char *hex, unsigned char *buf, size_t len);
+
+static inline size_t oui_append_1o(unsigned char *cp, const unsigned char data)
+{
+	*cp = data;
+	return 1;
+}
+
+static inline size_t oui_append_2o(unsigned char *cp, const unsigned short data)
+{
+	*cp = (data >> 8) & 0xff;
+	*(cp + 1) = data & 0xff;
+	return 2;
+}
+
+static inline size_t oui_append_3o(unsigned char *cp, const unsigned long data)
+{
+	*cp = (data >> 16) & 0xff;
+	*(cp + 1) = (data >> 8) & 0xff;
+	*(cp + 2) = data & 0xff;
+	return 3;
+}
+static inline size_t oui_append_4o(unsigned char *cp, const unsigned long data)
+{
+	*cp = (data >> 24) & 0xff;
+	*(cp + 1) = (data >> 16) & 0xff;
+	*(cp + 2) = (data >> 8) & 0xff;
+	*(cp + 3) = data & 0xff;
+	return 4;
+}
+
+static inline size_t oui_append_nb(unsigned char *cp, const unsigned char *data,
+				   const size_t nlen)
+{
+	memcpy(cp, data, nlen);
+	return nlen;
+}
+
+static inline unsigned short oui_get_tlv_head(unsigned short type,
+					      unsigned short len)
+{
+	return (type & 0x7f) << 9 | (len & 0x1ff);
+}
+
 #endif /* __VDP22_OUI_H__ */

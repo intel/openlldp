@@ -70,7 +70,7 @@ include/lldp_evb22.h lldp_evb22.c lldp_evb22_cmds.c \
 include/qbg22.h include/qbg_ecp22.h qbg/ecp22.c \
 include/qbg_vdp22.h qbg/vdp22.c qbg/vdpnl.c qbg/vdp22sm.c qbg/vdp22br.c \
 include/qbg_vdp22def.h qbg/vdp22_cmds.c qbg/vdp_ascii.c \
-include/qbg_vdp22_oui.h
+include/qbg_vdp22_oui.h qbg/vdp22_oui.c
 
 lib_LTLIBRARIES = liblldp_clif.la
 liblldp_clif_la_LDFLAGS = -version-info 1:0:0

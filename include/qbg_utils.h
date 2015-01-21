@@ -42,4 +42,5 @@ int modules_notify(int, int, char *, void *);
 
 /* Convert VSI IDs to strings */
 int vdp_uuid2str(const unsigned char *, char *, size_t);
+int vdp_str2uuid(unsigned char *, char *, size_t);
 #endif
