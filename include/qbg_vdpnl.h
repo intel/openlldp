@@ -79,4 +79,7 @@ int vdp_str2vdpnl(char *, struct vdpnl_vsi *, char *);
 int vdp_vdpnl2str(struct vdpnl_vsi *, char *, size_t);
 int vdp22_sendevent(struct vdpnl_vsi *);
 void vdp22_freemaclist(struct vdpnl_vsi *);
+int vdp22_parse_str_vdpnl(struct vdpnl_vsi *, unsigned short *, char *);
+struct vsi22 *vdp22_alloc_vsi_ext(struct vdpnl_vsi *, int *);
+void copy_vsi_external(struct vdpnl_vsi *, struct vsi22 *, int);
 #endif

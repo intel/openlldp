@@ -53,6 +53,7 @@
 
 #include "qbg22.h"
 #include "qbg_vdp22_clif.h"
+#include "lldp_util.h"
 
 static char *print_status(cmd_status status)
 {
@@ -129,7 +130,7 @@ static int render_cmd(struct cmd *cmd, int argc, char **args, char **argvals)
 
 	len = sizeof(cmd->obuf);
 
-	if (cmd->cmd == cmd_settlv) {
+	if ((cmd->cmd == cmd_settlv) || (cmd->cmd == cmd_gettlv)) {
 		for (i = 0; i < argc; i++) {
 			if (args[i]) {
 				if (!strncasecmp(args[i], "filter",
@@ -206,13 +207,6 @@ static int vdp_cmd_gettlv(struct clif *clif, int argc, char *argv[],
 			goto out;
 		}
 		cmd->ops |= op_arg;
-	}
-
-	for (i = 0; i < numargs; i++) {
-		if (argvals[i]) {
-			printf("%s\n", print_status(cmd_invalid));
-			goto out;
-		}
 	}
 
 	render_cmd(cmd, argc, args, argvals);
@@ -305,123 +299,59 @@ static int vdp_parse_response(char *buf)
 	return hex2u8(buf + CLIF_STAT_OFF);
 }
 
-static void print_pair(char *arg, size_t arglen, char *value, size_t valuelen)
+int get_vsi_args(char *ibuf)
 {
-	while (arglen--)
-		putchar(*arg++);
-	putchar('=');
-	while (valuelen--)
-		putchar(*value++);
-	putchar('\n');
-}
+	int ioff = 0;
+	char **args;
+	char **argvals;
+	int numargs, i;
+	int ilen = strlen(ibuf);
 
-static int print_arg_value(char *ibuf)
-{
-	int arglen, valuelen, offset = 0, ilen = strlen(ibuf);
-	char *arg, *value;
+	/* count args and argvalus */
+	numargs = get_vsistr_arg_count(ioff, ilen);
 
-	while (offset < ilen) {
-		/* Length of argument */
-		arglen = hex2u8(ibuf + offset);
-		if (arglen < 0)
-			break;
-		offset += 2;
-		arg = ibuf + offset;
-		offset += arglen;
+	args = calloc(numargs, sizeof(char *));
+	if (!args)
+		return cmd_failed;
 
-		/* Length of argument value */
-		valuelen = hex2u16(ibuf + offset);
-		if (valuelen < 0)
-			break;
-		offset += 4;
-		value = ibuf + offset;
-		offset += valuelen;
-
-		print_pair(arg, arglen, value, valuelen);
+	argvals = calloc(numargs, sizeof(char *));
+	if (!argvals) {
+		free(args);
+		return cmd_failed;
 	}
-	return offset;
+
+	numargs = get_arg_val_list(ibuf, ilen, &ioff, args, argvals);
+	for (i = 0; i < numargs; i++) {
+		printf("\t%s", args[i]);
+		printf(" = %s\n", argvals[i]);
+	}
+
+	free(args);
+	free(argvals);
+	return ioff;
 }
 
-static int get_tlvid(char *ibuf)
-{
-	return hex2u32(ibuf);
-}
-
-/*
- * Print a TLV.
- */
-static void print_tlv2(char *ibuf)
+static void print_all_vsis(char *ibuf)
 {
 	size_t ilen = strlen(ibuf);
-	u16 tlv_type;
-	u16 tlv_len;
-	u32 tlvid;
-	int offset = 0;
-	int printed;
-	struct lldp_module *np;
+	u16 vsi_len;
+	int offset = 0, vsi_cnt = 0;
+	char tmp_ibuf[strlen(ibuf)];
 
 	while (ilen > 0) {
-		tlv_len = 2 * sizeof(u16);
-		if (ilen < 2 * sizeof(u16)) {
-			printf("corrupted TLV ilen:%zd, tlv_len:%d\n",
-				ilen, tlv_len);
-			break;
-		}
-		tlv_type = hex2u16(ibuf + offset);
-		tlv_len = tlv_type;
-		tlv_type >>= 9;
-		tlv_len &= 0x01ff;
+		vsi_len = hex2u16(ibuf + offset);
+		if (vsi_len > ilen)
+			return;
 		offset += 2 * sizeof(u16);
 		ilen -= 2 * sizeof(u16);
-
-		if (ilen < (unsigned) 2 * tlv_len) {
-			printf("corrupted TLV ilen:%zd, tlv_len:%d\n",
-				ilen, tlv_len);
-			break;
-		}
-		tlvid = tlv_type;
-		if (tlvid == INVALID_TLVID) {
-			tlvid = get_tlvid(ibuf + offset);
-			offset += 8;
-		}
-		printed = 0;
-		LIST_FOREACH(np, &lldp_head, lldp) {
-			if (np->ops->print_tlv(tlvid, tlv_len, ibuf + offset)) {
-				printed = 1;
-				break;
-			}
-		}
-
-		if (!printed) {
-			if (tlvid < INVALID_TLVID)
-				printf("Unidentified TLV\n\ttype:%d %*.*s\n",
-					tlv_type, tlv_len*2, tlv_len*2,
-					ibuf+offset);
-			else
-				printf("Unidentified Org Specific TLV\n\t"
-				      "OUI: 0x%06x, Subtype: %d, Info: %*.*s\n",
-					tlvid >> 8, tlvid & 0x0ff,
-					tlv_len*2-8, tlv_len*2-8,
-					ibuf+offset);
-		}
-		if (tlvid > INVALID_TLVID)
-			offset += (2 * tlv_len - 8);
-		else
-			offset += 2 * tlv_len;
-		ilen -= 2 * tlv_len;
-		if (tlvid == END_OF_LLDPDU_TLV)
-			break;
+		strncpy(tmp_ibuf, ibuf + offset, vsi_len);
+		tmp_ibuf[vsi_len] = '\0';
+		printf("%s %d:\n", "VSI ", vsi_cnt);
+		get_vsi_args(tmp_ibuf);
+		offset += vsi_len;
+		ilen -= vsi_len;
+		vsi_cnt++;
 	}
-}
-
-/* Print reply from get command */
-static void print_tlvs(struct cmd *cmd, char *ibuf)
-{
-	if (cmd->ops & op_config) {
-		print_arg_value(ibuf);
-		return;
-	}
-	print_tlv2(ibuf);
 }
 
 static void print_cmd_response(char *ibuf, int status)
@@ -455,7 +385,7 @@ static void print_cmd_response(char *ibuf, int status)
 
 	switch (cmd.cmd) {
 	case cmd_gettlv:
-		print_tlvs(&cmd, ibuf + ioff);
+		print_all_vsis(ibuf + ioff);
 		break;
 	case cmd_settlv:
 		printf("%s", ibuf + ioff);
@@ -708,7 +638,7 @@ static int _clif_command(struct clif *clif, char *cmd, int print)
 	size_t len;
 	int ret;
 	int rc;
-	char reply[100];
+	char reply[200];
 	size_t reply_len2 = sizeof(reply);
 
 	print_raw_message(cmd, print);

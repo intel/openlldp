@@ -170,6 +170,7 @@ int check_link_status(const char *ifname);
 int get_arg_val_list(char *ibuf, int ilen, int *ioff,
 			    char **args, char **argvals);
 int get_arg_list(char *ibuf, int ilen, int *ioff, char **args);
+int get_vsistr_arg_count(int ioff, int ilen);
 
 #define ntohll(x) be64_to_cpu(x)
 #define htonll(x) cpu_to_be64(x)

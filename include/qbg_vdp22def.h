@@ -30,6 +30,15 @@
 #define QBG_VDP22DEF_H
 
 /*
+ * Define for length of vid-mac-gid
+ * VID in string cannot be more than 4B (Max is 4K)
+ * MAC when represented as 11:22:33:44:55:66 has 17B
+ * GID is 4B
+ * The below should be more than sufficient.
+ */
+#define MAX_GID_MAC_VID_STR 50
+
+/*
  * Define VDP22 filter formats.
  */
 enum vdp22_ffmt {			/* Format of filter information */
@@ -72,7 +81,7 @@ enum vdp22_migration_hints {
 	VDP22_MIGFROM = 32		/* S-bit migrate from hint */
 };
 
-enum vsi_mand_arg {
+enum vsi_key_arg {
 	VSI_MODE_ARG = 0,
 	VSI_MGRID2_ARG,
 	VSI_TYPEID_ARG,

@@ -944,7 +944,8 @@ static bool cmp_fdata1(struct fid22 *p1, struct fid22 *p2, unsigned char fif)
 
 	if (fif == VDP22_FFMT_MACVID || fif == VDP22_FFMT_GROUPMACVID)
 		is_good = !memcmp(p1->mac, p2->mac, sizeof(p1->mac));
-	if (fif == VDP22_FFMT_GROUPVID || fif == VDP22_FFMT_GROUPMACVID)
+	if (is_good &&
+		(fif == VDP22_FFMT_GROUPVID || fif == VDP22_FFMT_GROUPMACVID))
 		is_good = (p1->grpid == p2->grpid);
 	if (is_good) {
 		if (vdp22_get_vlanid(p1->vlan))
@@ -956,7 +957,7 @@ static bool cmp_fdata1(struct fid22 *p1, struct fid22 *p2, unsigned char fif)
 	return is_good;
 }
 
-static bool vdp22_cmp_fdata(struct vsi22 *p, struct vsi22 *vsip)
+bool vdp22_cmp_fdata(struct vsi22 *p, struct vsi22 *vsip)
 {
 	int i;
 

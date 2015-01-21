@@ -70,17 +70,17 @@ bridge.
 Specifies additional parameters for TLV queries and associations commands.
 The argument list varies, depending on the command option
 .B (-T)
-or 
+or
 .BR (-t) .
-To establish a VSI association use the command option 
+To establish a VSI association use the command option
 .B (-T)
 and specify additional information as arguments in the form
-of key=value. See the 
+of key=value. See the
 .I "VSI Parameter"
 subsection and
 .I Example
 section below.
-To query a VSI specific association use the command option 
+To query a VSI specific association use the command option
 .B (-t)
 and specify the value of the
 VSI Instance Identifier (keywork uuid followed be the VSI
@@ -92,6 +92,9 @@ show raw client interface messages
 .TP
 .B \-R
 show only raw Client interface messages
+.TP
+.B \-W
+Wait for the bridge response message
 .SS VSI Parameter
 Each VDP22 TLVs contains a command mode, manager identifier,
 type identifier, type identifier version, VSI instance identifier,
@@ -99,7 +102,7 @@ migiration hints and filter information.
 The fields are explained next:
 .TP
 .B "mode (Command Mode):"
-The command mode determines the type 
+The command mode determines the type
 of the VSI association to be established.
 It is an ascii string can be one of:
 .RS
@@ -110,7 +113,7 @@ Create an VSI preassociation. The association
 is only announced to the switch.
 .IP preassoc-rr:
 Create an VSI preassociation. The association
-is only announced to the switch and the 
+is only announced to the switch and the
 switch should reserve the resources.
 .IP deassoc:
 Delete an VSI association.
@@ -137,7 +140,7 @@ an UUID according to RFC 4122
 with optional dashes in between.
 .TP
 .B "hints (Migration Hints):"
-The migiration hints is a string aiding in 
+The migiration hints is a string aiding in
 migration of virtual machines:
 .RS
 .IP none:
@@ -168,13 +171,13 @@ The MAC address is specified in the format xx:xx:xx:xx:xx:xx.
 The colons are mandatory.
 For vlan details see (1).
 .IP "vlan-mac-group (4)"
-A vlan number, MAC address and group identifier, 
+A vlan number, MAC address and group identifier,
 each delimited by a slash ('-'),
 also known as filter information format 4.
 The group identifier is a 32 bit number.
 For vlan and MAC address details see (1) and (2).
 .IP "vlan--group (3)"
-A vlan number and group identifier, 
+A vlan number and group identifier,
 delimited by two slashes ('--'),
 also known as filter information format 3.
 For vlan and group details see (1) and (4).
@@ -218,18 +221,30 @@ vdptool -p
 Create a VSI association on interface eth2
 .br
 .nf
-Supported today: One config parameter and comma separated list
-vdptool -i eth2 -T -V assoc -c vsi=assoc,blabla,5, \\
-	1122,4,none,2-52:00:00:11:22:33-200
-
-Planned for the future:
-vdptool -i eth2 -T -V assoc -c mgrid2=blabla -c typeid=5 \\
-	-c uuid=1122 -c typeidver=4 -c hints=none -c fid=2-52:00:00:11:22:33-200
+vdptool -i eth2 -T -V assoc -c mode=assoc -c mgrid2=blabla \\
+	-c typeid=5 -c uuid=1122 -c typeidver=4 -c hints=none \\
+	-c filter=2-52:00:00:11:22:33-200
 .fi
+.TP
+Create a VSI association on interface eth2 and wait for the response from the bridge
+.br
+.nf
+vdptool -i eth2 -T -W -V assoc -c mode=assoc -c mgrid2=blabla \\
+	-c typeid=5 -c uuid=1122 -c typeidver=4 -c hints=none \\
+	-c filter=0-52:00:00:11:22:33-200
+.fi
+
 .TP
 Query all VSI association on interface eth2
 .br
 vdptool -i eth2 -t -V assoc
+
+.TP
+Query  VSI association on interface eth2 that matches specific VSI parameters. Any of the VSI parameters below can be omitted.
+.br
+vdptool -i eth2 -t -V assoc -t -V assoc -c mode=assoc \\
+        -c mgrid2=blabla -c typeid=5 -c uuid=1122 \\
+        -c typeidver=4 -c hints=none
 .SH SEE ALSO
 .BR lldptool-dcbx (8),
 .BR lldptool-ets (8),

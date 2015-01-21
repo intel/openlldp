@@ -237,7 +237,7 @@ int vdp22_clif_cmd(UNUSED void *data, UNUSED struct sockaddr_un *from,
 		return cmd_not_applicable;
 	}
 
-	if (!(cmd.ops & op_config))
+	if (!(cmd.ops & op_config) && (cmd.cmd != cmd_gettlv))
 		return cmd_invalid;
 
 	snprintf(rbuf, rlen, "%c%1x%02x%08x%02x%s",
@@ -254,10 +254,9 @@ int vdp22_clif_cmd(UNUSED void *data, UNUSED struct sockaddr_un *from,
 	snprintf(rbuf + roff, rlen - roff, "%08x", cmd.tlvid);
 	roff += 8;
 	if (cmd.cmd == cmd_gettlv) {
-		rstatus = handle_get_arg(&cmd, ARG_VDP22_VSI,
-						NULL,
-						rbuf + strlen(rbuf),
-						rlen - strlen(rbuf));
+		rstatus = handle_get_arg(&cmd, ARG_VDP22_VSI, ibuf + ioff,
+					 rbuf + strlen(rbuf),
+					 rlen - strlen(rbuf));
 	} else {
 		rstatus = handle_test_arg(&cmd, ARG_VDP22_VSI,
 						ibuf + ioff,
@@ -392,19 +391,25 @@ static int test_arg_vsi(struct cmd *cmd, UNUSED char *arg, char *argvalue,
  */
 static int catvsis(struct vdpnl_vsi *vsi, char *out, size_t out_len)
 {
-	int rc, i;
+	int rc, i, len, c;
 	size_t used = 0;
 	unsigned char wanted_req = vsi->request;
+	char tmp_buf[MAX_CLIF_MSGBUF];
 
+	memset(tmp_buf, 0, sizeof(tmp_buf));
 	for (i = 1; vdp22_status(i, vsi, 1) > 0; ++i) {
 		if (wanted_req != vsi->request) {
 			vdp22_freemaclist(vsi);
 			continue;
 		}
-		rc = vdp_vdpnl2str(vsi, out + used, out_len - used);
+		rc = vdp_vdpnl2str(vsi, tmp_buf, out_len - used);
+		len = strlen(tmp_buf);
+		c = snprintf(out + used, out_len - used, "%04x%s", len,
+			     tmp_buf);
+		if ((c < 0) || ((unsigned)c >= (out_len - used)))
+			return 0;
 		vdp22_freemaclist(vsi);
 		if (rc) {
-			strcat(out, ";");
 			used = strlen(out);
 		} else
 			return 0;
@@ -413,15 +418,113 @@ static int catvsis(struct vdpnl_vsi *vsi, char *out, size_t out_len)
 }
 
 /*
+ * Based on the VSI arguments specified, checks if it matches.
+ * This does't check for all VSI parameters.
+ */
+
+static bool vdp22_partial_vsi_equal(struct vsi22 *p1, struct vsi22 *p2,
+				    enum vsi_key_arg vsi_arg_key_flags)
+{
+	enum vsi_key_arg key_enum;
+
+	for (key_enum = VSI_MODE_ARG; key_enum < VSI_INVALID_ARG; key_enum++) {
+		if (!((1 << key_enum) & vsi_arg_key_flags))
+			continue;
+		switch (key_enum) {
+		case VSI_MODE_ARG:
+			break;
+		case VSI_MGRID2_ARG:
+			if (memcmp(p1->mgrid, p2->mgrid,
+				   sizeof(p2->mgrid)))
+				return false;
+		case VSI_TYPEID_ARG:
+			if (p1->type_id != p2->type_id)
+				return false;
+			break;
+		case VSI_TYPEIDVER_ARG:
+			if (p1->type_ver != p2->type_ver)
+				return false;
+			break;
+#ifdef LATER
+/* Currently not supported */
+		case VSI_VSIIDFRMT_ARG:
+			if (p1->vsi_fmt != p2->vsi_fmt)
+				return false;
+			break;
+#endif
+		case VSI_VSIID_ARG:
+			if (memcmp(p1->vsi, p2->vsi, sizeof(p1->vsi)))
+				return false;
+			break;
+		case VSI_FILTER_ARG:
+			if ((p1->fif != p2->fif) || (!vdp22_cmp_fdata(p1, p2)))
+				return false;
+			break;
+		case VSI_HINTS_ARG:
+			break;
+		default:
+			return false;
+		}
+	}
+	return true;
+}
+
+static int get_vsi_partial_arg(UNUSED char *arg, char *orig_argvalue,
+			       struct vdpnl_vsi *vsinl, char *out,
+			       size_t out_len)
+{
+	char tmp_buf[MAX_CLIF_MSGBUF];
+	struct vsi22 *p, *vsi;
+	struct vdp22 *vdp;
+	size_t used = 0;
+	int rc = -ENOMEM, len, c;
+	u16 vsi_arg_key_flags = 0;
+
+	if (vdp22_parse_str_vdpnl(vsinl, &vsi_arg_key_flags, orig_argvalue))
+		goto out;
+	vdp = vdp22_getvdp(vsinl->ifname);
+	if (!vdp)
+		goto out;
+
+	vsi = vdp22_alloc_vsi_ext(vsinl, &rc);
+	if (!vsi)
+		goto out;
+	LIST_FOREACH(p, &vdp->vsi22_que, node) {
+		if (p->vsi_mode != vsi->vsi_mode)
+			continue;
+		if (vdp22_partial_vsi_equal(p, vsi, vsi_arg_key_flags)) {
+			copy_vsi_external(vsinl, p, 1);
+			rc = vdp_vdpnl2str(vsinl, tmp_buf, out_len - used);
+			len = strlen(tmp_buf);
+			c = snprintf(out + used, out_len - used, "%04x%s",
+				     len, tmp_buf);
+			vdp22_freemaclist(vsinl);
+			if ((c < 0) || ((unsigned)c >= (out_len - used)))
+				goto out_delvsi;
+			if (rc)
+				used = strlen(out);
+			else
+				goto out_delvsi;
+		}
+	}
+out_delvsi:
+	vdp22_delete_vsi(vsi);
+out:
+	return rc;
+}
+
+/*
  * Return all VSIs on a particular interface into one string.
  */
-static int get_arg_vsi(struct cmd *cmd, char *arg, UNUSED char *argvalue,
+static int get_arg_vsi(struct cmd *cmd, char *arg, char *argvalue,
 		       char *obuf, int obuf_len)
 {
 	cmd_status good_cmd = vdp22_cmdok(cmd, cmd_gettlv);
 	struct vdpnl_vsi vsi;
 	char vsi_str[MAX_CLIF_MSGBUF];
 	int rc;
+	int fsize = (cmd->ops >> OP_FID_POS) & 0xff;
+	struct vdpnl_mac mac[fsize];
 
 	if (good_cmd != cmd_success)
 		return good_cmd;
@@ -433,14 +536,20 @@ static int get_arg_vsi(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 
 	memset(obuf, 0, obuf_len);
 	memset(&vsi, 0, sizeof(vsi));
+	memset(vsi_str, 0, sizeof(vsi_str));
 	vsi.request = cmd->tlvid;
 	strncpy(vsi.ifname, cmd->ifname, sizeof(vsi.ifname) - 1);
 	good_cmd = cmd_failed;
-	if (!catvsis(&vsi, vsi_str, sizeof(vsi_str)))
+	if ((cmd->ops & op_config) && (cmd->ops & op_arg)) {
+		memset(&mac, 0, sizeof(mac));
+		vsi.macsz = fsize;
+		vsi.maclist = mac;
+		if (!get_vsi_partial_arg(arg, argvalue, &vsi, vsi_str,
+					 sizeof(vsi_str)))
+			goto out;
+	} else if (!catvsis(&vsi, vsi_str, sizeof(vsi_str)))
 		goto out;
-	rc = snprintf(obuf, obuf_len, "%02x%s%04x%s",
-		 (unsigned int)strlen(arg), arg, (unsigned int)strlen(vsi_str),
-		 vsi_str);
+	rc = snprintf(obuf, obuf_len, "%s", vsi_str);
 	if (rc > 0 || rc < obuf_len)
 		good_cmd = cmd_success;
 out:

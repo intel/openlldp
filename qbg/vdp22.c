@@ -219,7 +219,7 @@ void vdp22_showvsi(struct vsi22 *p)
 /*
  * Delete a complete VSI node not on queue.
  */
-static void vdp22_delete_vsi(struct vsi22 *p)
+void vdp22_delete_vsi(struct vsi22 *p)
 {
 	LLDPAD_DBG("%s:%s vsi:%p(%02x)\n", __func__, p->vdp->ifname, p,
 		   p->vsi[0]);
@@ -477,14 +477,15 @@ static bool filter_ok(unsigned char ffmt, struct fid22 *fp,
  * Allocate a VSI node with filter information data.
  * Check if input data is valid.
  */
-static struct vsi22 *vdp22_alloc_vsi(struct vdpnl_vsi *vsi, struct vdp22 *vdp,
-				     int *rc)
+static struct vsi22 *vdp22_alloc_vsi_int(struct vdpnl_vsi *vsi,
+					 struct vdp22 *vdp,
+					 int *rc, bool vsinl_chk)
 {
 	struct vsi22 *p;
 	int i;
 
 	*rc = -EINVAL;
-	if (!check_vsinl(vsi))
+	if (vsinl_chk && (!check_vsinl(vsi)))
 		return NULL;
 	p = calloc(1, sizeof(*p));
 	if (!p) {
@@ -544,6 +545,16 @@ error1:
 	vdp22_showvsi(p);
 	vdp22_delete_vsi(p);
 	return NULL;
+}
+
+struct vsi22 *vdp22_alloc_vsi_ext(struct vdpnl_vsi *vsinl, int *rc)
+{
+	struct vdp22 *vdp;
+
+	vdp = vdp22_getvdp(vsinl->ifname);
+	if (!vdp)
+		return NULL;
+	return vdp22_alloc_vsi_int(vsinl, vdp, rc, false);
 }
 
 /*
@@ -750,7 +761,7 @@ static struct vdp22 *vdp22_create(const char *ifname,
 /*
  * Query the supported VDP protocol on an interface.
  */
-static struct vdp22 *vdp22_getvdp(const char *ifname)
+struct vdp22 *vdp22_getvdp(const char *ifname)
 {
 	struct vdp22 *vdp;
 
@@ -820,7 +831,7 @@ int vdp22_request(struct vdpnl_vsi *vsi, int clif)
 		/* Adjust numbering for VDP 0.2 protocol from netlink */
 		if (!clif)
 			vsi->request += 1;
-		p = vdp22_alloc_vsi(vsi, vdp, &rc);
+		p = vdp22_alloc_vsi_int(vsi, vdp, &rc, true);
 		if (p) {
 			rc = vdp22_addreq(p, vdp);
 			if (rc)
@@ -1078,4 +1089,9 @@ int vdp22_info(const char *ifname)
 	LLDPAD_DBG("%s:%s rc:%d\n", __func__, ifname, rc);
 	return rc;
 
+}
+
+void copy_vsi_external(struct vdpnl_vsi *vsi, struct vsi22 *p, int clif)
+{
+	copy_vsi(vsi, p, clif);
 }

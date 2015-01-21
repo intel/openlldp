@@ -165,7 +165,7 @@ struct vdp22_user_data {		/* Head for all VDP data */
 
 struct vsi_keyword_handler {
 	char *keyword;
-	enum vsi_mand_arg val;
+	enum vsi_key_arg val;
 };
 
 struct lldp_module *vdp22_register(void);
@@ -175,6 +175,7 @@ void vdp22_showvsi(struct vsi22 *p);
 void vdp22_stop(char *);
 int vdp22_from_ecp22(struct vdp22 *);
 int vdp22_query(const char *);
+struct vdp22 *vdp22_getvdp(const char *);
 int vdp22_addreq(struct vsi22 *, struct vdp22 *);
 int vdp22_nlback(struct vsi22 *);
 int vdp22_clntback(struct vsi22 *);
@@ -184,6 +185,8 @@ int vdp22br_resources(struct vsi22 *, int *);
 int vdp22_info(const char *);
 void vdp22_stop_timers(struct vsi22 *);
 int vdp22_start_localchange_timer(struct vsi22 *);
+bool vdp22_cmp_fdata(struct vsi22 *, struct vsi22 *);
+void vdp22_delete_vsi(struct vsi22 *);
 
 /*
  * Functions to get and set vlan identifier and qos.

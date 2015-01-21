@@ -110,6 +110,15 @@ static bool getnumber(char *s, unsigned int min, unsigned int max,
 }
 
 /*
+ * Returns the byte length of a given number
+ */
+
+static int get_strlen_num(unsigned long no)
+{
+	return snprintf(NULL, 0, "%lu", no);
+}
+
+/*
  * Read filter information data. The format is an ascii string:
  * filter-data		filter-format
  * vlan			1
@@ -264,7 +273,7 @@ static bool getmode(struct vdpnl_vsi *p, char *s)
 	return true;
 }
 
-enum vsi_mand_arg get_keywork_val(char *keyword)
+enum vsi_key_arg get_keywork_val(char *keyword)
 {
 	int count, key_str_size;
 
@@ -276,65 +285,36 @@ enum vsi_mand_arg get_keywork_val(char *keyword)
 	return VSI_INVALID_ARG;
 }
 
-/*
- * Parse the mode parameter to create/change an VSI assoication.
- * The format is a comma separated list of tokens:
- * cmd,mgrid,typeid,typeidversion,vsiid,hints,fid[,fid,fid,...]
- * with
- * cmd := "assoc" | "deassoc" | "preassoc" | "preassoc-rr"
- * mgrid :=  less or equal to 16 byte alphanumeric characters
- *		| UUID (with dashes in between)
- * typeid := number in range of 1 - 2^24 -1
- * typeidversion:= number in range of 1 - 255
- * vsiid := UUID (with dashes in between)
- * hints := varies between input (command) and output (event message)
- *          on input --> dash (-) | "none" | "from" | "to"
- *          on output --> response (number between 0..255)
- * fid := vlan
- *	| vlan-mac
- *	| vlan--group
- *	| vlan-mac-group
- * vlan := number in range of 1..2^16 -1
- * group := number in range of 1..2^32 - 1
- * mac := xx:xx:xx:xx:xx:xx
- */
-
-static int str2vdpnl(char *orig_argvalue, struct vdpnl_vsi *vsi)
+int vdp22_parse_str_vdpnl(struct vdpnl_vsi *vsi, u16 *key_flags,
+			  char *orig_argvalue)
 {
-	char **args;
 	char **argvals;
+	char **args;
 	char *argvalue;
+	enum vsi_key_arg vsi_key;
 	int rc = -ENOMEM;
+	int i, ioff = 0, numargs;
+	int ilen = strlen(orig_argvalue);
 	unsigned int no;
 	unsigned short idx = 0;
-	int i, ioff = 0, offset;
-	int ilen = strlen(orig_argvalue);
-	int numargs;
-	enum vsi_mand_arg vsi_key;
-	u16 vsi_mand_mask = (1 << VSI_MAND_NUM_ARG) - 1;
 	u16 num_arg_keys = 0;
 
 	argvalue = strdup(orig_argvalue);
 	if (!argvalue)
 		goto out;
 	/* Count args and argvalues */
-	offset = ioff;
-	for (numargs = 0; (ilen - offset) > 2; numargs++) {
-		offset += 2;
-		if (ilen - offset > 0) {
-			offset++;
-			if (ilen - offset > 4)
-				offset += 4;
-		}
-	}
+	numargs = get_vsistr_arg_count(ioff, ilen);
+	if (numargs == 0)
+		goto out_argvalue;
 	args = calloc(numargs, sizeof(char *));
 	if (!args)
 		goto out_argvalue;
-
 	argvals = calloc(numargs, sizeof(char *));
 	if (!argvals)
 		goto out_args;
 	numargs = get_arg_val_list(argvalue, ilen, &ioff, args, argvals);
+	if (numargs == 0)
+		goto out_free;
 	for (i = 0; i < numargs; i++) {
 		vsi_key = get_keywork_val(args[i]);
 		switch (vsi_key) {
@@ -378,15 +358,53 @@ static int str2vdpnl(char *orig_argvalue, struct vdpnl_vsi *vsi)
 		}
 		num_arg_keys |= (1 << vsi_key);
 	}
-	/* Return error if no filter information provided */
-	if ((num_arg_keys & vsi_mand_mask) == vsi_mand_mask)
-		rc = 0;
+	*key_flags = num_arg_keys;
+	rc = 0;
+
 out_free:
 	free(argvals);
 out_args:
 	free(args);
 out_argvalue:
 	free(argvalue);
+out:
+	return rc;
+}
+
+/*
+ * Parse the mode parameter to create/change an VSI assoication.
+ * The format is a comma separated list of tokens:
+ * cmd,mgrid,typeid,typeidversion,vsiid,hints,fid[,fid,fid,...]
+ * with
+ * cmd := "assoc" | "deassoc" | "preassoc" | "preassoc-rr"
+ * mgrid :=  less or equal to 16 byte alphanumeric characters
+ *		| UUID (with dashes in between)
+ * typeid := number in range of 1 - 2^24 -1
+ * typeidversion:= number in range of 1 - 255
+ * vsiid := UUID (with dashes in between)
+ * hints := varies between input (command) and output (event message)
+ *          on input --> dash (-) | "none" | "from" | "to"
+ *          on output --> response (number between 0..255)
+ * fid := vlan
+ *	| vlan-mac
+ *	| vlan--group
+ *	| vlan-mac-group
+ * vlan := number in range of 1..2^16 -1
+ * group := number in range of 1..2^32 - 1
+ * mac := xx:xx:xx:xx:xx:xx
+ */
+
+static int str2vdpnl(char *orig_argvalue, struct vdpnl_vsi *vsi)
+{
+	int rc = -ENOMEM;
+	u16 vsi_mand_mask = (1 << VSI_MAND_NUM_ARG) - 1;
+	u16 num_arg_keys = 0;
+
+	if (vdp22_parse_str_vdpnl(vsi, &num_arg_keys, orig_argvalue))
+		goto out;
+	/* Return error if no filter information provided */
+	if ((num_arg_keys & vsi_mand_mask) == vsi_mand_mask)
+		rc = 0;
 out:
 	return rc;
 }
@@ -426,6 +444,7 @@ static char *check_and_update(size_t *total, size_t *length, char *s, int c)
 /*
  * Convert VSI association to string.
  */
+#ifdef LATER_USE
 static const char *mode2str(unsigned char x)
 {
 	if (x == VDP22_ASSOC)
@@ -438,6 +457,7 @@ static const char *mode2str(unsigned char x)
 		return "deassoc";
 	return "unknown";
 }
+#endif
 
 /*
  * Convert filter information format into vlan[-mac][-group] string.
@@ -448,26 +468,50 @@ static int fid2str(char *s, size_t length, int fif, struct vdpnl_mac *p)
 {
 	int c;
 	size_t total = 0;
+	char tmp_buf[MAX_GID_MAC_VID_STR];
 
-	c = snprintf(s, length, "%d", vdp22_set_qos(p->qos) |
-		     vdp22_set_vlanid(p->vlan));
+	c = snprintf(s, length, "%02x%s",
+		     (unsigned int)strlen(VSI22_ARG_FILTER_STR),
+		     VSI22_ARG_FILTER_STR);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
 		goto out;
-	if (fif == VDP22_FFMT_MACVID || fif == VDP22_FFMT_GROUPMACVID) {
-		c = snprintf(s, length, "-%02x:%02x:%02x:%02x:%02x:%02x",
-			     p->mac[0], p->mac[1], p->mac[2], p->mac[3],
-			     p->mac[4], p->mac[5]);
-		s = check_and_update(&total, &length, s, c);
-		if (!s)
-			goto out;
+	memset(tmp_buf, 0, sizeof(tmp_buf));
+	switch (fif) {
+	case VDP22_FFMT_VID:
+		snprintf(tmp_buf, MAX_GID_MAC_VID_STR, "%d",
+			 vdp22_set_qos(p->qos) |
+			 vdp22_set_vlanid(p->vlan));
+		break;
+	case VDP22_FFMT_MACVID:
+		snprintf(tmp_buf, MAX_GID_MAC_VID_STR,
+			 "%d-%02x:%02x:%02x:%02x:%02x:%02x",
+			 vdp22_set_qos(p->qos) |
+			 vdp22_set_vlanid(p->vlan),
+			 p->mac[0], p->mac[1], p->mac[2], p->mac[3],
+			 p->mac[4], p->mac[5]);
+		break;
+	case VDP22_FFMT_GROUPVID:
+		snprintf(tmp_buf, MAX_GID_MAC_VID_STR,
+			 "%d-%ld",
+			 vdp22_set_qos(p->qos) | vdp22_set_vlanid(p->vlan),
+			 p->gpid);
+		break;
+	case VDP22_FFMT_GROUPMACVID:
+		snprintf(tmp_buf, MAX_GID_MAC_VID_STR,
+			 "%d-%02x:%02x:%02x:%02x:%02x:%02x-%ld",
+			 vdp22_set_qos(p->qos) | vdp22_set_vlanid(p->vlan),
+			 p->mac[0], p->mac[1], p->mac[2], p->mac[3],
+			 p->mac[4], p->mac[5], p->gpid);
+		break;
+	default:
+		break;
 	}
-	if (fif == VDP22_FFMT_GROUPVID || fif == VDP22_FFMT_GROUPMACVID) {
-		c = snprintf(s, length, "-%ld", p->gpid);
-		s = check_and_update(&total, &length, s, c);
-		if (!s)
-			goto out;
-	}
+	c = snprintf(s, length, "%04x%s", (unsigned int)strlen(tmp_buf),
+		     tmp_buf);
+	s = check_and_update(&total, &length, s, c);
+	if (!s)
+		goto out;
 out:
 	return s ? total : 0;
 }
@@ -500,15 +544,28 @@ int vdp_vdpnl2str(struct vdpnl_vsi *p, char *s, size_t length)
 	char instance[VDP_UUID_STRLEN + 2];
 
 	mgrid2str(instance, p, sizeof(instance));
-	c = snprintf(s, length, "%s,%s,%ld,%d,",
-		     mode2str(p->request), instance, p->vsi_typeid,
-		     p->vsi_typeversion);
+	c = snprintf(s, length, "%02x%s%04x%s%02x%s%04x%lu%02x%s%04x%d",
+		     (unsigned int)strlen(VSI22_ARG_MGRID_STR),
+		     VSI22_ARG_MGRID_STR,
+		     (unsigned int)strlen(instance), instance,
+		     (unsigned int)strlen(VSI22_ARG_TYPEID_STR),
+		     VSI22_ARG_TYPEID_STR, get_strlen_num(p->vsi_typeid),
+		     p->vsi_typeid,
+		     (unsigned int)strlen(VSI22_ARG_TYPEIDVER_STR),
+		     VSI22_ARG_TYPEIDVER_STR,
+		     get_strlen_num(p->vsi_typeversion), p->vsi_typeversion);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
 		goto out;
 
 	vdp_uuid2str(p->vsi_uuid, instance, sizeof(instance));
-	c = snprintf(s, length, "%s,%d,", instance, p->response);
+	c = snprintf(s, length, "%02x%s%04x%s%02x%s%04x%d",
+		     (unsigned int)strlen(VSI22_ARG_VSIID_STR),
+		     VSI22_ARG_VSIID_STR, (unsigned int)strlen(instance),
+		     instance,
+		     (unsigned int)strlen(VSI22_ARG_HINTS_STR),
+		     VSI22_ARG_HINTS_STR,
+		     get_strlen_num(p->response), p->response);
 	s = check_and_update(&total, &length, s, c);
 	if (!s)
 		goto out;
@@ -519,13 +576,8 @@ int vdp_vdpnl2str(struct vdpnl_vsi *p, char *s, size_t length)
 		s = check_and_update(&total, &length, s, c);
 		if (!c)
 			goto out;
-		if (p->macsz > 1 && i < p->macsz - 1) {
-			c = snprintf(s, length, ",");
-			s = check_and_update(&total, &length, s, c);
-			if (!s)
-				goto out;
-		}
 	}
+
 out:
 	return s ? total : 0;
 }
