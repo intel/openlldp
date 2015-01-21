@@ -439,7 +439,7 @@ static void vdp22st_handle_ackto(UNUSED void *ctx, void *data)
 	LLDPAD_DBG("%s:%s timeout ack timer for %p(%02x) ackreceived:%d\n",
 		   __func__, p->vdp->ifname, p, p->vsi[0], p->smi.ackreceived);
 	if (!p->smi.ackreceived) {
-		p->smi.kato = true;
+		p->smi.acktimeout = true;
 		vdp22st_run(p);
 	}
 }
