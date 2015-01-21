@@ -184,6 +184,33 @@ static inline size_t vsi22_ptlv_sz(struct vsi22 *vp)
 }
 
 /*
+ * This function calls the registered OUI handlers that returns the size of
+ * the OUI data.
+ */
+
+static inline size_t oui22_ptlv_sz(struct vsi22 *vp)
+{
+	struct vdp22_oui_handler_s *oui_hndlr;
+	struct vdp22_oui_data_s *oui_str;
+	size_t size = 0;
+	int idx;
+
+	if (vp->no_ouidata == 0)
+		return 0;
+	for (idx = 0; idx < vp->no_ouidata; idx++) {
+		oui_str = &(vp->oui_str_data[idx]);
+		oui_hndlr = vdp22_get_oui_hndlr(oui_str->oui_name);
+		if (!oui_hndlr) {
+			LLDPAD_ERR("%s: No handler registered for OUI %s\n",
+				   __func__, oui_str->oui_name);
+			continue;
+		}
+		size += oui_hndlr->oui_ptlv_size_hndlr(oui_str->data);
+	}
+	return size;
+}
+
+/*
  * Extract 1, 2, 3, 4 byte integers in network byte format.
  * Extract n bytes.
  * Assume enough space available.
@@ -307,6 +334,29 @@ static size_t vsi22_2tlv_fdata(unsigned char *cp, struct fid22 *p,
 		break;
 	}
 	return nbytes;
+}
+
+static void oui22_2tlv(struct vsi22 *vp, char unsigned *cp)
+{
+	struct vdp22_oui_handler_s *oui_hndlr;
+	struct vdp22_oui_data_s *oui_str;
+	size_t offset = 0;
+	size_t temp_offset = 0;
+	int idx;
+
+	if (vp->no_ouidata == 0)
+		return;
+	for (idx = 0; idx < vp->no_ouidata; idx++) {
+		oui_str = &(vp->oui_str_data[idx]);
+		oui_hndlr = vdp22_get_oui_hndlr(oui_str->oui_name);
+		if (!oui_hndlr) {
+			LLDPAD_ERR("%s: No handler registered for OUI %s\n",
+				   __func__, oui_str->oui_name);
+			continue;
+		}
+		temp_offset = oui_hndlr->vdp_tx_hndlr(cp, oui_str, offset);
+		offset += temp_offset;
+	}
 }
 
 static void vsi22_2tlv(struct vsi22 *vp, char unsigned *cp, unsigned char stat)
@@ -478,7 +528,8 @@ static void vdp22st_wait_syscmd(struct vsi22 *vsip)
  */
 static void vdp22st_process(struct vsi22 *vsi)
 {
-	unsigned short len = mgr22_ptlv_sz() + vsi22_ptlv_sz(vsi);
+	unsigned short len = mgr22_ptlv_sz() + vsi22_ptlv_sz(vsi) +
+			      oui22_ptlv_sz(vsi);
 	unsigned char buf[len];
 	struct qbg22_imm qbg;
 
@@ -487,6 +538,7 @@ static void vdp22st_process(struct vsi22 *vsi)
 	qbg.u.c.data = buf;
 	mgr22_2tlv(vsi, buf);
 	vsi22_2tlv(vsi, buf + mgr22_ptlv_sz(), vsi->hints);
+	oui22_2tlv(vsi, buf + mgr22_ptlv_sz() + vsi22_ptlv_sz(vsi));
 	vsi->smi.txmit_error = modules_notify(LLDP_MOD_ECP22, LLDP_MOD_VDP22,
 					       vsi->vdp->ifname, &qbg);
 	if (!vsi->smi.txmit_error) {

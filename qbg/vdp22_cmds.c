@@ -356,20 +356,25 @@ static int get_vdp22_retval(int rc)
 	}
 }
 
-static int set_arg_vsi3(struct cmd *cmd, char *argvalue, bool test, int size)
+static int set_arg_vsi3(struct cmd *cmd, char *argvalue, bool test, int size,
+			int oui_size)
 {
 	cmd_status good_cmd = vdp22_cmdok(cmd, cmd_settlv);
 	int rc;
 	struct vdpnl_vsi vsi;
 	struct vdpnl_mac mac[size];
+	struct vdpnl_oui_data_s oui[oui_size];
 
 	if (good_cmd != cmd_success)
 		return good_cmd;
 
 	memset(&vsi, 0, sizeof(vsi));
 	memset(&mac, 0, sizeof(mac));
+	memset(&oui, 0, sizeof(oui));
 	vsi.maclist = mac;
 	vsi.macsz = size;
+	vsi.oui_list = (struct vdpnl_oui_data_s *)oui;
+	vsi.ouisz = oui_size;
 	rc = vdp_str2vdpnl(argvalue, &vsi, cmd->ifname);
 	if (rc) {
 		good_cmd = get_vdp22_retval(rc);
@@ -392,11 +397,12 @@ out:
 static int set_arg_vsi2(struct cmd *cmd, char *argvalue, bool test)
 {
 	int no = (cmd->ops >> OP_FID_POS) & 0xff;
+	int oui_no = (cmd->ops >> OP_OUI_POS) & 0xff;
 
 	if (no <= 0)
 		return -EINVAL;
 	if ((cmd->ops & op_arg) && (cmd->ops & op_argval))
-		return set_arg_vsi3(cmd, argvalue, test, no);
+		return set_arg_vsi3(cmd, argvalue, test, no, oui_no);
 	else /* Not supported for now */
 		return cmd_failed;
 }

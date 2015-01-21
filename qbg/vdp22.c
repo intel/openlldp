@@ -44,6 +44,22 @@
 #include "qbg_vdp22_cmds.h"
 #include "qbg_vdp22def.h"
 
+#define INIT_FN(name) name##_oui_init
+#define EXTERN_FN(name)\
+extern bool name##_oui_init()
+
+/* Init handlers for OUI. OUI handlers should be added in vdp22_oui_init_list.
+ * First argument specifies the OUI code assigned to the Organization.
+ * Second argument is the string which should match with the CLI and the third
+ * argument is the init handler.
+ */
+
+struct vdp22_oui_init_s vdp22_oui_init_list[] = {
+};
+
+struct vdp22_oui_handler_s vdp22_oui_list[MAX_NUM_OUI];
+unsigned char g_oui_index;
+
 /*
  * VDP22 helper functions
  */
@@ -218,6 +234,36 @@ void vdp22_showvsi(struct vsi22 *p)
 }
 
 /*
+ * Delete the OUI structures of VSI22
+ * This calls the respective OUI handlers which are responsible for freeing
+ * the OUI specific 'data' element of 'vdp22_oui_data_s' structure.
+ */
+
+static void vdp22_delete_oui(struct vsi22 *p)
+{
+	struct vdp22_oui_data_s *oui_str;
+	struct vdp22_oui_handler_s *oui_hndlr;
+	int idx;
+	bool ret;
+
+	if ((p->no_ouidata == 0) || (!p->oui_str_data))
+		return;
+	for (idx = 0; idx < p->no_ouidata; idx++) {
+		oui_str = &p->oui_str_data[idx];
+		oui_hndlr = vdp22_get_oui_hndlr(oui_str->oui_name);
+		if (!oui_hndlr)
+			LLDPAD_ERR("%s: Unknown OUI %s\n",
+				   __func__, oui_str->oui_name);
+		else {
+			ret = oui_hndlr->vdp_free_oui_hndlr(oui_str);
+			LLDPAD_DBG("%s: Free handler returned %d\n", __func__,
+				   ret);
+		}
+	}
+	free(p->oui_str_data);
+}
+
+/*
  * Delete a complete VSI node not on queue.
  */
 void vdp22_delete_vsi(struct vsi22 *p)
@@ -225,6 +271,7 @@ void vdp22_delete_vsi(struct vsi22 *p)
 	LLDPAD_DBG("%s:%s vsi:%p(%02x)\n", __func__, p->vdp->ifname, p,
 		   p->vsi[0]);
 	free(p->fdata);
+	vdp22_delete_oui(p);
 	free(p);
 }
 
@@ -475,6 +522,38 @@ static bool filter_ok(unsigned char ffmt, struct fid22 *fp,
 	return rc;
 }
 
+static void vdpnl_alloc_vsi_oui(struct vdpnl_vsi *vsi, struct vsi22 *p)
+{
+	struct vdp22_oui_handler_s *oui_hndlr;
+	bool ret;
+	int idx;
+
+	if (vsi->ouisz == 0)
+		return;
+	p->no_ouidata = vsi->ouisz;
+	p->oui_str_data = calloc(vsi->ouisz, sizeof(struct vdp22_oui_data_s));
+	if (!p->oui_str_data) {
+		LLDPAD_ERR("%s: calloc return failure\n", __func__);
+		return;
+	}
+	for (idx = 0; idx < vsi->ouisz; idx++) {
+		struct vdpnl_oui_data_s *from = &vsi->oui_list[idx];
+		struct vdp22_oui_data_s *to = &p->oui_str_data[idx];
+
+		oui_hndlr = vdp22_get_oui_hndlr(from->oui_name);
+		if (!oui_hndlr)
+			LLDPAD_ERR("%s: Unknown OUI Name %s\n",
+				   __func__, from->oui_name);
+		else {
+			ret = oui_hndlr->vdpnl2vsi22_hndlr(p, from, to);
+			if (!ret)
+				LLDPAD_ERR("%s: handler return error for "
+					   "oui %s\n", __func__,
+					   from->oui_name);
+		}
+	}
+}
+
 /*
  * Allocate a VSI node with filter information data.
  * Check if input data is valid.
@@ -540,6 +619,7 @@ static struct vsi22 *vdp22_alloc_vsi_int(struct vdpnl_vsi *vsi,
 		fp->requestor.req_pid = vsi->req_pid;
 		fp->requestor.req_seq = vsi->req_seq;
 	}
+	vdpnl_alloc_vsi_oui(vsi, p);
 	*rc = 0;
 	LLDPAD_DBG("%s:%s vsi:%p(%02x)\n", __func__, vsi->ifname, p, p->vsi[0]);
 	return p;
@@ -1112,4 +1192,83 @@ int vdp22_info(const char *ifname)
 void copy_vsi_external(struct vdpnl_vsi *vsi, struct vsi22 *p, int clif)
 {
 	copy_vsi(vsi, p, clif);
+}
+
+/*
+ * This is called by the ORG specific code to register its handlers.
+ */
+
+bool oui_vdp_hndlr_init(struct vdp22_oui_handler_s *handler_ptr)
+{
+	if (!handler_ptr) {
+		LLDPAD_DBG("%s: NULL handler\n", __func__);
+		return false;
+	}
+	memcpy(&(vdp22_oui_list[g_oui_index]), handler_ptr,
+		sizeof(vdp22_oui_list[g_oui_index]));
+	g_oui_index++;
+	return true;
+}
+
+/*
+ * This calls the ORG specific init function. Then the ORG specific init
+ * function registers its handlers.
+ */
+
+static void vdp22_oui_init(char *oui_name)
+{
+	int total;
+	int idx;
+
+	total = sizeof(vdp22_oui_init_list) / sizeof(vdp22_oui_init_list[0]);
+	for (idx = 0; idx < total; idx++) {
+		if (!strncmp(vdp22_oui_init_list[idx].oui_name, oui_name,
+			     sizeof(vdp22_oui_init_list[idx].oui_name))) {
+			if (!vdp22_oui_init_list[idx].oui_init())
+				LLDPAD_ERR("%s: oui init return error for OUI "
+					   "%s\n", __func__, oui_name);
+		}
+	}
+}
+
+static struct vdp22_oui_handler_s *get_oui_hndlr_internal(char *oui_name)
+{
+	int total;
+	int idx;
+
+	total = g_oui_index;
+	for (idx = 0; idx < total; idx++) {
+		if (!strncmp(vdp22_oui_list[idx].oui_name, oui_name,
+			     sizeof(vdp22_oui_list[idx].oui_name)))
+			return &vdp22_oui_list[idx];
+	}
+	return NULL;
+}
+
+/*
+ * Return the handler structure associated with this OUI.
+ * If the handler is already registered, then get_oui_hndlr_internal function
+ * will return it. Otherwise, vdp22_oui_init is called so that the handler
+ * init function is called which will register its handlers. This is done so
+ * that the ORG specific handlers are registered only on demand.
+ */
+
+struct vdp22_oui_handler_s *vdp22_get_oui_hndlr(char *oui_name)
+{
+	struct vdp22_oui_handler_s *hndlr;
+
+	if (oui_name == NULL) {
+		LLDPAD_ERR("%s: NULL arg\n", __func__);
+		return NULL;
+	}
+	/*
+	 * First check if the handler exists.
+	 * If not the OUI plugin is probably not initialized
+	 * Initialize the handlers
+	 */
+	hndlr = get_oui_hndlr_internal(oui_name);
+	if (hndlr != NULL)
+		return hndlr;
+	vdp22_oui_init(oui_name);
+	return get_oui_hndlr_internal(oui_name);
 }

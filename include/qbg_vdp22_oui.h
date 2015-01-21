@@ -32,6 +32,7 @@
  */
 enum vdp22_oui {
 	VDP22_OUI_TYPE_LEN = 3,          /* Size of OUI Type field */
+	MAX_NUM_OUI = 10,
 	VDP22_OUI_MAX_NAME = 20,
 	MAX_OUI_DATA_LEN = 200
 };
@@ -53,5 +54,42 @@ typedef struct vdptool_oui_hndlr_tbl_s {
 	char *oui_name;
 	bool (*oui_cli_encode_hndlr)(char *dst, char *src, size_t len);
 } vdptool_oui_hndlr_tbl_t;
+
+struct vdpnl_oui_data_s {
+	unsigned char oui_type[VDP22_OUI_TYPE_LEN];
+	char oui_name[VDP22_OUI_MAX_NAME];
+	int len;
+	char data[MAX_OUI_DATA_LEN];
+	/* If vdpnl structure is used for IPC, then this cannot be a ptr as
+	 * otherwise it needs to be flattened out. If this is just used within
+	 * lldpad then this can be made a ptr instead of a static array.
+	 * May need to revisit later TODO
+	 */
+};
+
+struct vdp22_oui_init_s {
+	unsigned char oui_type[VDP22_OUI_TYPE_LEN];
+	char oui_name[VDP22_OUI_MAX_NAME];
+	bool (*oui_init)();
+};
+
+struct vdp22_oui_handler_s {
+	unsigned char oui_type[VDP22_OUI_TYPE_LEN];
+	char oui_name[VDP22_OUI_MAX_NAME];
+	/* This handler converts the OUI string to vdpnl structure */
+	bool (*str2vdpnl_hndlr)(struct vdpnl_oui_data_s *, char *);
+	/* This handler converts the vdpnl structure to vsi22 structure */
+	bool (*vdpnl2vsi22_hndlr)(void *, struct vdpnl_oui_data_s *,
+				   struct vdp22_oui_data_s *);
+	/* This handler creates the OUI fields for Tx */
+	size_t (*vdp_tx_hndlr)(char unsigned *,
+				struct vdp22_oui_data_s *, size_t);
+	/* This handler is called for processing/Rx the OUI information */
+	bool (*vdp_rx_hndlr)();
+	/* This handler frees the OUI structures */
+	bool (*vdp_free_oui_hndlr)(struct vdp22_oui_data_s *);
+	/* This handler returns the size of OUI PTLV */
+	unsigned long (*oui_ptlv_size_hndlr)(void *);
+};
 
 #endif /* __VDP22_OUI_H__ */

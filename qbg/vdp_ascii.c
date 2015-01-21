@@ -54,7 +54,8 @@ struct vsi_keyword_handler vsi_key_handle[] = {
 /*	{VSI22_ARG_VSIIDFRMT_STR, VSI_VSIIDFRMT_ARG}, TODO*/
 	{VSI22_ARG_VSIID_STR, VSI_VSIID_ARG},
 	{VSI22_ARG_HINTS_STR, VSI_HINTS_ARG},
-	{VSI22_ARG_FILTER_STR, VSI_FILTER_ARG} };
+	{VSI22_ARG_FILTER_STR, VSI_FILTER_ARG},
+	{VSI22_ARG_OUI_STR, VSI_OUI_ARG} };
 
 /*
  * Check if it is a UUID and consists  of hexadecimal digits and dashes only.
@@ -225,6 +226,33 @@ static bool gethints(struct vdpnl_vsi *p, char *s)
 	return true;
 }
 
+static bool oui_str2vdpnl(struct vdpnl_vsi *vsi, char *p, unsigned short idx)
+{
+	struct vdp22_oui_handler_s *oui_hndlr;
+	char *temp_argval = p;
+	char *oui_val;
+	char oui_name[VDP22_OUI_MAX_NAME];
+	u8 oui_name_len;
+
+	hexstr2bin(p, &oui_name_len, sizeof(oui_name_len));
+	if (oui_name_len >= VDP22_OUI_MAX_NAME)
+		return false;
+	temp_argval = p + 2 * sizeof(oui_name_len);
+	oui_val = temp_argval + oui_name_len;
+	strncpy(oui_name, temp_argval, oui_name_len);
+	oui_name[oui_name_len] = '\0';
+	oui_hndlr = vdp22_get_oui_hndlr(oui_name);
+	if (!oui_hndlr)
+		return false;
+	strncpy(vsi->oui_list[idx].oui_name, oui_name,
+		sizeof(vsi->oui_list[idx].oui_name));
+	if (oui_hndlr->str2vdpnl_hndlr)
+		return oui_hndlr->str2vdpnl_hndlr(&(vsi->oui_list[idx]),
+						   oui_val);
+	else
+		return false;
+}
+
 /*
  * Read VSI association mode. If can be followed by an error code in brackets.
  * For vdp22 protocol the allowed words are assoc, preassoc, preassoc-rr and
@@ -315,7 +343,7 @@ int vdp22_parse_str_vdpnl(struct vdpnl_vsi *vsi, u16 *key_flags,
 	int i, ioff = 0, numargs;
 	int ilen = strlen(orig_argvalue);
 	unsigned int no;
-	unsigned short idx = 0;
+	unsigned short idx = 0, oui_idx = 0;
 	u16 num_arg_keys = 0;
 
 	argvalue = strdup(orig_argvalue);
@@ -372,6 +400,11 @@ int vdp22_parse_str_vdpnl(struct vdpnl_vsi *vsi, u16 *key_flags,
 		case VSI_HINTS_ARG:
 			if (!argvals[i] || !gethints(vsi, argvals[i]))
 				goto out_err;
+			break;
+		case VSI_OUI_ARG:
+			if (!oui_str2vdpnl(vsi, argvals[i], oui_idx))
+				goto out_err;
+			oui_idx++;
 			break;
 		default:
 			goto out_err;
