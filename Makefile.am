@@ -109,7 +109,7 @@ dist_man_MANS = docs/lldpad.8 docs/dcbtool.8 docs/lldptool.8 \
 		docs/lldptool-ets.8 docs/lldptool-pfc.8 docs/lldptool-app.8 \
 		docs/lldptool-evb.8 docs/lldptool-vdp.8 docs/lldptool-med.8 \
 		docs/lldptool-dcbx.8 \
-		docs/lldptool-evb22.8
+		docs/lldptool-evb22.8 docs/vdptool.8
 if BUILD_DEBUG
 nodist_man_MANS = test/qbg22sim.1 test/vdptest.1
 endif
