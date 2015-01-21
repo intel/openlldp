@@ -1,0 +1,54 @@
+#!/bin/bash
+#
+# Test case for LLDPAD VDP testing according to IEEE 802.1Qbg ratified standard
+#
+# Copyright (c) International Business Machines Corp., 2014
+#
+# Author(s): Thomas Richter <tmricht at linux.vnet.ibm.com>
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms and conditions of the GNU General Public License,
+# version 2, as published by the Free Software Foundation.
+#
+# This program is distributed in the hope it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+#
+
+# 
+# Thomas Richter, IBM Research & Development, Boeblingen, Germany, 20-Apr-2013
+#
+# Execute a simple assoc with wrong user input using vdptool.
+# Wrong typeidversion
+#
+
+sleep 30	# Must: Wait some time for lldpad to start up and initialize
+outfile=$(basename $0)
+dirfile=$(dirname $0)
+cd $dirfile
+
+vsi_ok="Invalid parameters"
+reply=$(../../../vdptool -i veth0 -T -V assoc -c vsi=assoc,hello,1,257,001122334-455667788-99aabbccddee,none,22222-a:b:c:0:0:0)
+rc=$?
+if [ "$rc" -eq 1 ]
+then
+	if [ "$reply" != "$vsi_ok" ]
+	then
+		echo "vdptool reply mismatch"
+		echo "expected reply:$vsi_ok"
+		echo "returned reply:$reply"
+	else
+		let rc=0
+	fi
+else
+	echo "vdptool unexpected success"
+	let rc=1
+fi
+
+sleep 5
+exit $rc
