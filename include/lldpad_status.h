@@ -33,18 +33,19 @@
 #define LLDPAD_STATUS_H
 
 typedef enum {
-    cmd_success = 0,
-    cmd_failed,
-    cmd_device_not_found,
-    cmd_agent_not_found,
-    cmd_invalid,
-    cmd_bad_params,
-    cmd_peer_not_present,
-    cmd_ctrl_vers_not_compatible,
-    cmd_not_capable,
-    cmd_not_applicable,
-    cmd_no_access,
-    cmd_agent_not_supported,
+	cmd_success = 0,
+	cmd_failed,
+	cmd_device_not_found,
+	cmd_agent_not_found,
+	cmd_invalid,
+	cmd_bad_params,
+	cmd_peer_not_present,
+	cmd_ctrl_vers_not_compatible,
+	cmd_not_capable,
+	cmd_not_applicable,
+	cmd_no_access,
+	cmd_agent_not_supported,
+	cmd_max_status,
 } cmd_status;
 
 #endif /* LLDPAD_STATUS_H */

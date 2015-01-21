@@ -46,21 +46,6 @@
 #include "qbg_vdp22.h"
 #include "qbg_utils.h"
 
-struct vdp22_ptlv {			/* Packed TLV for VDP data exchange */
-	unsigned short head;		/* TLV 16 bit header */
-	unsigned char data[];		/* TLV Data buffer */
-};
-
-enum {					/* VDP22 Protocol command responses */
-	USEC_PER_SEC = 1000000,		/* Microseconds per second */
-	VDP22_RESBIT = 0x80,		/* VSI reserved bit */
-	VDP22_ACKBIT = 0x40,		/* VSI Acknowledgement bit */
-	VDP22_KEEPBIT = 0x20,		/* VSI keep error bit */
-	VDP22_HARDBIT = 0x10,		/* VSI hard error bit */
-	VDP22_STATUS_MASK = 0x0f,	/* Status mask */
-	VDP22_STATUS_SHIFT = 0,		/* Status offset */
-};
-
 /*
  * Set status code
  */

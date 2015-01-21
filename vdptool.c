@@ -54,6 +54,28 @@
 #include "qbg22.h"
 #include "qbg_vdp22_clif.h"
 #include "lldp_util.h"
+#include "qbg_vdp22def.h"
+
+static char *print_vdp_status(enum vdp22_cmd_status status)
+{
+	char *str;
+
+	switch (status) {
+	case cmd_vdp_prot_no_support:
+		str = "VDP protocol not supported on interface";
+		break;
+	case cmd_vdp_nomem:
+		str = "Not enough memory";
+		break;
+	case cmd_vdp_busy:
+		str = "VSI association in progress";
+		break;
+	default:
+		str = "Unknown status";
+		break;
+	}
+	return str;
+}
 
 static char *print_status(cmd_status status)
 {
@@ -97,7 +119,7 @@ static char *print_status(cmd_status status)
 		str = "TLV does not support agent type";
 		break;
 	default:
-		str = "Unknown status";
+		str = print_vdp_status(status);
 		break;
 	}
 	return str;
@@ -165,7 +187,7 @@ static int render_cmd(struct cmd *cmd, int argc, char **args, char **argvals)
 
 int vdp_clif_command(struct clif *, char *, int);
 
-static int vdp_cmd_gettlv(struct clif *clif, int argc, char *argv[],
+static int vdp_cmd_getvsi(struct clif *clif, int argc, char *argv[],
 			  struct cmd *cmd, int raw)
 {
 	int numargs = 0;
@@ -219,7 +241,7 @@ out:
 	return cmd_invalid;
 }
 
-static int vdp_cmd_settlv(struct clif *clif, int argc, char *argv[],
+static int vdp_cmd_setvsi(struct clif *clif, int argc, char *argv[],
 			  struct cmd *cmd, int raw)
 {
 	int numargs = 0;
@@ -299,12 +321,77 @@ static int vdp_parse_response(char *buf)
 	return hex2u8(buf + CLIF_STAT_OFF);
 }
 
-int get_vsi_args(char *ibuf)
+void print_vsi_err_msg(char *key_val)
+{
+	unsigned long errcode;
+	int resp_err, smi_err;
+
+	errcode = strtol(key_val, NULL, 10);
+	resp_err = errcode & 0xff;
+	smi_err = (errcode >> VDP22_STATUS_BITS) & 0xff;
+
+	switch (resp_err) {
+	case VDP22_RESP_INVALID_FORMAT:
+		printf("\tError returned by Bridge: %s\n",
+			VSI22_INVALID_FRMT_ERR_STR);
+		break;
+	case VDP22_RESP_NO_RESOURCES:
+		printf("\tError returned by Bridge: %s\n",
+			VSI22_NO_RES_ERR_STR);
+		break;
+	case VDP22_RESP_NO_VSIMGR:
+		printf("\tError returned by Bridge: %s\n",
+			VSI22_NO_VSIMGR_ERR_STR);
+		break;
+	case VDP22_RESP_OTHER:
+		printf("\tError returned by Bridge: %s\n", VSI22_OTHER_ERR_STR);
+		break;
+	case VDP22_RESP_NOADDR:
+		printf("\tError returned by Bridge: %s\n",
+			VSI22_NOADDR_ERR_STR);
+		break;
+	case VDP22_RESP_DEASSOC:
+		printf("\tError returned by Bridge: %s\n", VSI22_DEASS_ERR_STR);
+		break;
+	case VDP22_RESP_TIMEOUT:
+		printf("\tError returned by Bridge: %s\n",
+			VSI22_TIMEOUT_ERR_STR);
+		break;
+	case VDP22_RESP_KEEP:
+		printf("\tError returned by Bridge: %s\n", VSI22_KEEP_ERR_STR);
+		break;
+	default:
+		break;
+	}
+	if (smi_err & (1 << VDP22_KATO))
+		printf("\tInternal Error : %s\n", VSI22_KATO_ERR_STR);
+	if (smi_err & (1 << VDP22_ACKTO))
+		printf("\tInternal Error : %s\n", VSI22_ACKTO_ERR_STR);
+	if (smi_err & (1 << VDP22_TXERR))
+		printf("\tInternal Error : %s\n", VSI22_TX_ERR_STR);
+}
+
+static void print_vsi(char **args, char **argvals, int numargs,
+		      bool err_flag)
+{
+	int i;
+
+	for (i = 0; i < numargs; i++) {
+		if (err_flag && (!strcmp(args[i], VSI22_ARG_HINTS_STR)))
+			print_vsi_err_msg(argvals[i]);
+		else {
+			printf("\t%s", args[i]);
+			printf(" = %s\n", argvals[i]);
+		}
+	}
+}
+
+int get_vsi_args(char *ibuf, bool print_err_code)
 {
 	int ioff = 0;
 	char **args;
 	char **argvals;
-	int numargs, i;
+	int numargs;
 	int ilen = strlen(ibuf);
 
 	/* count args and argvalus */
@@ -321,17 +408,14 @@ int get_vsi_args(char *ibuf)
 	}
 
 	numargs = get_arg_val_list(ibuf, ilen, &ioff, args, argvals);
-	for (i = 0; i < numargs; i++) {
-		printf("\t%s", args[i]);
-		printf(" = %s\n", argvals[i]);
-	}
+	print_vsi(args, argvals, numargs, print_err_code);
 
 	free(args);
 	free(argvals);
 	return ioff;
 }
 
-static void print_all_vsis(char *ibuf)
+static void print_all_vsis(char *ibuf, bool err_code, char *msg)
 {
 	size_t ilen = strlen(ibuf);
 	u16 vsi_len;
@@ -346,8 +430,11 @@ static void print_all_vsis(char *ibuf)
 		ilen -= 2 * sizeof(u16);
 		strncpy(tmp_ibuf, ibuf + offset, vsi_len);
 		tmp_ibuf[vsi_len] = '\0';
-		printf("%s %d:\n", "VSI ", vsi_cnt);
-		get_vsi_args(tmp_ibuf);
+		if (msg)
+			printf("%s\n", msg);
+		else
+			printf("%s %d:\n", "VSI ", vsi_cnt);
+		get_vsi_args(tmp_ibuf, err_code);
 		offset += vsi_len;
 		ilen -= vsi_len;
 		vsi_cnt++;
@@ -361,7 +448,7 @@ static void print_cmd_response(char *ibuf, int status)
 	int ioff;
 
 	if (status != cmd_success) {
-		printf("%s\n", print_status(status));
+		printf("FAILED: %s\n", print_status(status));
 		return;
 	}
 
@@ -385,7 +472,7 @@ static void print_cmd_response(char *ibuf, int status)
 
 	switch (cmd.cmd) {
 	case cmd_gettlv:
-		print_all_vsis(ibuf + ioff);
+		print_all_vsis(ibuf + ioff, false, NULL);
 		break;
 	case cmd_settlv:
 		printf("%s", ibuf + ioff);
@@ -423,6 +510,7 @@ static void vdp_print_response(char *buf, int status)
 static void vdp_print_event_msg(char *buf)
 {
 	printf("%s buf:%s\n", __func__, buf);
+	print_all_vsis(buf + CLIF_RSP_OFF, true, "Response from VDP");
 }
 
 /*
@@ -519,8 +607,8 @@ static const char *commands_help =
 "  -v|version show version\n"
 "  -p|ping    ping lldpad and query pid of lldpad\n"
 "  -q|quit    exit lldptool (interactive mode)\n"
-"  -t|get-tlv get tlvid value\n"
-"  -T|set-tlv set arg for tlvid to value\n";
+"  -t|get-vsi get VSI association(s)\n"
+"  -T|set-vsi set VSI association\n";
 
 static struct clif *clif_conn;
 static int cli_quit;
@@ -638,7 +726,7 @@ static int _clif_command(struct clif *clif, char *cmd, int print)
 	size_t len;
 	int ret;
 	int rc;
-	char reply[200];
+	char reply[MAX_CLIF_MSGBUF];
 	size_t reply_len2 = sizeof(reply);
 
 	print_raw_message(cmd, print);
@@ -653,7 +741,8 @@ static int _clif_command(struct clif *clif, char *cmd, int print)
 		printf("'%s' command timed out.\n", cmd);
 		return -2;
 	} else if (ret < 0) {
-		printf("'%s' command failed.\n", cmd);
+		printf("'%s' command failed with error %s.\n", cmd,
+			strerror(errno));
 		return -1;
 	}
 	if (print) {
@@ -662,10 +751,8 @@ static int _clif_command(struct clif *clif, char *cmd, int print)
 	}
 	if (cli_attached) {
 		rc = clif_vsievt(clif, reply, &reply_len2, 5);
-		printf("\nReturn from vsievt %d ret %d Reply %s\n", rc, ret,
-			reply);
 		if (!rc)
-			printf("\nMsg is %s\n", reply);
+			print_all_vsis(reply, true, "Response from VDP");
 	}
 
 	return ret;
@@ -739,10 +826,10 @@ static struct cli_cmd {
 	{ cmd_license,  "license",   cli_cmd_license },
 	{ cmd_version,  "version",   cli_cmd_version },
 	{ cmd_quit,     "quit",      cli_cmd_quit },
-	{ cmd_gettlv,   "gettlv",    vdp_cmd_gettlv },
-	{ cmd_gettlv,   "get-tlv",   vdp_cmd_gettlv },
-	{ cmd_settlv,   "settlv",    vdp_cmd_settlv },
-	{ cmd_settlv,   "set-tlv",   vdp_cmd_settlv },
+	{ cmd_gettlv,   "getvsi",    vdp_cmd_getvsi },
+	{ cmd_gettlv,   "get-vsi",   vdp_cmd_getvsi },
+	{ cmd_settlv,   "setvsi",    vdp_cmd_setvsi },
+	{ cmd_settlv,   "set-vsi",   vdp_cmd_setvsi },
 	{ cmd_nop,       NULL,       cli_cmd_nop }
 };
 
@@ -774,8 +861,8 @@ static struct option lldptool_opts[] = {
 	{"help", 0, NULL, 'h'},
 	{"version", 0, NULL, 'v'},
 	{"stats", 0, NULL, 'S'},
-	{"get-tlv", 0, NULL, 't'},
-	{"set-tlv", 0, NULL, 'T'},
+	{"get-vsi", 0, NULL, 't'},
+	{"set-vsi", 0, NULL, 'T'},
 	{"get-lldp", 0, NULL, 'l'},
 	{"set-lldp", 0, NULL, 'L'},
 	{0, 0, 0, 0}

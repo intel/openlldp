@@ -98,7 +98,7 @@ Wait for the bridge response message
 .SS VSI Parameter
 Each VDP22 TLVs contains a command mode, manager identifier,
 type identifier, type identifier version, VSI instance identifier,
-migiration hints and filter information.
+migration hints and filter information.
 The fields are explained next:
 .TP
 .B "mode (Command Mode):"
@@ -140,7 +140,7 @@ an UUID according to RFC 4122
 with optional dashes in between.
 .TP
 .B "hints (Migration Hints):"
-The migiration hints is a string aiding in
+The migration hints is a string aiding in
 migration of virtual machines:
 .RS
 .IP none:
@@ -193,11 +193,11 @@ show usage information
 .B \-v, version
 show version information
 .TP
-.B \-t, get-tlv
-get TLV information for the specified interface
+.B \-t, get-vsi
+get VSI information for the specified interface
 .TP
-.B \-T, set-tlv
-set TLV information for the specified interface
+.B \-T, set-vsi
+set VSI information for the specified interface
 .TP
 .B \-p, ping
 display the process identifier of the running lldpad process

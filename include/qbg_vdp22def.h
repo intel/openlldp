@@ -94,6 +94,31 @@ enum vsi_key_arg {
 	VSI_INVALID_ARG
 };
 
+enum vdp22_cmdresp {			/* VDP22 Protocol command responses */
+	VDP22_RESP_SUCCESS = 0,		/* Success */
+	VDP22_RESP_INVALID_FORMAT = 1,
+	VDP22_RESP_NO_RESOURCES = 2,
+	VDP22_RESP_NO_VSIMGR = 3,	/* No contact to VSI manager */
+	VDP22_RESP_OTHER = 4,		/* Other reasons */
+	VDP22_RESP_NOADDR = 5,		/* Invalid VID, MAC, GROUP etc */
+	VDP22_RESP_DEASSOC = 252,	/* Deassoc response */
+	VDP22_RESP_TIMEOUT = 253,	/* Timeout response */
+	VDP22_RESP_KEEP = 254,		/* Keep response */
+	VDP22_RESP_NONE = 255		/* No response returned so far */
+};
+
+/*
+ * Errors applicable mostly for VDP22_RESP_NONE
+ */
+
+enum vdp22_cmderr {
+	VDP22_KATO = 0,
+	VDP22_ACKTO,
+	VDP22_TXERR
+};
+
+#define VDP22_STATUS_BITS  8          /* Number of bits in Status field */
+
 #define VSI22_ARG_MODE_STR "mode"
 #define VSI22_ARG_MGRID_STR "mgrid2"
 #define VSI22_ARG_TYPEID_STR "typeid"
@@ -104,5 +129,19 @@ enum vsi_key_arg {
 #define VSI22_ARG_HINTS_STR "hints"
 #define VSI22_ARG_FILTER_STR "filter"
 #define VSI22_ARG_OUI_STR "oui"
+
+#define VSI22_KATO_ERR_STR "Keepalive Timeout"
+#define VSI22_ACKTO_ERR_STR "Ack not received from bridge"
+#define VSI22_TX_ERR_STR "Transmission Error"
+
+#define VSI22_INVALID_FRMT_ERR_STR "VDP TLV Format is Invalid"
+#define VSI22_NO_RES_ERR_STR "Insufficient resources at bridge"
+#define VSI22_NO_VSIMGR_ERR_STR "Unable to contact VSI Mgr"
+#define VSI22_OTHER_ERR_STR "Other Failures"
+#define VSI22_NOADDR_ERR_STR "Invalid VID, GroupID or MAC address field"
+#define VSI22_DEASS_ERR_STR "Deassoc received from switch"
+#define VSI22_TIMEOUT_ERR_STR "Timeout Error"
+#define VSI22_KEEP_ERR_STR "Command rejected by bridge and state prior to" \
+			   " requested command is kept"
 
 #endif

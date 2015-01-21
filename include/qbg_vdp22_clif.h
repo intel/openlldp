@@ -33,6 +33,8 @@
 #define OP_FID_POS 8 /* Second Byte */
 #define OP_OUI_POS 16 /* Third Byte */
 
+#include "lldpad_status.h"
+
 typedef enum {
 	cmd_getstats,
 	cmd_gettlv,
@@ -59,6 +61,12 @@ typedef enum {
 	 * the third byte is used for signifying the number of OUI fields.
 	 */
 } vdp22_op;
+
+enum vdp22_cmd_status {
+	cmd_vdp_prot_no_support = cmd_max_status + 1,
+	cmd_vdp_nomem,
+	cmd_vdp_busy,
+};
 
 struct lldp_module *vdp22_cli_register(void);
 #endif

@@ -44,6 +44,7 @@
 #include "qbg_vdpnl.h"
 #include "qbg_utils.h"
 #include "lldp_util.h"
+#include "messages.h"
 
 struct vsi_keyword_handler vsi_key_handle[] = {
 	{VSI22_ARG_MODE_STR, VSI_MODE_ARG},
@@ -285,6 +286,24 @@ enum vsi_key_arg get_keywork_val(char *keyword)
 	return VSI_INVALID_ARG;
 }
 
+/*
+ * If the ordering is maintained in vsi_key_handle, then this function is not
+ * necessary as the keyword can be retrieved using
+ * 'vsi_key_handle[keyval].keyword'.
+ */
+
+char *get_keyword_str(enum vsi_key_arg keyval)
+{
+	int count, key_str_size;
+
+	key_str_size = sizeof(vsi_key_handle) / sizeof(vsi_key_handle[0]);
+	for (count = 0; count < key_str_size; count++) {
+		if (vsi_key_handle[count].val == keyval)
+			return vsi_key_handle[count].keyword;
+	}
+	return NULL;
+}
+
 int vdp22_parse_str_vdpnl(struct vdpnl_vsi *vsi, u16 *key_flags,
 			  char *orig_argvalue)
 {
@@ -315,52 +334,57 @@ int vdp22_parse_str_vdpnl(struct vdpnl_vsi *vsi, u16 *key_flags,
 	numargs = get_arg_val_list(argvalue, ilen, &ioff, args, argvals);
 	if (numargs == 0)
 		goto out_free;
+	rc = -EINVAL;
 	for (i = 0; i < numargs; i++) {
 		vsi_key = get_keywork_val(args[i]);
 		switch (vsi_key) {
 		case VSI_MODE_ARG:
 			if (!argvals[i] || !getmode(vsi, argvals[i]))
-				goto out_free;
+				goto out_err;
 			break;
 		case VSI_MGRID2_ARG:
 			if (!argvals[i] || !getmgr2id(vsi, argvals[i]))
-				goto out_free;
+				goto out_err;
 			break;
 		case VSI_TYPEID_ARG:
 			if (!argvals[i] ||
 				!getnumber(argvals[i], 0, 0xffffff, &no))
-				goto out_free;
+				goto out_err;
 			vsi->vsi_typeid = no;
 			break;
 		case VSI_TYPEIDVER_ARG:
 			if (!argvals[i] || !getnumber(argvals[i], 0, 0xff, &no))
-				goto out_free;
+				goto out_err;
 			vsi->vsi_typeversion = no;
 			break;
 		case VSI_VSIID_ARG:
 			if (!argvals[i] ||
 				vdp_str2uuid(vsi->vsi_uuid, argvals[i],
 					sizeof(vsi->vsi_uuid)))
-				goto out_free;
+				goto out_err;
 			vsi->vsi_idfmt = VDP22_ID_UUID;
 			break;
 		case VSI_FILTER_ARG:
 			if (idx < vsi->macsz && !getfid(vsi, argvals[i], idx))
-				goto out_free;
+				goto out_err;
 			idx++;
 			break;
 		case VSI_HINTS_ARG:
 			if (!argvals[i] || !gethints(vsi, argvals[i]))
-				goto out_free;
+				goto out_err;
 			break;
 		default:
-			goto out_free;
+			goto out_err;
 		}
 		num_arg_keys |= (1 << vsi_key);
 	}
 	*key_flags = num_arg_keys;
 	rc = 0;
 
+out_err:
+	if (rc)
+		LLDPAD_ERR("Incorrect arguments specified for key %s\n",
+			   get_keyword_str(vsi_key));
 out_free:
 	free(argvals);
 out_args:
@@ -400,11 +424,16 @@ static int str2vdpnl(char *orig_argvalue, struct vdpnl_vsi *vsi)
 	u16 vsi_mand_mask = (1 << VSI_MAND_NUM_ARG) - 1;
 	u16 num_arg_keys = 0;
 
-	if (vdp22_parse_str_vdpnl(vsi, &num_arg_keys, orig_argvalue))
+	rc = vdp22_parse_str_vdpnl(vsi, &num_arg_keys, orig_argvalue);
+	if (rc) {
+		LLDPAD_ERR("%s: Incorrect arguments\n", __func__);
 		goto out;
+	}
 	/* Return error if no filter information provided */
 	if ((num_arg_keys & vsi_mand_mask) == vsi_mand_mask)
 		rc = 0;
+	else
+		LLDPAD_ERR("%s: Incomplete arguments\n", __func__);
 out:
 	return rc;
 }
@@ -444,7 +473,6 @@ static char *check_and_update(size_t *total, size_t *length, char *s, int c)
 /*
  * Convert VSI association to string.
  */
-#ifdef LATER_USE
 static const char *mode2str(unsigned char x)
 {
 	if (x == VDP22_ASSOC)
@@ -457,7 +485,6 @@ static const char *mode2str(unsigned char x)
 		return "deassoc";
 	return "unknown";
 }
-#endif
 
 /*
  * Convert filter information format into vlan[-mac][-group] string.
@@ -544,7 +571,12 @@ int vdp_vdpnl2str(struct vdpnl_vsi *p, char *s, size_t length)
 	char instance[VDP_UUID_STRLEN + 2];
 
 	mgrid2str(instance, p, sizeof(instance));
-	c = snprintf(s, length, "%02x%s%04x%s%02x%s%04x%lu%02x%s%04x%d",
+	c = snprintf(s, length, "%02x%s%04x%s%02x%s%04x%s%02x%s%04x%lu%02x%s"
+		     "%04x%d",
+		     (unsigned int)strlen(VSI22_ARG_MODE_STR),
+		     VSI22_ARG_MODE_STR,
+		     (unsigned int)strlen(mode2str(p->request)),
+		     mode2str(p->request),
 		     (unsigned int)strlen(VSI22_ARG_MGRID_STR),
 		     VSI22_ARG_MGRID_STR,
 		     (unsigned int)strlen(instance), instance,

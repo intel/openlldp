@@ -65,22 +65,36 @@ enum vdp22_role {		/* State for VDP22 bridge processing */
 	VDP22_STATION		/* State role */
 };
 
-enum vdp22_cmdresp {			/* VDP22 Protocol command responses */
-	VDP22_RESP_SUCCESS = 0,		/* Success */
-	VDP22_RESP_INVALID_FORMAT = 1,
-	VDP22_RESP_NO_RESOURCES = 2,
-	VDP22_RESP_NO_VSIMGR = 3,	/* No contact to VSI manager */
-	VDP22_RESP_OTHER = 4,		/* Other reasons */
-	VDP22_RESP_NOADDR = 5,		/* Invalid VID, MAC, GROUP etc */
-	VDP22_RESP_DEASSOC = 252,	/* Deassoc response */
-	VDP22_RESP_TIMEOUT = 253,	/* Timeout response */
-	VDP22_RESP_KEEP = 254,		/* Keep response */
-	VDP22_RESP_NONE = 255		/* No response returned so far */
+/*
+ * VSI information. One node per matching entry (same mgrid, type_id, type_ver,
+ * id_fmt, id and fif). Filter data can be added and removed.
+ */
+enum vsi22_flags {			/* Flags (or'ed in) */
+	VDP22_BUSY = 1,			/* This node is under work */
+	VDP22_DELETE_ME = 2,		/* Deallocate this node */
+	VDP22_RETURN_VID = 4,		/* Return wildcard vlan id */
+	VDP22_NOTIFY = 8,		/* Send netlink message to requestor */
+	VDP22_NLCMD = 16		/* Netlink command pending */
+};
+
+enum {                                  /* VDP22 Protocol command responses */
+	USEC_PER_SEC = 1000000,         /* Microseconds per second */
+	VDP22_RESBIT = 0x80,            /* VSI reserved bit */
+	VDP22_ACKBIT = 0x40,            /* VSI Acknowledgement bit */
+	VDP22_KEEPBIT = 0x20,           /* VSI keep error bit */
+	VDP22_HARDBIT = 0x10,           /* VSI hard error bit */
+	VDP22_STATUS_MASK = 0x0f,       /* Status mask */
+	VDP22_STATUS_SHIFT = 0,         /* Status offset */
 };
 
 enum {
 	VDP22_MGRIDSZ = 16,		/* Size of manager identifier */
-	VDP22_IDSZ = 16			/* Size of vsi identifier */
+	VDP22_IDSZ = 16,		/* Size of vsi identifier */
+};
+
+struct vdp22_ptlv {                     /* Packed TLV for VDP data exchange */
+	unsigned short head;            /* TLV 16 bit header */
+	unsigned char data[];           /* TLV Data buffer */
 };
 
 struct vsi_origin {		/* Originator of VSI request */
@@ -97,18 +111,6 @@ struct fid22 {				/* Filter data: GROUP,MAC,VLAN entry */
 	unsigned char mac[ETH_ALEN];	/* MAC address */
 	unsigned short vlan;		/* VLAN idenfier */
 	struct vsi_origin requestor;
-};
-
-/*
- * VSI information. One node per matching entry (same mgrid, type_id, type_ver,
- * id_fmt, id and fif). Filter data can be added and removed.
- */
-enum vsi22_flags {			/* Flags (or'ed in) */
-	VDP22_BUSY = 1,			/* This node is under work */
-	VDP22_DELETE_ME = 2,		/* Deallocate this node */
-	VDP22_RETURN_VID = 4,		/* Return wildcard vlan id */
-	VDP22_NOTIFY = 8,		/* Send netlink message to requestor */
-	VDP22_NLCMD = 16		/* Netlink command pending */
 };
 
 struct vdp22smi {		/* Data structure for VDP22 state machine */

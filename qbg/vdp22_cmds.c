@@ -165,7 +165,8 @@ static int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
  * bb:  C for command and 2 or 3 for message version number
  * cc: 1 for get command and 2 for set command
  * dddddddd: 8 hex digits options, supported are op_arg, op_argval, op_conifg
- *           and op_local
+ *           and op_local. The number of filter (fid) parameters are encoded
+ *           here (second byte from right).
  * ee: 2 hex digit length of interface name
  * ffff: string for interface name
  * gg: 2 hex digit for bridge type (nearest customer bridge only)
@@ -179,7 +180,7 @@ static int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
  * The total input length can be used to determine the number of arguaments.
  *
  * The member ops of struct cmd settings depends on the invoked with
- * -T (cmd_gettlv) -a assoc:
+ * -T (cmd_getvsi) -a assoc:
  * -c key      --> ops=(0x15) op_config,op_arg,op_local), numargs > 0
  * -c key=abc  --> ops=(0x1d) op_config,op_arg,op_argval,op_local), numargs > 0
  * -c          --> ops=0x11 (op_config,op_local), numargs = 0
@@ -279,8 +280,16 @@ int vdp22_clif_cmd(UNUSED void *data, UNUSED struct sockaddr_un *from,
 int vdp22_sendevent(struct vdpnl_vsi *p)
 {
 	char msg[MAX_CLIF_MSGBUF];
+	char tmp_buf[MAX_CLIF_MSGBUF];
+	int c, len;
 
-	vdp_vdpnl2str(p, msg, sizeof(msg));
+	vdp_vdpnl2str(p, tmp_buf, sizeof(msg));
+	len = strlen(tmp_buf);
+	if ((unsigned)len > sizeof(msg))
+		return 0;
+	c = snprintf(msg, sizeof(msg), "%04x%s", len, tmp_buf);
+	if ((c < 0) || ((unsigned)c >= sizeof(msg)))
+		return 0;
 	LLDPAD_DBG("%s:%s vsi:%p(%#2x), len:%zd msg:%s\n", __func__,
 		   p->ifname, p, p->vsi_uuid[0], strlen(msg), msg);
 	send_event(16, LLDP_MOD_VDP22, msg);
@@ -324,6 +333,29 @@ static int ifok(struct cmd *cmd)
 	return good_cmd;
 }
 
+static int get_vdp22_retval(int rc)
+{
+	if (!rc)
+		return cmd_success;
+
+	switch (rc) {
+	case -EPROTONOSUPPORT:
+		return cmd_vdp_prot_no_support;
+	case -EOPNOTSUPP:
+		return cmd_not_capable;
+	case -EINVAL:
+		return cmd_bad_params;
+	case -ENOMEM:
+		return cmd_vdp_nomem;
+	case -EBUSY:
+		return cmd_vdp_busy;
+	case -ENODEV:
+		return cmd_device_not_found;
+	default:
+		return cmd_failed;
+	}
+}
+
 static int set_arg_vsi3(struct cmd *cmd, char *argvalue, bool test, int size)
 {
 	cmd_status good_cmd = vdp22_cmdok(cmd, cmd_settlv);
@@ -340,7 +372,7 @@ static int set_arg_vsi3(struct cmd *cmd, char *argvalue, bool test, int size)
 	vsi.macsz = size;
 	rc = vdp_str2vdpnl(argvalue, &vsi, cmd->ifname);
 	if (rc) {
-		good_cmd = cmd_bad_params;
+		good_cmd = get_vdp22_retval(rc);
 		goto out;
 	}
 	if (!port_find_by_ifindex(get_ifidx(cmd->ifname))) {
@@ -351,12 +383,8 @@ static int set_arg_vsi3(struct cmd *cmd, char *argvalue, bool test, int size)
 	if (good_cmd != cmd_success || test)
 		goto out;
 	rc = vdp22_request(&vsi, 1);
-	if (!rc)
-		good_cmd = cmd_success;
-	else if (rc == -ENODEV)
-		good_cmd = cmd_device_not_found;
-	else
-		good_cmd = cmd_failed;
+	good_cmd = get_vdp22_retval(rc);
+
 out:
 	return good_cmd;
 }
@@ -480,7 +508,8 @@ static int get_vsi_partial_arg(UNUSED char *arg, char *orig_argvalue,
 	int rc = -ENOMEM, len, c;
 	u16 vsi_arg_key_flags = 0;
 
-	if (vdp22_parse_str_vdpnl(vsinl, &vsi_arg_key_flags, orig_argvalue))
+	rc = vdp22_parse_str_vdpnl(vsinl, &vsi_arg_key_flags, orig_argvalue);
+	if (rc)
 		goto out;
 	vdp = vdp22_getvdp(vsinl->ifname);
 	if (!vdp)
@@ -498,7 +527,6 @@ static int get_vsi_partial_arg(UNUSED char *arg, char *orig_argvalue,
 			len = strlen(tmp_buf);
 			c = snprintf(out + used, out_len - used, "%04x%s",
 				     len, tmp_buf);
-			vdp22_freemaclist(vsinl);
 			if ((c < 0) || ((unsigned)c >= (out_len - used)))
 				goto out_delvsi;
 			if (rc)
@@ -544,11 +572,14 @@ static int get_arg_vsi(struct cmd *cmd, char *arg, char *argvalue,
 		memset(&mac, 0, sizeof(mac));
 		vsi.macsz = fsize;
 		vsi.maclist = mac;
-		if (!get_vsi_partial_arg(arg, argvalue, &vsi, vsi_str,
-					 sizeof(vsi_str)))
-			goto out;
-	} else if (!catvsis(&vsi, vsi_str, sizeof(vsi_str)))
+		rc = get_vsi_partial_arg(arg, argvalue, &vsi, vsi_str,
+					 sizeof(vsi_str));
+	} else
+		rc = catvsis(&vsi, vsi_str, sizeof(vsi_str));
+	if (!rc) {
+		good_cmd = get_vdp22_retval(rc);
 		goto out;
+	}
 	rc = snprintf(obuf, obuf_len, "%s", vsi_str);
 	if (rc > 0 || rc < obuf_len)
 		good_cmd = cmd_success;

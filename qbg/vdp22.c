@@ -42,6 +42,7 @@
 #include "qbg_vdp22.h"
 #include "qbg_utils.h"
 #include "qbg_vdp22_cmds.h"
+#include "qbg_vdp22def.h"
 
 /*
  * VDP22 helper functions
@@ -469,7 +470,8 @@ static bool filter_ok(unsigned char ffmt, struct fid22 *fp,
 		else
 			rc = false;
 	}
-	LLDPAD_DBG("%s:rc:%d\n", __func__, rc);
+	LLDPAD_DBG("%s: ffmt:%d gpid_on:%d rc:%d\n", __func__, ffmt,
+		   gpid_on, rc);
 	return rc;
 }
 
@@ -1007,12 +1009,26 @@ static pid_t havepid(struct vsi22 *vsi)
 	return mypid;
 }
 
+unsigned char vdp22_getsm_errcode(struct vsi22 *vsi)
+{
+	unsigned char err_code = 0;
+
+	if (vsi->smi.kato)
+		err_code |= (1 << VDP22_KATO);
+	if (vsi->smi.acktimeout)
+		err_code |= (1 << VDP22_ACKTO);
+	if (vsi->smi.txmit_error)
+		err_code |= (1 << VDP22_TXERR);
+	return err_code;
+}
+
 /*
  * Convert and VSI22 to VDP netlink format and send it back to the originator.
  */
 static int vdp22_back(struct vsi22 *vsi, pid_t to,
 		      int (*fct)(struct vdpnl_vsi *))
 {
+	unsigned char err_code;
 	int i;
 	struct vdpnl_vsi nl;
 	struct vdpnl_mac nlmac[vsi->no_fdata];
@@ -1025,6 +1041,8 @@ static int vdp22_back(struct vsi22 *vsi, pid_t to,
 	memcpy(nl.ifname, vsi->vdp->ifname, sizeof(nl.ifname));
 	nl.request = vsi->vsi_mode;
 	nl.response = vsi->status;
+	err_code = vdp22_getsm_errcode(vsi);
+	nl.response |= (err_code << VDP22_STATUS_BITS);
 	nl.vsi_mgrid = vsi->mgrid[0];
 	memcpy(nl.vsi_mgrid2, vsi->mgrid, sizeof(nl.vsi_mgrid2));
 	nl.vsi_typeversion = vsi->type_ver;
