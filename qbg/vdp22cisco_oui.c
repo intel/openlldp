@@ -92,7 +92,7 @@ bool cisco_str2vdpnl_hndlr(struct vdpnl_oui_data_s *vdp_oui_p, char *token)
 			strncpy(vdp_cisco_oui_p->vm_name, token, data_len);
 			vdp_cisco_oui_p->vm_name[data_len] = '\0';
 			vdp_cisco_oui_p->vm_name_len = data_len;
-			LLDPAD_DBG("Name %s Len %ld\n",
+			LLDPAD_DBG("Name %s Len %zu\n",
 				   vdp_cisco_oui_p->vm_name,
 				   vdp_cisco_oui_p->vm_name_len);
 			break;
@@ -364,7 +364,7 @@ static inline size_t cisco_vdp22_gen_l3addr(char unsigned *cp, size_t offset,
 		offset += oui_append_4o(cp + offset, 0);
 		LLDPAD_ERR("%s: Not supported for now\n", __func__);
 	}
-	LLDPAD_DBG("%s: Valid VM Addr offset %ld\n", __func__, offset);
+	LLDPAD_DBG("%s: Valid VM Addr offset %zu\n", __func__, offset);
 	return offset;
 }
 
@@ -395,7 +395,7 @@ static inline size_t cisco_vdp22_gen_vmname(char unsigned *cp, size_t offset,
 	offset += oui_append_nb(cp + offset,
 				(char unsigned *)vdp_cisco_oui_str->vm_name,
 				vdp_cisco_oui_str->vm_name_len);
-	LLDPAD_DBG("%s: Valid VM Name offset %ld\n", __func__, offset);
+	LLDPAD_DBG("%s: Valid VM Name offset %zu\n", __func__, offset);
 	return offset;
 }
 
