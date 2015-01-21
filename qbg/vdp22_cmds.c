@@ -471,10 +471,73 @@ static int test_arg_vsi(struct cmd *cmd, UNUSED char *arg, char *argvalue,
 	return set_arg_vsi2(cmd, argvalue, true);
 }
 
+/*
+ * Concatenate all VSI information into one string.
+ * Return length of string in bytes.
+ */
+static int catvsis(struct vdpnl_vsi *vsi, char *out, size_t out_len)
+{
+	int rc, i;
+	size_t used = 0;
+	unsigned char wanted_req = vsi->request;
+
+	for (i = 1; vdp22_status(i, vsi, 1) > 0; ++i) {
+		if (wanted_req != vsi->request) {
+			vdp22_freemaclist(vsi);
+			continue;
+		}
+		rc = vdp_vdpnl2str(vsi, out + used, out_len - used);
+		vdp22_freemaclist(vsi);
+		if (rc) {
+			strcat(out, ";");
+			used = strlen(out);
+		} else
+			return 0;
+	}
+	return used;
+}
+
+/*
+ * Return all VSIs on a particular interface into one string.
+ */
+static int get_arg_vsi(struct cmd *cmd, char *arg, UNUSED char *argvalue,
+		       char *obuf, int obuf_len)
+{
+	cmd_status good_cmd = vdp22_cmdok(cmd, cmd_gettlv);
+	struct vdpnl_vsi vsi;
+	char vsi_str[MAX_CLIF_MSGBUF];
+	int rc;
+
+	if (good_cmd != cmd_success)
+		return good_cmd;
+	if (!port_find_by_ifindex(get_ifidx(cmd->ifname)))
+		return cmd_device_not_found;
+	good_cmd = ifok(cmd);
+	if (good_cmd != cmd_success)
+		return good_cmd;
+
+	memset(obuf, 0, obuf_len);
+	memset(&vsi, 0, sizeof(vsi));
+	vsi.request = cmd->tlvid;
+	strncpy(vsi.ifname, cmd->ifname, sizeof(vsi.ifname) - 1);
+	good_cmd = cmd_failed;
+	if (!catvsis(&vsi, vsi_str, sizeof(vsi_str)))
+		goto out;
+	rc = snprintf(obuf, obuf_len, "%02x%s%04x%s",
+		 (unsigned int)strlen(arg), arg, (unsigned int)strlen(vsi_str),
+		 vsi_str);
+	if (rc > 0 || rc < obuf_len)
+		good_cmd = cmd_success;
+out:
+	return good_cmd;
+}
+
+
 static struct arg_handlers arg_handlers[] = {
 	{
 		.arg = ARG_VDP22_VSI,
 		.arg_class = TLV_ARG,
+		.handle_get = get_arg_vsi,
 		.handle_set = set_arg_vsi,
 		.handle_test = test_arg_vsi
 	},

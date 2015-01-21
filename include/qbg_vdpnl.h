@@ -78,4 +78,5 @@ int event_trigger(struct nlmsghdr *, pid_t);
 int vdp_str2vdpnl(char *, struct vdpnl_vsi *, char *);
 int vdp_vdpnl2str(struct vdpnl_vsi *, char *, size_t);
 int vdp22_sendevent(struct vdpnl_vsi *);
+void vdp22_freemaclist(struct vdpnl_vsi *);
 #endif
