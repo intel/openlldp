@@ -91,6 +91,7 @@ enum vsi_key_arg {
 	VSI_FILTER_ARG,
 	VSI_MAND_NUM_ARG,
 	VSI_HINTS_ARG,
+	VSI_OUI_ARG,
 	VSI_INVALID_ARG
 };
 

@@ -66,6 +66,8 @@ struct vdpnl_vsi {		/* Data structure for VSI data via netlink */
 	unsigned char filter_fmt;	/* Filter format type */
 	int macsz;			/* Entries in mac-vlan pair list */
 	struct vdpnl_mac *maclist;	/* List of MAC-VLAN pairs */
+	int ouisz;                      /* No of OUI entries */
+	struct vdpnl_oui_data_s *oui_list; /* OUI Entries */
 };
 
 int vdpnl_recv(unsigned char *, size_t);

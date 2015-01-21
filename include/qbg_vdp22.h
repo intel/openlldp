@@ -59,6 +59,7 @@
 #include	<linux/if_link.h>
 
 #include	<qbg_vdp22def.h>
+#include        <qbg_vdp22_oui.h>
 
 enum vdp22_role {		/* State for VDP22 bridge processing */
 	VDP22_BRIDGE = 1,	/* Bridge role */
@@ -140,6 +141,8 @@ struct vsi22 {
 	unsigned char fif;		/* Filter info format */
 	unsigned short no_fdata;	/* Entries in filter data */
 	struct fid22 *fdata;		/* Filter data variable length */
+	unsigned short no_ouidata;      /* Entries in OUI data */
+	struct vdp22_oui_data_s *oui_str_data; /* OUI data variable length */
 	struct vdp22 *vdp;		/* Back pointer to VDP head */
 	unsigned long flags;		/* Flags, see above */
 	struct vdp22smi smi;		/* State machine information */
@@ -189,6 +192,7 @@ void vdp22_stop_timers(struct vsi22 *);
 int vdp22_start_localchange_timer(struct vsi22 *);
 bool vdp22_cmp_fdata(struct vsi22 *, struct vsi22 *);
 void vdp22_delete_vsi(struct vsi22 *);
+struct vdp22_oui_handler_s * vdp22_get_oui_hndlr(char *);
 
 /*
  * Functions to get and set vlan identifier and qos.
