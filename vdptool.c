@@ -55,6 +55,22 @@
 #include "qbg_vdp22_clif.h"
 #include "lldp_util.h"
 #include "qbg_vdp22def.h"
+#include "qbg_vdp22_oui.h"
+
+#define OUI_ENCODE_HNDLR(name) name##_oui_encode_hndlr
+#define EXTERN_OUI_FN(name) \
+	extern bool name##_oui_encode_hndlr(char *, char *, size_t)
+
+/* The handler declaration  for encoding OUI specific information should be
+ * here. The corresponding decoder handler should be in lldpad.
+ */
+
+
+/* The OUI specific handlers should be added here */
+
+vdptool_oui_hndlr_tbl_t oui_hndlr_tbl[] = {
+};
+
 
 static char *print_vdp_status(enum vdp22_cmd_status status)
 {
@@ -144,23 +160,137 @@ static void get_arg_value(char *str, char **arg, char **argval)
 	*arg = str;
 }
 
-static int render_cmd(struct cmd *cmd, int argc, char **args, char **argvals)
+static char *get_oui_name(char *argvals)
+{
+	char *oui_loc;
+
+	oui_loc = strchr(argvals, ',');
+	if (oui_loc == NULL)
+		return NULL;
+	*oui_loc = '\0';
+	return oui_loc + 1;
+}
+
+static void fill_oui_hdr(vdptool_oui_data_t *oui_data, char *oui_name)
+{
+	strncpy(oui_data->oui_name, oui_name, sizeof(oui_data->oui_name));
+	snprintf(oui_data->data, sizeof(oui_data->data), "%02x%s",
+		 (unsigned int)strlen(oui_data->oui_name), oui_data->oui_name);
+}
+
+static bool run_vdptool_oui_hndlr(vdptool_oui_data_t *oui_data, char *argvals)
+{
+	int cnt = 0, tbl_size;
+	char *dst;
+	size_t len = 0;
+
+	tbl_size = sizeof(oui_hndlr_tbl) / sizeof(vdptool_oui_hndlr_tbl_t);
+	for (cnt = 0; cnt < tbl_size; cnt++) {
+		if (!strncmp(oui_hndlr_tbl[cnt].oui_name, oui_data->oui_name,
+			     VDP22_OUI_MAX_NAME)) {
+			len = strlen(oui_data->data);
+			if (len >= sizeof(oui_data->data))
+				return false;
+			dst = oui_data->data + len;
+			return oui_hndlr_tbl[cnt].oui_cli_encode_hndlr(dst,
+								argvals, len);
+		}
+	}
+	return false;
+}
+
+/*
+ * The OUI can be input in many ways.
+ * It could be vdptool .... -c oui=companyA,Data1 -c oui=companyB,Data2 \
+ *			    -c oui=companyA,Data3
+ * Or
+ * vdptool .... -c oui=companyA,Data1Data3 -c oui=companyB,data2
+ * This function takes care of both the case cases
+ *
+ * Anything after the comma in OUI data field is Org specific and it's upto
+ * the respective organization specific handlers to encode it so that it could
+ * be decoded appropriately by the ORG specific handlers inside lldpad.
+ * That is, Data1 and Data3 is ORG companyA specific and the OUI handlers
+ * of ORG companyA in vdptool and lldpad is responsible for encoding/decoding.
+ *
+ * Irrespective of how the command line interface to vdptool is, the input to
+ * lldpad is always the same. i.e. KeywordlenKeywordDatalenData
+ * For OUI, the data field will have the complete OUI data starting with
+ * ORG name (e.g companyA). So, in order to call the right handler routine,
+ * the OUI data field is split as OUInamelenOUInameOUIData.
+ * OUInamelen is 2B.
+ */
+
+static bool rewrite_oui_argval(char *argvals, vdptool_oui_data_t **oui_data,
+			       int total_oui)
+{
+	char *new_oui_argvals, *new_oui_name, *exist_oui_name;
+	bool flag = true, ret = false;
+	int cnt;
+
+	new_oui_argvals = get_oui_name(argvals);
+	if (!new_oui_argvals) {
+		printf("Incorrect OUI Value, missing comma as delimited for "
+		       "OUI Type\n");
+		return false;
+	}
+	new_oui_name = argvals;
+	for (cnt = 0; cnt < total_oui; cnt++) {
+		if (!oui_data[cnt])
+			continue;
+		exist_oui_name = oui_data[cnt]->oui_name;
+		if (!strncmp(new_oui_name, exist_oui_name,
+			     VDP22_OUI_MAX_NAME)) {
+			flag = false;
+			break;
+		}
+	}
+	if (flag) {
+		oui_data[total_oui] = calloc(1, sizeof(vdptool_oui_data_t));
+		fill_oui_hdr(oui_data[total_oui], new_oui_name);
+		ret = run_vdptool_oui_hndlr(oui_data[total_oui],
+					    new_oui_argvals);
+	} else
+		ret = run_vdptool_oui_hndlr(oui_data[cnt], new_oui_argvals);
+	if (!ret)
+		return false;
+	return flag;
+}
+
+int render_cmd(struct cmd *cmd, int argc, char **args, char **argvals)
 {
 	int len;
 	int i;
 	int fid = 0, oui = 0;
+	vdptool_oui_data_t **oui_data;
+	bool is_new;
 
 	len = sizeof(cmd->obuf);
 
+	/* To avoid another loop to figure the number of OUI's */
+	oui_data = calloc(argc, sizeof(vdptool_oui_data_t *));
+	if (!oui_data) {
+		printf("Not enough memory\n");
+		return 0;
+	}
+
 	if ((cmd->cmd == cmd_settlv) || (cmd->cmd == cmd_gettlv)) {
 		for (i = 0; i < argc; i++) {
-			if (args[i]) {
-				if (!strncasecmp(args[i], "filter",
-						strlen("filter")))
-					fid++;
-				else if (!strncasecmp(args[i], "oui",
-						strlen("oui")))
+			if (!args[i])
+				continue;
+			if (!strncasecmp(args[i], "filter", strlen("filter")))
+				fid++;
+			else if (!strncasecmp(args[i], "oui", strlen("oui"))) {
+				is_new = rewrite_oui_argval(argvals[i],
+							    oui_data,
+							    oui);
+				if (is_new) {
+					argvals[i] = oui_data[oui]->data;
 					oui++;
+				} else {
+					args[i] = NULL;
+					argvals[i] = NULL;
+				}
 			}
 		}
 	}
@@ -182,6 +312,11 @@ static int render_cmd(struct cmd *cmd, int argc, char **args, char **argvals)
 				 len - strlen(cmd->obuf), "%04x%s",
 				 (unsigned int)strlen(argvals[i]), argvals[i]);
 	}
+	for (i = 0; i < oui; i++) {
+		if (oui_data[i])
+			free(oui_data[i]);
+	}
+	free(oui_data);
 	return strlen(cmd->obuf);
 }
 

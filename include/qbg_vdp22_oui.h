@@ -33,6 +33,7 @@
 enum vdp22_oui {
 	VDP22_OUI_TYPE_LEN = 3,          /* Size of OUI Type field */
 	VDP22_OUI_MAX_NAME = 20,
+	MAX_OUI_DATA_LEN = 200
 };
 
 struct vdp22_oui_data_s {
@@ -42,5 +43,15 @@ struct vdp22_oui_data_s {
 	int len;
 	void *data;
 };
+
+typedef struct vdptool_oui_data_s {
+	char oui_name[VDP22_OUI_MAX_NAME];
+	char data[MAX_OUI_DATA_LEN];
+} vdptool_oui_data_t;
+
+typedef struct vdptool_oui_hndlr_tbl_s {
+	char *oui_name;
+	bool (*oui_cli_encode_hndlr)(char *dst, char *src, size_t len);
+} vdptool_oui_hndlr_tbl_t;
 
 #endif /* __VDP22_OUI_H__ */

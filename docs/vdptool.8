@@ -182,6 +182,31 @@ delimited by two slashes ('--'),
 also known as filter information format 3.
 For vlan and group details see (1) and (4).
 .RE
+.TP
+.B "oui (Organizationally Unique Identifier):"
+This defines the optional Organizationally
+defined information field. This contains the
+specific sets of values for this entry. There
+can be multiple organizational specific fields,
+in which case there will be multiple keywords
+.I oui=
+followed by the values.
+The value is of the following format:
+.EX
+oui=OUI,[Organization specific values ]
+.EE
+The OUI specifies the name of the Organization
+that is responsible for defining
+this content. A comma is mandatory after the OUI
+field. The fields following this
+ is specified by the organization and
+hence will be decoded based on the value of this
+OUI field. Currently, the following values for
+OUI are supported.
+.RS
+.IP cisco -
+Specifies Cisco defined OUI.
+.TP
 .SH COMMANDS
 .TP
 .B license
@@ -226,12 +251,32 @@ vdptool -i eth2 -T -V assoc -c mode=assoc -c mgrid2=blabla \\
 	-c filter=2-52:00:00:11:22:33-200
 .fi
 .TP
-Create a VSI association on interface eth2 and wait for the response from the bridge
+Create a VSI association on interface eth2 and wait for the
+response from the bridge
 .br
 .nf
 vdptool -i eth2 -T -W -V assoc -c mode=assoc -c mgrid2=blabla \\
 	-c typeid=5 -c uuid=1122 -c typeidver=4 -c hints=none \\
 	-c filter=0-52:00:00:11:22:33-200
+.fi
+.TP
+Create a VSI association on interface eth2 wth OUI parameters
+and wait for the response from the bridge
+.br
+.nf
+vdptool -i eth2 -T -W -V assoc -c mode=assoc -c mgrid2=blabla \\
+	-c typeid=5 -c uuid=1122 -c typeidver=4 -c hints=none \\
+	-c filter=0-52:00:00:11:22:33-200 -c oui=CompanyA,data
+.fi
+.TP
+Create a VSI association on interface eth2 wth multiple OUI parameters
+and wait for the response from the bridge
+.br
+.nf
+vdptool -i eth2 -T -W -V assoc -c mode=assoc -c mgrid2=blabla \\
+	-c typeid=5 -c uuid=1122 -c typeidver=4 -c hints=none \\
+	-c filter=0-52:00:00:11:22:33-200 -c oui=CompanyA,data \\
+	-c oui=CompanyB,data
 .fi
 
 .TP
@@ -240,7 +285,8 @@ Query all VSI association on interface eth2
 vdptool -i eth2 -t -V assoc
 
 .TP
-Query  VSI association on interface eth2 that matches specific VSI parameters. Any of the VSI parameters below can be omitted.
+Query  VSI association on interface eth2 that matches specific
+VSI parameters. Any of the VSI parameters below can be omitted.
 .br
 vdptool -i eth2 -t -V assoc -t -V assoc -c mode=assoc \\
         -c mgrid2=blabla -c typeid=5 -c uuid=1122 \\
