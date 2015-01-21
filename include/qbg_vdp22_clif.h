@@ -29,6 +29,10 @@
 
 #ifndef QBG_VDP22_CLIF_H
 #define QBG_VDP22_CLIF_H
+
+#define OP_FID_POS 8 /* Second Byte */
+#define OP_OUI_POS 16 /* Third Byte */
+
 typedef enum {
 	cmd_getstats,
 	cmd_gettlv,
@@ -51,6 +55,9 @@ typedef enum {
 	op_config = 0x10,
 	op_delete = 0x20,
 	op_key = 0x40
+	/* Second Byte is used for signifying the number of Filter fields and
+	 * the third byte is used for signifying the number of OUI fields.
+	 */
 } vdp22_op;
 
 struct lldp_module *vdp22_cli_register(void);

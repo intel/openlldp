@@ -125,31 +125,28 @@ static int render_cmd(struct cmd *cmd, int argc, char **args, char **argvals)
 {
 	int len;
 	int i;
+	int fid = 0, oui = 0;
 
 	len = sizeof(cmd->obuf);
 
+	if (cmd->cmd == cmd_settlv) {
+		for (i = 0; i < argc; i++) {
+			if (args[i]) {
+				if (!strncasecmp(args[i], "filter",
+						strlen("filter")))
+					fid++;
+				else if (!strncasecmp(args[i], "oui",
+						strlen("oui")))
+					oui++;
+			}
+		}
+	}
+	cmd->ops |= (fid << OP_FID_POS) | (oui << OP_OUI_POS);
 	/* all command messages begin this way */
 	snprintf(cmd->obuf, len, "%c%08x%c%1x%02x%08x%02x%s%02x%08x",
 		MOD_CMD, cmd->module_id, CMD_REQUEST, CLIF_MSG_VERSION,
 		cmd->cmd, cmd->ops, (unsigned int) strlen(cmd->ifname),
 		cmd->ifname, cmd->type, cmd->tlvid);
-#if PADDU
-	if (cmd->cmd == cmd_settlv) {
-		size_t len2 = 0;
-		/*
-		 * Get total length and append it plus any args and argvals
-		 * to the command message
-		 */
-		for (i = 0; i < argc; i++) {
-			if (args[i])
-				len2 += 2 + strlen(args[i]);
-			if (argvals[i])
-				len2 += 4 + strlen(argvals[i]);
-		}
-		snprintf(cmd->obuf + strlen(cmd->obuf), len - strlen(cmd->obuf),
-			 "%04zx", len2);
-	}
-#endif
 	/* Add any args and argvals to the command message */
 	for (i = 0; i < argc; i++) {
 		if (args[i])
@@ -710,6 +707,9 @@ static int _clif_command(struct clif *clif, char *cmd, int print)
 	char buf[MAX_CLIF_MSGBUF];
 	size_t len;
 	int ret;
+	int rc;
+	char reply[100];
+	size_t reply_len2 = sizeof(reply);
 
 	print_raw_message(cmd, print);
 
@@ -729,6 +729,13 @@ static int _clif_command(struct clif *clif, char *cmd, int print)
 	if (print) {
 		buf[len] = '\0';
 		ret = parse_print_message(buf, print);
+	}
+	if (cli_attached) {
+		rc = clif_vsievt(clif, reply, &reply_len2, 5);
+		printf("\nReturn from vsievt %d ret %d Reply %s\n", rc, ret,
+			reply);
+		if (!rc)
+			printf("\nMsg is %s\n", reply);
 	}
 
 	return ret;
@@ -854,6 +861,7 @@ static int request(struct clif *clif, int argc, char *argv[])
 	int numargs = 0;
 	char **argptr = &argv[0];
 	char *end;
+	char attach_str[9] = "";
 	int c;
 	int option_index;
 
@@ -865,7 +873,7 @@ static int request(struct clif *clif, int argc, char *argv[])
 
 	opterr = 0;
 	for (;;) {
-		c = getopt_long(argc, argv, "i:tThcnvrRpqV:",
+		c = getopt_long(argc, argv, "i:tTWhcnvrRpqV:",
 				lldptool_opts, &option_index);
 		if (c < 0)
 			break;
@@ -935,6 +943,15 @@ static int request(struct clif *clif, int argc, char *argv[])
 			break;
 		case 'v':
 			command.cmd = cmd_version;
+			break;
+		case 'W':
+			snprintf(attach_str, sizeof(attach_str), "%x",
+				LLDP_MOD_VDP22);
+			if (clif_attach(clif, attach_str) != 0) {
+				printf("Warning: Failed to attach to lldpad.\n");
+				return -1;
+			}
+			cli_attached = 1;
 			break;
 		default:
 			usage();

@@ -163,6 +163,11 @@ struct vdp22_user_data {		/* Head for all VDP data */
 	LIST_HEAD(vdp22_head, vdp22) head;
 };
 
+struct vsi_keyword_handler {
+	char *keyword;
+	enum vsi_mand_arg val;
+};
+
 struct lldp_module *vdp22_register(void);
 void vdp22_unregister(struct lldp_module *);
 void vdp22_start(const char *, int);

@@ -72,4 +72,28 @@ enum vdp22_migration_hints {
 	VDP22_MIGFROM = 32		/* S-bit migrate from hint */
 };
 
+enum vsi_mand_arg {
+	VSI_MODE_ARG = 0,
+	VSI_MGRID2_ARG,
+	VSI_TYPEID_ARG,
+	VSI_TYPEIDVER_ARG,
+/*	VSI_VSIIDFRMT_ARG, TODO */
+	VSI_VSIID_ARG,
+	VSI_FILTER_ARG,
+	VSI_MAND_NUM_ARG,
+	VSI_HINTS_ARG,
+	VSI_INVALID_ARG
+};
+
+#define VSI22_ARG_MODE_STR "mode"
+#define VSI22_ARG_MGRID_STR "mgrid2"
+#define VSI22_ARG_TYPEID_STR "typeid"
+#define VSI22_ARG_TYPEIDVER_STR "typeidver"
+#define VSI22_ARG_VSIIDFRMT_STR "vsiidfrmt"
+/*#define VSI22_ARG_VSIID_STR "vsiid" TODO*/
+#define VSI22_ARG_VSIID_STR "uuid"
+#define VSI22_ARG_HINTS_STR "hints"
+#define VSI22_ARG_FILTER_STR "filter"
+#define VSI22_ARG_OUI_STR "oui"
+
 #endif

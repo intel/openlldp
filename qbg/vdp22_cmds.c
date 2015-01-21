@@ -104,37 +104,6 @@ static int handle_get_arg(struct cmd *cmd, char *arg, char *argvalue,
 	return status;
 }
 
-static int handle_get(struct cmd *cmd, UNUSED char *arg, char *argvalue,
-		      char *obuf, int obuf_len)
-{
-	struct arg_handlers *ah;
-	int rval;
-	char *nbuf;
-	int nbuf_len;
-
-	memset(obuf, 0, obuf_len);
-	nbuf = obuf + 12;
-	nbuf_len = obuf_len - 12;
-
-	ah = get_my_arghndl(cmd->module_id);
-	if (!ah)
-		return cmd_not_applicable;
-	for (; ah->arg; ++ah) {
-		if (strcmp(ah->arg, ARG_VDP22_VSI))
-			continue;
-		if (ah->handle_get && (ah->arg_class == TLV_ARG)) {
-			rval = ah->handle_get(cmd, ah->arg, argvalue,
-					      nbuf, nbuf_len);
-			if (rval != cmd_success && rval != cmd_not_applicable)
-				return rval;
-
-			nbuf_len -= strlen(nbuf);
-			nbuf = nbuf + strlen(nbuf);
-		}
-	}
-	return cmd_success;
-}
-
 static int handle_test_arg(struct cmd *cmd, char *arg, char *argvalue,
 			   char *obuf, int obuf_len)
 {
@@ -223,17 +192,13 @@ static int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
  */
 int vdp22_clif_cmd(UNUSED void *data, UNUSED struct sockaddr_un *from,
 		   UNUSED socklen_t fromlen,
-		   char *ibuf, int ilen, char *rbuf, int rlen)
+		   char *ibuf, UNUSED int ilen, char *rbuf, int rlen)
 {
 	struct cmd cmd;
 	u8 len, version;
 	int ioff, roff;
 	int rstatus = cmd_invalid;
-	char **args;
-	char **argvals;
 	bool test_failed = false;
-	int numargs = 0;
-	int i, offset;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.module_id = LLDP_MOD_VDP22;
@@ -275,32 +240,6 @@ int vdp22_clif_cmd(UNUSED void *data, UNUSED struct sockaddr_un *from,
 	if (!(cmd.ops & op_config))
 		return cmd_invalid;
 
-	/* Count args and argvalues */
-	offset = ioff;
-	for (numargs = 0; (ilen - offset) > 2; numargs++) {
-		offset += 2;
-		if (ilen - offset > 0) {
-			offset++;
-			if (ilen - offset > 4)
-				offset += 4;
-		}
-	}
-
-	args = calloc(numargs, sizeof(char *));
-	if (!args)
-		return cmd_failed;
-
-	argvals = calloc(numargs, sizeof(char *));
-	if (!argvals) {
-		free(args);
-		return cmd_failed;
-	}
-
-	if ((cmd.ops & op_arg) && (cmd.ops & op_argval))
-		numargs = get_arg_val_list(ibuf, ilen, &ioff, args, argvals);
-	else if (cmd.ops & op_arg)
-		numargs = get_arg_list(ibuf, ilen, &ioff, args);
-
 	snprintf(rbuf, rlen, "%c%1x%02x%08x%02x%s",
 		 CMD_REQUEST, CLIF_MSG_VERSION,
 		 cmd.cmd, cmd.ops,
@@ -309,42 +248,29 @@ int vdp22_clif_cmd(UNUSED void *data, UNUSED struct sockaddr_un *from,
 
 	/* Confirm port is a valid LLDP port */
 	if (!get_ifidx(cmd.ifname) || !is_valid_lldp_device(cmd.ifname)) {
-		free(argvals);
-		free(args);
 		return cmd_device_not_found;
 	}
 
 	snprintf(rbuf + roff, rlen - roff, "%08x", cmd.tlvid);
 	roff += 8;
 	if (cmd.cmd == cmd_gettlv) {
-		if (!numargs)
-			rstatus = handle_get(&cmd, NULL, NULL,
-					     rbuf + strlen(rbuf),
-					     rlen - strlen(rbuf));
-		else
-			for (i = 0; i < numargs; i++)
-				rstatus = handle_get_arg(&cmd, args[i], NULL,
-							 rbuf + strlen(rbuf),
-							 rlen - strlen(rbuf));
+		rstatus = handle_get_arg(&cmd, ARG_VDP22_VSI,
+						NULL,
+						rbuf + strlen(rbuf),
+						rlen - strlen(rbuf));
 	} else {
-		for (i = 0; i < numargs; i++) {
-			rstatus = handle_test_arg(&cmd, args[i], argvals[i],
-						  rbuf + strlen(rbuf),
-						  rlen - strlen(rbuf));
-			if (rstatus != cmd_not_applicable &&
-			    rstatus != cmd_success)
-				test_failed = true;
-		}
+		rstatus = handle_test_arg(&cmd, ARG_VDP22_VSI,
+						ibuf + ioff,
+						rbuf + strlen(rbuf),
+						rlen - strlen(rbuf));
+		if (rstatus != cmd_not_applicable && rstatus != cmd_success)
+			test_failed = true;
 		if (!test_failed)
-			for (i = 0; i < numargs; i++)
-				rstatus = handle_set_arg(&cmd, args[i],
-							 argvals[i],
-							 rbuf + strlen(rbuf),
-							 rlen - strlen(rbuf));
+			rstatus = handle_set_arg(&cmd,
+						ARG_VDP22_VSI, ibuf + ioff,
+						rbuf + strlen(rbuf),
+						rlen - strlen(rbuf));
 	}
-
-	free(argvals);
-	free(args);
 	return rstatus;
 }
 
@@ -436,27 +362,16 @@ out:
 	return good_cmd;
 }
 
-/*
- * Count the number of fid data fields in the argument value.
- */
-#define	VDP22_FID_IDX	6		/* Min index of fid data */
-static int count_fid(char *argvalue)
-{
-	char *p = argvalue;
-	int i;
-
-	for (i = 0; (p = strchr(p, ',')); ++i, ++p)
-		;
-	return i + 1 - VDP22_FID_IDX;
-}
-
 static int set_arg_vsi2(struct cmd *cmd, char *argvalue, bool test)
 {
-	int no = count_fid(argvalue);
+	int no = (cmd->ops >> OP_FID_POS) & 0xff;
 
 	if (no <= 0)
 		return -EINVAL;
-	return set_arg_vsi3(cmd, argvalue, test, no);
+	if ((cmd->ops & op_arg) && (cmd->ops & op_argval))
+		return set_arg_vsi3(cmd, argvalue, test, no);
+	else /* Not supported for now */
+		return cmd_failed;
 }
 
 static int set_arg_vsi(struct cmd *cmd, UNUSED char *arg, char *argvalue,

@@ -43,6 +43,17 @@
 #include "qbg_vdp22.h"
 #include "qbg_vdpnl.h"
 #include "qbg_utils.h"
+#include "lldp_util.h"
+
+struct vsi_keyword_handler vsi_key_handle[] = {
+	{VSI22_ARG_MODE_STR, VSI_MODE_ARG},
+	{VSI22_ARG_MGRID_STR, VSI_MGRID2_ARG},
+	{VSI22_ARG_TYPEID_STR, VSI_TYPEID_ARG},
+	{VSI22_ARG_TYPEIDVER_STR, VSI_TYPEIDVER_ARG},
+/*	{VSI22_ARG_VSIIDFRMT_STR, VSI_VSIIDFRMT_ARG}, TODO*/
+	{VSI22_ARG_VSIID_STR, VSI_VSIID_ARG},
+	{VSI22_ARG_HINTS_STR, VSI_HINTS_ARG},
+	{VSI22_ARG_FILTER_STR, VSI_FILTER_ARG} };
 
 /*
  * Check if it is a UUID and consists  of hexadecimal digits and dashes only.
@@ -253,6 +264,18 @@ static bool getmode(struct vdpnl_vsi *p, char *s)
 	return true;
 }
 
+enum vsi_mand_arg get_keywork_val(char *keyword)
+{
+	int count, key_str_size;
+
+	key_str_size = sizeof(vsi_key_handle) / sizeof(vsi_key_handle[0]);
+	for (count = 0; count < key_str_size; count++) {
+		if (!strcmp(keyword, vsi_key_handle[count].keyword))
+			return vsi_key_handle[count].val;
+	}
+	return VSI_INVALID_ARG;
+}
+
 /*
  * Parse the mode parameter to create/change an VSI assoication.
  * The format is a comma separated list of tokens:
@@ -276,66 +299,95 @@ static bool getmode(struct vdpnl_vsi *p, char *s)
  * mac := xx:xx:xx:xx:xx:xx
  */
 
-static int str2vdpnl(char *argvalue, struct vdpnl_vsi *vsi)
+static int str2vdpnl(char *orig_argvalue, struct vdpnl_vsi *vsi)
 {
+	char **args;
+	char **argvals;
+	char *argvalue;
 	int rc = -ENOMEM;
 	unsigned int no;
-	unsigned short idx;
-	char *cmdstring, *token;
+	unsigned short idx = 0;
+	int i, ioff = 0, offset;
+	int ilen = strlen(orig_argvalue);
+	int numargs;
+	enum vsi_mand_arg vsi_key;
+	u16 vsi_mand_mask = (1 << VSI_MAND_NUM_ARG) - 1;
+	u16 num_arg_keys = 0;
 
-	cmdstring = strdup(argvalue);
-	if (!cmdstring)
-		goto out_free;
-	rc = -EINVAL;
-	/* 1st field is VSI command */
-	token = strtok(cmdstring, ",");
-	if (!token || !getmode(vsi, token))
-		goto out_free;
-
-	/* 2nd field is VSI Manager Identifer (16 bytes maximum) */
-	token = strtok(NULL, ",");
-	if (!token || !getmgr2id(vsi, token))
-		goto out_free;
-
-	/* 3rd field is type identifier */
-	token = strtok(NULL, ",");
-	if (!token || !getnumber(token, 0, 0xffffff, &no))
-		goto out_free;
-	vsi->vsi_typeid = no;
-
-	/* 4th field is type version identifier */
-	token = strtok(NULL, ",");
-	if (!token || !getnumber(token, 0, 0xff, &no))
-		goto out_free;
-	vsi->vsi_typeversion = no;
-
-	/* 5th field is filter VSI UUID */
-	token = strtok(NULL, ",");
-	if (!token || vdp_str2uuid(vsi->vsi_uuid, token, sizeof(vsi->vsi_uuid)))
-		goto out_free;
-	vsi->vsi_idfmt = VDP22_ID_UUID;
-
-	/* 6th field is migration hints */
-	token = strtok(NULL, ",");
-	if (!token || !gethints(vsi, token))
-		goto out_free;
-
-	/*
-	 * 7th and remaining fields are filter information format data.
-	 * All fields must have the same format. The first fid field determines
-	 * the format.
-	 */
-	for (idx = 0, token = strtok(NULL, ","); token != NULL;
-					++idx, token = strtok(NULL, ",")) {
-		if (idx < vsi->macsz && !getfid(vsi, token, idx))
-			goto out_free;
+	argvalue = strdup(orig_argvalue);
+	if (!argvalue)
+		goto out;
+	/* Count args and argvalues */
+	offset = ioff;
+	for (numargs = 0; (ilen - offset) > 2; numargs++) {
+		offset += 2;
+		if (ilen - offset > 0) {
+			offset++;
+			if (ilen - offset > 4)
+				offset += 4;
+		}
 	}
+	args = calloc(numargs, sizeof(char *));
+	if (!args)
+		goto out_argvalue;
 
+	argvals = calloc(numargs, sizeof(char *));
+	if (!argvals)
+		goto out_args;
+	numargs = get_arg_val_list(argvalue, ilen, &ioff, args, argvals);
+	for (i = 0; i < numargs; i++) {
+		vsi_key = get_keywork_val(args[i]);
+		switch (vsi_key) {
+		case VSI_MODE_ARG:
+			if (!argvals[i] || !getmode(vsi, argvals[i]))
+				goto out_free;
+			break;
+		case VSI_MGRID2_ARG:
+			if (!argvals[i] || !getmgr2id(vsi, argvals[i]))
+				goto out_free;
+			break;
+		case VSI_TYPEID_ARG:
+			if (!argvals[i] ||
+				!getnumber(argvals[i], 0, 0xffffff, &no))
+				goto out_free;
+			vsi->vsi_typeid = no;
+			break;
+		case VSI_TYPEIDVER_ARG:
+			if (!argvals[i] || !getnumber(argvals[i], 0, 0xff, &no))
+				goto out_free;
+			vsi->vsi_typeversion = no;
+			break;
+		case VSI_VSIID_ARG:
+			if (!argvals[i] ||
+				vdp_str2uuid(vsi->vsi_uuid, argvals[i],
+					sizeof(vsi->vsi_uuid)))
+				goto out_free;
+			vsi->vsi_idfmt = VDP22_ID_UUID;
+			break;
+		case VSI_FILTER_ARG:
+			if (idx < vsi->macsz && !getfid(vsi, argvals[i], idx))
+				goto out_free;
+			idx++;
+			break;
+		case VSI_HINTS_ARG:
+			if (!argvals[i] || !gethints(vsi, argvals[i]))
+				goto out_free;
+			break;
+		default:
+			goto out_free;
+		}
+		num_arg_keys |= (1 << vsi_key);
+	}
 	/* Return error if no filter information provided */
-	if (idx)
+	if ((num_arg_keys & vsi_mand_mask) == vsi_mand_mask)
 		rc = 0;
 out_free:
-	free(cmdstring);
+	free(argvals);
+out_args:
+	free(args);
+out_argvalue:
+	free(argvalue);
+out:
 	return rc;
 }
 
