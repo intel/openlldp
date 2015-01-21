@@ -52,4 +52,6 @@ typedef enum {
 	op_delete = 0x20,
 	op_key = 0x40
 } vdp22_op;
+
+struct lldp_module *vdp22_cli_register(void);
 #endif

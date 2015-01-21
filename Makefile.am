@@ -1,5 +1,5 @@
 # target programs to be installed in ${sbindir}
-sbin_PROGRAMS = lldpad dcbtool lldptool
+sbin_PROGRAMS = lldpad dcbtool lldptool vdptool
 
 # package nltest and vdptest, but do not install it anywhere
 if BUILD_DEBUG
@@ -41,7 +41,7 @@ include/parse_cli.h include/version.h include/lldptool_cli.h include/list.h \
 include/lldp_mand_clif.h include/lldp_basman_clif.h include/lldp_med_clif.h \
 include/lldp_8023_clif.h include/lldp_dcbx_clif.h include/lldp_evb_clif.h \
 include/lldp_evb22_clif.h include/qbg_vdp_clif.h include/qbg_vdpnl.h \
-include/lldp_8021qaz_clif.h \
+include/qbg_vdp22_clif.h include/lldp_8021qaz_clif.h \
 include/lldp_orgspec_clif.h include/lldp_cisco_clif.h \
 include/lldptool.h include/lldp_rtnl.h include/dcbtool.h include/lldp_dcbx_cfg.h
 
@@ -75,6 +75,10 @@ lib_LTLIBRARIES = liblldp_clif.la
 liblldp_clif_la_LDFLAGS = -version-info 1:0:0
 liblldp_clif_includedir = ${srcdir}/include
 liblldp_clif_la_SOURCES = clif.c
+
+vdptool_SOURCES = vdptool.c lldp_util.c qbg/vdp22_clif.c
+vdptool_LDADD = ${srcdir}/liblldp_clif.la
+vdptool_LDFLAGS = -llldp_clif $(LIBNL_LIBS)
 
 dcbtool_SOURCES = dcbtool.c dcbtool_cmds.c parse_cli.l \
 weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)

@@ -1,0 +1,280 @@
+.\" LICENSE
+.\"
+.\" This software program is released under the terms of a license agreement
+.\" between you ('Licensee') and Intel.  Do not use or load this software or
+.\" any associated materials (collectively, the 'Software') until you have
+.\" carefully read the full terms and conditions of the LICENSE located in this
+.\" software package.  By loading or using the Software, you agree to the
+.\" terms of this Agreement. If you do not agree with the terms of this
+.\" Agreement, do not install or use the Software.
+.\"
+.\" * Other names and brands may be claimed as the property of others.
+.\"
+.TH vdptool 8 "April 2014" "open-lldp" "Linux"
+.SH NAME
+vdptool \- manage the VSI associations and status of lldpad
+.SH SYNOPSIS
+.B vdptool <command> [options] [argument]
+.br
+.SH DESCRIPTION
+.B vdptool
+is used to query and configure the VSI associations in
+.B lldpad.
+Only the ratified stardard version of the VDP protocol
+(also refered to as vdp22) is supported.
+It connects to the client interface of
+.B lldpad
+to perform these operations.
+.B vdptool
+will operate in interactive mode if it is executed without a \fIcommand\fR.
+In interactive mode,
+.B vdptool
+will also function as an event listener to print out events
+as they are received asynchronously from
+.BR lldpad "(still to be done)."
+It will use libreadline for interactive input when available
+(still to be done).
+.SH OPTIONS
+.TP
+.B \-i [ifname]
+specifies the network interface to which the command applies.  Most
+.B vdptool
+commands require specifying a network interface.
+.TP
+.B -V [tlvid]
+specifies the VDP tlv identifier to be set or queried.
+.br
+The tlvid is an integer value used to identify specific
+VDP TLVs.  The tlvid value is the type value for types not equal
+to 127 (the organizationally specific type).
+For organizationally specific
+TLVs, the tlvid is the value represented by the 3 byte OUI and 1 byte
+subtype - where the subtype is the lowest order byte of the tlvid.
+.br
+The tlvid can be entered as a numerical value (e.g. 10 or 0xa), or for
+supported TLVs, as a keyword (such as assoc, deassoc, preassoc,
+preassoc-rr, etc).
+Review the
+.B vdptool
+help output to see the list of supported TLV keywords.
+.sp 1
+Use option -c to specify the parameters and its values to be set or queried.
+.TP
+.B \-n
+"neighbor" option for commands which can use it (e.g. get-tlv).
+Use this flag to retrieve the last VDP22 data returned from the
+bridge.
+(not yet supported).
+.TP
+.B \-c <argument list>
+Specifies additional parameters for TLV queries and associations commands.
+The argument list varies, depending on the command option
+.B (-T)
+or 
+.BR (-t) .
+To establish a VSI association use the command option 
+.B (-T)
+and specify additional information as arguments in the form
+of key=value. See the 
+.I "VSI Parameter"
+subsection and
+.I Example
+section below.
+To query a VSI specific association use the command option 
+.B (-t)
+and specify the value of the
+VSI Instance Identifier (keywork uuid followed be the VSI
+UUID value)
+of the VSI association as configuration parameter.
+.TP
+.B \-r
+show raw client interface messages
+.TP
+.B \-R
+show only raw Client interface messages
+.SS VSI Parameter
+Each VDP22 TLVs contains a command mode, manager identifier,
+type identifier, type identifier version, VSI instance identifier,
+migiration hints and filter information.
+The fields are explained next:
+.TP
+.B "mode (Command Mode):"
+The command mode determines the type 
+of the VSI association to be established.
+It is an ascii string can be one of:
+.RS
+.IP assoc:
+Create an VSI association.
+.IP preassoc:
+Create an VSI preassociation. The association
+is only announced to the switch.
+.IP preassoc-rr:
+Create an VSI preassociation. The association
+is only announced to the switch and the 
+switch should reserve the resources.
+.IP deassoc:
+Delete an VSI association.
+.RE
+Other strings are not recognized and return an error.
+.TP
+.B "mgrid2 (Manager identifier):"
+The manager identifier is a string of up to 16
+alphanumeric characters.
+It can also be an UUID according to RFC 4122
+with optional dashes in between.
+.TP
+.B "typeid (Type Identifier):"
+The type identifier is a number in the range
+of 0 to 2^24 - 1.
+.TP
+.B "typeidver (Type Identifier Version):"
+The type identifer version is a number
+in the range of 0 to 255.
+.TP
+.B "uuid (VSI Instance Identifier):"
+The VSI instance identifier is
+an UUID according to RFC 4122
+with optional dashes in between.
+.TP
+.B "hints (Migration Hints):"
+The migiration hints is a string aiding in 
+migration of virtual machines:
+.RS
+.IP none:
+No hints available.
+.IP from:
+The virtual machine is migrating away.
+.IP to:
+The virtual machine is migrating to.
+.RE
+.TP
+.B "fid (Filter Information Data):"
+The filter information data can be supplied in four
+different formats identified by numbers in parathesis.
+Multiple filter information fields can be supplied,
+but all have to be of the same format.
+.RS
+.IP "vlan (1)"
+A vlan number only, also known as filter information format 1.
+The vlan identifier is a number in the range of 1 to 2^16 - 1.
+The high order 4 bits are used as quality of service bits.
+The vlan identifier can be zero, a vlan identifier is then
+selected by the switch. Refer to IEEE 802.1 Qbg ratified
+standard for details.
+.IP "vlan-mac (2)"
+A vlan number and MAC address delimited by a slash ('-'),
+also known as filter information format 2.
+The MAC address is specified in the format xx:xx:xx:xx:xx:xx.
+The colons are mandatory.
+For vlan details see (1).
+.IP "vlan-mac-group (4)"
+A vlan number, MAC address and group identifier, 
+each delimited by a slash ('-'),
+also known as filter information format 4.
+The group identifier is a 32 bit number.
+For vlan and MAC address details see (1) and (2).
+.IP "vlan--group (3)"
+A vlan number and group identifier, 
+delimited by two slashes ('--'),
+also known as filter information format 3.
+For vlan and group details see (1) and (4).
+.RE
+.SH COMMANDS
+.TP
+.B license
+show license information
+.TP
+.B \-h, help
+show usage information
+.TP
+.B \-v, version
+show version information
+.TP
+.B \-t, get-tlv
+get TLV information for the specified interface
+.TP
+.B \-T, set-tlv
+set TLV information for the specified interface
+.TP
+.B \-p, ping
+display the process identifier of the running lldpad process
+.TP
+.B \-q, quit
+exit from interactive mode
+.PP
+.SH NOTES
+This tool is in its early design and development phase.
+It it buggy, incomplete and most of the ideas have not even
+been thought of....
+It reflects the current state of development when
+I had been given another work assignment.
+I append it so some else can continue to work on this.
+.SH EXAMPLES
+.TP
+Display process identifier of lldpad
+.br
+vdptool -p
+.TP
+Create a VSI association on interface eth2
+.br
+.nf
+Supported today: One config parameter and comma separated list
+vdptool -i eth2 -T -V assoc -c vsi=assoc,blabla,5, \\
+	1122,4,none,2-52:00:00:11:22:33-200
+
+Planned for the future:
+vdptool -i eth2 -T -V assoc -c mgrid2=blabla -c typeid=5 \\
+	-c uuid=1122 -c typeidver=4 -c hints=none -c fid=2-52:00:00:11:22:33-200
+.fi
+.TP
+Query all VSI association on interface eth2
+.br
+vdptool -i eth2 -t -V assoc
+.SH SEE ALSO
+.BR lldptool-dcbx (8),
+.BR lldptool-ets (8),
+.BR lldptool-pfc (8),
+.BR lldptool-app (8),
+.BR lldptool-med (8),
+.BR lldptool-vdp (8),
+.BR lldptool-evb (8),
+.BR lldptool-evb22 (8),
+.BR dcbtool (8),
+.BR lldpad (8)
+.br
+.SH COPYRIGHT
+vdptool - VSI configuration utility
+.br
+.IP Copyright(c)
+(c) 2014 IBM Corporation.
+.BR
+Portions of vdptool are based on:
+.IP open-lldp-0.96
+.IP "lldptool - LLDP agent configuration utility"
+.IP Copyright(c)
+2007-2012 Intel Corporation.
+.BR
+Portions of lldptool are based on:
+.IP hostapd-0.5.7
+.IP Copyright
+(c) 2004-2008, Jouni Malinen <j@w1.fi>
+
+.SH LICENSE
+This program is free software; you can redistribute it and/or modify it
+under the terms and conditions of the GNU General Public License,
+version 2, as published by the Free Software Foundation.
+.LP
+This program is distributed in the hope it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+more details.
+.LP
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+.LP
+The full GNU General Public License is included in this distribution in
+the file called "COPYING".
+.SH SUPPORT
+Contact Information:
+open-lldp Mailing List <lldp-devel@open-lldp.org>
