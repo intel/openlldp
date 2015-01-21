@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "lldp_util.h"
 #include "vdp_cisco.h"
 
 bool cisco_oui_encode_hndlr(char *dst, char *src, int len)
@@ -56,3 +57,56 @@ bool cisco_oui_encode_hndlr(char *dst, char *src, int len)
 	return flag;
 }
 
+void cisco_oui_print_decode_hndlr(char *token)
+{
+	struct in_addr vm_inet;
+	char *v4_addr_str;
+	unsigned long vm_ip_addr;
+	int offset = 0, len;
+	u16 data_len;
+	u8 key_len;
+	enum oui_key_arg oui_argtype;
+
+	if (token == NULL)
+		return;
+	len = strlen(token);
+	while (offset < len) {
+		hexstr2bin(token, &key_len, sizeof(key_len));
+		token += 2;
+		offset += 2;
+		oui_argtype = get_oui_key(token, key_len);
+		token += key_len;
+		offset += key_len;
+		hexstr2bin(token, (u8 *)&data_len, sizeof(data_len));
+		data_len = htons(data_len);
+		token += 4;
+		offset += 4;
+		if ((offset + data_len) > len)
+			return;
+		switch (oui_argtype) {
+		case CISCO_OUI_NAME_ARG:
+			printf("\t%s", "VM Name");
+			printf(" = %.*s\n", data_len, token);
+			break;
+		case CISCO_OUI_NAME_UUID_ARG:
+			printf("\t%s", "VM UUID");
+			printf(" = %.*s\n", data_len, token);
+			break;
+		case CISCO_OUI_L3V4ADDR_ARG:
+			v4_addr_str = calloc(data_len, sizeof(char));
+			if (!v4_addr_str)
+				return;
+			strncpy(v4_addr_str, token, data_len);
+			vm_ip_addr = strtoul(v4_addr_str, NULL, 10);
+			vm_inet.s_addr = vm_ip_addr;
+			printf("\t%s", "VM IP Address");
+			printf(" = %s\n", inet_ntoa(vm_inet));
+			free(v4_addr_str);
+			break;
+		default:
+			break;
+		}
+		token += data_len;
+		offset += data_len;
+	}
+}

@@ -29,31 +29,14 @@
 #include <ctype.h>
 #include "messages.h"
 #include "qbg_vdp22def.h"
+#include "qbg_utils.h"
 #include "vdp_cisco.h"
 
 struct vdp22_oui_handler_s cisco_oui_hndlr = {
 		{0x00, 0x00, 0x0c}, "cisco", cisco_str2vdpnl_hndlr,
-		cisco_vdpnl2vsi22_hndlr,
-		cisco_vdp_tx_hndlr, cisco_vdp_rx_hndlr, cisco_vdp_free_oui,
-		cisco_vdp_oui_ptlvsize};
-
-struct oui_keyword_handler oui_key_handle[] = {
-	{CISCO_OUI_NAME_ARG_STR, CISCO_OUI_NAME_ARG},
-	{CISCO_OUI_NAME_UUID_ARG_STR, CISCO_OUI_NAME_UUID_ARG},
-	{CISCO_OUI_L3V4ADDR_ARG_STR, CISCO_OUI_L3V4ADDR_ARG} };
-
-enum oui_key_arg get_oui_key(char *token, u8 key_len)
-{
-	int count, key_str_size;
-
-	key_str_size = sizeof(oui_key_handle) / sizeof(oui_key_handle[0]);
-	for (count = 0; count < key_str_size; count++) {
-		if ((key_len <= strlen(token)) &&
-		     (!strncmp(token, oui_key_handle[count].keyword, key_len)))
-			return oui_key_handle[count].val;
-	}
-	return CISCO_OUI_INVALID_ARG;
-}
+		cisco_vdpnl2vsi22_hndlr, cisco_vdpnl2str_hndlr,
+		cisco_vsi2vdpnl_hndlr, cisco_vdp_tx_hndlr, cisco_vdp_rx_hndlr,
+		cisco_vdp_free_oui, cisco_vdp_oui_ptlvsize};
 
 /*
  * This function fills the vdpnl structure of OUI from the command separated
@@ -124,6 +107,7 @@ bool cisco_str2vdpnl_hndlr(struct vdpnl_oui_data_s *vdp_oui_p, char *token)
 					     sizeof(vdp_cisco_oui_p->uuid)))
 				memset(vdp_cisco_oui_p->uuid, 0,
 					sizeof(vdp_cisco_oui_p->uuid));
+				vdp_cisco_oui_p->uuid_set = true;
 			free(uuid);
 			break;
 		case CISCO_OUI_L3V4ADDR_ARG:
@@ -191,6 +175,100 @@ bool cisco_vdpnl2vsi22_hndlr(void *vsi_data, struct vdpnl_oui_data_s *from,
 	memcpy(to->data, from->data, to->len);
 	return true;
 }
+
+/*
+ * This function converts the OUI information from vdpnl struct to string
+ */
+
+bool cisco_vdpnl2str_hndlr(struct vdpnl_oui_data_s *from, char *out_buf,
+			   int *total, int rem_len)
+{
+	char tmp_out_buf[MAX_OUI_DATA_LEN];
+	char uuid_str[VDP_UUID_STRLEN + 2];
+	char *tmp_oui_buf;
+	vdp_cisco_oui_t *vdp_cisco_oui_p;
+	int c = 0, num_str_bytes;
+	int tmp_buf_len = sizeof(tmp_out_buf);
+
+	tmp_oui_buf = tmp_out_buf;
+	if ((from == NULL) || (out_buf == NULL)) {
+		LLDPAD_ERR("%s: NULL arg\n", __func__);
+		return false;
+	}
+	vdp_cisco_oui_p = (vdp_cisco_oui_t *)from->data;
+	c = snprintf(tmp_oui_buf, tmp_buf_len, "%02x%s",
+		     (unsigned int)strlen("cisco"), "cisco");
+	tmp_buf_len -= c;
+	tmp_oui_buf += c;
+	if (vdp_cisco_oui_p->vm_name_len != 0) {
+		c = snprintf(tmp_oui_buf, tmp_buf_len,
+			     "%02x%s%04x%s",
+			     (unsigned int)strlen(CISCO_OUI_NAME_ARG_STR),
+			     CISCO_OUI_NAME_ARG_STR,
+			     (unsigned int)vdp_cisco_oui_p->vm_name_len,
+			     vdp_cisco_oui_p->vm_name);
+		if ((c < 0) || (c >= tmp_buf_len))
+			return false;
+		tmp_buf_len -= c;
+		tmp_oui_buf += c;
+	}
+	if (vdp_cisco_oui_p->uuid_set) {
+		oui_vdp_uuid2str(vdp_cisco_oui_p->uuid, uuid_str,
+				 sizeof(uuid_str));
+		c = snprintf(tmp_oui_buf, tmp_buf_len,
+			     "%02x%s%04x%s",
+			     (unsigned int)strlen(CISCO_OUI_NAME_UUID_ARG_STR),
+			     CISCO_OUI_NAME_UUID_ARG_STR,
+			     (unsigned int)strlen(uuid_str), uuid_str);
+		if ((c < 0) || (c >= tmp_buf_len))
+			return false;
+		tmp_buf_len -= c;
+		tmp_oui_buf += c;
+	}
+	if (vdp_cisco_oui_p->vm_addr_len != 0) {
+		num_str_bytes = snprintf(NULL, 0, "%ul",
+					 vdp_cisco_oui_p->l3_addr.
+					 ipv4_address.s_addr);
+		c = snprintf(tmp_oui_buf, tmp_buf_len, "%02x%s%04x%ul",
+			     (unsigned int)strlen(CISCO_OUI_L3V4ADDR_ARG_STR),
+			     CISCO_OUI_L3V4ADDR_ARG_STR, num_str_bytes,
+			     vdp_cisco_oui_p->l3_addr.ipv4_address.s_addr);
+		if ((c < 0) || (c >= tmp_buf_len))
+			return false;
+		tmp_buf_len -= c;
+		tmp_oui_buf += c;
+	}
+	c = snprintf(out_buf, rem_len, "%04x%s",
+		     (unsigned int)strlen(tmp_out_buf),
+		     tmp_out_buf);
+	if ((c < 0) || (c >= rem_len))
+		return false;
+	rem_len -= c;
+	out_buf += c;
+	*total += c;
+	return true;
+}
+
+/*
+ * This function converts the OUI information from vsi22 struct to vdpnl struct
+ * vsi is not used here, but can be used for storing the pointer to the parent
+ * struct
+ */
+
+bool cisco_vsi2vdpnl_hndlr(UNUSED void *vsi_data, struct vdp22_oui_data_s *from,
+			   struct vdpnl_oui_data_s *to)
+{
+	if ((from == NULL) || (to == NULL)) {
+		LLDPAD_ERR("%s: NULL arg\n", __func__);
+		return false;
+	}
+	memcpy(to->oui_type, from->oui_type, sizeof(to->oui_type));
+	strncpy(to->oui_name, from->oui_name, sizeof(to->oui_name));
+	to->len = from->len;
+	memcpy(to->data, from->data, to->len);
+	return true;
+}
+
 
 /*
  * This function deletes the OUI information associated with a VSI

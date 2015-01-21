@@ -96,6 +96,7 @@ typedef union l3_addrtype_ {
 typedef struct vdp_cisco_oui_s {
 	char key[KEYLEN];       /* Profile name */
 	u8 uuid[PORT_UUID_MAX]; /* Instance ID */
+	bool uuid_set;
 	size_t vm_name_len;
 	char vm_name[MAX_VM_NAME];
 	u16 afi;
@@ -103,10 +104,18 @@ typedef struct vdp_cisco_oui_s {
 	l3_addr_t l3_addr;
 } vdp_cisco_oui_t;
 
+struct oui_keyword_handler oui_key_handle[] = {
+	{CISCO_OUI_NAME_ARG_STR, CISCO_OUI_NAME_ARG},
+	{CISCO_OUI_NAME_UUID_ARG_STR, CISCO_OUI_NAME_UUID_ARG},
+	{CISCO_OUI_L3V4ADDR_ARG_STR, CISCO_OUI_L3V4ADDR_ARG} };
+
 bool cisco_str2vdpnl_hndlr(struct vdpnl_oui_data_s *, char *);
 bool cisco_vdp_free_oui(struct vdp22_oui_data_s *);
 bool cisco_vdpnl2vsi22_hndlr(void *, struct vdpnl_oui_data_s *,
 			     struct vdp22_oui_data_s *);
+bool cisco_vdpnl2str_hndlr(struct vdpnl_oui_data_s *, char *, int *, int);
+bool cisco_vsi2vdpnl_hndlr(void *, struct vdp22_oui_data_s *,
+			   struct vdpnl_oui_data_s *);
 size_t cisco_vdp_tx_hndlr(char unsigned *, struct vdp22_oui_data_s *, size_t);
 bool cisco_vdp_rx_hndlr();
 unsigned long cisco_vdp_oui_ptlvsize(void *);
@@ -116,6 +125,19 @@ static inline void fill_cisco_oui_type(unsigned char *oui_type)
 	oui_type[0] = 0x00;
 	oui_type[1] = 0x00;
 	oui_type[2] = 0x0c;
+}
+
+enum oui_key_arg get_oui_key(char *token, u8 key_len)
+{
+	int count, key_str_size;
+
+	key_str_size = sizeof(oui_key_handle) / sizeof(oui_key_handle[0]);
+	for (count = 0; count < key_str_size; count++) {
+		if ((key_len <= strlen(token)) &&
+		    (!strncmp(token, oui_key_handle[count].keyword, key_len)))
+			return oui_key_handle[count].val;
+	}
+	return CISCO_OUI_INVALID_ARG;
 }
 
 #endif /* __VDP22_VISCO_H__ */
