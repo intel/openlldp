@@ -990,7 +990,7 @@ static int set_hw_bcn(char *device_name, bcn_cfg *bcn_data,
 	oper_mode = 1;
 
 	{
-		for (i = 0; i <= 8; i++) {
+		for (i = 0; i < 8; i++) {
 			bcn_data->up_settings[i].rp_admin = 1;
 		}
 		bcn_data->rp_alpha = 0.5;
