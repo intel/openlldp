@@ -43,7 +43,10 @@ include/lldp_8023_clif.h include/lldp_dcbx_clif.h include/lldp_evb_clif.h \
 include/lldp_evb22_clif.h include/qbg_vdp_clif.h include/qbg_vdpnl.h \
 include/qbg_vdp22_clif.h include/lldp_8021qaz_clif.h \
 include/lldp_orgspec_clif.h include/lldp_cisco_clif.h \
-include/lldptool.h include/lldp_rtnl.h include/dcbtool.h include/lldp_dcbx_cfg.h
+include/lldptool.h include/lldp_rtnl.h include/dcbtool.h include/lldp_dcbx_cfg.h \
+include/qbg_vdp22_cmds.h include/qbg_vdp22_clif.h \
+include/linux/ethtool.h include/linux/if_bonding.h include/linux/if_bridge.h \
+include/linux/if.h include/linux/if_link.h include/linux/if_vlan.h
 
 lldpad_SOURCES = lldpad.c config.c lldp_dcbx_nl.c ctrl_iface.c \
 event_iface.c eloop.c lldp_dcbx_cmds.c log.c lldpad_shm.c \
@@ -84,7 +87,7 @@ vdptool_LDFLAGS = -llldp_clif $(LIBNL_LIBS)
 
 dcbtool_SOURCES = dcbtool.c dcbtool_cmds.c parse_cli.l \
 weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
-dcbtool_LDADD = ${srcdir}/liblldp_clif.la
+dcbtool_LDADD = liblldp_clif.la
 dcbtool_LDFLAGS = -ldl -llldp_clif
 
 lldptool_SOURCES = lldptool.c lldptool_cmds.c lldp_rtnl.c \
@@ -93,7 +96,7 @@ lldptool_SOURCES = lldptool.c lldptool_cmds.c lldp_rtnl.c \
 		   lldp_8021qaz_clif.c lldp_evb_clif.c qbg/vdp_clif.c \
 		   lldp_orgspec_clif.c lldp_cisco_clif.c lldp_evb22_clif.c \
 		   weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
-lldptool_LDADD = ${srcdir}/liblldp_clif.la
+lldptool_LDADD = liblldp_clif.la
 lldptool_LDFLAGS = -ldl -llldp_clif $(LIBNL_LIBS)
 
 if BUILD_DEBUG
@@ -104,14 +107,20 @@ qbg22sim_SOURCES = test/qbg22sim.c
 qbg22sim_LDFLAGS = -lrt
 endif
 
+## put a spec file and documentation in the distribution archive
+dist_noinst_DATA = lldpad.spec README COPYING ChangeLog lldpad.init
+
 ## man pages
 dist_man_MANS = docs/lldpad.8 docs/dcbtool.8 docs/lldptool.8 \
 		docs/lldptool-ets.8 docs/lldptool-pfc.8 docs/lldptool-app.8 \
 		docs/lldptool-evb.8 docs/lldptool-vdp.8 docs/lldptool-med.8 \
 		docs/lldptool-dcbx.8 \
-		docs/lldptool-evb22.8 docs/vdptool.8
+		docs/lldptool-evb22.8 docs/vdptool.8 \
+		docs/liblldp_clif-vdp22.3
 if BUILD_DEBUG
-nodist_man_MANS = test/qbg22sim.1 test/vdptest.1
+dist_man_MANS += test/qbg22sim.1 test/vdptest.1
+else
+dist_noinst_DATA += test/qbg22sim.1 test/vdptest.1
 endif
 
 ## force the creation of an empty configuration directory at install time
@@ -124,24 +133,9 @@ install-data-hook:	installdirs-local
 pkgconfigdir = ${libdir}/pkgconfig
 pkgconfig_DATA = lldpad.pc liblldp_clif.pc
 
-## put a spec file and documentation in the distribution archive
-dist_noinst_DATA = lldpad.spec README COPYING ChangeLog
+systemdsystemunitdir = $(prefix)/lib/systemd/system
+dist_systemdsystemunit_DATA = lldpad.service lldpad.socket
 
-## special hooks to handle the init script
-install-data-local: lldpad.service lldpad.socket
-	$(MKDIR_P) $(DESTDIR)/usr/lib/systemd/system
-	$(INSTALL_DATA) lldpad.service $(DESTDIR)/usr/lib/systemd/system/lldpad.service
-	$(INSTALL_DATA) lldpad.socket $(DESTDIR)/usr/lib/systemd/system/lldpad.socket
-
-BASH_COMPLETION_DIR=/etc/bash_completion.d/
-
-install-data-hook:
-	## provide support for bash completion
-	$(MKDIR_P) $(DESTDIR)/$(BASH_COMPLETION_DIR)
-	$(INSTALL_DATA) ${srcdir}/contrib/bash_completion/* $(DESTDIR)/$(BASH_COMPLETION_DIR)
-
-uninstall-local:
-	rm -f '$(DESTDIR)/usr/lib/systemd/system/lldpad.*'
-	rm -f '$(includedir)/dcbd/clif_cmds.h'
-	rm -f '$(includedir)/dcbd'
+bashcompletiondir = $(sysconfdir)/bash_completion.d
+dist_bashcompletion_DATA = contrib/bash_completion/lldpad contrib/bash_completion/lldptool
 
