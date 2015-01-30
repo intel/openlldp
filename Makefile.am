@@ -139,3 +139,4 @@ dist_systemdsystemunit_DATA = lldpad.service lldpad.socket
 bashcompletiondir = $(sysconfdir)/bash_completion.d
 dist_bashcompletion_DATA = contrib/bash_completion/lldpad contrib/bash_completion/lldptool
 
+AM_DISTCHECK_CONFIGURE_FLAGS = --enable-debug
