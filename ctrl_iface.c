@@ -173,45 +173,43 @@ int clif_iface_attach(struct clif_data *clifd,
 	 */
 	/* set default string to DCBX Events */
 	if (ibuf[1] == '\0') {
-		u32 hex = LLDP_MOD_DCBX;
-		tlv = malloc(sizeof(char) * (8 + 2));
-		if (!tlv)
+		dst->tlv_types = malloc(sizeof(u32) * 2);
+		if (!dst->tlv_types)
 			goto err_tlv;
-		tlv[0] = 'A';
-		tlv[9] = 0;
-		bin2hexstr((u8*)&hex, 4, &tlv[1], 8);
-	} else
+		dst->tlv_types[0] = LLDP_MOD_DCBX;
+		/* Insert Termination Pattern */
+		dst->tlv_types[1] = ~0;
+	} else {
 		tlv = strdup(ibuf);
-
-	str = tlv;
-	str++;
-	/* Count number of TLV Modules */
-	tokenize = strtok(str, delim);
-	tlv_count++;
-	do {
-		tokenize = strtok(NULL, delim);
+		str = tlv;
+		str++;
+		/* Count number of TLV Modules */
+		tokenize = strtok(str, delim);
 		tlv_count++;
-	} while (tokenize);
+		do {
+			tokenize = strtok(NULL, delim);
+			tlv_count++;
+		} while (tokenize);
 
-	dst->tlv_types = malloc(sizeof(u32) * tlv_count);
-	if (!dst->tlv_types)
-		goto err_types;
-	memset(dst->tlv_types, 0, sizeof(u32) * tlv_count);
-
-	/* Populate tlv_types from comma separated string */
-	tokenize = strtok(str, delim);
-	for (i=0; tokenize; i++) {
-		char *myend;
-
-		dst->tlv_types[i] = strtol(tokenize, &myend, 16);
-		if (*myend)		/* No hexnumber for module id */
+		dst->tlv_types = malloc(sizeof(u32) * tlv_count);
+		if (!dst->tlv_types)
 			goto err_types;
-		tokenize = strtok(NULL, delim);
-	}
+		memset(dst->tlv_types, 0, sizeof(u32) * tlv_count);
 
-	/* Insert Termination Pattern */
-	dst->tlv_types[i] = ~0;
-	free(tlv);
+		/* Populate tlv_types from comma separated string */
+		tokenize = strtok(str, delim);
+		for (i = 0; tokenize; i++) {
+			char *myend;
+
+			dst->tlv_types[i] = strtol(tokenize, &myend, 16);
+			if (*myend)		/* No hexnumber for module id */
+				goto err_types;
+			tokenize = strtok(NULL, delim);
+		}
+		free(tlv);
+		/* Insert Termination Pattern */
+		dst->tlv_types[i] = ~0;
+	}
 
 	/* Insert new node at beginning */
 	dst->next = clifd->ctrl_dst;
@@ -595,6 +593,10 @@ void ctrl_iface_send(struct clif_data *clifd, int level, u32 moduleid,
 						dst->addrlen);
 				}
 			} else {
+				fprintf(stderr,
+					"CTRL_IFACE monitor[%d][%d] %d:%s: ",
+					idx, clifd->ctrl_sock, dst->addrlen,
+					dst->addr.sun_path);
 				dst->errors = 0;
 			}
 		}

@@ -150,6 +150,8 @@ void send_event(int level, u32 moduleid, char *msg)
 {
 	struct clif_data *cd = NULL;
 
+	LLDPAD_DBG("lldpad: send_event level=%d moduleid=%d msg=%s\n",
+		   level, moduleid, msg);
 	cd = (struct clif_data *) eloop_get_user_data();
 	if (cd)
 		ctrl_iface_send(cd, level, moduleid, msg, strlen(msg));
