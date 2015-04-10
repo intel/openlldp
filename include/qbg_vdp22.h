@@ -181,7 +181,7 @@ void vdp22_stop(char *);
 int vdp22_from_ecp22(struct vdp22 *);
 int vdp22_query(const char *);
 struct vdp22 *vdp22_getvdp(const char *);
-int vdp22_addreq(struct vsi22 *, struct vdp22 *);
+int vdp22_addreq(struct vsi22 *, struct vdp22 *, bool *);
 int vdp22_nlback(struct vsi22 *);
 int vdp22_clntback(struct vsi22 *);
 struct vsi22 *vdp22_copy_vsi(struct vsi22 *);

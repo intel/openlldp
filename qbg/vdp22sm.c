@@ -184,10 +184,36 @@ static inline size_t vsi22_ptlv_sz(struct vsi22 *vp)
 }
 
 /*
+ * This function modifies the existing OUI parameters in a VSI.
+ */
+static void vdp22_modoui(struct vsi22 *p, struct vsi22 *vsip)
+{
+	struct vdp22_oui_handler_s *oui_hndlr;
+	int idx, inn_idx, ret;
+
+	for (idx = 0; idx < vsip->no_ouidata; idx++) {
+		struct vdp22_oui_data_s *from = &vsip->oui_str_data[idx];
+
+		for (inn_idx = 0; inn_idx < p->no_ouidata; inn_idx++) {
+			struct vdp22_oui_data_s *to = &p->oui_str_data[inn_idx];
+
+			if (!strncmp(to->oui_name, from->oui_name,
+				     sizeof(to->oui_name))) {
+				oui_hndlr = vdp22_get_oui_hndlr(to->oui_name);
+				ret = oui_hndlr->vsi22_mod_hndlr(p, from, to);
+				if (!ret)
+					LLDPAD_ERR("%s: handler return error for oui %s\n",
+						   __func__, from->oui_name);
+				return;
+			}
+		}
+	}
+}
+
+/*
  * This function calls the registered OUI handlers that returns the size of
  * the OUI data.
  */
-
 static inline size_t oui22_ptlv_sz(struct vsi22 *vp)
 {
 	struct vdp22_oui_handler_s *oui_hndlr;
@@ -1054,7 +1080,7 @@ bool vdp22_cmp_fdata(struct vsi22 *p, struct vsi22 *vsip)
 /*
  * Handle a new request.
  */
-int vdp22_addreq(struct vsi22 *vsip, struct vdp22 *vdp)
+int vdp22_addreq(struct vsi22 *vsip, struct vdp22 *vdp, bool *modf_vsi)
 {
 	int rc = 0;
 	struct vsi22 *p;
@@ -1094,8 +1120,11 @@ int vdp22_addreq(struct vsi22 *vsip, struct vdp22 *vdp)
 			LLDPAD_DBG("%s:%s TODO mismatch filter data [%02x]\n",
 				   __func__, vsip->vdp->ifname, vsip->vsi[0]);
 			rc = -EINVAL;
-		} else
+		} else {
+			vdp22_modoui(p, vsip);
 			rc = vdp22_modvsi(p, vsip->vsi_mode);
+			*modf_vsi = true;
+		}
 	}
 out:
 	LLDPAD_DBG("%s:%s rc:%d\n", __func__, vsip->vdp->ifname, rc);

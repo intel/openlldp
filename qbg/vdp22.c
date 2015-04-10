@@ -900,6 +900,7 @@ int vdp22_request(struct vdpnl_vsi *vsi, int clif)
 	int rc;
 	struct vsi22 *p;
 	struct vdp22 *vdp;
+	bool modf_vsi = false;
 
 	LLDPAD_DBG("%s:%s clif:%d\n", __func__, vsi->ifname, clif);
 	vdp = vdp22_findif(vsi->ifname, NULL);
@@ -917,8 +918,8 @@ int vdp22_request(struct vdpnl_vsi *vsi, int clif)
 			vsi->request += 1;
 		p = vdp22_alloc_vsi_int(vsi, vdp, &rc, true);
 		if (p) {
-			rc = vdp22_addreq(p, vdp);
-			if (rc)
+			rc = vdp22_addreq(p, vdp, &modf_vsi);
+			if (rc || modf_vsi)
 				vdp22_delete_vsi(p);
 		}
 	} else

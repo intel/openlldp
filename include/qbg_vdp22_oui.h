@@ -82,6 +82,9 @@ struct vdp22_oui_handler_s {
 	/* This handler converts the vdpnl structure to vsi22 structure */
 	bool (*vdpnl2vsi22_hndlr)(void *, struct vdpnl_oui_data_s *,
 				   struct vdp22_oui_data_s *);
+	/* This handler modifies the existing OUI parameters */
+	bool (*vsi22_mod_hndlr)(void *, struct vdp22_oui_data_s *,
+				struct vdp22_oui_data_s *);
 	/* This handler converts the vdpnl structure to string */
 	bool (*vdpnl2str_hndlr)(struct vdpnl_oui_data_s *, char *,
 				int *, int);

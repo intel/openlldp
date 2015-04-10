@@ -34,8 +34,9 @@
 
 struct vdp22_oui_handler_s cisco_oui_hndlr = {
 		{0x00, 0x00, 0x0c}, "cisco", cisco_str2vdpnl_hndlr,
-		cisco_vdpnl2vsi22_hndlr, cisco_vdpnl2str_hndlr,
-		cisco_vsi2vdpnl_hndlr, cisco_vdp_tx_hndlr, cisco_vdp_rx_hndlr,
+		cisco_vdpnl2vsi22_hndlr, cisco_vsi22_mod_hndlr,
+		cisco_vdpnl2str_hndlr, cisco_vsi2vdpnl_hndlr,
+		cisco_vdp_tx_hndlr, cisco_vdp_rx_hndlr,
 		cisco_vdp_free_oui, cisco_vdp_oui_ptlvsize};
 
 /*
@@ -104,9 +105,11 @@ bool cisco_str2vdpnl_hndlr(struct vdpnl_oui_data_s *vdp_oui_p, char *token)
 			}
 			strncpy(uuid, token, data_len);
 			if (oui_vdp_str2uuid(vdp_cisco_oui_p->uuid, uuid,
-					     sizeof(vdp_cisco_oui_p->uuid)))
+					     sizeof(vdp_cisco_oui_p->uuid))) {
 				memset(vdp_cisco_oui_p->uuid, 0,
 					sizeof(vdp_cisco_oui_p->uuid));
+				vdp_cisco_oui_p->uuid_set = false;
+			} else
 				vdp_cisco_oui_p->uuid_set = true;
 			free(uuid);
 			break;
@@ -173,6 +176,41 @@ bool cisco_vdpnl2vsi22_hndlr(void *vsi_data, struct vdpnl_oui_data_s *from,
 	to->vsi_data = vsi_data;
 	to->len = from->len;
 	memcpy(to->data, from->data, to->len);
+	return true;
+}
+
+/*
+ * This converts modifies the existing OUI parameters
+ */
+
+bool cisco_vsi22_mod_hndlr(UNUSED void *vsi_data, struct vdp22_oui_data_s *from,
+			   struct vdp22_oui_data_s *to)
+{
+	vdp_cisco_oui_t *from_oui;
+	vdp_cisco_oui_t *to_oui;
+
+	from_oui = (vdp_cisco_oui_t *)from->data;
+	to_oui = (vdp_cisco_oui_t *)to->data;
+	if ((!from_oui) || (!to_oui)) {
+		LLDPAD_DBG("%s: NULL OUI data\n", __func__);
+		return false;
+	}
+	if (from_oui->vm_name_len != 0) {
+		to_oui->vm_name_len = from_oui->vm_name_len;
+		strncpy(to_oui->vm_name, from_oui->vm_name,
+			to_oui->vm_name_len);
+	}
+	/* UUID can be modified only if not set */
+	if (!to_oui->uuid_set) {
+		memcpy(to_oui->uuid, from_oui->uuid, sizeof(to_oui->uuid));
+		to_oui->uuid_set = true;
+	}
+	if (from_oui->vm_addr_len != 0) {
+		to_oui->vm_addr_len = from_oui->vm_addr_len;
+		to_oui->afi = from_oui->afi;
+		memcpy(&(to_oui->l3_addr), &(from_oui->l3_addr),
+			sizeof(to_oui->l3_addr));
+	}
 	return true;
 }
 

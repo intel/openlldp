@@ -113,6 +113,8 @@ bool cisco_str2vdpnl_hndlr(struct vdpnl_oui_data_s *, char *);
 bool cisco_vdp_free_oui(struct vdp22_oui_data_s *);
 bool cisco_vdpnl2vsi22_hndlr(void *, struct vdpnl_oui_data_s *,
 			     struct vdp22_oui_data_s *);
+bool cisco_vsi22_mod_hndlr(void *, struct vdp22_oui_data_s *,
+			   struct vdp22_oui_data_s *);
 bool cisco_vdpnl2str_hndlr(struct vdpnl_oui_data_s *, char *, int *, int);
 bool cisco_vsi2vdpnl_hndlr(void *, struct vdp22_oui_data_s *,
 			   struct vdpnl_oui_data_s *);
