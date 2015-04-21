@@ -34,6 +34,8 @@
 #include "lldp_tlv.h"
 #include "lldp_mod.h"
 #include "lldp_mand.h"
+#include "config.h"
+#include "lldp_mand_clif.h"
 
 bool mibConstrInfoLLDPDU(struct port *port, struct lldp_agent *agent)
 {
@@ -110,7 +112,29 @@ error:
 	return false;
 }
 
-void txInitializeLLDP(struct lldp_agent *agent)
+static u16 get_ttl_init_val(char *ifname, struct lldp_agent *agent)
+{
+	u16 ttl;
+	int config_ttl;
+	int read_config_err;
+	char arg_path[512] = { 0 };
+
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
+			TLVID_PREFIX,
+			TLVID_NOUI(TIME_TO_LIVE_TLV),
+			ARG_TTL_VALUE);
+	read_config_err = get_config_setting(ifname, agent->type,
+			arg_path, &config_ttl, CONFIG_TYPE_INT);
+
+	if (read_config_err)
+		ttl = DEFAULT_TX_HOLD * DEFAULT_TX_INTERVAL;
+	else
+		ttl = (u16)(config_ttl);
+
+	return ttl;
+}
+
+void txInitializeLLDP(struct port *port, struct lldp_agent *agent)
 {
 	if (agent->tx.frameout) {
 		free(agent->tx.frameout);
@@ -125,7 +149,7 @@ void txInitializeLLDP(struct lldp_agent *agent)
 	agent->timers.msgTxInterval = DEFAULT_TX_INTERVAL;
 	agent->timers.msgFastTx     = FAST_TX_INTERVAL;
 
-	agent->tx.txTTL = 0;
+	agent->tx.txTTL = get_ttl_init_val(port->ifname, agent);
 	agent->msap.length1 = 0;
 	agent->msap.msap1 = NULL;
 	agent->msap.length2 = 0;
@@ -240,7 +264,7 @@ void run_tx_sm(struct port *port, struct lldp_agent *agent)
 	do {
 		switch(agent->tx.state) {
 		case TX_LLDP_INITIALIZE:
-			txInitializeLLDP(agent);
+			txInitializeLLDP(port, agent);
 			break;
 		case TX_IDLE:
 			process_tx_idle(agent);

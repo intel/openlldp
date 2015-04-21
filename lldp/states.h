@@ -52,7 +52,7 @@ enum {
  * The txInitializeLLDP () procedure initializes the LLDP transmit module as
  * defined in 10.1.1.
 */
-void txInitializeLLDP(struct lldp_agent *agent);
+void txInitializeLLDP(struct port *port, struct lldp_agent *agent);
 
 /**
  * The mibConstrInfoLLDPDU () procedure constructs an information LLDPDU as

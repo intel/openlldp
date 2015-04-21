@@ -230,7 +230,6 @@ int reinit_port(const char *ifname)
 		/* Reset relevant state variables */
 		agent->tx.state  = TX_LLDP_INITIALIZE;
 		agent->rx.state = LLDP_WAIT_PORT_OPERATIONAL;
-		agent->tx.txTTL = 0;
 		agent->msap.length1 = 0;
 		agent->msap.msap1 = NULL;
 		agent->msap.length2 = 0;
@@ -243,7 +242,7 @@ int reinit_port(const char *ifname)
 
 		/* init TX path */
 		txInitializeTimers(agent);
-		txInitializeLLDP(agent);
+		txInitializeLLDP(port, agent);
 	}
 
 	return 0;

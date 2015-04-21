@@ -93,4 +93,5 @@ void mand_unregister(struct lldp_module *mod);
 struct packed_tlv *mand_gettlv(struct port *, struct lldp_agent *);
 void mand_ifdown(char *, struct lldp_agent *);
 void mand_ifup(char *, struct lldp_agent *);
+void mand_update_ttl(const char *, u16);
 #endif /* _LLDP_MAND_H */

@@ -101,7 +101,7 @@ void lldp_init_agent(struct port *port, struct lldp_agent *agent, int type)
 
 	/* init TX path */
 	txInitializeTimers(agent);
-	txInitializeLLDP(agent);
+	txInitializeLLDP(port, agent);
 }
 
 int lldp_add_agent(const char *ifname, enum agent_type type)

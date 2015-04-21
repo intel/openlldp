@@ -28,6 +28,10 @@
 #define _LLDP_MAND_CMDS_H
 
 #define ARG_MAND_SUBTYPE "subtype"
+#define ARG_TTL_VALUE "value"
+
+#define TTL_MIN_VAL 0x0
+#define TTL_MAX_VAL 0xFFFF
 
 struct arg_handlers *mand_get_arg_handlers();
 
