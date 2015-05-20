@@ -322,6 +322,8 @@ int get_perm_hwaddr(const char *ifname, u8 *buf_perm, u8 *buf_san)
 
 	memcpy(buf_perm, RTA_DATA(rta), ETH_ALEN);
 	memcpy(buf_san, RTA_DATA(rta) + ETH_ALEN, ETH_ALEN);
+
+	rc = 0;
 out:
 	close(s);
 out_nosock:
