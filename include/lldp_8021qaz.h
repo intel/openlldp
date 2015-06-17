@@ -218,9 +218,6 @@ int ieee8021qaz_mod_app(struct app_tlv_head *head, int peer,
 			u8 prio, u8 sel, u16 proto, u32 ops);
 int ieee8021qaz_app_sethw(char *ifname, struct app_tlv_head *head);
 
-inline int get_prio_map(u32 prio_map, int tc);
-inline void set_prio_map(u32 *prio_map, u8 prio, int tc);
-
 struct ieee8021qaz_tlvs *ieee8021qaz_data(const char *);
 
 int ieee8021qaz_tlvs_rxed(const char *ifname);
@@ -234,9 +231,6 @@ int ieee8021qaz_rchange(struct port *port, struct lldp_agent *,
 void ieee8021qaz_ifup(char *ifname, struct lldp_agent *);
 void ieee8021qaz_ifdown(char *ifname, struct lldp_agent *);
 u8 ieee8021qaz_mibDeleteObject(struct port *port, struct lldp_agent *);
-inline int ieee8021qaz_clif_cmd(void *data, struct sockaddr_un *from,
-				socklen_t fromlen, char *ibuf, int ilen,
-				char *rbuf);
 int ieee8021qaz_check_operstate(void);
 int get_dcbx_hw(const char *ifname, __u8 *dcbx);
 

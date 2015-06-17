@@ -36,6 +36,11 @@
 #include "lldp_mand_clif.h"
 #include "lldp/agent.h"
 
+/* IEEE 802.1AB-2009 - Table 7-1: group MAC addresses used by LLDP */
+const u8 nearest_bridge[ETH_ALEN] = {0x01,0x80,0xc2,0x00,0x00,0x0e};
+const u8 nearest_nontpmr_bridge[ETH_ALEN] = {0x01,0x80,0xc2,0x00,0x00,0x03};
+const u8 nearest_customer_bridge[ETH_ALEN] = {0x01,0x80,0xc2,0x00,0x00,0x00};
+
 static const u8 * agent_groupmacs[AGENT_MAX] = {
 	nearest_bridge,
 	nearest_nontpmr_bridge,

@@ -48,9 +48,9 @@ enum agent_type {
 };
 
 /* IEEE 802.1AB-2009 - Table 7-1: group MAC addresses used by LLDP */
-static const u8 nearest_bridge[ETH_ALEN] = {0x01,0x80,0xc2,0x00,0x00,0x0e};
-static const u8 nearest_nontpmr_bridge[ETH_ALEN] = {0x01,0x80,0xc2,0x00,0x00,0x03};
-static const u8 nearest_customer_bridge[ETH_ALEN] = {0x01,0x80,0xc2,0x00,0x00,0x00};
+extern const u8 nearest_bridge[ETH_ALEN];
+extern const u8 nearest_nontpmr_bridge[ETH_ALEN];
+extern const u8 nearest_customer_bridge[ETH_ALEN];
 
 struct agenttimers {
 /* Tx */

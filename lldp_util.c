@@ -1197,7 +1197,7 @@ int check_link_status(const char *ifname)
 int get_arg_val_list(char *ibuf, int ilen, int *ioff,
 			    char **args, char **argvals)
 {
-	u8 arglen;
+	u8 arglen = 0;
 	u16 argvalue_len;
 	int *arglens = NULL;
 	int *argvallens = NULL;
@@ -1265,7 +1265,7 @@ int get_arg_val_list(char *ibuf, int ilen, int *ioff,
 
 int get_arg_list(char *ibuf, int ilen, int *ioff, char **args)
 {
-	u8 arglen;
+	u8 arglen = 0;
 	int *arglens = NULL;
 	int *p;
 	int numargs;
