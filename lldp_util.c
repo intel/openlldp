@@ -580,6 +580,26 @@ int is_bridge(const char *ifname)
 	return rc;
 }
 
+int is_bridge_port(const char *ifname)
+{
+	int rc = 0;
+	char path[256];
+	DIR *dirp;
+
+	if (!is_ether(ifname)) {
+		return 0;
+	}
+	/* check if the given ifname is a bridge port in sysfs */
+	snprintf(path, sizeof(path), "/sys/class/net/%s/brport/", ifname);
+	dirp = opendir(path);
+	if (dirp) {
+		closedir(dirp);
+		rc = 1;
+	}
+
+	return rc;
+}
+
 int is_vlan(const char *ifname)
 {
 	int fd;
@@ -942,7 +962,7 @@ u16 get_caps(const char *ifname)
 	if (is_vlan(ifname))
 		caps |= SYSCAP_CVLAN;
 
-	if (is_bridge(ifname))
+	if (is_bridge_port(ifname))
 		caps |= SYSCAP_BRIDGE;
 
 	if (is_router())

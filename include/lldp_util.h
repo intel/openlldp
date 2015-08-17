@@ -125,6 +125,7 @@ int is_active(const char *ifname);
 int is_bond(const char *ifname);
 int is_san_mac(u8 *addr);
 int is_bridge(const char *ifname);
+int is_bridge_port(const char *ifname);
 int is_vlan(const char *ifname);
 int is_vlan_capable(const char *ifname);
 int is_wlan(const char *ifname);
