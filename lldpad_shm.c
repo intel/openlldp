@@ -29,7 +29,9 @@
 #include <string.h>
 #include <syslog.h>
 #include <sys/ipc.h>
-#include <sys/shm.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
@@ -39,16 +41,7 @@
 
 void mark_lldpad_shm_for_removal()
 {
-	int shmid;
-	struct shmid_ds shminfo;
-
-	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
-
-	if (shmid < 0)
-		return;
-
-	if (shmctl(shmid, IPC_RMID, &shminfo) < 0)
-		return;
+	shm_unlink(LLDPAD_SHM_PATH);
 }
 
 /* return: 1 = success, 0 = failed */
@@ -101,16 +94,21 @@ int lldpad_shm_get_msap(const char *device_name, int type, char *info, size_t *l
 	unsigned num_entries;
 	int version;
 
-	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
-	if (shmid < 0 && errno == ENOENT)
-		shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE,
-			IPC_CREAT | IPC_EXCL | 0x180);
+	shmid = shm_open(LLDPAD_SHM_PATH, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 
 	if (shmid < 0)
 		return rval;
 
-	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
-	if ((long) shmaddr == -1)
+	if (ftruncate(shmid, LLDPAD_SHM_SIZE)) {
+		close(shmid);
+		return rval;
+	}
+
+	shmaddr = (struct lldpad_shm_tbl *) mmap(NULL, LLDPAD_SHM_SIZE,
+			                         PROT_READ | PROT_WRITE,
+						 MAP_SHARED, shmid, 0);
+	close(shmid);
+	if (shmaddr == MAP_FAILED)
 		return rval;
 
 	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
@@ -147,7 +145,7 @@ int lldpad_shm_get_msap(const char *device_name, int type, char *info, size_t *l
 		rval = 1;
 	}
 done:
-	shmdt(shmaddr);
+	munmap(shmaddr, LLDPAD_SHM_SIZE);
 
 	return rval;
 }
@@ -162,16 +160,21 @@ int lldpad_shm_set_msap(const char *device_name, int type, char *info, size_t le
 	int version;
 	unsigned num_entries;
 
-	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
-	if (shmid < 0 && errno == ENOENT)
-		shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE,
-			IPC_CREAT | IPC_EXCL | 0x180);
+	shmid = shm_open(LLDPAD_SHM_PATH, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 
 	if (shmid < 0)
 		return rval;
 
-	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
-	if ((long) shmaddr == -1)
+	if (ftruncate(shmid, LLDPAD_SHM_SIZE)) {
+		close(shmid);
+		return rval;
+	}
+
+	shmaddr = (struct lldpad_shm_tbl *) mmap(NULL, LLDPAD_SHM_SIZE,
+			                         PROT_READ | PROT_WRITE,
+						 MAP_SHARED, shmid, 0);
+	close(shmid);
+	if (shmaddr == MAP_FAILED)
 		return rval;
 
 	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
@@ -212,7 +215,7 @@ int lldpad_shm_set_msap(const char *device_name, int type, char *info, size_t le
 	}
 
 done:
-	shmdt(shmaddr);
+	munmap(shmaddr, LLDPAD_SHM_SIZE);
 
 	return rval;
 }
@@ -226,16 +229,21 @@ int lldpad_shm_get_dcbx(const char *device_name)
 	unsigned num_entries;
 	int version;
 
-	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
-	if (shmid < 0 && errno == ENOENT)
-		shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE,
-			IPC_CREAT | IPC_EXCL | 0x180);
+	shmid = shm_open(LLDPAD_SHM_PATH, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 
 	if (shmid < 0)
 		return rval;
 
-	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
-	if ((long) shmaddr == -1)
+	if (ftruncate(shmid, LLDPAD_SHM_SIZE)) {
+		close(shmid);
+		return rval;
+	}
+
+	shmaddr = (struct lldpad_shm_tbl *) mmap(NULL, LLDPAD_SHM_SIZE,
+			                         PROT_READ | PROT_WRITE,
+						 MAP_SHARED, shmid, 0);
+	close(shmid);
+	if (shmaddr == MAP_FAILED)
 		return rval;
 
 	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
@@ -264,7 +272,7 @@ int lldpad_shm_get_dcbx(const char *device_name)
 	}
 
 done:
-	shmdt(shmaddr);
+	munmap(shmaddr, LLDPAD_SHM_SIZE);
 
 	return rval;
 }
@@ -279,16 +287,21 @@ int lldpad_shm_set_dcbx(const char *device_name, int dcbx_mode)
 	unsigned num_entries;
 	int version;
 
-	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
-	if (shmid < 0 && errno == ENOENT)
-		shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE,
-			IPC_CREAT | IPC_EXCL | 0x180);
+	shmid = shm_open(LLDPAD_SHM_PATH, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 
 	if (shmid < 0)
 		return rval;
 
-	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
-	if ((long) shmaddr == -1)
+	if (ftruncate(shmid, LLDPAD_SHM_SIZE)) {
+		close(shmid);
+		return rval;
+	}
+
+	shmaddr = (struct lldpad_shm_tbl *) mmap(NULL, LLDPAD_SHM_SIZE,
+			                         PROT_READ | PROT_WRITE,
+						 MAP_SHARED, shmid, 0);
+	close(shmid);
+	if (shmaddr == MAP_FAILED)
 		return rval;
 
 	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
@@ -330,7 +343,7 @@ int lldpad_shm_set_dcbx(const char *device_name, int dcbx_mode)
 	}
 
 done:
-	shmdt(shmaddr);
+	munmap(shmaddr, LLDPAD_SHM_SIZE);
 
 	return rval;
 }
@@ -346,16 +359,21 @@ pid_t lldpad_shm_getpid()
 	pid_t rval = -1;
 	int version;
 
-	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
-	if (shmid < 0 && errno == ENOENT)
-		shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE,
-			IPC_CREAT | IPC_EXCL | 0x180);
+	shmid = shm_open(LLDPAD_SHM_PATH, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 
 	if (shmid < 0)
 		return rval;
 
-	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
-	if ((long) shmaddr == -1)
+	if (ftruncate(shmid, LLDPAD_SHM_SIZE)) {
+		close(shmid);
+		return rval;
+	}
+
+	shmaddr = (struct lldpad_shm_tbl *) mmap(NULL, LLDPAD_SHM_SIZE,
+			                         PROT_READ | PROT_WRITE,
+						 MAP_SHARED, shmid, 0);
+	close(shmid);
+	if (shmaddr == MAP_FAILED)
 		return rval;
 
 	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
@@ -366,7 +384,7 @@ pid_t lldpad_shm_getpid()
 
 	rval = shmaddr->pid;
 
-	shmdt(shmaddr);
+	munmap(shmaddr, LLDPAD_SHM_SIZE);
 
 	return rval;
 }
@@ -379,13 +397,16 @@ int lldpad_shm_setpid(pid_t pid)
 	pid_t rval = 0;
 	int version;
 
-	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
+	shmid = shm_open(LLDPAD_SHM_PATH, O_RDWR, S_IRUSR | S_IWUSR);
 
 	if (shmid < 0)
 		return rval;
 
-	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
-	if ((long) shmaddr == -1)
+	shmaddr = (struct lldpad_shm_tbl *) mmap(NULL, LLDPAD_SHM_SIZE,
+			                         PROT_READ | PROT_WRITE,
+						 MAP_SHARED, shmid, 0);
+	close(shmid);
+	if (shmaddr == MAP_FAILED)
 		return rval;
 
 	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
@@ -396,7 +417,7 @@ int lldpad_shm_setpid(pid_t pid)
 
 	shmaddr->pid = pid;
 
-	shmdt(shmaddr);
+	munmap(shmaddr, LLDPAD_SHM_SIZE);
 
 	return 1;
 }
@@ -410,13 +431,16 @@ int clear_dcbx_state()
 	int version;
 	unsigned num_entries;
 
-	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
+	shmid = shm_open(LLDPAD_SHM_PATH, O_RDWR, S_IRUSR | S_IWUSR);
 
 	if (shmid < 0)
 		return 0;
 
-	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
-	if ((long) shmaddr == -1)
+	shmaddr = (struct lldpad_shm_tbl *) mmap(NULL, LLDPAD_SHM_SIZE,
+			                         PROT_READ | PROT_WRITE,
+						 MAP_SHARED, shmid, 0);
+	close(shmid);
+	if (shmaddr == MAP_FAILED)
 		return 0;
 
 	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
@@ -437,7 +461,7 @@ int clear_dcbx_state()
 				sizeof(dcbx_state));
 
 done:
-	shmdt(shmaddr);
+	munmap(shmaddr, LLDPAD_SHM_SIZE);
 	return 1;
 }
 
@@ -451,13 +475,16 @@ int set_dcbx_state(const char *device_name, dcbx_state *state)
 	int version;
 	unsigned num_entries;
 
-	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
+	shmid = shm_open(LLDPAD_SHM_PATH, O_RDWR, S_IRUSR | S_IWUSR);
 
 	if (shmid < 0)
 		return rval;
 
-	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
-	if ((long) shmaddr == -1)
+	shmaddr = (struct lldpad_shm_tbl *) mmap(NULL, LLDPAD_SHM_SIZE,
+			                         PROT_READ | PROT_WRITE,
+						 MAP_SHARED, shmid, 0);
+	close(shmid);
+	if (shmaddr == MAP_FAILED)
 		return rval;
 
 	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
@@ -487,7 +514,7 @@ int set_dcbx_state(const char *device_name, dcbx_state *state)
 	}
 
 done:
-	shmdt(shmaddr);
+	munmap(shmaddr, LLDPAD_SHM_SIZE);
 
 	return rval;
 }
@@ -505,13 +532,16 @@ int get_dcbx_state(const char *device_name, dcbx_state *state)
 	int version;
 	unsigned num_entries;
 
-	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
+	shmid = shm_open(LLDPAD_SHM_PATH, O_RDWR, S_IRUSR | S_IWUSR);
 
 	if (shmid < 0)
 		return rval;
 
-	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
-	if ((long) shmaddr == -1)
+	shmaddr = (struct lldpad_shm_tbl *) mmap(NULL, LLDPAD_SHM_SIZE,
+			                         PROT_READ | PROT_WRITE,
+						 MAP_SHARED, shmid, 0);
+	close(shmid);
+	if (shmaddr == MAP_FAILED)
 		return rval;
 
 	version = (shmaddr->num_entries & SHM_VER_MASK) >> SHM_VER_SHIFT;
@@ -537,7 +567,7 @@ int get_dcbx_state(const char *device_name, dcbx_state *state)
 		}
 
 done:
-	shmdt(shmaddr);
+	munmap(shmaddr, LLDPAD_SHM_SIZE);
 
 	return rval;
 }
@@ -562,17 +592,20 @@ int print_lldpad_shm()
 	int ent_size;
 	struct lldpad_shm_entry *entry_ptr = NULL;
 
-	shmid = shmget(LLDPAD_SHM_KEY, LLDPAD_SHM_SIZE, 0);
+	shmid = shm_open(LLDPAD_SHM_PATH, O_RDWR, S_IRUSR | S_IWUSR);
 
 	if (shmid < 0) {
-		printf("failed to shmget\n");
+		printf("failed to shm_open\n");
 		return rval;
 	}
 
-	shmaddr = (struct lldpad_shm_tbl *)shmat(shmid, NULL, 0);
+	shmaddr = (struct lldpad_shm_tbl *) mmap(NULL, LLDPAD_SHM_SIZE,
+			                         PROT_READ | PROT_WRITE,
+						 MAP_SHARED, shmid, 0);
 	shmaddr_ver0 = (struct lldpad_shm_tbl_ver0 *)shmaddr;
-	if ((long) shmaddr == -1) {
-		printf("failed to shmat\n");
+	close(shmid);
+	if (shmaddr == MAP_FAILED) {
+		printf("failed to mmap\n");
 		return rval;
 	}
 
@@ -633,7 +666,7 @@ int print_lldpad_shm()
 	rval = 1;
 
 done:
-	shmdt(shmaddr);
+	munmap(shmaddr, LLDPAD_SHM_SIZE);
 
 	return rval;
 }

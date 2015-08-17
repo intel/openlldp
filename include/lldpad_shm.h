@@ -31,7 +31,7 @@
 #include "lldpad.h"
 #include "lldp_rtnl.h"
 
-#define LLDPAD_SHM_KEY ((('l'<<24) | ('l'<<16) | ('d'<<8) | ('p')) + 'a' + 'd' + 1)
+#define LLDPAD_SHM_PATH "/lldpad.state"
 #define LLDPAD_SHM_SIZE 4096
 
 /* PID value used to indicate pid field is uninitialized */
