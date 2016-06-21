@@ -299,7 +299,7 @@ static bool ecp_build_ECPDU(struct vdp_data *vd)
 
 		rc = ecp_append(vd->ecp.tx.frame, &fb_offset, ptlv->tlv,
 				ptlv->size);
-		ptlv = free_pkd_tlv(ptlv);
+		free_pkd_tlv(ptlv);
 		if (rc)
 			p->seqnr = vd->ecp.lastSequence;
 		else
@@ -969,7 +969,7 @@ static void ecp_rx_ProcessFrame(struct vdp_data *vd)
 		if ((tlv->type != TYPE_0) && !tlv_stored) {
 			LLDPAD_DBG("%s:%s TLV (%u) was not stored (%p)\n",
 				   __func__, vd->ecp.ifname, tlv->type, tlv);
-			tlv = free_unpkd_tlv(tlv);
+			free_unpkd_tlv(tlv);
 			vd->ecp.stats.statsTLVsUnrecognizedTotal++;
 		}
 		tlv = NULL;

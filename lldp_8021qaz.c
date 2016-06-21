@@ -1630,15 +1630,15 @@ static void clear_ieee8021qaz_rx(struct ieee8021qaz_tlvs *tlvs)
 		return;
 
 	if (tlvs->rx->ieee8021qaz)
-		tlvs->rx->ieee8021qaz = free_unpkd_tlv(tlvs->rx->ieee8021qaz);
+		free_unpkd_tlv(tlvs->rx->ieee8021qaz);
 	if (tlvs->rx->etscfg)
-		tlvs->rx->etscfg = free_unpkd_tlv(tlvs->rx->etscfg);
+		free_unpkd_tlv(tlvs->rx->etscfg);
 	if (tlvs->rx->etsrec)
-		tlvs->rx->etsrec = free_unpkd_tlv(tlvs->rx->etsrec);
+		free_unpkd_tlv(tlvs->rx->etsrec);
 	if (tlvs->rx->pfc)
-		tlvs->rx->pfc = free_unpkd_tlv(tlvs->rx->pfc);
+		free_unpkd_tlv(tlvs->rx->pfc);
 	if (tlvs->rx->app)
-		tlvs->rx->app =	free_unpkd_tlv(tlvs->rx->app);
+		free_unpkd_tlv(tlvs->rx->app);
 
 	free(tlvs->rx);
 	tlvs->rx = NULL;
@@ -2026,13 +2026,13 @@ static void ieee8021qaz_free_rx(struct ieee8021qaz_unpkd_tlvs *rx)
 		return;
 
 	if (rx->etscfg)
-		rx->etscfg = free_unpkd_tlv(rx->etscfg);
+		free_unpkd_tlv(rx->etscfg);
 	if (rx->etsrec)
-		rx->etsrec = free_unpkd_tlv(rx->etsrec);
+		free_unpkd_tlv(rx->etsrec);
 	if (rx->pfc)
-		rx->pfc = free_unpkd_tlv(rx->pfc);
+		free_unpkd_tlv(rx->pfc);
 	if (rx->app)
-		rx->app = free_unpkd_tlv(rx->app);
+		free_unpkd_tlv(rx->app);
 
 	return;
 }
@@ -2118,9 +2118,9 @@ static void ieee8021qaz_free_tlv(struct ieee8021qaz_tlvs *tlvs)
 		return;
 
 	if (tlvs->ets)
-		tlvs->ets = free_ets_tlv(tlvs->ets);
+		free_ets_tlv(tlvs->ets);
 	if (tlvs->pfc)
-		tlvs->pfc = free_pfc_tlv(tlvs->pfc);
+		free_pfc_tlv(tlvs->pfc);
 
 	/* Remove _all_ existing application data */
 	LIST_FOREACH(np, &tlvs->app_head, entry)

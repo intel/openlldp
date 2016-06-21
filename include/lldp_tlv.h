@@ -104,8 +104,8 @@ struct packed_tlv *pack_tlv(struct unpacked_tlv *tlv);
 struct unpacked_tlv *unpack_tlv(struct packed_tlv *tlv);
 int pack_tlv_after(struct unpacked_tlv *, struct packed_tlv *, int);
 
-struct unpacked_tlv *free_unpkd_tlv(struct unpacked_tlv *tlv);
-struct packed_tlv *free_pkd_tlv(struct packed_tlv *tlv);
+void free_unpkd_tlv(struct unpacked_tlv *tlv);
+void free_pkd_tlv(struct packed_tlv *tlv);
 struct unpacked_tlv *create_tlv(void);
 struct packed_tlv *create_ptlv(void);
 struct unpacked_tlv *bld_end_tlv(void);
@@ -115,14 +115,18 @@ int tlv_ok(struct unpacked_tlv *tlv);
 
 #define FREE_UNPKD_TLV(d, f) \
 { \
-	if ((d)->f) \
-		(d)->f = free_unpkd_tlv((d)->f); \
+	if ((d)->f) {				 \
+		free_unpkd_tlv((d)->f);		 \
+		(d)->f = NULL;			 \
+	}					 \
 }
 
 #define FREE_PKD_TLV(d, f) \
 { \
-	if ((d)->f) \
-		(d)->f = free_pkd_tlv((d)->f); \
+	if ((d)->f) {			       \
+		free_pkd_tlv((d)->f);	       \
+		(d)->f = NULL;		       \
+	}				       \
 }
 
 #define PACK_TLV_AFTER(t, p, l, g) 		\

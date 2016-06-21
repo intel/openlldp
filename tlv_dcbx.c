@@ -154,7 +154,8 @@ struct unpacked_tlv *bld_dcbx1_tlv(struct dcbx_tlvs *dcbx)
 			goto error;
 		memcpy(&tlv->info[offset], ptlv->tlv, ptlv->size);
 		offset += ptlv->size;
-		ptlv = free_pkd_tlv(ptlv);
+		free_pkd_tlv(ptlv);
+		ptlv = NULL;
 	}
 	if (tlv_ok(dcbx->pg1)) {
 		ptlv = pack_tlv(dcbx->pg1);
@@ -162,7 +163,8 @@ struct unpacked_tlv *bld_dcbx1_tlv(struct dcbx_tlvs *dcbx)
 			goto error;
 		memcpy(&tlv->info[offset], ptlv->tlv, ptlv->size);
 		offset += ptlv->size;
-		ptlv = free_pkd_tlv(ptlv);
+		free_pkd_tlv(ptlv);
+		ptlv = NULL;
 	}
 	if (tlv_ok(dcbx->pfc1)) {
 		ptlv = pack_tlv(dcbx->pfc1);
@@ -170,7 +172,8 @@ struct unpacked_tlv *bld_dcbx1_tlv(struct dcbx_tlvs *dcbx)
 			goto error;
 		memcpy(&tlv->info[offset], ptlv->tlv, ptlv->size);
 		offset += ptlv->size;
-		ptlv = free_pkd_tlv(ptlv);
+		free_pkd_tlv(ptlv);
+		ptlv = NULL;
 	}
 	if (tlv_ok(dcbx->app1)) {
 		ptlv = pack_tlv(dcbx->app1);
@@ -178,7 +181,8 @@ struct unpacked_tlv *bld_dcbx1_tlv(struct dcbx_tlvs *dcbx)
 			goto error;
 		memcpy(&tlv->info[offset], ptlv->tlv, ptlv->size);
 		offset += ptlv->size;
-		ptlv = free_pkd_tlv(ptlv);
+		free_pkd_tlv(ptlv);
+		ptlv = NULL;
 	}
 
 	if (tlv_ok(dcbx->llink)) {
@@ -187,7 +191,8 @@ struct unpacked_tlv *bld_dcbx1_tlv(struct dcbx_tlvs *dcbx)
 			goto error;
 		memcpy(&tlv->info[offset], ptlv->tlv, ptlv->size);
 		offset += ptlv->size;
-		ptlv = free_pkd_tlv(ptlv);
+		free_pkd_tlv(ptlv);
+		ptlv = NULL;
 	}
 
 	if (offset != tlv->length)
@@ -196,7 +201,8 @@ struct unpacked_tlv *bld_dcbx1_tlv(struct dcbx_tlvs *dcbx)
 	return tlv;
 
 error:
-	ptlv = free_pkd_tlv(ptlv);
+	if (ptlv)
+		free_pkd_tlv(ptlv);
 	if (tlv) {
 		if (tlv->info)
 			free(tlv->info);
@@ -254,7 +260,8 @@ struct unpacked_tlv *bld_dcbx2_tlv(struct dcbx_tlvs *dcbx)
 			goto error;
 		memcpy(&tlv->info[offset], ptlv->tlv, ptlv->size);
 		offset += ptlv->size;
-		ptlv = free_pkd_tlv(ptlv);
+		free_pkd_tlv(ptlv);
+		ptlv = NULL;
 	}
 	if (tlv_ok(dcbx->pg2)) {
 		ptlv = pack_tlv(dcbx->pg2);
@@ -262,7 +269,8 @@ struct unpacked_tlv *bld_dcbx2_tlv(struct dcbx_tlvs *dcbx)
 			goto error;
 		memcpy(&tlv->info[offset], ptlv->tlv, ptlv->size);
 		offset += ptlv->size;
-		ptlv = free_pkd_tlv(ptlv);
+		free_pkd_tlv(ptlv);
+		ptlv = NULL;
 	}
 	if (tlv_ok(dcbx->pfc2)) {
 		ptlv = pack_tlv(dcbx->pfc2);
@@ -270,7 +278,8 @@ struct unpacked_tlv *bld_dcbx2_tlv(struct dcbx_tlvs *dcbx)
 			goto error;
 		memcpy(&tlv->info[offset], ptlv->tlv, ptlv->size);
 		offset += ptlv->size;
-		ptlv = free_pkd_tlv(ptlv);
+		free_pkd_tlv(ptlv);
+		ptlv = NULL;
 	}
 	if (tlv_ok(dcbx->app2)) {
 		ptlv = pack_tlv(dcbx->app2);
@@ -278,7 +287,8 @@ struct unpacked_tlv *bld_dcbx2_tlv(struct dcbx_tlvs *dcbx)
 			goto error;
 		memcpy(&tlv->info[offset], ptlv->tlv, ptlv->size);
 		offset += ptlv->size;
-		ptlv = free_pkd_tlv(ptlv);
+		free_pkd_tlv(ptlv);
+		ptlv = NULL;
 	}
 
 	if (offset != tlv->length)
@@ -287,7 +297,8 @@ struct unpacked_tlv *bld_dcbx2_tlv(struct dcbx_tlvs *dcbx)
 	return tlv;
 
 error:
-	ptlv = free_pkd_tlv(ptlv);
+	if (ptlv)
+		free_pkd_tlv(ptlv);
 	if (tlv) {
 		if (tlv->info)
 			free(tlv->info);
