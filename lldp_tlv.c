@@ -112,13 +112,13 @@ int pack_tlv_after(struct unpacked_tlv *tlv, struct packed_tlv *mtlv, int length
 		return -1;
 
 	if (ptlv->size + mtlv->size > length) {
-		ptlv = free_pkd_tlv(ptlv);
+		free_pkd_tlv(ptlv);
 		return -1;
 	}
 
 	memcpy(&mtlv->tlv[mtlv->size], ptlv->tlv, ptlv->size);
 	mtlv->size += ptlv->size;
-	ptlv = free_pkd_tlv(ptlv);
+	free_pkd_tlv(ptlv);
 	return 0;
 }
 
@@ -158,7 +158,7 @@ struct unpacked_tlv *unpack_tlv(struct packed_tlv *tlv)
 	return upkd_tlv;
 }
 
-struct unpacked_tlv *free_unpkd_tlv(struct unpacked_tlv *tlv)
+void free_unpkd_tlv(struct unpacked_tlv *tlv)
 {
 	if (tlv != NULL) {
 		if (tlv->info != NULL) {
@@ -166,12 +166,10 @@ struct unpacked_tlv *free_unpkd_tlv(struct unpacked_tlv *tlv)
 			tlv->info = NULL;
 		}
 		free(tlv);
-		tlv = NULL;
 	}
-	return NULL;
 }
 
-struct packed_tlv *free_pkd_tlv(struct packed_tlv *tlv)
+void free_pkd_tlv(struct packed_tlv *tlv)
 {
 	if (tlv != NULL) {
 		if (tlv->tlv != NULL) {
@@ -179,9 +177,7 @@ struct packed_tlv *free_pkd_tlv(struct packed_tlv *tlv)
 			tlv->tlv = NULL;
 		}
 		free(tlv);
-		tlv = NULL;
 	}
-	return NULL;
 }
 
 struct packed_tlv *create_ptlv()

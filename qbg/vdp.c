@@ -1357,7 +1357,7 @@ struct packed_tlv *vdp_gettlv(struct vdp_data *vd, struct vsi_profile *profile)
 	return ptlv;
 
 out_free:
-	ptlv = free_pkd_tlv(ptlv);
+	free_pkd_tlv(ptlv);
 out_err:
 	LLDPAD_ERR("%s: %s failed\n", __func__, vd->ifname);
 	return NULL;

@@ -119,7 +119,8 @@ static void ecp22_append(u8 *buffer, u32 *pos, void *data, u32 len)
  */
 void ecp22_putnode(struct ecp22_freelist *list, struct ecp22_payload_node *elm)
 {
-	elm->ptlv = free_pkd_tlv(elm->ptlv);
+	free_pkd_tlv(elm->ptlv);
+	elm->ptlv = NULL;
 	if (list->freecnt > ecp22_maxpayload)
 		free(elm);
 	else {
@@ -807,7 +808,7 @@ static void ecp22_removelist(ecp22_list *ptr)
 
 	while ((np = LIST_FIRST(ptr))) {
 		LIST_REMOVE(np, node);
-		np->ptlv = free_pkd_tlv(np->ptlv);
+		free_pkd_tlv(np->ptlv);
 		free(np);
 	}
 }

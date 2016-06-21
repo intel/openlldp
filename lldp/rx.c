@@ -377,7 +377,7 @@ void rxProcessFrame(struct port *port, struct lldp_agent *agent)
 		if (!tlv_stored) {
 			LLDPAD_INFO("%s: allocated TLV %u was not stored! %p\n",
 				   __func__, tlv->type, tlv);
-			tlv = free_unpkd_tlv(tlv);
+			free_unpkd_tlv(tlv);
 			agent->stats.statsTLVsUnrecognizedTotal++;
 		}
 		tlv = NULL;
@@ -638,29 +638,21 @@ void rx_change_state(struct lldp_agent *agent, u8 newstate)
 void clear_manifest(struct lldp_agent *agent)
 {
 	if (agent->rx.manifest->mgmtadd)
-		agent->rx.manifest->mgmtadd =
-			free_unpkd_tlv(agent->rx.manifest->mgmtadd);
+		free_unpkd_tlv(agent->rx.manifest->mgmtadd);
 	if (agent->rx.manifest->syscap)
-		agent->rx.manifest->syscap =
-			free_unpkd_tlv(agent->rx.manifest->syscap);
+		free_unpkd_tlv(agent->rx.manifest->syscap);
 	if (agent->rx.manifest->sysdesc)
-		agent->rx.manifest->sysdesc =
-			free_unpkd_tlv(agent->rx.manifest->sysdesc);
+		free_unpkd_tlv(agent->rx.manifest->sysdesc);
 	if (agent->rx.manifest->sysname)
-		agent->rx.manifest->sysname =
-			free_unpkd_tlv(agent->rx.manifest->sysname);
+		free_unpkd_tlv(agent->rx.manifest->sysname);
 	if (agent->rx.manifest->portdesc)
-		agent->rx.manifest->portdesc =
-			free_unpkd_tlv(agent->rx.manifest->portdesc);
+		free_unpkd_tlv(agent->rx.manifest->portdesc);
 	if (agent->rx.manifest->ttl)
-		agent->rx.manifest->ttl =
-			free_unpkd_tlv(agent->rx.manifest->ttl);
+		free_unpkd_tlv(agent->rx.manifest->ttl);
 	if (agent->rx.manifest->portid)
-		agent->rx.manifest->portid =
-			free_unpkd_tlv(agent->rx.manifest->portid);
+		free_unpkd_tlv(agent->rx.manifest->portid);
 	if (agent->rx.manifest->chassis)
-		agent->rx.manifest->chassis =
-			free_unpkd_tlv(agent->rx.manifest->chassis);
+		free_unpkd_tlv(agent->rx.manifest->chassis);
 	free(agent->rx.manifest);
 	agent->rx.manifest = NULL;
 }
