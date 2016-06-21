@@ -155,6 +155,7 @@ static bool ecp22_build_ecpdu(struct ecp22 *ecp)
 	memset(ecp->tx.frame, 0, sizeof ecp->tx.frame);
 	ecp22_append(ecp->tx.frame, &fb_offset, (void *)&eth, sizeof eth);
 
+	memset(&ecph, 0, sizeof(struct ecp22_hdr));
 	ecp22_hdr_set_version(&ecph, 1);
 	ecp22_hdr_set_op(&ecph, ECP22_REQUEST);
 	ecp22_hdr_set_subtype(&ecph, ECP22_VDP);
