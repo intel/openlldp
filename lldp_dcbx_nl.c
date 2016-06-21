@@ -152,16 +152,17 @@ static int send_msg(struct nlmsghdr *nlh)
 {
 	struct sockaddr_nl nladdr;
 	void *buf = (void *)nlh;
-	int r, len = nlh->nlmsg_len;
+	int r;
 
 	if (nlh == NULL)
 		return 1;
 
 	memset(&nladdr, 0, sizeof(nladdr));
 	nladdr.nl_family = AF_NETLINK;
-	
+
 	do {
-		r = sendto(nl_sd, buf, len, 0, (struct sockaddr *)&nladdr,
+		r = sendto(nl_sd, buf, nlh->nlmsg_len, 0,
+			   (struct sockaddr *)&nladdr,
 			sizeof(nladdr));
 		LLDPAD_DBG("send_msg: sendto = %d\n", r);
 
