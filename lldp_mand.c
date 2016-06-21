@@ -517,9 +517,11 @@ struct packed_tlv *mand_gettlv(struct port *port, struct lldp_agent *agent)
 	}
 
 	err = mand_bld_tlv(md, agent);
-	if (err)
+	if (err) {
 		LLDPAD_DBG("%s:%s: building mandotory TLV error.\n",
 			   __func__, port->ifname);
+		goto out_err;
+	}
 
 	size = TLVSIZE(md->chassis)
 		+ TLVSIZE(md->portid)
