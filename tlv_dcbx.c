@@ -928,7 +928,7 @@ bool unpack_dcbx1_tlvs(struct port *port, struct lldp_agent *agent,
 			} else {
 				free_unpkd_tlv(dcbtlv);
 			}
-		break;
+			break;
 		case DCB_LLINK_TLV:
 			if (dcbtlv->info[DCBX_HDR_SUB_TYPE_OFFSET]
 					== LLINK_FCOE_STYPE) {
@@ -943,10 +943,10 @@ bool unpack_dcbx1_tlvs(struct port *port, struct lldp_agent *agent,
 			} else {
 				free_unpkd_tlv(dcbtlv);
 			}
-		break;
+			break;
 		default:
 			free_unpkd_tlv(dcbtlv);
-		break;
+			break;
 		}
 		dcbtlv = NULL;
 	} while(current < end);
