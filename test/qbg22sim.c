@@ -707,7 +707,7 @@ static int l2_init(char *ifname, unsigned short pno)
 		perror("socket(PF_PACKET)");
 		return -1;
 	}
-	strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+	memcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 	if (ioctl(fd, SIOCGIFINDEX, &ifr) < 0) {
 		perror("ioctl[SIOCGIFINDEX]");
 		close(fd);

@@ -169,7 +169,7 @@ struct l2_packet_data * l2_packet_init(
 	if (l2 == NULL)
 		return NULL;
 	memset(l2, 0, sizeof(*l2));
-	strncpy(l2->ifname, ifname, sizeof(l2->ifname));
+	memcpy(l2->ifname, ifname, sizeof(l2->ifname));
 	l2->rx_callback = rx_callback;
 	l2->rx_callback_ctx = rx_callback_ctx;
 	l2->l2_hdr = l2_hdr;
