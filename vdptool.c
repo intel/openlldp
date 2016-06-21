@@ -587,7 +587,7 @@ static void print_all_vsis(char *ibuf, bool err_code, char *msg)
 	size_t ilen = strlen(ibuf);
 	u16 vsi_len;
 	int offset = 0, vsi_cnt = 0;
-	char tmp_ibuf[strlen(ibuf)];
+	char tmp_ibuf[strlen(ibuf) + 1];
 
 	while (ilen > 0) {
 		vsi_len = hex2u16(ibuf + offset);
