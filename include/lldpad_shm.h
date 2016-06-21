@@ -55,7 +55,7 @@ int lldpad_shm_set_dcbx(const char *device_name, int dcbx_mode);
 #define DCBX_LEGACY 1	/* start DCBX in legacy DCBX mode */
 
 struct lldpad_shm_entry {
-	char ifname[IFNAMSIZ+1];
+	char ifname[IFNAMSIZ];
 	char chassisid[SHM_CHASSISID_LEN];
 	int chassisid_len;
 	char portid[SHM_PORTID_LEN];
@@ -66,7 +66,7 @@ struct lldpad_shm_entry {
 
 /* Version 0 of the SHM entry structure */
 struct lldpad_shm_entry_ver0 {
-	char ifname[IFNAMSIZ+1];
+	char ifname[IFNAMSIZ];
 	char chassisid[SHM_CHASSISID_LEN];
 	int chassisid_len;
 	char portid[SHM_PORTID_LEN];

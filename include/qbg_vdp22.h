@@ -150,7 +150,7 @@ struct vsi22 {
 
 struct vdp22 {				/* Per interface VSI/VDP data */
 	LIST_ENTRY(vdp22) node;		/* Node element */
-	char ifname[IFNAMSIZ + 1];	/* Interface name */
+	char ifname[IFNAMSIZ];		/* Interface name */
 	unsigned char ecp_retries;	/* # of ECP module retries */
 	unsigned char ecp_rte;		/* ECP module retry timeout exponent */
 	unsigned char vdp_rwd;		/* Resource wait delay exponent */

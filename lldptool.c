@@ -471,8 +471,12 @@ static int request(struct clif *clif, int argc, char *argv[])
 			command.cmd = cmd_getstats;
 			break;
 		case 'i':
-			strncpy(command.ifname, optarg, IFNAMSIZ);
-			command.ifname[IFNAMSIZ] ='\0';
+			if (strlen(optarg) >= IFNAMSIZ) {
+				printf("interface name '%s' too long\n",
+				       optarg);
+				return -1;
+			}
+			strncpy(command.ifname, optarg, IFNAMSIZ - 1);
 			break;
 		case 'g':
 			if (!strcasecmp(optarg, "nearestbridge") ||

@@ -48,7 +48,7 @@ struct vdpnl_mac {		/* MAC-VLAN pair */
 };
 
 struct vdpnl_vsi {		/* Data structure for VSI data via netlink */
-	char ifname[IFNAMSIZ + 1];	/* Interface name */
+	char ifname[IFNAMSIZ];		/* Interface name */
 	int ifindex;			/* Index number */
 	int vf;				/* Virtual function number */
 	unsigned char hints;		/* VSI request mode migrition hints */

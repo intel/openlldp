@@ -107,7 +107,7 @@ struct cmd {
 	__u32 ops;
 	__u32 tlvid;
 	__u8 type;
-	char ifname[IFNAMSIZ+1];
+	char ifname[IFNAMSIZ];
 	char obuf[MAX_CLIF_MSGBUF];
 };
 
