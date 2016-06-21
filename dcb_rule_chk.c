@@ -206,6 +206,8 @@ static int dcb_fixup_pg(struct pg_attribs *fixpg, struct pfc_attribs *fixpfc)
 					strict = 0;
 				if (be == cbe)
 					be = 0;
+				if (pgid < 0)
+					continue;
 			}
 
 			if (pg_done[i] == false) {
