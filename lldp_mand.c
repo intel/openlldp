@@ -543,7 +543,7 @@ struct packed_tlv *mand_gettlv(struct port *port, struct lldp_agent *agent)
 	PACK_TLV_AFTER(md->ttl, ptlv, size, out_free);
 	return ptlv;
 out_free:
-	ptlv = free_pkd_tlv(ptlv);
+	free_pkd_tlv(ptlv);
 out_err:
 	LLDPAD_DBG("%s:%s: failed\n", __func__, port->ifname);
 	return NULL;

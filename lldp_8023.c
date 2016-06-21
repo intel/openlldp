@@ -401,7 +401,7 @@ struct packed_tlv *ieee8023_gettlv(struct port *port,
 	PACK_TLV_AFTER(bd->maxfs, ptlv, size, out_free);
 	return ptlv;
 out_free:
-	ptlv = free_pkd_tlv(ptlv);
+	free_pkd_tlv(ptlv);
 out_err:
 	LLDPAD_DBG("%s:%s: failed\n", __func__, port->ifname);
 	return NULL;

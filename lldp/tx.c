@@ -83,7 +83,7 @@ bool mibConstrInfoLLDPDU(struct port *port, struct lldp_agent *agent)
 			       ptlv->tlv, ptlv->size);
 			datasize += ptlv->size;
 			fb_offset += ptlv->size;
-			ptlv =  free_pkd_tlv(ptlv);
+			free_pkd_tlv(ptlv);
 		}
 	}
 
@@ -94,7 +94,7 @@ bool mibConstrInfoLLDPDU(struct port *port, struct lldp_agent *agent)
 	memcpy(agent->tx.frameout + fb_offset, ptlv->tlv, ptlv->size);
 	datasize += ptlv->size;
 	fb_offset += ptlv->size;
-	ptlv =  free_pkd_tlv(ptlv);
+	free_pkd_tlv(ptlv);
 
 	if (datasize < ETH_MIN_DATA_LEN)
 		agent->tx.sizeout = ETH_ZLEN;
@@ -104,7 +104,7 @@ bool mibConstrInfoLLDPDU(struct port *port, struct lldp_agent *agent)
 	return true;
 
 error:
-	ptlv = free_pkd_tlv(ptlv);
+	free_pkd_tlv(ptlv);
 	if (agent->tx.frameout)
 		free(agent->tx.frameout);
 	agent->tx.frameout = NULL;
@@ -220,7 +220,7 @@ bool mibConstrShutdownLLDPDU(struct port *port, struct lldp_agent *agent)
 		memcpy(agent->tx.frameout + fb_offset, ptlv->tlv, ptlv->size);
 		datasize += ptlv->size;
 		fb_offset += ptlv->size;
-		ptlv =  free_pkd_tlv(ptlv);
+		free_pkd_tlv(ptlv);
 	}
 
 	/* The End TLV marks the end of the LLDP PDU */
@@ -230,7 +230,7 @@ bool mibConstrShutdownLLDPDU(struct port *port, struct lldp_agent *agent)
 	memcpy(agent->tx.frameout + fb_offset, ptlv->tlv, ptlv->size);
 	datasize += ptlv->size;
 	fb_offset += ptlv->size;
-	ptlv = free_pkd_tlv(ptlv);
+	free_pkd_tlv(ptlv);
 
 	if (datasize < ETH_MIN_DATA_LEN)
 		agent->tx.sizeout = ETH_ZLEN;
@@ -239,7 +239,7 @@ bool mibConstrShutdownLLDPDU(struct port *port, struct lldp_agent *agent)
 	return true;
 
 error:
-	ptlv = free_pkd_tlv(ptlv);
+	free_pkd_tlv(ptlv);
 	if (agent->tx.frameout)
 		free(agent->tx.frameout);
 	agent->tx.frameout = NULL;
