@@ -1768,7 +1768,7 @@ static void vdp22br_run(struct vsi22 *p)
 			break;
 		case VDP22_BR_END:
 			vdp22br_end(p);
-			break;
+			return;
 		}
 	} while (vdp22br_move_state(p) == true);
 }
