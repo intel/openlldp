@@ -1198,9 +1198,9 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 			/* put it in the list  */
 			profile->state = VSI_UNASSOCIATED;
 			LIST_INSERT_HEAD(&vd->profile_head, profile, profile);
-		}
 
-		vdp_vsi_sm_bridge(profile);
+			vdp_vsi_sm_bridge(profile);
+		}
 	}
 
 	return 0;
