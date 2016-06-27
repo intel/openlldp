@@ -796,6 +796,7 @@ static int get_ieee_hw(const char *ifname, struct ieee_ets **ets,
 	unsigned char *msg = NULL;
 	struct nlmsghdr *hdr;
 	struct nlattr *app_attr, *attr, *nattr;
+	int ets_found = 0, pfc_found = 0, app_found = 0;
 	struct dcbmsg d = {
 			   .dcb_family = AF_UNSPEC,
 			   .cmd = DCB_CMD_IEEE_GET,
@@ -916,6 +917,7 @@ static int get_ieee_hw(const char *ifname, struct ieee_ets **ets,
 
 			/* realloc may have moved app so reset it */
 			*app = this_app;
+			app_found = 1;
 		}
 
 		if (nla_type(nattr) == DCB_ATTR_IEEE_ETS) {
@@ -925,6 +927,7 @@ static int get_ieee_hw(const char *ifname, struct ieee_ets **ets,
 #ifdef LLDPAD_8021QAZ_DEBUG
 			print_ets(nl_ets);
 #endif
+			ets_found = 1;
 		}
 
 		if (nla_type(nattr) == DCB_ATTR_IEEE_PFC) {
@@ -934,6 +937,7 @@ static int get_ieee_hw(const char *ifname, struct ieee_ets **ets,
 #ifdef LLDPAD_8021QAZ_DEBUG
 			print_pfc(nl_pfc);
 #endif
+			pfc_found = 1;
 		}
 	}
 
@@ -943,6 +947,21 @@ out:
 	nl_close(nlsocket);
 	nl_socket_free(nlsocket);
 out1:
+	if (!app_found) {
+		printf("APP not found\n");
+		free(*app);
+		*app = NULL;
+	}
+	if (!ets_found) {
+		printf("ETS-CFG not found\n");
+		free(*ets);
+		*ets = NULL;
+	}
+	if (!pfc_found) {
+		printf("PFC-CFG not found\n");
+		free(*pfc);
+		*pfc = NULL;
+	}
 	*cnt = itr;
 	return err;
 }
