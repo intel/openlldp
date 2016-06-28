@@ -528,6 +528,9 @@ int get_dcb_capabilities(char *ifname,
 		case DCB_CAP_ATTR_DCBX:
 			dcb_capabilities->dcbx = cap;
 			break;
+		case DCB_CAP_ATTR_BCN:
+			LLDPAD_DBG("Ignore BCN capability %02x\n", cap);
+			break;
 		default:
 			LLDPAD_DBG("unknown capability %d: %02x\n",
 				rta_child->rta_type, cap);
