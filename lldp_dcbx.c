@@ -347,7 +347,6 @@ struct packed_tlv* dcbx_gettlv(struct port *port, struct lldp_agent *agent)
 		return NULL;
 
 	dcbx_free_tlv(tlvs);
-	memset(tlvs, 0, sizeof(struct dcbx_tlvs));
 
 	dcbx_bld_tlv(port, agent);
 	if (tlvs->dcbx_st == DCBX_SUBTYPE2) {
