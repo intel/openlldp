@@ -175,6 +175,33 @@ static void event_if_decode_rta(int type, struct rtattr *rta, int *ls, char *d)
 	case IFLA_CARRIER:
 		LLDPAD_DBG(" IFLA_CARRIER\n");
 		break;
+	case IFLA_PHYS_PORT_ID:
+		LLDPAD_DBG(" IFLA_PHYS_PORT_ID\n");
+		break;
+	case IFLA_CARRIER_CHANGES:
+		LLDPAD_DBG(" IFLA_CARRIER_CHANGES\n");
+		break;
+	case IFLA_PHYS_SWITCH_ID:
+		LLDPAD_DBG(" IFLA_PHYS_SWITCH_ID\n");
+		break;
+	case IFLA_LINK_NETNSID:
+		LLDPAD_DBG(" IFLA_LINK_NETNSID\n");
+		break;
+	case IFLA_PHYS_PORT_NAME:
+		LLDPAD_DBG(" IFLA_LINK_NETNS_ID\n");
+		break;
+	case IFLA_PROTO_DOWN:
+		LLDPAD_DBG(" IFLA_PROTO_DOWN\n");
+		break;
+	case IFLA_GSO_MAX_SEGS:
+		LLDPAD_DBG(" IFLA_GSO_MAX_SEGS\n");
+		break;
+	case IFLA_GSO_MAX_SIZE:
+		LLDPAD_DBG(" IFLA_GSO_MAX_SIZE\n");
+		break;
+	case IFLA_PAD:
+		LLDPAD_DBG(" IFLA_PAD\n");
+		break;
 	default:
 		LLDPAD_DBG(" unknown type : 0x%02x\n", type);
 		break;

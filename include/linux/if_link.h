@@ -116,15 +116,24 @@ enum {
 	IFLA_STATS64,
 	IFLA_VF_PORTS,
 	IFLA_PORT_SELF,
-        IFLA_AF_SPEC,
-        IFLA_GROUP,             /* Group the device belongs to */
-        IFLA_NET_NS_FD,
-        IFLA_EXT_MASK,          /* Extended info mask, VFs, etc */
-        IFLA_PROMISCUITY,       /* Promiscuity count: > 0 means acts PROMISC */
+	IFLA_AF_SPEC,
+	IFLA_GROUP,             /* Group the device belongs to */
+	IFLA_NET_NS_FD,
+	IFLA_EXT_MASK,          /* Extended info mask, VFs, etc */
+	IFLA_PROMISCUITY,       /* Promiscuity count: > 0 means acts PROMISC */
 #define IFLA_PROMISCUITY IFLA_PROMISCUITY
-        IFLA_NUM_TX_QUEUES,
-        IFLA_NUM_RX_QUEUES,
-        IFLA_CARRIER,
+	IFLA_NUM_TX_QUEUES,
+	IFLA_NUM_RX_QUEUES,
+	IFLA_CARRIER,
+	IFLA_PHYS_PORT_ID,
+	IFLA_CARRIER_CHANGES,
+	IFLA_PHYS_SWITCH_ID,
+	IFLA_LINK_NETNSID,
+	IFLA_PHYS_PORT_NAME,
+	IFLA_PROTO_DOWN,
+	IFLA_GSO_MAX_SEGS,
+	IFLA_GSO_MAX_SIZE,
+	IFLA_PAD,
 	__IFLA_MAX
 };
 
