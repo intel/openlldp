@@ -1227,7 +1227,7 @@ int get_arg_val_list(char *ibuf, int ilen, int *ioff,
 		}
 		hexstr2bin(ibuf+*ioff, &arglen, sizeof(arglen));
 		*ioff += 2 * (int)sizeof(arglen);
-		if (ilen - *ioff >= arglen) {
+		if (ilen - *ioff >= 0) {
 			args[i] = ibuf+*ioff;
 			*ioff += arglen;
 			*(arglens+i) = arglen;
@@ -1237,7 +1237,7 @@ int get_arg_val_list(char *ibuf, int ilen, int *ioff,
 					   sizeof(argvalue_len));
 				argvalue_len = ntohs(argvalue_len);
 				*ioff += 2*sizeof(argvalue_len);
-				if (ilen - *ioff >= argvalue_len) {
+				if (ilen - *ioff >= 0) {
 					argvals[i] = ibuf+*ioff;
 					*ioff += argvalue_len;
 					*(argvallens+i) = argvalue_len;
