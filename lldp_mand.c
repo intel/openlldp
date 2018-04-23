@@ -217,6 +217,7 @@ static int mand_bld_chassis_tlv(struct mand_data *md, struct lldp_agent *agent)
 			if (length > 0)
 				break;
 			/* Fall through on IP error */
+			__attribute__ ((fallthrough));
 		case CHASSIS_ID_MAC_ADDRESS:
 		default:
 			length = mand_bld_mac_chassis(md, &chassis);
@@ -234,6 +235,7 @@ static int mand_bld_chassis_tlv(struct mand_data *md, struct lldp_agent *agent)
 			if (length > 0)
 				break;
 			/* Fall through on IP error */
+			__attribute__ ((fallthrough));
 		case LLDP_MED_DEVTYPE_NETWORK_CONNECTIVITY:
 		default:
 			length =  mand_bld_ifname_chassis(md, &chassis);
@@ -368,6 +370,7 @@ static int mand_bld_portid_tlv(struct mand_data *md, struct lldp_agent *agent)
 				 sizeof(portid.sub);
 			break;
 		}
+		__attribute__ ((fallthrough));
 	case PORT_ID_NETWORK_ADDRESS:
 		/* uses ipv4 first */
 		if (!get_ipaddr(md->ifname, &portid.id.na.ip.v4)) {
@@ -387,6 +390,7 @@ static int mand_bld_portid_tlv(struct mand_data *md, struct lldp_agent *agent)
 				 sizeof(portid.sub);
 			break;
 		}
+		__attribute__ ((fallthrough));
 	case PORT_ID_INTERFACE_NAME:
 		portid.sub = PORT_ID_INTERFACE_NAME;
 		strncpy((char *)portid.id.ifname, md->ifname, IFNAMSIZ);

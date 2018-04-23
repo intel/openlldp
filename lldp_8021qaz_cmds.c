@@ -665,7 +665,7 @@ _set_arg_tcbw(struct cmd *cmd, char *args, const char *arg_value,
 
 	strncat(obuf, "tcbw = ", obuf_len - strlen(obuf) - 1);
 	for (i = 0; i < 8; i++) {
-		char cat[5];
+		char cat[6];
 		snprintf(cat, sizeof(cat), "%i%% ", percent[i]);
 		printf("%i%% ", percent[i]);
 		strncat(obuf, cat, obuf_len - strlen(obuf) - 1);
