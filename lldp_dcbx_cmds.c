@@ -943,6 +943,10 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 	bool used[MAX_BANDWIDTH_GROUPS];
 	bool uppcts_changed = false;
 
+	/* If PG is disabled, skip changing any other attributes */
+	if (!(pg_data->protocol.Enable))
+		goto done;
+
 	plen=strlen(port_id);
 	off = DCB_PORT_OFF + plen + CFG_LEN;
 
@@ -1067,6 +1071,7 @@ static int set_pg_config(pg_attribs *pg_data, char *port_id, char *ibuf,
 		return status;
 	}
 
+done:
 	is_pfc = get_pfc(port_id, &pfc_data);
 	if (is_pfc == cmd_success)
 		status = put_pg(port_id, pg_data, &pfc_data);
