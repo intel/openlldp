@@ -60,7 +60,7 @@ struct l2_packet_data {
 
 int l2_packet_get_own_src_addr(struct l2_packet_data *l2, u8 *addr)
 {
-	if (is_san_mac(l2->san_mac_addr))
+	if (is_valid_mac(l2->san_mac_addr))
 		memcpy(addr, l2->san_mac_addr, ETH_ALEN);
 	else {
 		/* get an appropriate src MAC to use if the port is
