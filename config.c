@@ -56,6 +56,21 @@
 config_t lldpad_cfg;
 
 /*
+ * config_ifkey - Generates a config key
+ *
+ * Given an interface name this functions generates
+ * a key (based on interface's index) suitable
+ * to pass to libconfig.
+ *
+ */
+void config_ifkey(const char *name, char *ifkey) {
+	int index = if_nametoindex(name);
+	
+	if(index)
+		sprintf(ifkey, "if%d", index);
+}
+
+/*
  * init_cfg - initialze the global lldpad_cfg via config_init
  *
  * Returns true (1) for succes and false (0) for failed
@@ -451,14 +466,15 @@ static int lookup_config_value(char *path, union cfg_get v, int type)
 int get_config_setting(const char *ifname, int agenttype, char *path,
 		       union cfg_get v, int type)
 {
-	char p[1024];
+	char p[1024], ifkey[IFNAMSIZ];
 	int rval = CONFIG_FALSE;
 	const char *section = agent_type2section(agenttype);
 
 	/* look for setting in section->ifname area first */
 	if (ifname) {
+		config_ifkey(ifname, ifkey);
 		snprintf(p, sizeof(p), "%s.%s.%s",
-			 section, ifname, path);
+			 section, ifkey, path);
 		rval = lookup_config_value(p, v, type);
 	}
 
@@ -475,15 +491,16 @@ int get_config_setting(const char *ifname, int agenttype, char *path,
 int remove_config_setting(const char *ifname, int agenttype, char *parent,
 			  char *name)
 {
-	char p[1024];
+	char p[1024], ifkey[IFNAMSIZ];
 	int rval = CONFIG_FALSE;
 	config_setting_t *setting = NULL;
 	const char *section = agent_type2section(agenttype);
 
 	/* look for setting in section->ifname area first */
-	if (ifname) {
+	if (ifname) { 
+		config_ifkey(ifname, ifkey);
 		snprintf(p, sizeof(p), "%s.%s.%s",
-			 section, ifname, parent);
+			 section, ifkey, parent);
 		setting = config_lookup(&lldpad_cfg, p);
 	}
 
@@ -570,15 +587,17 @@ int set_config_setting(const char *ifname, int agenttype, char *path,
 		       union cfg_set v, int type)
 {
 	config_setting_t *setting = NULL;
-	char p[1024];
+	char p[1024], ifkey[IFNAMSIZ];
 	int rval = cmd_success;
 	const char *section = agent_type2section(agenttype);
 
 	LLDPAD_DBG("%s(%i): \n", __func__, __LINE__);
 
-	if (strlen(ifname))
+	if (strlen(ifname)){
+		config_ifkey(ifname, ifkey);
 		snprintf(p, sizeof(p), "%s.%s.%s",
-			 section, ifname, path);
+			 section, ifkey, path);
+	}
 	else
 		snprintf(p, sizeof(p), "%s.%s.%s",
 			 section, LLDP_COMMON, path);
