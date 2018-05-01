@@ -189,26 +189,6 @@ int is_bond(const char *ifname)
 }
 
 /**
- *	is_san_mac - check if address is a san mac addr
- *	@addr: san mac address
- *
- *	Returns 0 if addr is NOT san mac, 1 if it is a san mac.
- *
- *	BUG: this does not do anything to prove it's a sanmac!!!!
- *	SAN MAC is no different than LAN MAC, no way to tell!!!
- */
-int is_san_mac(u8 *addr)
-{
-	int i;
-
-	for ( i = 0; i < ETH_ALEN; i++) {
-		if ( addr[i]!= 0xff )
-			return 1;
-	}
-	return 0;
-}
-
-/**
  *	get_src_mac_from_bond - select a source MAC to use for slave
  *	@bond_port: pointer to port structure for a bond interface
  *	@ifname: interface name of the slave port
@@ -314,11 +294,24 @@ int	get_src_mac_from_bond(struct port *bond_port, char *ifname, u8 *addr)
  */
 int is_valid_mac(const u8 *mac)
 {
-	if (0 == (mac[0] | mac[1] | mac[2] | mac[3] | mac[4] | mac[5]))
-		return 0;
-	if (0xff == (mac[0] & mac[1] & mac[2] & mac[3] & mac[4] & mac[5]))
-		return 0;
-	return 1;
+	static const u8 zero_mac[ETH_ALEN] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	static const u8 ff_mac[ETH_ALEN]   = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+	static const u8 iana_mcast[ETH_ALEN] = {0x01, 0x00, 0x5E};
+	static const u8 ipv6_mcast[ETH_ALEN] = {0x33, 0x33};
+
+        if(memcmp(mac, zero_mac, ETH_ALEN) == 0 ||
+	   memcmp(mac, ff_mac, ETH_ALEN)   == 0)
+                return 0;
+
+	/* IANA multicast and ipv6 multicast mac address
+	 * For reference check document: 
+	 * https://www.iana.org/assignments/ethernet-numbers/ethernet-numbers.xhtml
+	 */
+        if(memcmp(mac, iana_mcast, 3) == 0 ||
+           memcmp(mac, ipv6_mcast, 2) == 0)
+                return 0;
+	
+        return 1;
 }
 
 int read_int(const char *path)
