@@ -305,7 +305,8 @@ static int evb22_rchange(struct port *port, struct lldp_agent *agent,
 	u8 oui_subtype[OUI_SUB_SIZE] = LLDP_MOD_EVB22_OUI;
 
 	if (agent->type != NEAREST_CUSTOMER_BRIDGE)
-		return 0;
+		return SUBTYPE_INVALID;
+
 	ed = evb22_data(port->ifname, agent->type);
 
 	if (!ed)
@@ -324,7 +325,7 @@ static int evb22_rchange(struct port *port, struct lldp_agent *agent,
 		if (!ed->txmit) {
 			LLDPAD_WARN("%s:%s agent %d EVB Config disabled\n",
 				__func__, ed->ifname, agent->type);
-			return TLV_OK;
+			return SUBTYPE_INVALID;
 		}
 
 		LLDPAD_DBG("%s:%s agent %d received tlv:\n", __func__,
@@ -341,7 +342,8 @@ static int evb22_rchange(struct port *port, struct lldp_agent *agent,
 		evb22_print_tlvinfo(ed->ifname, &ed->out);
 		/* TODO vdp_update(port->ifname, ed->tie.ccap); */
 	}
-	return TLV_OK;
+
+	return SUBTYPE_INVALID;
 }
 
 /*

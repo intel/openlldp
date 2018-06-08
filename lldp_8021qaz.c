@@ -1924,7 +1924,7 @@ int ieee8021qaz_rchange(struct port *port, struct lldp_agent *agent,
 	struct ieee8021qaz_unpkd_tlvs *rx;
 
 	if (agent->type != NEAREST_BRIDGE)
-		return 0;
+		return SUBTYPE_INVALID;
 
 	qaz_tlvs = ieee8021qaz_data(port->ifname);
 	if (!qaz_tlvs)
@@ -2005,7 +2005,7 @@ int ieee8021qaz_rchange(struct port *port, struct lldp_agent *agent,
 		}
 	}
 
-	return TLV_OK;
+	return SUBTYPE_INVALID;
 }
 
 static void ieee8021qaz_free_rx(struct ieee8021qaz_unpkd_tlvs *rx)
