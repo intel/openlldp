@@ -186,7 +186,9 @@ lldpad Application Install
    lldpad will create the lldpad.conf file if it does not exist.
 
    For development purposes, 'lldpad' can be run directly from the build 
-   directory.
+   directory.  To run the unit tests associated with openlldpd, execute:
+
+     ./bootstrap.sh; ./configure; make check
 
 Options
 -------

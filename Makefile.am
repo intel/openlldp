@@ -1,6 +1,9 @@
 # target programs to be installed in ${sbindir}
 sbin_PROGRAMS = lldpad dcbtool lldptool vdptool
 
+check_PROGRAMS = lldp_clif_test
+TESTS = $(check_PROGRAMS)
+
 # package nltest and vdptest, but do not install it anywhere
 if BUILD_DEBUG
 noinst_PROGRAMS = nltest vdptest qbg22sim
@@ -142,3 +145,7 @@ bashcompletiondir = $(sysconfdir)/bash_completion.d
 dist_bashcompletion_DATA = contrib/bash_completion/lldpad contrib/bash_completion/lldptool
 
 AM_DISTCHECK_CONFIGURE_FLAGS = --enable-debug
+
+lldp_clif_test_SOURCES = test/lldp_clif_test.c lldp_basman_clif.c lldp_util.c \
+	lldp_rtnl.c
+lldp_clif_test_LDFLAGS = -lrt $(LIBNL_LIBS)
