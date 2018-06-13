@@ -31,7 +31,6 @@
 
 struct lldp_head lldp_cli_head;
 
-int hex2int(char *b);
 int clif_command(struct clif *clif, char *cmd, int raw);
 void print_raw_message(char *msg, int print);
 int parse_print_message(char *msg, int print);

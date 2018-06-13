@@ -119,6 +119,7 @@
 
 int hexstr2bin(const char *hex, u8 *buf, size_t len);
 int bin2hexstr(const u8 *hex, size_t hexlen, char *buf, size_t buflen);
+int hex2int(char *b);
 
 int is_valid_lldp_device(const char *ifname);
 int is_active(const char *ifname);

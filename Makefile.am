@@ -86,9 +86,11 @@ vdptool_LDADD = liblldp_clif.la
 vdptool_LDFLAGS = -llldp_clif $(LIBNL_LIBS)
 
 dcbtool_SOURCES = dcbtool.c dcbtool_cmds.c parse_cli.l \
-weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
+	weak_readline.c lldp_rtnl.c lldp_util.c \
+	$(lldpad_include_HEADERS) $(noinst_HEADERS)
+
 dcbtool_LDADD = liblldp_clif.la
-dcbtool_LDFLAGS = -ldl -llldp_clif
+dcbtool_LDFLAGS = -ldl -llldp_clif $(LIBNL_LIBS)
 
 lldptool_SOURCES = lldptool.c lldptool_cmds.c lldp_rtnl.c \
 		   lldp_mand_clif.c lldp_basman_clif.c lldp_med_clif.c \

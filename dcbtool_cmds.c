@@ -38,7 +38,6 @@
 
 static char *print_status(cmd_status status);
 static char *get_pgdesc_args(int cmd);
-static int hex2int(char *b);
 static void free_cmd_args(char *args);
 static char *get_dcb_args(void);
 static char *get_dcbx_args(void);
@@ -91,28 +90,6 @@ static char *print_status(cmd_status status)
 		break;
 	}
 	return str;
-}
-
-/* assumes input is pointer to two hex digits */
-/* returns -1 on error */
-static int hex2int(char *b)
-{
-	int i;
-	int n=0;
-	int m;
-	
-	for (i=0,m=1; i<2; i++,m--) {
-		if (isxdigit(*(b+i))) {
-			if (*(b+i) <= '9')
-				n |= (*(b+i) & 0x0f) << (4*m);
-			else
-				n |= ((*(b+i) & 0x0f) + 9) << (4*m);
-		}
-		else {
-			return -1;
-		}
-	}
-	return n;
 }
 
 static char *get_dcb_args(void)
