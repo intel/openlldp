@@ -1290,7 +1290,7 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 			obuf_len - strlen(obuf) - 2);
 		goto err;
 	}
-	if (sel < 1 || sel > 4) {
+	if (sel < 1 || sel > 5) {
 		strncat(obuf, ": selector out of range",
 			obuf_len - strlen(obuf) - 2);
 		goto err;
@@ -1302,6 +1302,11 @@ static int _set_arg_app(struct cmd *cmd, char *args, char *arg_value,
 	}
 	if (sel == 1 && (pid < 1536 && pid != 0)) {
 		strncat(obuf, ": Ethertype < 1536",
+			obuf_len - strlen(obuf) - 2);
+		goto err;
+	}
+	if (sel == 5 && pid > 63) {
+		strncat(obuf, ": DSCP > 63",
 			obuf_len - strlen(obuf) - 2);
 		goto err;
 	}
