@@ -816,6 +816,7 @@ static void ecp22_remove(struct ecp22 *ecp)
 	ecp22_removelist(&ecp->isfree.head);
 	ecp->isfree.freecnt = 0;
 	LIST_REMOVE(ecp, node);
+	l2_packet_deinit(ecp->l2);
 	free(ecp);
 }
 
