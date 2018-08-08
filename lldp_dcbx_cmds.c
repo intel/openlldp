@@ -259,8 +259,12 @@ static cmd_status set_dcb_state(char *port_id, char *ibuf, int ilen)
 
 	if (ilen == (off + CFG_DCB_DLEN)) {
 		state = (*(ibuf+off+DCB_STATE)) ^ '0';
-		set_hw_state(port_id, state);
-		rval = save_dcb_enable_state(port_id, state);
+
+		if(set_hw_state(port_id, state) < 0) {
+		    rval = cmd_not_capable;
+		} else {
+		    rval = save_dcb_enable_state(port_id, state);
+		}
 	} else {
 		printf("error - setcommand has invalid argument length\n");
 		rval = cmd_bad_params;
