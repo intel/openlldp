@@ -222,28 +222,6 @@ static void usage(void)
 		commands_usage, commands_options, commands_help);
 }
 
-/* assumes input is pointer to two hex digits */
-/* returns -1 on error */
-int hex2int(char *b)
-{
-	int i;
-	int n=0;
-	int m;
-
-	for (i=0,m=1; i<2; i++,m--) {
-		if (isxdigit(*(b+i))) {
-			if (*(b+i) <= '9')
-				n |= (*(b+i) & 0x0f) << (4*m);
-			else
-				n |= ((*(b+i) & 0x0f) + 9) << (4*m);
-		}
-		else {
-			return -1;
-		}
-	}
-	return n;
-}
-
 void print_raw_message(char *msg, int print)
 {
 	if (!print || !(print & SHOW_RAW))

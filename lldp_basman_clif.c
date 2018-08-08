@@ -272,8 +272,15 @@ void print_mng_addr(u16 len, char *info)
 		memset(buf, 0, sizeof(buf));
 		if (hexstr2bin(info+offset, (u8 *)&buf, oidlen))
 			printf("\tOID: Error parsing OID\n");
-		else
-			printf("\tOID: %s\n", buf);
+		else {
+			printf("\tOID: 0.");
+			for (i = 0; i < oidlen; ++i) {
+				printf("%d", buf[i]);
+				if (i != (oidlen - 1))
+					printf(".");
+			}
+			printf("\n");
+		}
 	} else if (oidlen > 128) {
 		printf("\tOID: Invalid length = %d\n", oidlen);
 	}
@@ -310,3 +317,10 @@ u32 basman_lookup_tlv_name(char *tlvid_str)
 	}
 	return INVALID_TLVID;
 }
+
+/* Local Variables:    */
+/* c-indent-level: 8   */
+/* c-basic-offset: 8   */
+/* tab-width: 8        */
+/* indent-tabs-mode: t */
+/* End:                */

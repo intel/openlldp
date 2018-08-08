@@ -24,6 +24,7 @@
 
 *******************************************************************************/
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -120,6 +121,28 @@ int hexstr2bin(const char *hex, u8 *buf, size_t len)
 		ipos += 2;
 	}
 	return 0;
+}
+
+/* assumes input is pointer to two hex digits */
+/* returns -1 on error */
+int hex2int(char *b)
+{
+	int i;
+	int n=0;
+	int m;
+
+	for (i=0,m=1; i<2; i++,m--) {
+		if (isxdigit(*(b+i))) {
+			if (*(b+i) <= '9')
+				n |= (*(b+i) & 0x0f) << (4*m);
+			else
+				n |= ((*(b+i) & 0x0f) + 9) << (4*m);
+		}
+		else {
+			return -1;
+		}
+	}
+	return n;
 }
 
 char *print_mac(char *mac, char *buf)

@@ -1,6 +1,9 @@
 # target programs to be installed in ${sbindir}
 sbin_PROGRAMS = lldpad dcbtool lldptool vdptool
 
+check_PROGRAMS = lldp_clif_test
+TESTS = $(check_PROGRAMS)
+
 # package nltest and vdptest, but do not install it anywhere
 if BUILD_DEBUG
 noinst_PROGRAMS = nltest vdptest qbg22sim
@@ -86,9 +89,11 @@ vdptool_LDADD = liblldp_clif.la
 vdptool_LDFLAGS = -llldp_clif $(LIBNL_LIBS)
 
 dcbtool_SOURCES = dcbtool.c dcbtool_cmds.c parse_cli.l \
-weak_readline.c $(lldpad_include_HEADERS) $(noinst_HEADERS)
+	weak_readline.c lldp_rtnl.c lldp_util.c \
+	$(lldpad_include_HEADERS) $(noinst_HEADERS)
+
 dcbtool_LDADD = liblldp_clif.la
-dcbtool_LDFLAGS = -ldl -llldp_clif
+dcbtool_LDFLAGS = -ldl -llldp_clif $(LIBNL_LIBS)
 
 lldptool_SOURCES = lldptool.c lldptool_cmds.c lldp_rtnl.c \
 		   lldp_mand_clif.c lldp_basman_clif.c lldp_med_clif.c \
@@ -140,3 +145,7 @@ bashcompletiondir = $(sysconfdir)/bash_completion.d
 dist_bashcompletion_DATA = contrib/bash_completion/lldpad contrib/bash_completion/lldptool
 
 AM_DISTCHECK_CONFIGURE_FLAGS = --enable-debug
+
+lldp_clif_test_SOURCES = test/lldp_clif_test.c lldp_basman_clif.c lldp_util.c \
+	lldp_rtnl.c
+lldp_clif_test_LDFLAGS = -lrt $(LIBNL_LIBS)
