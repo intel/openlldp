@@ -251,7 +251,7 @@ static void ieee8021qaz_print_pfc_tlv(UNUSED u16 len, char *info)
 
 static void ieee8021qaz_print_app_tlv(u16 len, char *info)
 {
-	u8 offset = 2;
+	u16 offset = 2;
 	u8 app;
 	u16 proto;
 
