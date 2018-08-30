@@ -1521,7 +1521,7 @@ static void vdp22br_process(struct vsi22 *p)
 	case VDP22_RESP_DEASSOC:
 		if (error > VDP22_STATUS_MASK)
 			p->status = VDP22_HARDBIT;
-		__attribute__ ((fallthrough));
+		/* fall through */
 	case VDP22_RESP_SUCCESS:
 rest:
 		p->status |= VDP22_ACKBIT | make_status(error);
