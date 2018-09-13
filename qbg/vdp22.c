@@ -455,10 +455,10 @@ static void copy_filter(unsigned char fif, struct fid22 *fp,
 		fp->grpid = from->gpid;
 		if (fif == VDP22_FFMT_GROUPVID)
 			goto vid;
-		/* fall through */
+		/* FALLTHROUGH */
 	case VDP22_FFMT_MACVID:
 		memcpy(fp->mac, from->mac, sizeof(fp->mac));
-		/* fall through */
+		/* FALLTHROUGH */
 	case VDP22_FFMT_VID:
 vid:
 		fp->vlan = vdp22_set_vlanid(from->vlan)
