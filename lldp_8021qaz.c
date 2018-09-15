@@ -213,7 +213,8 @@ bool read_cfg_file_willing(char *ifname, struct lldp_agent *agent, int tlv_type)
 	res = get_config_setting(ifname, agent->type, arg_path, &willing, 
 		CONFIG_TYPE_INT);
  	
-	return (res == 0 ? willing == 1 : true); 
+	/* willing is disabled by default */
+	return (res == 0 ? willing == 1 : false); 
 }
 
 static int read_cfg_file(char *ifname, struct lldp_agent *agent,
@@ -227,11 +228,11 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	if (agent->type != NEAREST_BRIDGE)
 		return 0;
 
-	/* Read ETS-CFG willing bit -- default willing enabled */
+	/* Read ETS-CFG willing bit -- default willing disabled */
 	tlvs->ets->cfgl->willing = read_cfg_file_willing(
 			ifname, agent, LLDP_8021QAZ_ETSCFG);
 
-	/* Read PFC willing bit -- default willing enabled */
+	/* Read PFC willing bit -- default willing disabled */
 	tlvs->pfc->local.willing = read_cfg_file_willing(
 			ifname, agent, LLDP_8021QAZ_PFC);
 
