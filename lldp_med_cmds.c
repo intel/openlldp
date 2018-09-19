@@ -303,7 +303,7 @@ static int _set_arg_med_devtype(struct cmd *cmd, char *argvalue,
 	case LLDP_MED_DEVTYPE_ENDPOINT_CLASS_III:
 	case LLDP_MED_DEVTYPE_ENDPOINT_CLASS_II:
 		tlv_enabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_NETWORK_POLICY);
-		__attribute__ ((fallthrough));
+		/* FALLTHROUGH */
 	case LLDP_MED_DEVTYPE_ENDPOINT_CLASS_I:
 	case LLDP_MED_DEVTYPE_NETWORK_CONNECTIVITY:
 		tlv_enabletx(cmd->ifname, cmd->type, (OUI_TIA_TR41 << 8) | LLDP_MED_RESERVED);

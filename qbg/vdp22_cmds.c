@@ -473,7 +473,7 @@ static bool vdp22_partial_vsi_equal(struct vsi22 *p1, struct vsi22 *p2,
 			if (memcmp(p1->mgrid, p2->mgrid,
 				   sizeof(p2->mgrid)))
 				return false;
-			__attribute__ ((fallthrough));
+			/* FALLTHROUGH */
 		case VSI_TYPEID_ARG:
 			if (p1->type_id != p2->type_id)
 				return false;
