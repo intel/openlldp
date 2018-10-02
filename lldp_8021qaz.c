@@ -223,7 +223,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	const char *arg = NULL;
 	char arg_path[256];
 	int res = 0, i;
-	int willing, pfc_mask, delay;
+	int pfc_mask, delay;
 
 	if (agent->type != NEAREST_BRIDGE)
 		return 0;
