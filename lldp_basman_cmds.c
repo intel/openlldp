@@ -51,6 +51,9 @@ static int test_arg_ipv6(struct cmd *, char *, char *, char *, int);
 static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
+static int get_arg_info(struct cmd *, char *, char *, char *, int);
+static int set_arg_info(struct cmd *, char *, char *, char *, int);
+static int test_arg_info(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
 	{	.arg = ARG_IPV4_ADDR, .arg_class = TLV_ARG,
@@ -65,6 +68,10 @@ static struct arg_handlers arg_handlers[] = {
 		.handle_get = get_arg_tlvtxenable,
 		.handle_set = set_arg_tlvtxenable,
 		.handle_test = test_arg_tlvtxenable },
+	{	.arg = ARG_TLVINFO, .arg_class = TLV_ARG,
+		.handle_get = get_arg_info,
+		.handle_set = set_arg_info,
+		.handle_test = test_arg_info },
 	{	.arg = 0 }
 };
 
@@ -164,6 +171,89 @@ static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 			       char *obuf, int obuf_len)
 {
 	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, true);
+}
+
+static int get_arg_info(struct cmd *cmd, char *arg, UNUSED char *argvalue,
+			char *obuf, int obuf_len)
+{
+	const char *info_str = NULL;
+	char arg_path[256];
+
+	if (cmd->cmd != cmd_gettlv)
+		return cmd_invalid;
+
+	switch (cmd->tlvid) {
+	case PORT_DESCRIPTION_TLV:
+	case SYSTEM_NAME_TLV:
+	case SYSTEM_DESCRIPTION_TLV:
+	case SYSTEM_CAPABILITIES_TLV:
+	case MANAGEMENT_ADDRESS_TLV:
+		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
+			 TLVID_PREFIX, cmd->tlvid, arg);
+
+		get_config_setting(cmd->ifname, cmd->type, arg_path,
+				   &info_str, CONFIG_TYPE_STRING);
+		break;
+	case INVALID_TLVID:
+		return cmd_invalid;
+	default:
+		return cmd_not_applicable;
+	}
+
+	if (info_str)
+		snprintf(obuf, obuf_len, "%02x%s%04x%s",
+			 (unsigned int)strlen(arg), arg,
+			 (unsigned int)strlen(info_str), info_str);
+
+	return cmd_success;
+}
+
+static int _set_arg_info(struct cmd *cmd, UNUSED char *arg, char *argvalue, 
+			 char *obuf, int obuf_len, bool test)
+{
+	if (cmd->cmd != cmd_settlv)
+		return cmd_invalid;
+
+	switch (cmd->tlvid) {
+	case PORT_DESCRIPTION_TLV:
+	case SYSTEM_NAME_TLV:
+	case SYSTEM_DESCRIPTION_TLV:
+	case SYSTEM_CAPABILITIES_TLV:
+	case MANAGEMENT_ADDRESS_TLV:
+		break;
+	case INVALID_TLVID:
+		return cmd_invalid;
+	default:
+		return cmd_not_applicable;
+	}
+
+        if (strlen(argvalue) < 1)
+		return cmd_invalid;
+
+	if (test)
+		return cmd_success;
+
+	if (set_config_tlvinfo_str(cmd->ifname, cmd->type, 
+				   cmd->tlvid, argvalue))
+		return cmd_failed;
+
+	snprintf(obuf, obuf_len, "enableTx = %s\n", argvalue);
+
+	somethingChangedLocal(cmd->ifname, cmd->type);
+
+	return cmd_success;
+}
+
+static int set_arg_info(struct cmd *cmd, char *arg, char *argvalue, 
+			char *obuf, int obuf_len)
+{
+	return _set_arg_info(cmd, arg, argvalue, obuf, obuf_len, false);
+}
+
+static int test_arg_info(struct cmd *cmd, char *arg, char *argvalue,
+			 char *obuf, int obuf_len)
+{
+	return _set_arg_info(cmd, arg, argvalue, obuf, obuf_len, true);
 }
 
 struct arg_handlers *basman_get_arg_handlers()
