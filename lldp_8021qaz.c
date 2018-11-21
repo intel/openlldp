@@ -50,6 +50,7 @@
 
 struct lldp_head lldp_head;
 struct config_t lldpad_cfg;
+extern bool passive_8021qaz;
 
 static int ieee8021qaz_check_pending(struct port *port, struct lldp_agent *);
 static void run_all_sm(struct port *port, struct lldp_agent *agent);
@@ -959,6 +960,9 @@ static int del_ieee_hw(const char *ifname, struct dcb_app *app_data)
 			   .dcb_pad = 0
 			  };
 
+	if (passive_8021qaz)
+		return 0;
+
 	nlsocket = nl_socket_alloc();
 	if (!nlsocket) {
 		LLDPAD_WARN("%s: %s: nl_handle_alloc failed\n",
@@ -1041,6 +1045,9 @@ static int set_ieee_hw(const char *ifname, struct ieee_ets *ets_data,
 			   .cmd = DCB_CMD_IEEE_SET,
 			   .dcb_pad = 0
 			  };
+
+	if (passive_8021qaz)
+		return 0;
 
 	nlsocket = nl_socket_alloc();
 	if (!nlsocket) {
