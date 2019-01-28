@@ -72,6 +72,7 @@ fi
 %{_sysconfdir}/bash_completion.d/lldptool
 %{_mandir}/man8/*
 %{_libdir}/liblldp_clif.*
+%{_mandir}/man3/liblldp_clif-vdp22.*
 
 %files devel
 %defattr(-,root,root,-)
