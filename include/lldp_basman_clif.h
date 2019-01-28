@@ -31,7 +31,7 @@ struct lldp_module *basman_cli_register(void);
 void basman_cli_unregister(struct lldp_module *);
 int basman_print_tlv(u32, u16, char *);
 
-#define ARG_IPV4_ADDR "ipv4"
-#define ARG_IPV6_ADDR "ipv6"
-
+#define ARG_IPV4_ADDR	"ipv4"
+#define ARG_IPV6_ADDR	"ipv6"
+#define ARG_TLVINFO	"info"
 #endif
