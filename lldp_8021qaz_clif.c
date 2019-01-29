@@ -251,39 +251,69 @@ static void ieee8021qaz_print_pfc_tlv(UNUSED u16 len, char *info)
 
 static void ieee8021qaz_print_app_tlv(u16 len, char *info)
 {
-	u16 offset = 2;
-	u8 app;
-	u16 proto;
+	u8 app, app_idx, app_prio, app_sel;
+	u16 proto, offset = 2;
+	u8 dscp[MAX_USER_PRIORITIES][MAX_APP_ENTRIES];
+	u8 dscp_count[MAX_USER_PRIORITIES] = {0};
+	u8 i, j;
+	bool first_app = true;
 
 	while (offset < len*2) {
 		hexstr2bin(info + offset, &app, 1);
 		hexstr2bin(info + offset + 2, (u8 *)&proto, 2);
 
-		if (offset > 6)
-			printf("\t");
-		printf("App#%i:\n", offset/6);
-		printf("\t Priority: %i\n", (app & 0xE0) >> 5);
-		printf("\t Sel: %i\n", app & 0x07);
-		switch (app & 0x07) {
-		case 1:
-			printf("\t Ethertype: 0x%04x\n", ntohs(proto));
-			break;
-		case 2:
-			printf("\t {S}TCP Port: %i\n", ntohs(proto));
-			break;
-		case 3:
-			printf("\t UDP or DCCP Port: %i\n", ntohs(proto));
-			break;
-		case 4:
-			printf("\t TCP/STCP/UDP/DCCP Port: %i\n", ntohs(proto));
-			break;
-		default:
-			printf("\t Reserved Port: %i\n", ntohs(proto));
-			break;
+		app_idx = offset/6;
+		app_prio = (app & 0xE0) >> 5;
+		app_sel = app & 0x07;
+
+		// Selector five is DSCP. Save value to print table at the end
+		if (app_sel == 5) {
+			dscp[app_prio][dscp_count[app_prio]] = ntohs(proto) & 0x3F;
+			dscp_count[app_prio]++;
+		} else {
+			if (first_app)
+				first_app = false;
+			else
+				printf("\t");
+			printf("App# %3i \t Prio %1i \t Sel %1i \t P-ID", 
+				app_idx, app_prio, app_sel);
+	
+			switch (app_sel) {
+			case 1:
+				printf("\t Ethertype: 0x%04x\n", ntohs(proto));
+				break;
+			case 2:
+				printf("\t {S}TCP Port: %i\n", ntohs(proto));
+				break;
+			case 3:
+				printf("\t UDP or DCCP Port: %i\n", ntohs(proto));
+				break;
+			case 4:
+				printf("\t TCP/STCP/UDP/DCCP Port: %i\n", ntohs(proto));
+				break;
+			default:
+				printf("\t Reserved Port: %i\n", ntohs(proto));
+				break;
+			}
 		}
 
-		printf("\n");
 		offset += 6;
+	}
+
+	for(i=0; i<MAX_USER_PRIORITIES; i++) {
+		if (dscp_count[i] == 0)
+			continue;
+
+		if (first_app)
+		        first_app = false;
+		else
+		        printf("\t");
+		printf("Prio:%i \t dscp: ", i);
+
+		for(j=0; j<dscp_count[i]; j++) {
+			printf(" %02i,", dscp[i][j]);
+		}
+		printf("\b \n");
 	}
 }
 
