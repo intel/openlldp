@@ -44,6 +44,9 @@
 #include "lldp/states.h"
 #include "lldp_util.h"
 #include "messages.h"
+#include "lldp_8021qaz.h"
+
+extern bool read_only_8021qaz;
 
 static int get_arg_adminstatus(struct cmd *, char *, char *, char *, int);
 static int set_arg_adminstatus(struct cmd *, char *, char *, char *, int);
@@ -595,6 +598,9 @@ int handle_test_arg(struct cmd *cmd, char *arg, char *argvalue,
 			continue;
 		if (!(ah = np->ops->get_arg_handler()))
 			continue;
+		/* 8021QAZ set operations not allowed in read-only mode */
+		if (np->id == LLDP_MOD_8021QAZ && read_only_8021qaz)
+			return cmd_no_access;
 		while (ah->arg) {
 			if (!strcasecmp(ah->arg, arg) && ah->handle_test) {
 				rval = ah->handle_test(cmd, ah->arg, argvalue,
@@ -625,6 +631,9 @@ int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
 			continue;
 		if (!(ah = np->ops->get_arg_handler()))
 			continue;
+		/* 8021QAZ set operations not allowed in read-only mode */
+		if (np->id == LLDP_MOD_8021QAZ && read_only_8021qaz)
+			return cmd_no_access;
 		while (ah->arg) {
 			if (!strcasecmp(ah->arg, arg) && ah->handle_set) {
 				rval = ah->handle_set(cmd, ah->arg, argvalue,
