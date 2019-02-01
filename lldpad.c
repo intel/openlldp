@@ -84,7 +84,7 @@ char *cfg_file_name = NULL;
 bool daemonize = 0;
 int loglvl = LOG_WARNING;
 int omit_tstamp;
-bool passive_8021qaz = false;
+bool read_only_8021qaz = false;
 
 static const char *lldpad_version =
 "lldpad v" VERSION_STR "\n"
@@ -138,7 +138,7 @@ static void usage(void)
 		"   -v  show version\n"
 		"   -f  use configfile instead of default\n"
 		"   -V  set syslog level\n"
-		"   -P  run in 8021qaz passive (read only) mode\n");
+		"   -R  run 8021qaz module in read_only mode\n");
 
 	exit(1);
 }
@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
 	int rc = 1;
 
 	for (;;) {
-		c = getopt(argc, argv, "hdksptvf:PV:");
+		c = getopt(argc, argv, "hdksptvf:RV:");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -261,8 +261,8 @@ int main(int argc, char *argv[])
 		case 'p':
 			pid_file = 0;
 			break;
-		case 'P':
-			passive_8021qaz = true;
+		case 'R':
+			read_only_8021qaz = true;
 			break;
 		case 't':
 			omit_tstamp = 1;
