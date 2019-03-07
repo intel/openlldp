@@ -561,7 +561,8 @@ int get_dcb_numtcs(const char *ifname, u8 *pgtcs, u8 *pfctcs)
 
 	seq = nlh->nlmsg_seq;
 
-	strncpy(name, ifname, sizeof(name));
+	strncpy(name, ifname, sizeof(name) - 1);
+	name[sizeof(name) - 1] = '\0';
 	add_rta(nlh, DCB_ATTR_IFNAME, (void *)name, strlen(name) + 1);
 	rta_parent = add_rta(nlh, DCB_ATTR_NUMTCS, NULL, 0);
 
