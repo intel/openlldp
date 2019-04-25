@@ -834,7 +834,7 @@ static struct vdp22 *vdp22_create(const char *ifname,
 			   ifname);
 		return NULL;
 	}
-	strncpy(vdp->ifname, ifname, sizeof vdp->ifname);
+	STRNCPY_TERMINATED(vdp->ifname, ifname, sizeof vdp->ifname);
 	vdp->myrole = role;
 	LIST_INIT(&vdp->vsi22_que);
 	LIST_INSERT_HEAD(&eud->head, vdp, node);

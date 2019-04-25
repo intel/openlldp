@@ -450,7 +450,7 @@ static void evb22_ifup(char *ifname, struct lldp_agent *agent)
 			   __func__, ifname, agent->type, sizeof *ed);
 		return;
 	}
-	strncpy(ed->ifname, ifname, IFNAMSIZ);
+	STRNCPY_TERMINATED(ed->ifname, ifname, IFNAMSIZ);
 	ed->agenttype = agent->type;
 	evb22_init_tlv(ed, agent);
 	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_EVB22);

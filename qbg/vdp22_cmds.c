@@ -577,7 +577,7 @@ static int get_arg_vsi(struct cmd *cmd, char *arg, char *argvalue,
 	memset(&vsi, 0, sizeof(vsi));
 	memset(vsi_str, 0, sizeof(vsi_str));
 	vsi.request = cmd->tlvid;
-	strncpy(vsi.ifname, cmd->ifname, sizeof(vsi.ifname) - 1);
+	strncpy(vsi.ifname, cmd->ifname, sizeof(vsi.ifname));
 	good_cmd = cmd_failed;
 	if ((cmd->ops & op_config) && (cmd->ops & op_arg)) {
 		memset(&mac, 0, sizeof(mac));

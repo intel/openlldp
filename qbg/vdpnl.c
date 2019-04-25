@@ -233,7 +233,7 @@ static int vdpnl_set(struct nlmsghdr *nlh, struct vdpnl_vsi *vsi)
 
 	vsi->ifindex = ifinfo->ifi_index;
 	if (tb[IFLA_IFNAME])
-		strncpy(vsi->ifname, (char *)RTA_DATA(tb[IFLA_IFNAME]),
+		STRNCPY_TERMINATED(vsi->ifname, (char *)RTA_DATA(tb[IFLA_IFNAME]),
 			sizeof vsi->ifname);
 	else {
 		if (!if_indextoname(ifinfo->ifi_index, vsi->ifname)) {

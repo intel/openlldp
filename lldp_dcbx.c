@@ -582,7 +582,7 @@ void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 	memset(manifest, 0, sizeof(*manifest));
 
 	tlvs->manifest = manifest;
-	strncpy(tlvs->ifname, ifname, IFNAMSIZ);
+	STRNCPY_TERMINATED(tlvs->ifname, ifname, IFNAMSIZ);
 	tlvs->port = port;
 	tlvs->dcbdu = 0;
 	tlvs->dcbx_st = gdcbx_subtype & MASK_DCBX_FORCE;

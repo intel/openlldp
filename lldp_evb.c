@@ -342,7 +342,7 @@ static void evb_ifup(char *ifname, struct lldp_agent *agent)
 			   __func__, ifname, agent->type, sizeof(*ed));
 		return;
 	}
-	strncpy(ed->ifname, ifname, IFNAMSIZ);
+	STRNCPY_TERMINATED(ed->ifname, ifname, IFNAMSIZ);
 	ed->agenttype = agent->type;
 
 	evb_init_tlv(ed, agent);

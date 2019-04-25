@@ -905,7 +905,7 @@ void med_ifup(char *ifname, struct lldp_agent *agent)
 		goto out_err;
 	}
 	memset(md, 0, sizeof(struct med_data));
-	strncpy(md->ifname, ifname, IFNAMSIZ);
+	STRNCPY_TERMINATED(md->ifname, ifname, IFNAMSIZ);
 	md->agenttype = agent->type;
 
 	if (med_bld_tlv(md, agent)) {

@@ -600,7 +600,7 @@ void mand_ifup(char *ifname, struct lldp_agent *agent)
 			return;
 		}
 		memset(md, 0, sizeof(struct mand_data));
-		strncpy(md->ifname, ifname, IFNAMSIZ);
+		STRNCPY_TERMINATED(md->ifname, ifname, IFNAMSIZ);
 		md->agenttype = agent->type;
 
 		mud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_MAND);

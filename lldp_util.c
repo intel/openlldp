@@ -366,7 +366,7 @@ int get_ifflags(const char *ifname)
 	fd = get_ioctl_socket();
 	if (fd >= 0) {
 		memset(&ifr, 0, sizeof(ifr));
-		strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+		STRNCPY_TERMINATED(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 		if (ioctl(fd, SIOCGIFFLAGS, &ifr) == 0)
 			flags = ifr.ifr_flags;
 	}
@@ -402,7 +402,7 @@ int get_ifpflags(const char *ifname)
 	fd = get_ioctl_socket();
 	if (fd >= 0) {
 		memset(&ifr, 0, sizeof(ifr));
-		strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+		STRNCPY_TERMINATED(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 		if (ioctl(fd, SIOCGIFPFLAGS, &ifr) == 0)
 			flags = ifr.ifr_flags;
 	}
@@ -486,7 +486,7 @@ int is_slave(const char *ifmaster, const char *ifslave)
 
 	memset(&ifr, 0, sizeof(ifr));
 	memset(&ifb, 0, sizeof(ifb));
-	strncpy(ifr.ifr_name, ifmaster, IFNAMSIZ);
+	STRNCPY_TERMINATED(ifr.ifr_name, ifmaster, IFNAMSIZ);
 	ifr.ifr_data = (caddr_t)&ifb;
 	if (ioctl(fd, SIOCBONDINFOQUERY, &ifr))
 		goto out_done;
@@ -516,7 +516,7 @@ int get_ifidx(const char *ifname)
 	fd = get_ioctl_socket();
 	if (fd >= 0) {
 		memset(&ifreq, 0, sizeof(ifreq));
-		strncpy(ifreq.ifr_name, ifname, IFNAMSIZ);
+		STRNCPY_TERMINATED(ifreq.ifr_name, ifname, IFNAMSIZ);
 		if (ioctl(fd, SIOCGIFINDEX, &ifreq) == 0)
 			idx = ifreq.ifr_ifindex;
 	}
@@ -588,7 +588,7 @@ int is_bridge(const char *ifname)
 						 (unsigned long) &bi, 0, 0 };
 
 			ifr.ifr_data = (char *)args;
-			strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+			STRNCPY_TERMINATED(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 			if (ioctl(fd, SIOCDEVPRIVATE, &ifr) == 0)
 				rc = 1;
 		}
@@ -626,7 +626,7 @@ int is_vlan(const char *ifname)
 	if (fd >= 0) {
 		memset(&ifv, 0, sizeof(ifv));
 		ifv.cmd = GET_VLAN_REALDEV_NAME_CMD;
-		strncpy(ifv.device1, ifname, sizeof(ifv.device1));
+		STRNCPY_TERMINATED(ifv.device1, ifname, sizeof(ifv.device1));
 		if (ioctl(fd, SIOCGIFVLAN, &ifv) == 0)
 			rc = 1;
 	}
@@ -653,7 +653,7 @@ int is_wlan(const char *ifname)
 	fd = get_ioctl_socket();
 	if (fd >= 0) {
 		memset(&iwreq, 0, sizeof(iwreq));
-		strncpy(iwreq.ifr_name, ifname, sizeof(iwreq.ifr_name));
+		STRNCPY_TERMINATED(iwreq.ifr_name, ifname, sizeof(iwreq.ifr_name));
 		if (ioctl(fd, SIOCGIWNAME, &iwreq) == 0)
 			rc = 1;
 	}
@@ -770,7 +770,7 @@ int is_active(const char *ifname)
 	fd = get_ioctl_socket();
 	if (fd >= 0) {
 		memset(&ifr, 0, sizeof(ifr));
-		strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+		STRNCPY_TERMINATED(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 		if (ioctl(fd, SIOCGIFFLAGS, &ifr) == 0)
 			if (ifr.ifr_flags & IFF_UP)
 				rc = 1;
@@ -791,7 +791,7 @@ int is_autoneg_supported(const char *ifname)
 		memset(&cmd, 0, sizeof(cmd));
 		cmd.cmd = ETHTOOL_GSET;
 		ifr.ifr_data = &cmd;
-		strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+		STRNCPY_TERMINATED(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 		if (ioctl(fd, SIOCETHTOOL, &ifr) == 0)
 			if (cmd.supported & SUPPORTED_Autoneg)
 				rc = 1;
@@ -812,7 +812,7 @@ int is_autoneg_enabled(const char *ifname)
 		memset(&cmd, 0, sizeof(cmd));
 		cmd.cmd = ETHTOOL_GSET;
 		ifr.ifr_data = &cmd;
-		strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+		STRNCPY_TERMINATED(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 		if (ioctl(fd, SIOCETHTOOL, &ifr) == 0)
 			rc = cmd.autoneg;
 	}
@@ -849,7 +849,7 @@ int get_maucaps(const char *ifname)
 		memset(&cmd, 0, sizeof(cmd));
 		cmd.cmd = ETHTOOL_GSET;
 		ifr.ifr_data = &cmd;
-		strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+		STRNCPY_TERMINATED(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 		if (ioctl(fd, SIOCETHTOOL, &ifr) == 0) {
 			if (cmd.advertising & ADVERTISED_10baseT_Half)
 				caps |= MAUCAPADV_b10baseT;
@@ -888,7 +888,7 @@ int get_mautype(const char *ifname)
 		memset(&cmd, 0, sizeof(cmd));
 		cmd.cmd = ETHTOOL_GSET;
 		ifr.ifr_data = &cmd;
-		strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+		STRNCPY_TERMINATED(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 		if (ioctl(fd, SIOCETHTOOL, &ifr) == 0) {
 			/* TODO: too many dot3MauTypes,
 			 * should check duplex, speed, and port */
@@ -915,7 +915,7 @@ int get_mtu(const char *ifname)
 	fd = get_ioctl_socket();
 	if (fd >= 0) {
 		memset(&ifr, 0, sizeof(ifr));
-		strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+		STRNCPY_TERMINATED(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 		if (ioctl(fd, SIOCGIFMTU, &ifr) == 0)
 			rc = ifr.ifr_mtu;
 	}
@@ -947,7 +947,7 @@ int get_mac(const char *ifname, u8 mac[])
 	fd = get_ioctl_socket();
 	if (fd >= 0) {
 		ifr.ifr_addr.sa_family = AF_INET;
-		strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+		STRNCPY_TERMINATED(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 		if (!ioctl(fd, SIOCGIFHWADDR, &ifr)) {
 			memcpy(mac, ifr.ifr_hwaddr.sa_data, 6);
 			rc = 0;
@@ -1014,7 +1014,7 @@ int get_saddr(const char *ifname, struct sockaddr_in *saddr)
 	fd = get_ioctl_socket();
 	if (fd >= 0) {
 		ifr.ifr_addr.sa_family = AF_INET;
-		strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+		STRNCPY_TERMINATED(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 		if (ioctl(fd, SIOCGIFADDR, &ifr) == 0) {
 			memcpy(saddr, &ifr.ifr_addr, sizeof(*saddr));
 			rc = 0;

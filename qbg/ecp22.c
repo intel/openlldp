@@ -749,7 +749,7 @@ static struct ecp22 *ecp22_create(char *ifname, struct ecp22_user_data *eud)
 			   ifname);
 		return NULL;
 	}
-	strncpy(ecp->ifname, ifname, sizeof ecp->ifname);
+	STRNCPY_TERMINATED(ecp->ifname, ifname, sizeof ecp->ifname);
 	ecp->l2 = l2_packet_init(ecp->ifname, 0, ETH_P_ECP22,
 				 ecp22_rx_receiveframe, ecp, 1);
 
