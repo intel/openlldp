@@ -447,7 +447,7 @@ void ieee8023_ifup(char *ifname, struct lldp_agent *agent)
 		goto out_err;
 	}
 	memset(bd, 0, sizeof(struct ieee8023_data));
-	strncpy(bd->ifname, ifname, IFNAMSIZ);
+	STRNCPY_TERMINATED(bd->ifname, ifname, IFNAMSIZ);
 	bd->agenttype = agent->type;
 
 	if (ieee8023_bld_tlv(bd, agent)) {

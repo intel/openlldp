@@ -77,7 +77,7 @@ static void event_if_decode_rta(int type, struct rtattr *rta, int *ls, char *d)
 		LLDPAD_DBG(" IFLA_BROADCAST\n");
 		break;
 	case IFLA_IFNAME:
-		strncpy(d, (char *)RTA_DATA(rta), IFNAMSIZ);
+		STRNCPY_TERMINATED(d, (char *)RTA_DATA(rta), IFNAMSIZ);
 		LLDPAD_DBG(" IFLA_IFNAME\n");
 		LLDPAD_DBG("        device name is %s\n", d);
 		break;

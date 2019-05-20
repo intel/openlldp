@@ -179,7 +179,7 @@ static char *get_oui_name(char *argvals)
 
 static void fill_oui_hdr(vdptool_oui_data_t *oui_data, char *oui_name)
 {
-	strncpy(oui_data->oui_name, oui_name, sizeof(oui_data->oui_name));
+	STRNCPY_TERMINATED(oui_data->oui_name, oui_name, sizeof(oui_data->oui_name));
 	snprintf(oui_data->data, sizeof(oui_data->data), "%02x%s",
 		 (unsigned int)strlen(oui_data->oui_name), oui_data->oui_name);
 }

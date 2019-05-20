@@ -51,6 +51,13 @@ typedef __u64 u64;
 		__x > __y ? __x : __y;	\
 	 })
 
+/* Use strncpy with N-1 and ensure the string is terminated.  */
+#define STRNCPY_TERMINATED(DEST, SRC, N) \
+  do { \
+    strncpy (DEST, SRC, N - 1); \
+    DEST[N - 1] = '\0'; \
+  } while (false)
+
 /*
  * Organizationally Unique Identifier (OUI)
  * http://standards.ieee.org/regauth/oui/oui.txt

@@ -75,7 +75,7 @@ void pg_insert(struct pghead *head, char *ifname, pg_attribs *store)
 	entry = (struct pg_store1 *)malloc(sizeof(struct pg_store1));
 	if (!entry)
 		return;
-	strncpy(entry->ifname, ifname, sizeof(entry->ifname));
+	STRNCPY_TERMINATED(entry->ifname, ifname, sizeof(entry->ifname));
 	entry->second = store;
 	LIST_INSERT_HEAD(head, entry, entries);
 }
@@ -1100,7 +1100,7 @@ int dcbx_remove_adapter(char *device_name)
 	assert(device_name);
 	not_default = memcmp(DEF_CFG_STORE, device_name,
 		strlen(DEF_CFG_STORE));
-	strncpy (devName, device_name, MAX_DEVICE_NAME_LEN);
+	STRNCPY_TERMINATED (devName, device_name, MAX_DEVICE_NAME_LEN);
 
 	if (not_default)
 		handle_opermode_true(device_name);
@@ -2274,9 +2274,7 @@ cmd_status get_bwg_descrpt(char *device_name, u8 bwgid, char **name)
 				sizeof(char);
 			*name = (char*)malloc(size);
 			if (*name != NULL) {
-				strncpy(*name,
-					attribs.descript.pgid_desc[bwgid],
-					size); /* Localization OK */
+				memcpy(*name, attribs.descript.pgid_desc[bwgid], size); /* Localization OK */
 			} else {
 				goto Error;
 			}

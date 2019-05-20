@@ -592,7 +592,7 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	memset(tlvs->rx, 0, sizeof(*tlvs->rx));
 
 	/* Initializing the ieee8021qaz_tlvs struct */
-	strncpy(tlvs->ifname, ifname, IFNAMSIZ);
+	STRNCPY_TERMINATED(tlvs->ifname, ifname, IFNAMSIZ);
 	tlvs->port = port;
 	tlvs->ieee8021qazdu = 0;
 	l2_packet_get_own_src_addr(port->l2, tlvs->local_mac);

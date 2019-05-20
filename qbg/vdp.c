@@ -1607,7 +1607,7 @@ void vdp_ifup(char *ifname, struct lldp_agent *agent)
 			 __func__, ifname, sizeof(*vd));
 		goto out_err;
 	}
-	strncpy(vd->ifname, ifname, IFNAMSIZ);
+	STRNCPY_TERMINATED(vd->ifname, ifname, IFNAMSIZ);
 
 	vd->role = VDP_ROLE_STATION;
 	vd->enabletx = enabletx;

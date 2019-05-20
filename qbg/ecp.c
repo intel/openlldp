@@ -795,7 +795,7 @@ int ecp_init(char *ifname)
 			   __func__, ifname);
 		return -1;
 	}
-	strncpy(vd->ecp.ifname, ifname, sizeof vd->ecp.ifname);
+	STRNCPY_TERMINATED(vd->ecp.ifname, ifname, sizeof vd->ecp.ifname);
 	ecp_rx_change_state(vd, ECP_RX_IDLE);
 	ecp_rx_run_sm(vd);
 	ecp_somethingChangedLocal(vd, true);

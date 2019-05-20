@@ -169,7 +169,7 @@ struct l2_packet_data * l2_packet_init(
 	if (l2 == NULL)
 		return NULL;
 	memset(l2, 0, sizeof(*l2));
-	strncpy(l2->ifname, ifname, sizeof(l2->ifname));
+	STRNCPY_TERMINATED(l2->ifname, ifname, sizeof(l2->ifname));
 	l2->rx_callback = rx_callback;
 	l2->rx_callback_ctx = rx_callback_ctx;
 	l2->l2_hdr = l2_hdr;
@@ -183,7 +183,7 @@ struct l2_packet_data * l2_packet_init(
 		return NULL;
 	}
 
-	strncpy(ifr.ifr_name, l2->ifname, sizeof(ifr.ifr_name));
+	STRNCPY_TERMINATED(ifr.ifr_name, l2->ifname, sizeof(ifr.ifr_name));
 	if (ioctl(l2->fd, SIOCGIFINDEX, &ifr) < 0) {
 		perror("ioctl[SIOCGIFINDEX]");
 		close(l2->fd);

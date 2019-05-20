@@ -679,7 +679,7 @@ void basman_ifup(char *ifname, struct lldp_agent *agent)
 		goto out_err;
 	}
 	memset(bd, 0, sizeof(struct basman_data));
-	strncpy(bd->ifname, ifname, IFNAMSIZ);
+	STRNCPY_TERMINATED(bd->ifname, ifname, IFNAMSIZ);
 	bd->agenttype = agent->type;
 
 	if (basman_bld_tlv(bd, agent)) {
