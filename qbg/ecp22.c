@@ -782,6 +782,10 @@ void ecp22_start(char *ifname)
 	ecp = find_ecpdata(ifname, eud);
 	if (!ecp)
 		ecp = ecp22_create(ifname, eud);
+	if (!ecp) {
+		LLDPAD_DBG("%s:%s failed creating ECP22 instance\n", __func__, ifname);
+		return;
+	}
 	ecp->max_retries = ECP22_MAX_RETRIES_DEFAULT;
 	ecp->max_rte = ECP22_ACK_TIMER_DEFAULT;
 	LIST_INIT(&ecp->inuse.head);
