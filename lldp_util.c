@@ -1055,9 +1055,11 @@ int get_saddr6(const char *ifname, struct sockaddr_in6 *saddr)
 
 	rc = getifaddrs(&ifaddr);
 	if (rc == 0) {
+		rc = -1;
 		for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-			if ((ifa->ifa_addr->sa_family == AF_INET6) &&
-			    (strncmp(ifa->ifa_name, ifname, IFNAMSIZ) == 0)) {
+			if (strncmp(ifa->ifa_name, ifname, IFNAMSIZ))
+				continue;
+			if (ifa->ifa_addr && (ifa->ifa_addr->sa_family == AF_INET6)) {
 				memcpy(saddr, ifa->ifa_addr, sizeof(*saddr));
 				rc = 0;
 				break;
