@@ -225,7 +225,7 @@ int evb22_conf_enabletx(char *ifname, enum agent_type type)
 				TLVID(OUI_IEEE_8021Qbg22, LLDP_EVB22_SUBTYPE));
 }
 
-static int evb22_cmdok(struct cmd *cmd, cmd_status expected)
+static int evb22_cmdok(struct cmd *cmd, int expected)
 {
 	if (cmd->cmd != expected)
 		return cmd_invalid;

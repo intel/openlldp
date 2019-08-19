@@ -296,7 +296,7 @@ int vdp22_sendevent(struct vdpnl_vsi *p)
 	return 0;
 }
 
-static int vdp22_cmdok(struct cmd *cmd, cmd_status expected)
+static int vdp22_cmdok(struct cmd *cmd, int expected)
 {
 	if (cmd->cmd != expected)
 		return cmd_invalid;

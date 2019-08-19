@@ -85,7 +85,7 @@ static char *print_mode(char *s, size_t length, struct vsi_profile *p)
 	return s;
 }
 
-static int vdp_cmdok(struct cmd *cmd, cmd_status expected)
+static int vdp_cmdok(struct cmd *cmd, int expected)
 {
 	if (cmd->cmd != expected)
 		return cmd_invalid;

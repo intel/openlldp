@@ -163,7 +163,7 @@ int evb_conf_enabletx(char *ifname, enum agent_type type)
 	return is_tlv_txenabled(ifname, type, TLVID_8021Qbg(LLDP_EVB_SUBTYPE));
 }
 
-static int evb_cmdok(struct cmd *cmd, cmd_status expected)
+static int evb_cmdok(struct cmd *cmd, int expected)
 {
 	if (cmd->cmd != expected)
 		return cmd_invalid;

@@ -141,7 +141,7 @@ static char *print_status(cmd_status status)
 		str = "TLV does not support agent type";
 		break;
 	default:
-		str = print_vdp_status(status);
+		str = print_vdp_status((enum vdp22_cmd_status)status);
 		break;
 	}
 	return str;
