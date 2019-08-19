@@ -1882,7 +1882,7 @@ int vdp_trigger(struct vsi_profile *profile)
 	if (!macp->req_pid)
 		return 0;
 	sleep(1);		/* Delay message notification */
-	if (!profile->port || !profile->port->ifname) {
+	if (!profile->port || !profile->port->ifname[0]) {
 		LLDPAD_ERR("%s: no ifname found for profile %p:\n", __func__,
 			   profile);
 		goto error_exit;
