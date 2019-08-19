@@ -304,9 +304,9 @@ static size_t vdp_nllen(void)
 	size_t needed;
 
 	needed = nla_total_size(sizeof(struct nlattr)) /* IFLA_VF_PORT */
-		+ nla_total_size(4);	/* IFLA_PORT_VF */
-		+ nla_total_size(PORT_UUID_MAX); /* IFLA_PORT_INSTANCE_UUID */
-		+ nla_total_size(2);	/* IFLA_PORT_RESPONSE */
+		+ nla_total_size(4) /* IFLA_PORT_VF */
+		+ nla_total_size(PORT_UUID_MAX) /* IFLA_PORT_INSTANCE_UUID */
+		+ nla_total_size(2); /* IFLA_PORT_RESPONSE */
 	return needed;
 }
 
