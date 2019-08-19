@@ -879,7 +879,7 @@ static bool vdp_vsi_set_bridge_state(struct vsi_profile *profile)
 {
 	switch(profile->state) {
 	case VSI_UNASSOCIATED:
-		if ((profile->mode == VDP_MODE_DEASSOCIATE)) /* || (INACTIVE)) */ {
+		if (profile->mode == VDP_MODE_DEASSOCIATE) {
 			vdp_vsi_change_bridge_state(profile, VSI_DEASSOC_PROCESSING);
 			return true;
 		} else if (profile->mode == VDP_MODE_ASSOCIATE) {
