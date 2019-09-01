@@ -2,7 +2,7 @@ language: c
 before_install: sudo apt-get update
 install: sudo apt-get install -y libconfig-dev libnl-3-dev rpm
 before_script: ./bootstrap.sh
-script: ./configure && make && make test && sudo make install && ./contrib/build-rpm.sh
+script: ./contrib/build-rpm.sh && ./configure && make && make test && sudo make install && rpmbuild -ba lldpad.spec
 
 matrix:
   include:
