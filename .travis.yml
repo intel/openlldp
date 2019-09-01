@@ -2,3 +2,9 @@ language: c
 before_install: sudo apt-get update
 install: sudo apt-get install -y libconfig-dev libnl-3-dev
 before_script: ./bootstrap.sh
+
+matrix:
+  include:
+    - dist: precise
+    - dist: xenial
+    - dist: bionic
