@@ -2,6 +2,7 @@ language: c
 before_install: sudo apt-get update
 install: sudo apt-get install -y libconfig-dev libnl-3-dev
 before_script: ./bootstrap.sh
+script: ./configure && make && make test && sudo make install
 
 matrix:
   include:
