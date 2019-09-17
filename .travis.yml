@@ -1,4 +1,5 @@
 language: c
+dist: xenial
 #before_install: sudo apt-get update
 install: sudo apt-get install -y libconfig-dev libnl-3-dev rpm
 before_script: ./bootstrap.sh
@@ -6,6 +7,43 @@ script: ./contrib/build-rpm.sh && ./configure && make && make test && sudo make 
 
 matrix:
   include:
-    - dist: precise
-    - dist: xenial
-    - dist: bionic
+    - addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-4.8
+      env:
+        - CC="gcc-4.8"
+    - addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-5
+      env:
+        - CC="gcc-5"
+    - addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-7
+      env:
+        - CC="gcc-7"
+    - addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-8
+      env:
+        - CC="gcc-8"
+    - addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-9
+      env:
+        - CC="gcc-9"
