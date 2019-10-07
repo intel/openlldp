@@ -801,17 +801,6 @@ int set_hw_app(char *ifname, appgroup_attribs *app_data)
 	return(recv_msg(DCB_CMD_SAPP, DCB_ATTR_APP, seq));
 }
 
-int run_cmd(char *cmd, ...)
-{
-	char cbuf[128];
-	va_list args;
-
-	va_start(args, cmd);
-	vsprintf(cbuf, cmd, args);
-	va_end(args);
-	return system(cbuf);
-}
-
 int set_hw_all(char *ifname)
 {
 	struct nlmsghdr *nlh;
