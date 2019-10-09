@@ -939,21 +939,58 @@ int get_mfs(const char *ifname)
 
 int get_mac(const char *ifname, u8 mac[])
 {
-	int fd;
-	int rc = EINVAL;
-	struct ifreq ifr;
+	int ret, s;
+	struct nlmsghdr *nlh;
+	struct ifinfomsg *ifinfo;
+	struct nlattr *tb[IFLA_MAX+1];
 
-	memset(mac, 0, 6);
-	fd = get_ioctl_socket();
-	if (fd >= 0) {
-		ifr.ifr_addr.sa_family = AF_INET;
-		STRNCPY_TERMINATED(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
-		if (!ioctl(fd, SIOCGIFHWADDR, &ifr)) {
-			memcpy(mac, ifr.ifr_hwaddr.sa_data, 6);
-			rc = 0;
-		}
+	s = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
+
+	if (s < 0) {
+		goto out;
 	}
-	return rc;
+
+	nlh = malloc(NLMSG_SIZE);
+
+	if (!nlh) {
+		goto out;
+	}
+
+	memset(nlh, 0, NLMSG_SIZE);
+
+	nlh->nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
+	nlh->nlmsg_type = RTM_GETLINK;
+	nlh->nlmsg_flags = NLM_F_REQUEST;
+
+	ifinfo = NLMSG_DATA(nlh);
+	ifinfo->ifi_family = AF_UNSPEC;
+	ifinfo->ifi_index = get_ifidx(ifname);
+
+	ret = send(s, nlh, nlh->nlmsg_len, 0);
+
+	if (ret < 0) {
+		goto out_free;
+	}
+
+	memset(nlh, 0, NLMSG_SIZE);
+
+	do {
+		ret = recv(s, (void *) nlh, NLMSG_SIZE, MSG_DONTWAIT);
+	} while ((ret < 0) && errno == EINTR);
+
+	if (nlmsg_parse(nlh, sizeof(struct ifinfomsg),
+			(struct nlattr **)&tb, IFLA_MAX, NULL)) {
+		goto out_free;
+	}
+
+	if (tb[IFLA_ADDRESS])
+		memcpy(mac, (char*)(RTA_DATA(tb[IFLA_ADDRESS])), 6);
+
+out_free:
+	free(nlh);
+out:
+	close(s);
+	return 0;
 }
 
 u16 get_caps(const char *ifname)
