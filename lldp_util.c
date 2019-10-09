@@ -666,6 +666,8 @@ static struct nla_policy ifla_info_policy[IFLA_INFO_MAX + 1] =
 {
   [IFLA_INFO_KIND]       = { .type = NLA_STRING},
   [IFLA_INFO_DATA]       = { .type = NLA_NESTED },
+  [IFLA_INFO_SLAVE_KIND] = { .type = NLA_STRING},
+  [IFLA_INFO_SLAVE_DATA] = { .type = NLA_NESTED },
 };
 
 int is_macvtap(const char *ifname)
@@ -937,12 +939,13 @@ int get_mfs(const char *ifname)
 	return mfs;
 }
 
-int get_mac(const char *ifname, u8 mac[])
+int get_mac(const char *ifname, u8 mac[], bool perm_mac)
 {
 	int ret, s;
 	struct nlmsghdr *nlh;
 	struct ifinfomsg *ifinfo;
-	struct nlattr *tb[IFLA_MAX+1];
+	struct nlattr *tb[IFLA_MAX+1],
+		*tb2[IFLA_INFO_MAX+1];
 
 	s = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
 
@@ -985,6 +988,30 @@ int get_mac(const char *ifname, u8 mac[])
 
 	if (tb[IFLA_ADDRESS])
 		memcpy(mac, (char*)(RTA_DATA(tb[IFLA_ADDRESS])), 6);
+
+	/* Check for the permanent mac address on bonding slaves */
+	if (perm_mac && tb[IFLA_LINKINFO]) {
+		char *kind;
+		struct nlattr *tb3;
+		int off = 0;
+
+		if (nla_parse_nested(tb2, IFLA_INFO_MAX, tb[IFLA_LINKINFO],
+				     ifla_info_policy)) {
+			goto out_free;
+		}
+		if (!tb2[IFLA_INFO_SLAVE_KIND])
+			goto out_free;
+
+		kind = (char*)(RTA_DATA(tb2[IFLA_INFO_SLAVE_KIND]));
+		if (strcmp(kind, "bond") && !tb2[IFLA_INFO_SLAVE_DATA])
+			goto out_free;
+
+		nla_for_each_nested(tb3, tb2[IFLA_INFO_SLAVE_DATA], off) {
+			if (nla_type(tb3) == IFLA_BOND_SLAVE_PERM_HWADDR) {
+				memcpy(mac, nla_data(tb3), nla_len(tb3));
+			}
+		}
+	}
 
 out_free:
 	free(nlh);
@@ -1133,7 +1160,7 @@ int get_addr(const char *ifname, int domain, void *buf)
 	else if (domain == AF_INET6)
 		return get_ipaddr6(ifname, (struct in6_addr *)buf);
 	else if (domain == AF_UNSPEC)
-		return get_mac(ifname, (u8 *)buf);
+		return get_mac(ifname, (u8 *)buf, false);
 	else
 		return -1;
 }

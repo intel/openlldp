@@ -100,7 +100,7 @@ static int mand_bld_end_tlv(struct mand_data *md)
 static int mand_bld_mac_chassis(struct mand_data *md,
 				struct tlv_info_chassis *chassis)
 {
-	get_mac(md->ifname, chassis->id.mac);
+	get_mac(md->ifname, chassis->id.mac, false);
 	if (is_valid_mac(chassis->id.mac))
 		chassis->sub = CHASSIS_ID_MAC_ADDRESS;
 	return sizeof(chassis->id.mac) + sizeof(chassis->sub);
@@ -365,7 +365,7 @@ static int mand_bld_portid_tlv(struct mand_data *md, struct lldp_agent *agent)
 	switch (subtype) {
 	default:
 	case PORT_ID_MAC_ADDRESS:
-		get_mac(md->ifname, portid.id.mac);
+		get_mac(md->ifname, portid.id.mac, true);
 		if (is_valid_mac(portid.id.mac)) {
 			portid.sub = PORT_ID_MAC_ADDRESS;
 			length = sizeof(portid.id.mac) +

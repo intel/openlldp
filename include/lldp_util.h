@@ -150,7 +150,7 @@ int get_mautype(const char *);
 int get_ifpflags(const char *);
 int get_iftype(const char *);
 int get_src_mac_from_bond(struct port *bond_port, char *ifname, u8 *addr);
-int get_mac(const char *ifname, u8 mac[]);
+int get_mac(const char *ifname, u8 mac[], bool perm_mac);
 int get_saddr(const char *ifname, struct sockaddr_in *saddr);
 int get_ipaddr(const char *ifname, struct in_addr *);
 int get_ipaddrstr(const char *ifname, char *ipaddr, size_t size);
