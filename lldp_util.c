@@ -956,20 +956,6 @@ int get_mac(const char *ifname, u8 mac[])
 	return rc;
 }
 
-int get_macstr(const char *ifname, char *addr, size_t size)
-{
-	u8 mac[6];
-	int rc;
-
-	rc = get_mac(ifname, mac);
-	if (rc == 0) {
-		snprintf(addr, size, "%02x:%02x:%02x:%02x:%02x:%02x",
-			mac[0], mac[1],	mac[2],	mac[3],	mac[4],	mac[5]);
-	}
-	return rc;
-}
-
-
 u16 get_caps(const char *ifname)
 {
 	u16 caps = 0;
