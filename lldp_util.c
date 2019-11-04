@@ -666,6 +666,8 @@ static struct nla_policy ifla_info_policy[IFLA_INFO_MAX + 1] =
 {
   [IFLA_INFO_KIND]       = { .type = NLA_STRING},
   [IFLA_INFO_DATA]       = { .type = NLA_NESTED },
+  [IFLA_INFO_SLAVE_KIND] = { .type = NLA_STRING},
+  [IFLA_INFO_SLAVE_DATA] = { .type = NLA_NESTED },
 };
 
 int is_macvtap(const char *ifname)
@@ -937,38 +939,86 @@ int get_mfs(const char *ifname)
 	return mfs;
 }
 
-int get_mac(const char *ifname, u8 mac[])
+int get_mac(const char *ifname, u8 mac[], bool perm_mac)
 {
-	int fd;
-	int rc = EINVAL;
-	struct ifreq ifr;
+	int ret, s;
+	struct nlmsghdr *nlh;
+	struct ifinfomsg *ifinfo;
+	struct nlattr *tb[IFLA_MAX+1],
+		*tb2[IFLA_INFO_MAX+1];
 
-	memset(mac, 0, 6);
-	fd = get_ioctl_socket();
-	if (fd >= 0) {
-		ifr.ifr_addr.sa_family = AF_INET;
-		STRNCPY_TERMINATED(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
-		if (!ioctl(fd, SIOCGIFHWADDR, &ifr)) {
-			memcpy(mac, ifr.ifr_hwaddr.sa_data, 6);
-			rc = 0;
+	s = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
+
+	if (s < 0) {
+		goto out;
+	}
+
+	nlh = malloc(NLMSG_SIZE);
+
+	if (!nlh) {
+		goto out;
+	}
+
+	memset(nlh, 0, NLMSG_SIZE);
+
+	nlh->nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
+	nlh->nlmsg_type = RTM_GETLINK;
+	nlh->nlmsg_flags = NLM_F_REQUEST;
+
+	ifinfo = NLMSG_DATA(nlh);
+	ifinfo->ifi_family = AF_UNSPEC;
+	ifinfo->ifi_index = get_ifidx(ifname);
+
+	ret = send(s, nlh, nlh->nlmsg_len, 0);
+
+	if (ret < 0) {
+		goto out_free;
+	}
+
+	memset(nlh, 0, NLMSG_SIZE);
+
+	do {
+		ret = recv(s, (void *) nlh, NLMSG_SIZE, MSG_DONTWAIT);
+	} while ((ret < 0) && errno == EINTR);
+
+	if (nlmsg_parse(nlh, sizeof(struct ifinfomsg),
+			(struct nlattr **)&tb, IFLA_MAX, NULL)) {
+		goto out_free;
+	}
+
+	if (tb[IFLA_ADDRESS])
+		memcpy(mac, (char*)(RTA_DATA(tb[IFLA_ADDRESS])), 6);
+
+	/* Check for the permanent mac address on bonding slaves */
+	if (perm_mac && tb[IFLA_LINKINFO]) {
+		char *kind;
+		struct nlattr *tb3;
+		int off = 0;
+
+		if (nla_parse_nested(tb2, IFLA_INFO_MAX, tb[IFLA_LINKINFO],
+				     ifla_info_policy)) {
+			goto out_free;
+		}
+		if (!tb2[IFLA_INFO_SLAVE_KIND])
+			goto out_free;
+
+		kind = (char*)(RTA_DATA(tb2[IFLA_INFO_SLAVE_KIND]));
+		if (strcmp(kind, "bond") && !tb2[IFLA_INFO_SLAVE_DATA])
+			goto out_free;
+
+		nla_for_each_nested(tb3, tb2[IFLA_INFO_SLAVE_DATA], off) {
+			if (nla_type(tb3) == IFLA_BOND_SLAVE_PERM_HWADDR) {
+				memcpy(mac, nla_data(tb3), nla_len(tb3));
+			}
 		}
 	}
-	return rc;
+
+out_free:
+	free(nlh);
+out:
+	close(s);
+	return 0;
 }
-
-int get_macstr(const char *ifname, char *addr, size_t size)
-{
-	u8 mac[6];
-	int rc;
-
-	rc = get_mac(ifname, mac);
-	if (rc == 0) {
-		snprintf(addr, size, "%02x:%02x:%02x:%02x:%02x:%02x",
-			mac[0], mac[1],	mac[2],	mac[3],	mac[4],	mac[5]);
-	}
-	return rc;
-}
-
 
 u16 get_caps(const char *ifname)
 {
@@ -1110,7 +1160,7 @@ int get_addr(const char *ifname, int domain, void *buf)
 	else if (domain == AF_INET6)
 		return get_ipaddr6(ifname, (struct in6_addr *)buf);
 	else if (domain == AF_UNSPEC)
-		return get_mac(ifname, (u8 *)buf);
+		return get_mac(ifname, (u8 *)buf, false);
 	else
 		return -1;
 }
