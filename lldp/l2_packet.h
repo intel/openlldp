@@ -37,7 +37,9 @@
 #define IP2STR(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
 #define IPSTR "%02x:%02x:%02x:%02x:%02x:%02x"
 
+#ifndef ETH_P_LLDP
 #define ETH_P_LLDP 0x88cc
+#endif
 
 #define ETH_P_ECP	0x88b7		/* Draft 0.2 */
 #define ETH_P_ECP22	0x8940		/* Ratified standard */
