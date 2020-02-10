@@ -194,6 +194,8 @@ int dcbx_bld_tlv(struct port *newport, struct lldp_agent *agent)
 		return 0;
 
 	tlvs = dcbx_data(newport->ifname);
+	if (!tlvs)
+		return 0;
 
 	get_config_setting(newport->ifname, agent->type, ARG_ADMINSTATUS,
 			  &adminstatus, CONFIG_TYPE_INT);
