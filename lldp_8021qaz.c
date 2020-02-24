@@ -204,37 +204,36 @@ static void set_ets_tsa_map(const char *arg, u8 *tsa_map)
 	free(argcpy);
 }
 
-bool read_cfg_file_willing(char *ifname, struct lldp_agent *agent, int tlv_type)
-{
-	char arg_path[256];
-	int res, willing = 0;
-
-	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX, 
-		TLVID_8021(tlv_type), ARG_WILLING);
-	res = get_config_setting(ifname, agent->type, arg_path, &willing, 
-		CONFIG_TYPE_INT);
- 	
-	return (res == 0 ? willing == 1 : true); 
-}
-
 static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 			 struct ieee8021qaz_tlvs *tlvs)
 {
 	const char *arg = NULL;
 	char arg_path[256];
 	int res = 0, i;
-	int pfc_mask, delay;
+	int willing, pfc_mask, delay;
 
 	if (agent->type != NEAREST_BRIDGE)
 		return 0;
 
 	/* Read ETS-CFG willing bit -- default willing enabled */
-	tlvs->ets->cfgl->willing = read_cfg_file_willing(
-			ifname, agent, LLDP_8021QAZ_ETSCFG);
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
+		 TLVID_8021(LLDP_8021QAZ_ETSCFG), ARG_WILLING);
+	res = get_config_setting(ifname, agent->type, arg_path, &willing,
+				 CONFIG_TYPE_INT);
+	if (!res)
+		tlvs->ets->cfgl->willing = !!willing;
+	else
+		tlvs->ets->cfgl->willing = 1;
 
 	/* Read PFC willing bit -- default willing enabled */
-	tlvs->pfc->local.willing = read_cfg_file_willing(
-			ifname, agent, LLDP_8021QAZ_PFC);
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
+		 TLVID_8021(LLDP_8021QAZ_PFC), ARG_WILLING);
+	res = get_config_setting(ifname, agent->type, arg_path, &willing,
+				 CONFIG_TYPE_INT);
+	if (!res)
+		tlvs->pfc->local.willing = !!willing;
+	else
+		tlvs->pfc->local.willing = 1;
 
 	/* Read and parse ETS-CFG priority map --
 	 * default all priorities TC0
@@ -1186,10 +1185,9 @@ static void ets_rec_to_ieee(struct ieee_ets *ieee, struct etsrec_obj *rec)
 void run_all_sm(struct port *port, struct lldp_agent *agent)
 {
 	struct ieee8021qaz_tlvs *tlvs;
-	struct ieee_ets *ets = NULL;
-	struct ieee_pfc *pfc = NULL;
+	struct ieee_ets *ets;
+	struct ieee_pfc *pfc;
 	struct pfc_obj *pfc_obj;
-	bool willing;
 
 	if (agent->type != NEAREST_BRIDGE)
 		return;
@@ -1200,49 +1198,39 @@ void run_all_sm(struct port *port, struct lldp_agent *agent)
 
 	ets_sm(tlvs->ets->cfgl, tlvs->ets->recr, &tlvs->ets->current_state);
 
-	willing = read_cfg_file_willing(port->ifname, agent, 
-					LLDP_8021QAZ_ETSCFG);
-
-	if(willing) {
-		ets = malloc(sizeof(*ets));
-		if (!ets) {
-			LLDPAD_WARN("%s: %s: ets malloc failed\n",
-				    __func__, port->ifname);
-			return;
-		}
-	
-		memset(ets, 0, sizeof(*ets));
-	
-		if (tlvs->ets->current_state == RX_RECOMMEND)
-			ets_rec_to_ieee(ets, tlvs->ets->recr);
-		else
-			ets_cfg_to_ieee(ets, tlvs->ets->cfgl);
+	ets = malloc(sizeof(*ets));
+	if (!ets) {
+		LLDPAD_WARN("%s: %s: ets malloc failed\n",
+			    __func__, port->ifname);
+		return;
 	}
+
+	memset(ets, 0, sizeof(*ets));
+
+	if (tlvs->ets->current_state == RX_RECOMMEND)
+		ets_rec_to_ieee(ets, tlvs->ets->recr);
+	else
+		ets_cfg_to_ieee(ets, tlvs->ets->cfgl);
 
 	pfc_sm(tlvs);
 
-	willing = read_cfg_file_willing(port->ifname, agent,
-					LLDP_8021QAZ_PFC);
+	if (tlvs->pfc->current_state == RX_RECOMMEND)
+		pfc_obj = &tlvs->pfc->remote;
+	else
+		pfc_obj = &tlvs->pfc->local;
 
-	if(willing) {
-		if (tlvs->pfc->current_state == RX_RECOMMEND)
-			pfc_obj = &tlvs->pfc->remote;
-		else
-			pfc_obj = &tlvs->pfc->local;
-	
-		pfc = malloc(sizeof(*pfc));
-		if (!pfc) {
-			LLDPAD_WARN("%s: %s: pfc malloc failed\n",
-				    __func__, port->ifname);
-			goto out;
-		}
-	
-		memset(pfc, 0, sizeof(*pfc));
-	
-		pfc->pfc_en = pfc_obj->pfc_enable;
-		pfc->mbc = pfc_obj->mbc;
-		pfc->delay = pfc_obj->delay;
+	pfc = malloc(sizeof(*pfc));
+	if (!pfc) {
+		LLDPAD_WARN("%s: %s: pfc malloc failed\n",
+			    __func__, port->ifname);
+		goto out;
 	}
+
+	memset(pfc, 0, sizeof(*pfc));
+
+	pfc->pfc_en = pfc_obj->pfc_enable;
+	pfc->mbc = pfc_obj->mbc;
+	pfc->delay = pfc_obj->delay;
 
 	if (ieee8021qaz_check_active(port->ifname)) {
 		set_dcbx_mode(port->ifname,
