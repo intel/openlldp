@@ -703,7 +703,7 @@ static int _set_persistent(char *device_name, int dcb_enable,
 	return 0;
 
 set_error:
-	LLDPAD_ERR("update of config file %s failed for %s",
+	LLDPAD_ERR("update of config file %s failed for %s\n",
 		   cfg_file_name, device_name);
 	return cmd_failed;
 }

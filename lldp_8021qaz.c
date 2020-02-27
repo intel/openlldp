@@ -112,14 +112,14 @@ struct lldp_module *ieee8021qaz_register(void)
 
 	mod = malloc(sizeof(*mod));
 	if (!mod) {
-		LLDPAD_ERR("Failed to malloc LLDP-8021QAZ module data");
+		LLDPAD_ERR("Failed to malloc LLDP-8021QAZ module data\n");
 		goto out_err;
 	}
 
 	iud = malloc(sizeof(*iud));
 	if (!iud) {
 		free(mod);
-		LLDPAD_ERR("Failed to malloc LLDP-8021QAZ module user data");
+		LLDPAD_ERR("Failed to malloc LLDP-8021QAZ module user data\n");
 		goto out_err;
 	}
 	memset((void *) iud, 0, sizeof(struct ieee8021qaz_user_data));

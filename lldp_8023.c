@@ -472,13 +472,13 @@ struct lldp_module *ieee8023_register(void)
 
 	mod = malloc(sizeof(*mod));
 	if (!mod) {
-		LLDPAD_ERR("failed to malloc LLDP 802.3 module data");
+		LLDPAD_ERR("failed to malloc LLDP 802.3 module data\n");
 		goto out_err;
 	}
 	ud = malloc(sizeof(struct ieee8023_user_data));
 	if (!ud) {
 		free(mod);
-		LLDPAD_ERR("failed to malloc LLDP 802.3 module user data");
+		LLDPAD_ERR("failed to malloc LLDP 802.3 module user data\n");
 		goto out_err;
 	}
 	LIST_INIT(&ud->head);
