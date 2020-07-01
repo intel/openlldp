@@ -139,7 +139,16 @@ void rxProcessFrame(struct port *port, struct lldp_agent *agent)
 	int err;
 	struct lldp_module *np;
 
-	assert(agent->rx.framein && agent->rx.sizein);
+	if (!agent->rx.framein) {
+		LLDPAD_DBG("ERROR - agent framein not set, "
+			   "has the neighbour MAC changed? "
+			   "Ignoring packet.\n");
+		return;
+	}
+	if (!agent->rx.sizein) {
+		LLDPAD_DBG("Size-0 packet received, ignoring packet\n");
+		return;
+	}
 	agent->lldpdu = 0;
 	agent->rx.dupTlvs = 0;
 
