@@ -64,6 +64,7 @@
 #include "lldp_util.h"
 #include "lldpad_status.h"
 
+struct lldp_head lldp_cli_head;
 struct lldp_head lldp_mod_head;
 
 static int show_raw;
