@@ -49,10 +49,10 @@ enum {					/* ECP Transmit states */
 	ECP22_TX_ERROR
 };
 
-enum {
+enum ecp22_mode {
 	ECP22_REQUEST = 0,
 	ECP22_ACK
-} ecp22_mode;
+};
 
 struct ecp22_hdr {		/* ECP22 header */
 	u16 ver_op_sub;		/* ECP22 version, operation, subtype */
