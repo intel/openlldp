@@ -49,7 +49,7 @@
 
 
 struct lldp_head lldp_head;
-struct config_t lldpad_cfg;
+extern config_t lldpad_cfg;
 extern bool read_only_8021qaz;
 
 static int ieee8021qaz_check_pending(struct port *port, struct lldp_agent *);
