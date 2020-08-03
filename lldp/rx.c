@@ -359,7 +359,7 @@ void rxProcessFrame(struct port *port, struct lldp_agent *agent)
 		}
 
 		/* rx per lldp module */
-		LIST_FOREACH(np, &lldp_head, lldp) {
+		LIST_FOREACH(np, &lldp_mod_head, lldp) {
 			if (!np->ops || !np->ops->lldp_mod_rchange)
 				continue;
 
@@ -402,7 +402,7 @@ u8 mibDeleteObjects(struct port *port, struct lldp_agent *agent)
 {
 	struct lldp_module *np;
 
-	LIST_FOREACH(np, &lldp_head, lldp) {
+	LIST_FOREACH(np, &lldp_mod_head, lldp) {
 		if (!np->ops || !np->ops->lldp_mod_mibdelete)
 			continue;
 		np->ops->lldp_mod_mibdelete(port, agent);

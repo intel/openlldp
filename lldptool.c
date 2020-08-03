@@ -64,6 +64,8 @@
 #include "lldp_util.h"
 #include "lldpad_status.h"
 
+struct lldp_head lldp_mod_head;
+
 static int show_raw;
 
 static const char *cli_version =
@@ -199,7 +201,7 @@ static void init_modules(void)
 		if (premod)
 			LIST_INSERT_AFTER(premod, module, lldp);
 		else
-			LIST_INSERT_HEAD(&lldp_head, module, lldp);
+			LIST_INSERT_HEAD(&lldp_mod_head, module, lldp);
 		premod = module;
 	}
 }
@@ -208,9 +210,9 @@ void deinit_modules(void)
 {
 	struct lldp_module *module;
 
-	while (lldp_head.lh_first != NULL) {
-		module = lldp_head.lh_first;
-		LIST_REMOVE(lldp_head.lh_first, lldp);
+	while (lldp_mod_head.lh_first != NULL) {
+		module = lldp_mod_head.lh_first;
+		LIST_REMOVE(lldp_mod_head.lh_first, lldp);
 		module->ops->lldp_mod_unregister(module);
 	}
 }
@@ -346,7 +348,7 @@ cli_cmd_help(UNUSED struct clif *clif, UNUSED int argc, UNUSED char *argv[],
 	printf("%s\n%s\n%s", commands_usage, commands_options, commands_help);
 
 	printf("\nTLV identifiers:\n");
-	LIST_FOREACH(np, &lldp_head, lldp)
+	LIST_FOREACH(np, &lldp_mod_head, lldp)
 		if (np->ops->print_help)
 			np->ops->print_help();
 	return 0;
@@ -406,7 +408,7 @@ u32 lookup_tlvid(char *tlvid_str)
 	struct lldp_module *np;
 	u32 tlvid = INVALID_TLVID;
 
-	LIST_FOREACH(np, &lldp_head, lldp) {
+	LIST_FOREACH(np, &lldp_mod_head, lldp) {
 		if (np->ops->lookup_tlv_name) {
 			tlvid = np->ops->lookup_tlv_name(tlvid_str);
 			if (tlvid != INVALID_TLVID)

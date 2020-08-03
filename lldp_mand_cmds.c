@@ -466,7 +466,7 @@ int handle_get_args(struct cmd *cmd, UNUSED char *arg, char *argvalue,
 	nbuf = obuf;
 	nbuf_len = obuf_len;
 
-	LIST_FOREACH(np, &lldp_head, lldp) {
+	LIST_FOREACH(np, &lldp_mod_head, lldp) {
 		if (!np->ops->get_arg_handler)
 			continue;
 		if (!(ah = np->ops->get_arg_handler()))
@@ -496,7 +496,7 @@ int handle_get_arg(struct cmd *cmd, char *arg, char *argvalue,
 	struct arg_handlers *ah;
 	int rval, status = cmd_not_applicable;
 
-	LIST_FOREACH(np, &lldp_head, lldp) {
+	LIST_FOREACH(np, &lldp_mod_head, lldp) {
 		if (!np->ops->get_arg_handler)
 			continue;
 		if (!(ah = np->ops->get_arg_handler()))
@@ -593,7 +593,7 @@ int handle_test_arg(struct cmd *cmd, char *arg, char *argvalue,
 	struct arg_handlers *ah;
 	int rval, status = cmd_not_applicable;
 
-	LIST_FOREACH(np, &lldp_head, lldp) {
+	LIST_FOREACH(np, &lldp_mod_head, lldp) {
 		if (!np->ops->get_arg_handler)
 			continue;
 		if (!(ah = np->ops->get_arg_handler()))
@@ -626,7 +626,7 @@ int handle_set_arg(struct cmd *cmd, char *arg, char *argvalue,
 	struct arg_handlers *ah;
 	int rval, status = cmd_not_applicable;
 
-	LIST_FOREACH(np, &lldp_head, lldp) {
+	LIST_FOREACH(np, &lldp_mod_head, lldp) {
 		if (!np->ops->get_arg_handler)
 			continue;
 		if (!(ah = np->ops->get_arg_handler()))

@@ -129,7 +129,7 @@ struct dcbx_tlvs *dcbx_data(const char *ifname)
 	struct dcbd_user_data *dud;
 	struct dcbx_tlvs *tlv = NULL;
 
-	dud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_DCBX);
+	dud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_DCBX);
 	if (dud) {
 		LIST_FOREACH(tlv, &dud->head, entry) {
 			if (!strncmp(tlv->ifname, ifname, IFNAMSIZ))
@@ -148,7 +148,7 @@ int dcbx_tlvs_rxed(const char *ifname, struct lldp_agent *agent)
 	if (agent->type != NEAREST_BRIDGE)
 		return 0;
 
-	dud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_DCBX);
+	dud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_DCBX);
 	if (dud) {
 		LIST_FOREACH(tlv, &dud->head, entry) {
 			if (!strncmp(tlv->ifname, ifname, IFNAMSIZ))
@@ -172,7 +172,7 @@ int dcbx_check_active(const char *ifname)
 	struct dcbd_user_data *dud;
 	struct dcbx_tlvs *tlv = NULL;
 
-	dud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_DCBX);
+	dud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_DCBX);
 	if (dud) {
 		LIST_FOREACH(tlv, &dud->head, entry) {
 			if (!strncmp(tlv->ifname, ifname, IFNAMSIZ))
@@ -507,7 +507,7 @@ void dcbx_ifup(char *ifname, struct lldp_agent *agent)
 	ifindex = get_ifidx(ifname);
 	port = port_find_by_ifindex(ifindex);
 
-	dud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_DCBX);
+	dud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_DCBX);
 	tlvs = dcbx_data(ifname);
 
 	if (!port)

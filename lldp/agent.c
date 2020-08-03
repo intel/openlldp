@@ -163,7 +163,7 @@ static void timer(UNUSED void *eloop_data, UNUSED void *user_ctx)
 			run_rx_sm(port, agent);
 			update_rx_timers(agent);
 
-			LIST_FOREACH(n, &lldp_head, lldp) {
+			LIST_FOREACH(n, &lldp_mod_head, lldp) {
 				if (n->ops && n->ops->timer)
 					n->ops->timer(port, agent);
 			}

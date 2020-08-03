@@ -80,6 +80,8 @@ struct lldp_module *(*register_tlv_table[])(void) = {
 	NULL,
 };
 
+struct lldp_head lldp_mod_head;
+
 char *cfg_file_name = NULL;
 bool daemonize = 0;
 int loglvl = LOG_WARNING;
@@ -98,7 +100,7 @@ static void init_modules(void)
 	struct lldp_module *premod = NULL;
 	int i = 0;
 
-	LIST_INIT(&lldp_head);
+	LIST_INIT(&lldp_mod_head);
 	for (i = 0; register_tlv_table[i]; i++) {
 		module = register_tlv_table[i]();
 		if (!module)
@@ -106,7 +108,7 @@ static void init_modules(void)
 		if (premod)
 			LIST_INSERT_AFTER(premod, module, lldp);
 		else
-			LIST_INSERT_HEAD(&lldp_head, module, lldp);
+			LIST_INSERT_HEAD(&lldp_mod_head, module, lldp);
 		premod = module;
 	}
 }
@@ -115,9 +117,9 @@ void deinit_modules(void)
 {
 	struct lldp_module *module;
 
-	while (lldp_head.lh_first != NULL) {
-		module = lldp_head.lh_first;
-		LIST_REMOVE(lldp_head.lh_first, lldp);
+	while (lldp_mod_head.lh_first != NULL) {
+		module = lldp_mod_head.lh_first;
+		LIST_REMOVE(lldp_mod_head.lh_first, lldp);
 		module->ops->lldp_mod_unregister(module);
 	}
 }

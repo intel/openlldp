@@ -774,7 +774,7 @@ void ecp22_start(char *ifname)
 	struct ecp22 *ecp;
 
 	LLDPAD_DBG("%s:%s start ecp\n", __func__, ifname);
-	eud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_ECP22);
+	eud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_ECP22);
 	if (!eud) {
 		LLDPAD_DBG("%s:%s no ECP module\n", __func__, ifname);
 		return;
@@ -837,7 +837,7 @@ void ecp22_stop(char *ifname)
 	struct ecp22 *ecp;
 
 	LLDPAD_DBG("%s:%s stop ecp\n", __func__, ifname);
-	eud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_ECP22);
+	eud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_ECP22);
 	ecp = find_ecpdata(ifname, eud);
 	if (ecp)
 		ecp22_remove(ecp);
@@ -852,7 +852,7 @@ static int ecp22_data_from_evb(char *ifname, struct evb22_to_ecp22 *ptr)
 	struct ecp22_user_data *eud;
 	struct ecp22 *ecp;
 
-	eud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_ECP22);
+	eud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_ECP22);
 	ecp = find_ecpdata(ifname, eud);
 	if (ecp) {
 		ecp->max_rte = ptr->max_rte;
@@ -930,7 +930,7 @@ static int ecp22_req2send(char *ifname, unsigned short subtype,
 
 	LLDPAD_DBG("%s:%s subtype:%d\n", __func__, ifname, subtype);
 
-	eud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_ECP22);
+	eud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_ECP22);
 	ecp = find_ecpdata(ifname, eud);
 	if (!ecp) {
 		rc = -ENODEV;

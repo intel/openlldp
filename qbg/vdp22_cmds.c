@@ -57,7 +57,7 @@ static struct lldp_module *get_my_module(int thisid)
 {
 	struct lldp_module *np = NULL;
 
-	LIST_FOREACH(np, &lldp_head, lldp)
+	LIST_FOREACH(np, &lldp_mod_head, lldp)
 		if (thisid == np->id)
 			break;
 	return np;
