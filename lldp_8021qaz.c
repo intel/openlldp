@@ -397,7 +397,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	return 0;
 }
 
-inline int get_prio_map(u32 prio_map, int prio)
+static int get_prio_map(u32 prio_map, int prio)
 {
 	if (prio > 7)
 		return 0;
@@ -405,7 +405,7 @@ inline int get_prio_map(u32 prio_map, int prio)
 	return (prio_map >> (4 * (7-prio))) & 0xF;
 }
 
-inline void set_prio_map(u32 *prio_map, u8 prio, int tc)
+static void set_prio_map(u32 *prio_map, u8 prio, int tc)
 {
 	u32 mask = ~(0xffffffff & (0xF << (4 * (7-prio))));
 	*prio_map &= mask;
