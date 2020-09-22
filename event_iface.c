@@ -216,7 +216,7 @@ int oper_add_device(char *device_name)
 	LIST_FOREACH(agent, &port->agent_head, entry) {
 		LLDPAD_DBG("%s: calling ifup for agent %p.\n",
 			   __func__, agent);
-		LIST_FOREACH(np, &lldp_head, lldp) {
+		LIST_FOREACH(np, &lldp_mod_head, lldp) {
 			if (np->ops->lldp_mod_ifup)
 				np->ops->lldp_mod_ifup(device_name, agent);
 		}
@@ -283,7 +283,7 @@ static void event_if_decode_nlmsg(int route_type, void *data, int len)
 			LIST_FOREACH(agent, &port->agent_head, entry) {
 				LLDPAD_DBG("%s: calling ifdown for agent %p.\n",
 					   __func__, agent);
-				LIST_FOREACH(np, &lldp_head, lldp) {
+				LIST_FOREACH(np, &lldp_mod_head, lldp) {
 					ops = np->ops;
 					if (ops->lldp_mod_ifdown)
 						ops->lldp_mod_ifdown(device_name,

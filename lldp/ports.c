@@ -264,7 +264,7 @@ struct port *add_port(int ifindex, const char *ifname)
 	memset(newport, 0, sizeof(*newport));
 	newport->ifindex = ifindex;
 	newport->next = NULL;
-	strncpy(newport->ifname, ifname, IFNAMSIZ);
+	strncpy(newport->ifname, ifname, IFNAMSIZ - 1);
 
 	newport->bond_master = is_bond(ifname);
 	/* Initialize relevant port variables */

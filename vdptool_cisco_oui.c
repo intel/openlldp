@@ -28,7 +28,7 @@
 #include "lldp_util.h"
 #include "vdp_cisco.h"
 
-bool cisco_oui_encode_hndlr(char *dst, char *src, int len)
+bool cisco_oui_encode_hndlr(char *dst, char *src, size_t len)
 {
 	char *src_temp = strdup(src);
 	char *key, *data;

@@ -29,7 +29,7 @@
 
 #include "clif.h"
 
-struct lldp_head lldp_cli_head;
+extern struct lldp_head lldp_cli_head;
 
 int clif_command(struct clif *clif, char *cmd, int raw);
 void print_raw_message(char *msg, int print);

@@ -185,7 +185,7 @@ void scan_port(UNUSED void *eloop_data, UNUSED void *user_ctx)
 		LIST_FOREACH(agent, &port->agent_head, entry) {
 			LLDPAD_DBG("%s: calling ifdown for agent %p.\n",
 				   __func__, agent);
-			LIST_FOREACH(np, &lldp_head, lldp) {
+			LIST_FOREACH(np, &lldp_mod_head, lldp) {
 				ops = np->ops;
 				if (ops->lldp_mod_ifdown)
 					ops->lldp_mod_ifdown(ifname, agent);
@@ -394,7 +394,7 @@ void init_ports(void)
 		LIST_FOREACH(agent, &port->agent_head, entry) {
 			LLDPAD_DBG("%s: calling ifup for agent %p.\n",
 				   __func__, agent);
-			LIST_FOREACH(np, &lldp_head, lldp) {
+			LIST_FOREACH(np, &lldp_mod_head, lldp) {
 				if (np->ops->lldp_mod_ifup)
 					np->ops->lldp_mod_ifup(p->if_name, agent);
 			}

@@ -71,7 +71,7 @@ bool mibConstrInfoLLDPDU(struct port *port, struct lldp_agent *agent)
 	fb_offset += sizeof(struct l2_ethhdr);
 
 	/* Generic TLV Pack */
-	LIST_FOREACH(np, &lldp_head, lldp) {
+	LIST_FOREACH(np, &lldp_mod_head, lldp) {
 		if (!np->ops || !np->ops->lldp_mod_gettlv)
 			continue;
 
@@ -206,7 +206,7 @@ bool mibConstrShutdownLLDPDU(struct port *port, struct lldp_agent *agent)
 	memcpy(agent->tx.frameout, (void *)&eth, sizeof(struct l2_ethhdr));
 	fb_offset += sizeof(struct l2_ethhdr);
 
-	np = find_module_by_id(&lldp_head, LLDP_MOD_MAND);
+	np = find_module_by_id(&lldp_mod_head, LLDP_MOD_MAND);
 	if (!np)
 		goto error;
 	if (!np->ops || !np->ops->lldp_mod_gettlv)

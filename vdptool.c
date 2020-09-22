@@ -61,6 +61,8 @@
 #define OUI_ENCODE_HNDLR(name) name##_oui_encode_hndlr
 #define OUI_PRNT_DECODE_HNDLR(name) name##_oui_print_decode_hndlr
 
+struct lldp_head lldp_mod_head;
+
 #define EXTERN_OUI_FN(name) \
 	extern bool name##_oui_encode_hndlr(char *, char *, size_t); \
 	extern void name##_oui_print_decode_hndlr(char *)
@@ -141,7 +143,7 @@ static char *print_status(cmd_status status)
 		str = "TLV does not support agent type";
 		break;
 	default:
-		str = print_vdp_status(status);
+		str = print_vdp_status((enum vdp22_cmd_status)status);
 		break;
 	}
 	return str;
@@ -796,13 +798,13 @@ static void init_modules(void)
 	struct lldp_module *premod = NULL;
 	int i = 0;
 
-	LIST_INIT(&lldp_head);
+	LIST_INIT(&lldp_mod_head);
 	for (i = 0; register_tlv_table[i]; i++) {
 		module = register_tlv_table[i]();
 		if (premod)
 			LIST_INSERT_AFTER(premod, module, lldp);
 		else
-			LIST_INSERT_HEAD(&lldp_head, module, lldp);
+			LIST_INSERT_HEAD(&lldp_mod_head, module, lldp);
 		premod = module;
 	}
 }
@@ -811,9 +813,9 @@ void deinit_modules(void)
 {
 	struct lldp_module *module;
 
-	while (lldp_head.lh_first != NULL) {
-		module = lldp_head.lh_first;
-		LIST_REMOVE(lldp_head.lh_first, lldp);
+	while (lldp_mod_head.lh_first != NULL) {
+		module = lldp_mod_head.lh_first;
+		LIST_REMOVE(lldp_mod_head.lh_first, lldp);
 		module->ops->lldp_mod_unregister(module);
 	}
 }
@@ -953,7 +955,7 @@ cli_cmd_help(UNUSED struct clif *clif, UNUSED int argc, UNUSED char *argv[],
 	printf("%s\n%s\n%s", commands_usage, commands_options, commands_help);
 
 	printf("\nTLV identifiers:\n");
-	LIST_FOREACH(np, &lldp_head, lldp)
+	LIST_FOREACH(np, &lldp_mod_head, lldp)
 		if (np->ops->print_help)
 			np->ops->print_help();
 	return 0;
@@ -1006,7 +1008,7 @@ u32 lookup_tlvid(char *tlvid_str)
 	struct lldp_module *np;
 	u32 tlvid = INVALID_TLVID;
 
-	LIST_FOREACH(np, &lldp_head, lldp) {
+	LIST_FOREACH(np, &lldp_mod_head, lldp) {
 		if (np->ops->lookup_tlv_name) {
 			tlvid = np->ops->lookup_tlv_name(tlvid_str);
 			if (tlvid != INVALID_TLVID)

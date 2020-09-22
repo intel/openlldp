@@ -694,7 +694,7 @@ static struct vdp22 *vdp22_findif(const char *ifname,
 	struct vdp22 *vdp = 0;
 
 	if (!ud) {
-		ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP22);
+		ud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_VDP22);
 		if (!ud)
 			LLDPAD_DBG("%s:%s no VDP22 module\n", __func__,
 				   ifname);
@@ -794,7 +794,7 @@ void vdp22_stop(char *ifname)
 	struct vsi22 *vsi;
 
 	LLDPAD_DBG("%s:%s stop vdp\n", __func__, ifname);
-	vud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP22);
+	vud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_VDP22);
 	if (!vud) {
 		LLDPAD_ERR("%s:%s no VDP22 module\n", __func__, ifname);
 		return;
@@ -874,7 +874,7 @@ void vdp22_start(const char *ifname, int role)
 	struct vsi22 *vsi;
 
 	LLDPAD_DBG("%s:%s start vdp\n", __func__, ifname);
-	vud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_VDP22);
+	vud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_VDP22);
 	if (!vud) {
 		LLDPAD_ERR("%s:%s no VDP22 module\n", __func__, ifname);
 		return;
