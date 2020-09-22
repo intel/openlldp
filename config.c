@@ -234,7 +234,7 @@ int check_cfg_file(void)
 			}
 		} else {
 			retval = errno;
-			LLDPAD_ERR("%s is not readable and writeable",
+			LLDPAD_ERR("%s is not readable and writeable\n",
 				cfg_file_name);
 		}
 	}
@@ -310,7 +310,7 @@ int get_int_config(config_setting_t *s, char *attr, int int_type,
 	}
 
 	if (!rval)
-		LLDPAD_ERR("invalid value for %s", attr);
+		LLDPAD_ERR("invalid value for %s\n", attr);
 
 	return rval;
 }
@@ -354,7 +354,7 @@ int get_array_config(config_setting_t *s, char *attr, int int_type,
 	}
 
 	if (!rval)
-		LLDPAD_ERR("invalid setting for %s", attr);
+		LLDPAD_ERR("invalid setting for %s\n", attr);
 
 	return rval;
 }

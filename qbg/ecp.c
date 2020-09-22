@@ -682,7 +682,7 @@ static void ecp_rx_ReceiveFrame(void *ctx, UNUSED int ifindex, const u8 *buf,
 	}
 
 	if (hdr->h_proto != example_hdr.h_proto) {
-		LLDPAD_ERR("%s:%s ERROR ethertype %#x not ECP ethertype",
+		LLDPAD_ERR("%s:%s ERROR ethertype %#x not ECP ethertype\n",
 			    __func__, vd->ecp.ifname, htons(hdr->h_proto));
 		frame_error++;
 		return;

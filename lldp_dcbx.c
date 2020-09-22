@@ -410,7 +410,7 @@ struct lldp_module * dcbx_register(void)
 	if (get_dcbx_version(&dcbx_version)) {
 		gdcbx_subtype = dcbx_version;
 	} else {
-		LLDPAD_ERR("failed to get DCBX version");
+		LLDPAD_ERR("failed to get DCBX version\n");
 		goto out_err;
 	}
 
