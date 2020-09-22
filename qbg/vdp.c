@@ -1198,9 +1198,9 @@ int vdp_indicate(struct vdp_data *vd, struct unpacked_tlv *tlv)
 			/* put it in the list  */
 			profile->state = VSI_UNASSOCIATED;
 			LIST_INSERT_HEAD(&vd->profile_head, profile, profile);
-		}
 
-		vdp_vsi_sm_bridge(profile);
+			vdp_vsi_sm_bridge(profile);
+		}
 	}
 
 	return 0;
@@ -1357,7 +1357,7 @@ struct packed_tlv *vdp_gettlv(struct vdp_data *vd, struct vsi_profile *profile)
 	return ptlv;
 
 out_free:
-	ptlv = free_pkd_tlv(ptlv);
+	free_pkd_tlv(ptlv);
 out_err:
 	LLDPAD_ERR("%s: %s failed\n", __func__, vd->ifname);
 	return NULL;

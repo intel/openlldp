@@ -66,7 +66,7 @@
 
 struct lldp_head lldp_cli_head;
 struct lldp_head lldp_mod_head;
-
+extern void close_history(void);
 static int show_raw;
 
 static const char *cli_version =
@@ -692,6 +692,7 @@ static void cli_interactive()
 		}
 		free(cmd);
 	} while (!cli_quit);
+	close_history();
 }
 
 static void cli_terminate(UNUSED int sig)

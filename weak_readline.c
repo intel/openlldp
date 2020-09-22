@@ -30,6 +30,9 @@
 #include <dlfcn.h>
 
 static int inited;
+static void *hist_handle;
+static void *rl_handle;
+
 
 static char *(*readline_p)(const char *);
 static void (*using_history_p)(void);
@@ -38,9 +41,6 @@ static void (*add_history_p)(const char *);
 
 static void weak_readline_init(void)
 {
-	void *hist_handle;
-	void *rl_handle;
-
 	inited = 1;
 	hist_handle = dlopen("libhistory.so", RTLD_LAZY | RTLD_GLOBAL);
 	if (!hist_handle)
@@ -75,6 +75,16 @@ void using_history(void)
 
 	if (using_history_p)
 		using_history_p();
+}
+
+void close_history(void)
+{
+	if (inited) {
+		dlclose(rl_handle);
+		rl_handle = NULL;
+		dlclose(hist_handle);
+		hist_handle = NULL;
+	}
 }
 
 void stifle_history(int max)
