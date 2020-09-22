@@ -12,6 +12,11 @@ if test "$enable_debug" = "yes" ; then
 fi
 AM_CONDITIONAL([BUILD_DEBUG], [test "$enable_debug" = "yes"])
 
+AC_ARG_ENABLE(werror,
+	AS_HELP_STRING([--enable-werror],[compile with -Werror]),
+	[enable_werror=$enableval], [enable_werror=yes])
+AM_CONDITIONAL([BUILD_WERROR], [test "$enable_werror" = "yes"])
+
 AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_CXX
