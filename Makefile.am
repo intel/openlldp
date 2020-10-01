@@ -19,7 +19,7 @@ ACLOCAL_AMFLAGS = -I m4
 parse_cli.o: CFLAGS+=-U_FORTIFY_SOURCE -Wno-error
 
 ## system requires a shared libconfig
-AM_CFLAGS = -Wall -Werror -Wextra -Wformat=2 $(LIBCONFIG_CFLAGS) $(LIBNL_CFLAGS)
+AM_CFLAGS = $(LIBCONFIG_CFLAGS) $(LIBNL_CFLAGS)
 AM_LDFLAGS = $(LIBCONFIG_LIBS) $(LIBNL_LIBS) -lrt
 
 ## header files to be installed, for programs using the client interface to lldpad 
