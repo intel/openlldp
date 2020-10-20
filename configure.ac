@@ -28,6 +28,10 @@ fi
 dnl Begin determine the systemd use and location
 PKG_CHECK_MODULES([SYSTEMD], [systemd], use_systemd=yes, use_systemd=no)
 
+dnl Configure developer type flags
+OPENLLDP_CHECK_WARNINGS
+OPENLLDP_CHECK_ERROR
+
 dnl Set sysvinit values, if system has systemd it will be rewritten
 AC_SUBST(SPEC_BUILD_REQUIRES_POST, "chkconfig")
 AC_SUBST(SPEC_BUILD_REQUIRES_PREUN, "chkconfig initscripts")
