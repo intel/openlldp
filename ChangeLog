@@ -1,3 +1,17 @@
+Changes from 1.0.1 to 1.1
+- VDP: introduce vdptool
+- VDP: support retrieving vsi parameter
+- VDP: TLV support
+- VDP: Support OUI infrastructure
+- Switch from SysV to posix shared memory
+- DCBX: ignore PG configurations
+- DCBX: Allow for read-only LLDP configuration
+- Support multicast MAC
+- autoconf: Suport systemd or sysv for init system
+- 802.1qaz: print prio map
+- lldptool: Allow to modify optional TLV content
+- CVE-2018-10932: Don't print raw bytes from mngAddr
+- Misc. bug fixes
 Changes from 0.9.46 to 1.0.1
   Mostly fixes and man page updates
   Added more testing infrastructure mostly for EVB
