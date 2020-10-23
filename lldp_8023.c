@@ -39,8 +39,6 @@
 #include "lldp_8023_clif.h"
 #include "lldp_8023_cmds.h"
 
-extern struct lldp_head lldp_head;
-
 struct tlv_info_8023_maccfg {
 	u8 oui[3];
 	u8 sub;
@@ -84,7 +82,7 @@ static struct ieee8023_data *ieee8023_data(const char *ifname, enum agent_type t
 	struct ieee8023_user_data *ud;
 	struct ieee8023_data *bd = NULL;
 
-	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_8023);
+	ud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_8023);
 	if (ud) {
 		LIST_FOREACH(bd, &ud->head, entry) {
 			if (!strncmp(ifname, bd->ifname, IFNAMSIZ) &&
@@ -456,7 +454,7 @@ void ieee8023_ifup(char *ifname, struct lldp_agent *agent)
 		goto out_err;
 	}
 
-	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_8023);
+	ud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_8023);
 	LIST_INSERT_HEAD(&ud->head, bd, entry);
 	LLDPAD_INFO("%s:port %s added\n", __func__, ifname);
 	return;

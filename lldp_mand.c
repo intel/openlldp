@@ -42,8 +42,6 @@
 #include "lldp/l2_packet.h"
 #include "lldp_tlv.h"
 
-extern struct lldp_head lldp_head;
-
 static const struct lldp_mod_ops mand_ops = {
 	.lldp_mod_register 	= mand_register,
 	.lldp_mod_unregister 	= mand_unregister,
@@ -59,7 +57,7 @@ struct mand_data *mand_data(const char *ifname, enum agent_type type)
 	struct mand_user_data *mud;
 	struct mand_data *md = NULL;
 
-	mud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_MAND);
+	mud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_MAND);
 	if (mud) {
 		LIST_FOREACH(md, &mud->head, entry) {
 			if (!strncmp(ifname, md->ifname, IFNAMSIZ) &&
@@ -610,7 +608,7 @@ void mand_ifup(char *ifname, struct lldp_agent *agent)
 		STRNCPY_TERMINATED(md->ifname, ifname, IFNAMSIZ);
 		md->agenttype = agent->type;
 
-		mud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_MAND);
+		mud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_MAND);
 		LIST_INSERT_HEAD(&mud->head, md, entry);
 	}
 
@@ -638,7 +636,7 @@ struct lldp_module *mand_register(void)
 		LLDPAD_ERR("failed to malloc LLDP Mandatory module data\n");
 		goto out_err;
 	}
-	mud = malloc(sizeof(struct mand_user_data));
+    mud = malloc(sizeof(struct mand_user_data));
 	if (!mud) {
 		free(mod);
 		LLDPAD_ERR("failed to malloc LLDP Mandatory module user data\n");
@@ -646,8 +644,8 @@ struct lldp_module *mand_register(void)
 	}
 	LIST_INIT(&mud->head);
  	mod->id = LLDP_MOD_MAND;
+    mod->data = mud;
 	mod->ops = &mand_ops;
-	mod->data = mud;
 	LLDPAD_INFO("%s:done\n", __func__);
 	return mod;
 out_err:
