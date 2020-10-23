@@ -37,14 +37,12 @@
 #include "messages.h"
 #include "config.h"
 
-extern struct lldp_head lldp_head;
-
 struct evb22_data *evb22_data(char *ifname, enum agent_type type)
 {
 	struct evb22_user_data *ud;
 	struct evb22_data *ed = NULL;
 
-	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_EVB22);
+	ud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_EVB22);
 	if (ud) {
 		LIST_FOREACH(ed, &ud->head, entry) {
 			if (!strncmp(ifname, ed->ifname, IFNAMSIZ) &&
@@ -453,7 +451,7 @@ static void evb22_ifup(char *ifname, struct lldp_agent *agent)
 	STRNCPY_TERMINATED(ed->ifname, ifname, IFNAMSIZ);
 	ed->agenttype = agent->type;
 	evb22_init_tlv(ed, agent);
-	ud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_EVB22);
+	ud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_EVB22);
 	LIST_INSERT_HEAD(&ud->head, ed, entry);
 	LLDPAD_DBG("%s:%s agent %d added\n", __func__, ifname, agent->type);
 }

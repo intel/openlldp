@@ -40,8 +40,6 @@
 #include "lldp_mand_clif.h"
 #include "lldp_med_cmds.h"
 
-extern struct lldp_head lldp_head;
-
 struct tlv_info_medcaps {
 	u8 oui[OUI_SIZE];
 	u8 subtype;
@@ -95,7 +93,7 @@ static struct med_data *med_data(const char *ifname, enum agent_type type)
 	struct med_user_data *mud;
 	struct med_data *md = NULL;
 
-	mud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_MED);
+	mud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_MED);
 	if (mud) {
 		LIST_FOREACH(md, &mud->head, entry) {
 			if (!strncmp(ifname, md->ifname, IFNAMSIZ) &&
@@ -914,7 +912,7 @@ void med_ifup(char *ifname, struct lldp_agent *agent)
 		free(md);
 		goto out_err;
 	}
-	mud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_MED);
+	mud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_MED);
 	LIST_INSERT_HEAD(&mud->head, md, entry);
 	LLDPAD_INFO("%s:port %s added\n", __func__, ifname);
 	return;
