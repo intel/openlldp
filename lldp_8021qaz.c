@@ -48,7 +48,6 @@
 #include "lldp_dcbx.h"
 
 
-struct lldp_head lldp_head;
 extern config_t lldpad_cfg;
 extern bool read_only_8021qaz;
 
@@ -84,7 +83,7 @@ static int ieee8021qaz_check_pending(struct port *port,
 	if (!port->portEnabled)
 		return 0;
 
-	iud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_8021QAZ);
+	iud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_8021QAZ);
 	if (iud) {
 		LIST_FOREACH(tlv, &iud->head, entry) {
 			if (!strncmp(port->ifname, tlv->ifname, IFNAMSIZ)) {
@@ -143,7 +142,7 @@ struct ieee8021qaz_tlvs *ieee8021qaz_data(const char *ifname)
 	struct ieee8021qaz_user_data *iud;
 	struct ieee8021qaz_tlvs *tlv = NULL;
 
-	iud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_8021QAZ);
+	iud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_8021QAZ);
 	if (iud) {
 		LIST_FOREACH(tlv, &iud->head, entry) {
 			if (!strncmp(tlv->ifname, ifname, IFNAMSIZ))
@@ -629,7 +628,7 @@ void ieee8021qaz_ifup(char *ifname, struct lldp_agent *agent)
 	LIST_INIT(&tlvs->app_head);
 	read_cfg_file(port->ifname, agent, tlvs);
 
-	iud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_8021QAZ);
+	iud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_8021QAZ);
 	LIST_INSERT_HEAD(&iud->head, tlvs, entry);
 
 initialized:
@@ -2179,7 +2178,7 @@ int ieee8021qaz_tlvs_rxed(const char *ifname)
 	struct ieee8021qaz_user_data *iud;
 	struct ieee8021qaz_tlvs *tlv = NULL;
 
-	iud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_8021QAZ);
+	iud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_8021QAZ);
 	if (iud) {
 		LIST_FOREACH(tlv, &iud->head, entry) {
 			if (!strncmp(tlv->ifname, ifname, IFNAMSIZ))
@@ -2198,7 +2197,7 @@ int ieee8021qaz_check_active(const char *ifname)
 	struct ieee8021qaz_user_data *iud;
 	struct ieee8021qaz_tlvs *tlv = NULL;
 
-	iud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_8021QAZ);
+	iud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_8021QAZ);
 	if (iud) {
 		LIST_FOREACH(tlv, &iud->head, entry) {
 			if (!strncmp(tlv->ifname, ifname, IFNAMSIZ))

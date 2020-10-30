@@ -75,8 +75,6 @@ struct tlv_info_manaddr {
 	struct tlv_info_maoid o;
 } __attribute__ ((__packed__));
 
-extern struct lldp_head lldp_head;
-
 static const struct lldp_mod_ops basman_ops =  {
 	.lldp_mod_register 	= basman_register,
 	.lldp_mod_unregister 	= basman_unregister,
@@ -91,7 +89,7 @@ static struct basman_data *basman_data(const char *ifname, enum agent_type type)
 	struct basman_user_data *bud;
 	struct basman_data *bd = NULL;
 
-	bud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_BASIC);
+	bud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_BASIC);
 	if (bud) {
 		LIST_FOREACH(bd, &bud->head, entry) {
 			if (!strncmp(ifname, bd->ifname, IFNAMSIZ) &&
@@ -688,7 +686,7 @@ void basman_ifup(char *ifname, struct lldp_agent *agent)
 		goto out_err;
 	}
 
-	bud = find_module_user_data_by_id(&lldp_head, LLDP_MOD_BASIC);
+	bud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_BASIC);
 	LIST_INSERT_HEAD(&bud->head, bd, entry);
 	LLDPAD_DBG("%s:port %s added\n", __func__, ifname);
 	return;
