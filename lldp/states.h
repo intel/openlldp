@@ -85,7 +85,7 @@ u8 txFrame(struct port *port, struct lldp_agent *);
 void run_tx_sm(struct port *, struct lldp_agent *);
 void process_tx_initialize_sm(struct port *);
 void process_tx_idle(struct lldp_agent *);
-void process_tx_shutdown_frame(struct port *, struct lldp_agent *);
+void process_tx_shutdown_frame(struct port *, struct lldp_agent *, bool);
 void process_tx_info_frame(struct port *, struct lldp_agent *);
 void update_tx_timers(struct lldp_agent *);
 void run_tx_timers_sm(struct port *, struct lldp_agent *);

@@ -270,7 +270,7 @@ void run_tx_sm(struct port *port, struct lldp_agent *agent)
 			process_tx_idle(agent);
 			break;
 		case TX_SHUTDOWN_FRAME:
-			process_tx_shutdown_frame(port, agent);
+			process_tx_shutdown_frame(port, agent, true);
 			break;
 		case TX_INFO_FRAME:
 			process_tx_info_frame(port, agent);
@@ -330,8 +330,19 @@ void process_tx_idle(UNUSED struct lldp_agent *agent)
 	return;
 }
 
-void process_tx_shutdown_frame(struct port *port, struct lldp_agent *agent)
+/* we ignore 'state' value in the case that we have recently transitioned
+ * to the shutdown state (in the case of the 'tx' state change) to allow
+ * for transmitting the ttl==0 as required by the IEEE standard. */
+void process_tx_shutdown_frame(struct port *port, struct lldp_agent *agent,
+				bool ignoreState)
 {
+	if (agent->adminStatus != enabledRxTx &&
+	    agent->adminStatus != enabledTxOnly) {
+		if (!ignoreState) {
+			return;
+		}
+	}
+
 	if (agent->timers.txShutdownWhile == 0) {
 		if (mibConstrShutdownLLDPDU(port, agent))
 			txFrame(port, agent);

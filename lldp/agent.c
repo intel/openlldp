@@ -200,7 +200,7 @@ void clean_lldp_agents(void)
 			LLDPAD_DBG("Send shutdown frame on port %s\n",
 				port->ifname);
 			LIST_FOREACH(agent, &port->agent_head, entry) {
-				process_tx_shutdown_frame(port, agent);
+				process_tx_shutdown_frame(port, agent, false);
 			}
 		} else {
 			LLDPAD_DBG("No shutdown frame is sent on port %s\n",
