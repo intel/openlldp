@@ -33,6 +33,7 @@
 #include <linux/if_ether.h>
 
 #define	MAX_PAYLOAD	4096	/* Maximum Payload Size */
+#define	MIN_RCVBUF_SIZE	(MAX_PAYLOAD << 5)	/* SO_RCVBUF min */
 
 enum {
 	vdpnl_nlf1 = 1,		/* Netlink message format 1 (draft 0.2) */
