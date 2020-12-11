@@ -330,15 +330,15 @@ void process_tx_idle(UNUSED struct lldp_agent *agent)
 	return;
 }
 
-/* we ignore 'state' value in the case that we have recently transitioned
+/* we ignore 'adminStatus' in the case that we have recently transitioned
  * to the shutdown state (in the case of the 'tx' state change) to allow
  * for transmitting the ttl==0 as required by the IEEE standard. */
 void process_tx_shutdown_frame(struct port *port, struct lldp_agent *agent,
-				bool ignoreState)
+				bool ignoreStatus)
 {
 	if (agent->adminStatus != enabledRxTx &&
 	    agent->adminStatus != enabledTxOnly) {
-		if (!ignoreState) {
+		if (!ignoreStatus) {
 			return;
 		}
 	}
