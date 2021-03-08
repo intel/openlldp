@@ -568,6 +568,7 @@ void process_delete_info(struct port *port, struct lldp_agent *agent)
 
 	agent->rx.sizein = 0;
 	agent->rx.remoteChange = true;
+	agent->rx.rcvFrame = false;
 	return;
 }
 
