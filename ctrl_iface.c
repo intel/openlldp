@@ -180,6 +180,8 @@ int clif_iface_attach(struct clif_data *clifd,
 	} else {
 		tlv = strdup(ibuf);
 		str = tlv;
+		if (!str)
+			goto err_tlv;
 		str++;
 		/* Count number of TLV Modules */
 		tokenize = strtok(str, delim);
