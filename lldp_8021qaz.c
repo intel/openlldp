@@ -1959,6 +1959,10 @@ int ieee8021qaz_rchange(struct port *port, struct lldp_agent *agent,
 	if (tlv->type == TYPE_1) {
 		clear_ieee8021qaz_rx(qaz_tlvs);
 		rx = malloc(sizeof(*rx));
+		if (!rx) {
+			LLDPAD_INFO("failed malloc for rx\n");
+			return TLV_ERR;
+		}
 		memset(rx, 0, sizeof(*rx));
 		qaz_tlvs->rx = rx;
 		qaz_tlvs->ieee8021qazdu = 0;
