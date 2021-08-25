@@ -681,7 +681,7 @@ int is_macvtap(const char *ifname)
 	s = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
 
 	if (s < 0) {
-		goto out;
+		return false;
 	}
 
 	nlh = malloc(NLMSG_SIZE);
