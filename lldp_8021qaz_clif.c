@@ -253,7 +253,7 @@ static void ieee8021qaz_print_app_tlv(u16 len, char *info)
 {
 	u8 app, app_idx, app_prio, app_sel;
 	u16 proto, offset = 2;
-	u8 dscp[MAX_USER_PRIORITIES][MAX_APP_ENTRIES];
+	u8 dscp[MAX_USER_PRIORITIES][MAX_APP_ENTRIES] = {0};
 	u8 dscp_count[MAX_USER_PRIORITIES] = {0};
 	u8 i, j;
 	bool first_app = true;
