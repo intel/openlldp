@@ -1563,47 +1563,62 @@ static bool unpack_ieee8021qaz_tlvs(struct port *port,
 	/* Process */
 	switch (tlv->info[OUI_SIZE]) {
 	case IEEE8021QAZ_ETSCFG_TLV:
-		if (tlvs->rx->etscfg == NULL) {
+		if (tlvs->rx && tlvs->rx->etscfg == NULL) {
 			tlvs->ieee8021qazdu |= RCVD_IEEE8021QAZ_TLV_ETSCFG;
 			tlvs->rx->etscfg = tlv;
-		} else {
+		} else if (tlvs->rx) {
 			LLDPAD_WARN("%s: %s: 802.1Qaz Duplicate ETSCFG TLV\n",
 				__func__, port->ifname);
 			agent->rx.dupTlvs |= DUP_IEEE8021QAZ_TLV_ETSCFG;
 			return false;
+		} else {
+			LLDPAD_INFO("%s: %s: 802.1Qaz port IFDOWN\n",
+				__func__, port->ifname);
+			return false;
 		}
 		break;
 	case IEEE8021QAZ_ETSREC_TLV:
-		if (tlvs->rx->etsrec == NULL) {
+		if (tlvs->rx && tlvs->rx->etsrec == NULL) {
 			tlvs->ieee8021qazdu |= RCVD_IEEE8021QAZ_TLV_ETSREC;
 			tlvs->rx->etsrec = tlv;
-		} else {
+		} else if (tlvs->rx) {
 			LLDPAD_WARN("%s: %s: 802.1Qaz Duplicate ETSREC TLV\n",
 				__func__, port->ifname);
 			agent->rx.dupTlvs |= DUP_IEEE8021QAZ_TLV_ETSREC;
 			return false;
+		} else {
+			LLDPAD_INFO("%s: %s: 802.1Qaz port IFDOWN\n",
+				__func__, port->ifname);
+			return false;
 		}
 		break;
-
 	case IEEE8021QAZ_PFC_TLV:
-		if (tlvs->rx->pfc == NULL) {
+		if (tlvs->rx && tlvs->rx->pfc == NULL) {
 			tlvs->ieee8021qazdu |= RCVD_IEEE8021QAZ_TLV_PFC;
 			tlvs->rx->pfc = tlv;
-		} else {
+		} else if (tlvs->rx) {
 			LLDPAD_WARN("%s: %s: 802.1Qaz Duplicate PFC TLV\n",
 				__func__, port->ifname);
 			agent->rx.dupTlvs |= DUP_IEEE8021QAZ_TLV_PFC;
 			return false;
+		} else {
+			LLDPAD_INFO("%s: %s: 802.1Qaz port IFDOWN\n",
+				__func__, port->ifname);
+			return false;
 		}
 		break;
 	case IEEE8021QAZ_APP_TLV:
-		if (tlvs->rx->app == NULL) {
+		if (tlvs->rx && tlvs->rx->app == NULL) {
 			tlvs->ieee8021qazdu |= RCVD_IEEE8021QAZ_TLV_APP;
 			tlvs->rx->app = tlv;
-		} else {
+		} else if (tlvs->rx) {
 			LLDPAD_WARN("%s: %s: 802.1Qaz Duplicate APP TLV\n",
 				    __func__, port->ifname);
 			agent->rx.dupTlvs |= DUP_IEEE8021QAZ_TLV_APP;
+			return false;
+		} else {
+			LLDPAD_INFO("%s: %s: 802.1Qaz port IFDOWN\n",
+				__func__, port->ifname);
 			return false;
 		}
 		break;
@@ -1891,26 +1906,26 @@ static void ieee8021qaz_mibUpdateObjects(struct port *port)
 
 	tlvs = ieee8021qaz_data(port->ifname);
 
-	if (tlvs->rx->etscfg) {
+	if (tlvs->rx && tlvs->rx->etscfg) {
 		process_ieee8021qaz_etscfg_tlv(port);
 	} else if (tlvs->ets->cfgr) {
 		free(tlvs->ets->cfgr);
 		tlvs->ets->cfgr = NULL;
 	}
 
-	if (tlvs->rx->etsrec) {
+	if (tlvs->rx && tlvs->rx->etsrec) {
 		process_ieee8021qaz_etsrec_tlv(port);
 	} else if (tlvs->ets->recr) {
 		free(tlvs->ets->recr);
 		tlvs->ets->recr = NULL;
 	}
 
-	if (tlvs->rx->pfc)
+	if (tlvs->rx && tlvs->rx->pfc)
 		process_ieee8021qaz_pfc_tlv(port);
 	else if (tlvs->pfc)
 		tlvs->pfc->remote_param = false;
 
-	if (tlvs->rx->app)
+	if (tlvs->rx && tlvs->rx->app)
 		process_ieee8021qaz_app_tlv(port);
 	else
 		ieee8021qaz_app_reset(&tlvs->app_head);
