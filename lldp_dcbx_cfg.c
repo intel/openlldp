@@ -99,15 +99,12 @@ static config_setting_t *construct_new_setting(char *device_name)
 	config_setting_t *tmp2_setting = NULL;
 	char abuf[32];
 	int i;
-	char device_name_sanitized[IFNAMSIZ];
 
 	dcbx_setting = config_lookup(&lldpad_cfg, DCBX_SETTING);
 	if (!dcbx_setting)
 		return NULL;
 
-	config_ifkey(device_name, device_name_sanitized);
-
-	eth_setting = config_setting_add(dcbx_setting, device_name_sanitized,
+	eth_setting = config_setting_add(dcbx_setting, device_name,
 		CONFIG_TYPE_GROUP);
 	if (!eth_setting)
 		goto set_error;
@@ -374,13 +371,11 @@ static int _set_persistent(char *device_name, int dcb_enable,
 	config_setting_t *setting_value = NULL;
 	char abuf[2*DCB_MAX_TLV_LENGTH + 1];
 	int result, i;
-	char device_name_sanitized[IFNAMSIZ];
 
 	dcbx_setting = config_lookup(&lldpad_cfg, DCBX_SETTING);
-	config_ifkey(device_name, device_name_sanitized);
 	if (dcbx_setting)
 		eth_settings = config_setting_get_member(dcbx_setting,
-							 device_name_sanitized);
+							 device_name);
 
 	/* init the internal data store for device_name */
 	if (NULL == eth_settings) {
@@ -787,15 +782,13 @@ int get_persistent(char *device_name, full_dcb_attribs *attribs)
 	int result = cmd_failed, i;
 	int results[MAX_USER_PRIORITIES];
 	int len;
-	char abuf[32], device_name_sanitized[IFNAMSIZ];
+	char abuf[32];
 
 	memset(attribs, 0, sizeof(*attribs));
 	dcbx_setting = config_lookup(&lldpad_cfg, DCBX_SETTING);
-
-	config_ifkey(device_name, device_name_sanitized);
 	if (dcbx_setting)
-		eth_settings = config_setting_get_member(dcbx_setting, 
-							 device_name_sanitized);
+		eth_settings = config_setting_get_member(dcbx_setting,
+							 device_name);
 
 	/* init the internal data store for device_name */
 	result = get_default_persistent(device_name, attribs);
@@ -1074,16 +1067,13 @@ int get_dcb_enable_state(char *ifname, int *result)
 	int rc = EINVAL;
 	config_setting_t *settings = NULL;
 	char path[sizeof(DCBX_SETTING) + IFNAMSIZ + 16];
-	char ifkey[IFNAMSIZ];
-
-	config_ifkey(ifname, ifkey);
 
 	memset(path, 0, sizeof(path));
-	snprintf(path, sizeof(path), "%s.%s.dcb_enable", DCBX_SETTING, ifkey); 
+	snprintf(path, sizeof(path), "%s.%s.dcb_enable", DCBX_SETTING, ifname);
 	settings = config_lookup(&lldpad_cfg, path);
 	if (!settings) {
 		LLDPAD_INFO("### %s:%s:failed on %s\n", __func__, ifname, path);
-		snprintf(path, sizeof(path), "%s.dcb_enable", ifkey); 
+		snprintf(path, sizeof(path), "%s.dcb_enable", ifname);
 		settings = config_lookup(&lldpad_cfg, path);
 		if (!settings) {
 			LLDPAD_INFO("### %s:%s:failed again %s\n", __func__, ifname, path);
