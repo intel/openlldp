@@ -515,7 +515,7 @@ static int basman_bld_manaddr_tlv(struct basman_data *bd,
 	if (rc) {
 		rc = basman_get_manaddr_sub(bd, agent, MANADDR_IPV6);
 		if (rc)
-			basman_get_manaddr_sub(bd, agent, MANADDR_ALL802);
+			rc = basman_get_manaddr_sub(bd, agent, MANADDR_ALL802);
 	}
 out_err:
 	return rc;
