@@ -111,7 +111,4 @@ void destroy_cfg(void);
 int check_cfg_file(void);
 int check_for_old_file_format(void);
 void init_ports(void);
-
-void config_ifkey(const char *name, char *ifkey);
-
 #endif /* _CONFIG_H_ */
