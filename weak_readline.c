@@ -80,10 +80,14 @@ void using_history(void)
 void close_history(void)
 {
 	if (inited) {
-		dlclose(rl_handle);
-		rl_handle = NULL;
-		dlclose(hist_handle);
-		hist_handle = NULL;
+                if (rl_handle) {
+                        dlclose(rl_handle);
+                        rl_handle = NULL;
+                }
+                if (hist_handle) {
+                        dlclose(hist_handle);
+                        hist_handle = NULL;
+                }
 	}
 }
 
