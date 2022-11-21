@@ -51,5 +51,7 @@ void ieee8023_unregister(struct lldp_module *mod);
 struct packed_tlv *ieee8023_gettlv(struct port *, struct lldp_agent *);
 void ieee8023_ifdown(char *, struct lldp_agent *);
 void ieee8023_ifup(char *, struct lldp_agent *);
+int ieee8023_rchange(struct port *port, struct lldp_agent *agent,
+		     struct unpacked_tlv *tlv);
 
 #endif /* _LLDP_8023_H */
