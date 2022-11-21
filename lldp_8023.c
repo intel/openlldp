@@ -74,6 +74,7 @@ static const struct lldp_mod_ops ieee8023_ops =  {
 	.lldp_mod_gettlv	= ieee8023_gettlv,
 	.lldp_mod_ifup		= ieee8023_ifup,
 	.lldp_mod_ifdown	= ieee8023_ifdown,
+	.lldp_mod_rchange	= ieee8023_rchange,
 	.get_arg_handler	= ieee8023_get_arg_handlers,
 };
 
@@ -461,6 +462,47 @@ void ieee8023_ifup(char *ifname, struct lldp_agent *agent)
 out_err:
 	LLDPAD_INFO("%s:port %s adding failed\n", __func__, ifname);
 	return;
+}
+
+/*
+ * ieee8023_rchange: process received IEEE 802.3 TLV LLDPDU
+ *
+ * TLV not consumed on error
+ */
+int ieee8023_rchange(struct port *port, struct lldp_agent *agent,
+		     struct unpacked_tlv *tlv)
+{
+	struct ieee8023_data *bd;
+	u8 subtype;
+	u8 *oui;
+
+	if (agent->type != NEAREST_BRIDGE)
+		return SUBTYPE_INVALID;
+
+	bd = ieee8023_data(port->ifname, agent->type);
+	if (!bd)
+		return SUBTYPE_INVALID;
+
+	if (tlv->type != TYPE_127)
+		return SUBTYPE_INVALID;
+
+	if (tlv->length < OUI_SUB_SIZE)
+		return TLV_ERR;
+
+	oui = tlv->info;
+	if (ntoh24(oui) != OUI_IEEE_8023)
+		return SUBTYPE_INVALID;
+
+	subtype = *(tlv->info + OUI_SIZE);
+	switch (subtype) {
+	case LLDP_8023_MACPHY_CONFIG_STATUS:
+	case LLDP_8023_POWER_VIA_MDI:
+	case LLDP_8023_LINK_AGGREGATION:
+	case LLDP_8023_MAXIMUM_FRAME_SIZE:
+		return TLV_OK;
+	}
+
+	return SUBTYPE_INVALID;
 }
 
 struct lldp_module *ieee8023_register(void)
