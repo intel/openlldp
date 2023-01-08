@@ -38,6 +38,7 @@
 #include "config.h"
 #include "lldp_8023_clif.h"
 #include "lldp_8023_cmds.h"
+#include "lldp_ethtool.h"
 
 struct tlv_info_8023_maccfg {
 	u8 oui[3];
@@ -66,6 +67,12 @@ struct tlv_info_8023_powvmdi {
 	u8 caps;
 	u8 pairs;
 	u8 class;
+} __attribute__ ((__packed__));
+
+struct tlv_info_8023_add_eth_caps {
+	u8 oui[3];
+	u8 sub;
+	u16 preempt;
 } __attribute__ ((__packed__));
 
 static const struct lldp_mod_ops ieee8023_ops =  {
@@ -314,6 +321,103 @@ out_err:
 	return rc;
 }
 
+static u16 ieee8023_bld_preempt_status(struct ieee8023_data *bd)
+{
+	struct ieee8023_user_data *ud;
+	int err, add_frag_size;
+	struct ethtool_mm mm;
+	u16 status = 0;
+
+	ud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_8023);
+
+	if (!ud->ethtool_sk)
+		return status;
+
+	err = ethtool_mm_get_state(ud->ethtool_sk, bd->ifname, &mm);
+	if (err) {
+		LLDPAD_ERR("%s: Failed to query ethtool MAC merge support: %d\n",
+			   bd->ifname, err);
+		return status;
+	}
+
+	add_frag_size = ethtool_mm_frag_size_min_to_add(mm.rx_min_frag_size);
+	if (add_frag_size < 0) {
+		LLDPAD_ERR("%s: Kernel requests an RX min fragment size of %d which is too large to advertise\n",
+			   bd->ifname, mm.rx_min_frag_size);
+		return status;
+	}
+
+	/* No error => supported */
+	status |= LLDP_8023_ADD_ETH_CAPS_PREEMPT_SUPPORT |
+		  LLDP_8023_ADD_ETH_CAPS_ADD_FRAG_SIZE(add_frag_size);
+
+	if (mm.tx_enabled)
+		status |= LLDP_8023_ADD_ETH_CAPS_PREEMPT_STATUS;
+
+	if (mm.tx_active)
+		status |= LLDP_8023_ADD_ETH_CAPS_PREEMPT_ACTIVE;
+
+	return status;
+}
+
+/*
+ * ieee8023_bld_add_eth_caps_tlv - build the Additional Ethernet Capabilities TLV
+ * @bd: the med data struct
+ *
+ * Returns 0 on success
+ */
+static int ieee8023_bld_add_eth_caps_tlv(struct ieee8023_data *bd,
+					 struct lldp_agent *agent)
+{
+	struct tlv_info_8023_add_eth_caps add_eth_caps;
+	struct unpacked_tlv *tlv;
+
+	/* free old one if it exists */
+	FREE_UNPKD_TLV(bd, add_eth_caps);
+
+	if (!is_tlv_txenabled(bd->ifname, agent->type,
+			      TLVID_8023(LLDP_8023_ADD_ETH_CAPS)))
+		return 0;
+
+	/* Never read from config, always query kernel support */
+	hton24(add_eth_caps.oui, OUI_IEEE_8023);
+	add_eth_caps.sub = LLDP_8023_ADD_ETH_CAPS;
+	add_eth_caps.preempt = htons(ieee8023_bld_preempt_status(bd));
+
+	tlv = create_tlv();
+	if (!tlv)
+		return -ENOMEM;
+
+	tlv->type = ORG_SPECIFIC_TLV;
+	tlv->length = sizeof(add_eth_caps);
+	tlv->info = malloc(tlv->length);
+	if (!tlv->info) {
+		free(tlv);
+		return -ENOMEM;
+	}
+
+	memcpy(tlv->info, &add_eth_caps, tlv->length);
+	bd->add_eth_caps = tlv;
+
+	return 0;
+}
+
+static void ieee8023_add_eth_caps_teardown(struct ieee8023_data *bd,
+					   struct ieee8023_user_data *ud)
+{
+	/* On link down, the link partner might change to another one which
+	 * does not advertise support for preemption, so disable what we've
+	 * applied. However, do not disable preemption if it wasn't enabled
+	 * by lldpad in the first place.
+	 */
+	if (bd->enabled_preemption) {
+		ethtool_mm_change_pmac_enabled(ud->ethtool_sk, bd->ifname,
+					       false);
+		ethtool_mm_change_tx_enabled(ud->ethtool_sk, bd->ifname, false,
+					     false, 10);
+	}
+}
+
 static void ieee8023_free_tlv(struct ieee8023_data *bd)
 {
 	if (bd) {
@@ -321,6 +425,7 @@ static void ieee8023_free_tlv(struct ieee8023_data *bd)
 		FREE_UNPKD_TLV(bd, powvmdi);
 		FREE_UNPKD_TLV(bd, linkagg);
 		FREE_UNPKD_TLV(bd, maxfs);
+		FREE_UNPKD_TLV(bd, add_eth_caps);
 	}
 }
 
@@ -349,19 +454,29 @@ static int ieee8023_bld_tlv(struct ieee8023_data *bd, struct lldp_agent *agent)
 			   __func__, bd->ifname);
 		return 0;
 	}
+	if (ieee8023_bld_add_eth_caps_tlv(bd, agent)) {
+		LLDPAD_DBG("%s:%s:ieee8023_bld_add_eth_caps_tlv() failed\n",
+			   __func__, bd->ifname);
+		return 0;
+	}
 	return 0;
 }
 
 static void ieee8023_free_data(struct ieee8023_user_data *ud)
 {
 	struct ieee8023_data *bd;
+
 	if (ud) {
 		while (!LIST_EMPTY(&ud->head)) {
 			bd = LIST_FIRST(&ud->head);
 			LIST_REMOVE(bd, entry);
+			ieee8023_add_eth_caps_teardown(bd, ud);
 			ieee8023_free_tlv(bd);
 			free(bd);
 		}
+
+		if (ud->ethtool_sk)
+			ethtool_sock_destroy(ud->ethtool_sk);
 	}
 }
 
@@ -383,10 +498,11 @@ struct packed_tlv *ieee8023_gettlv(struct port *port,
 		goto out_err;
 	}
 
-	size = TLVSIZE(bd->maccfg)
-		+ TLVSIZE(bd->powvmdi)
-		+ TLVSIZE(bd->linkagg)
-		+ TLVSIZE(bd->maxfs);
+	size = TLVSIZE(bd->maccfg) +
+	       TLVSIZE(bd->powvmdi) +
+	       TLVSIZE(bd->linkagg) +
+	       TLVSIZE(bd->maxfs) +
+	       TLVSIZE(bd->add_eth_caps);
 	if (!size)
 		goto out_err;
 
@@ -403,6 +519,7 @@ struct packed_tlv *ieee8023_gettlv(struct port *port,
 	PACK_TLV_AFTER(bd->powvmdi, ptlv, size, out_free);
 	PACK_TLV_AFTER(bd->linkagg, ptlv, size, out_free);
 	PACK_TLV_AFTER(bd->maxfs, ptlv, size, out_free);
+	PACK_TLV_AFTER(bd->add_eth_caps, ptlv, size, out_free);
 	return ptlv;
 out_free:
 	free_pkd_tlv(ptlv);
@@ -415,13 +532,15 @@ out_err:
 
 void ieee8023_ifdown(char *ifname, struct lldp_agent *agent)
 {
+	struct ieee8023_user_data *ud;
 	struct ieee8023_data *bd;
 
-	bd = ieee8023_data(ifname, agent->type, NULL);
+	bd = ieee8023_data(ifname, agent->type, &ud);
 	if (!bd)
 		goto out_err;
 
 	LIST_REMOVE(bd, entry);
+	ieee8023_add_eth_caps_teardown(bd, ud);
 	ieee8023_free_tlv(bd);
 	free(bd);
 	LLDPAD_INFO("%s:port %s removed\n", __func__, ifname);
@@ -469,6 +588,102 @@ out_err:
 	return;
 }
 
+static void ieee8023_rchange_add_eth_caps(struct ieee8023_data *bd,
+					  struct ieee8023_user_data *ud,
+					  u8 *buf, int len)
+{
+	bool lp_supported, lp_enabled, lp_active;
+	struct ethtool_mm mm;
+	u32 lp_min_frag_size;
+	u8 lp_add_frag_size;
+	u8 tmp[2] = {};
+	u16 preempt;
+	int err;
+
+	memcpy(tmp, buf, MIN(len, 2));
+	preempt = ntohs(*((u16 *)tmp));
+
+	lp_supported = !!(preempt & LLDP_8023_ADD_ETH_CAPS_PREEMPT_SUPPORT);
+	lp_enabled = !!(preempt & LLDP_8023_ADD_ETH_CAPS_PREEMPT_STATUS);
+	lp_active = !!(preempt & LLDP_8023_ADD_ETH_CAPS_PREEMPT_ACTIVE);
+	lp_add_frag_size = LLDP_8023_ADD_ETH_CAPS_ADD_FRAG_SIZE_X(preempt);
+	lp_min_frag_size = ethtool_mm_frag_size_add_to_min(lp_add_frag_size);
+
+	LLDPAD_INFO("%s: Link partner preemption capability %ssupported\n",
+		    bd->ifname, lp_supported ? "" : "not ");
+	LLDPAD_INFO("%s: Link partner preemption capability %senabled\n",
+		    bd->ifname, lp_enabled ? "" : "not ");
+	LLDPAD_INFO("%s: Link partner preemption capability %sactive\n",
+		    bd->ifname, lp_active ? "" : "not ");
+	LLDPAD_INFO("%s: Link partner minimum fragment size: %d octets\n",
+		    bd->ifname, lp_min_frag_size);
+
+	if (!lp_supported || !ud->ethtool_sk)
+		return;
+
+	err = ethtool_mm_get_state(ud->ethtool_sk, bd->ifname, &mm);
+	if (err) {
+		LLDPAD_ERR("%s: Failed to query ethtool MAC merge support: %d\n",
+			   bd->ifname, err);
+		return;
+	}
+
+	/* In case the pMAC is not powered on, power it up now so that
+	 * it responds to SMD-V frames initiated by the link partner,
+	 * who may have enabled their verification state machine upon
+	 * seeing our advertisements
+	 */
+	if (!mm.pmac_enabled) {
+		err = ethtool_mm_change_pmac_enabled(ud->ethtool_sk, bd->ifname,
+						     true);
+		if (err) {
+			LLDPAD_ERR("%s: Failed to enable pMAC RX: %d\n",
+				   bd->ifname, err);
+			return;
+		}
+	}
+
+	/* Make sure that our TX is configured to use what minimum fragment
+	 * size the link partner has requested
+	 */
+	if (mm.tx_min_frag_size != lp_min_frag_size) {
+		err = ethtool_mm_change_tx_min_frag_size(ud->ethtool_sk,
+							 bd->ifname,
+							 lp_min_frag_size);
+		if (err) {
+			LLDPAD_ERR("%s: Failed to change TX min fragment size: %d\n",
+				   bd->ifname, err);
+			return;
+		}
+	}
+
+	/* If both we and the link partner support frame preemption, we
+	 * automatically turn our TX side on regardless of what the link
+	 * partner may do. Since we request verification, preemption will
+	 * only become active once the verification process succeeds
+	 * (the link partner ACKs our handshake). Using the largest interval
+	 * between verification attempts permitted by our hardware allows
+	 * the link partner a bit of wiggle room to delay enabling its pMAC
+	 * (which responds to our verification requests).
+	 */
+	if (!mm.tx_enabled || !mm.verify_enabled ||
+	    mm.verify_time != mm.max_verify_time) {
+		LLDPAD_INFO("%s: initiating MM verification with a retry interval of %d ms...\n",
+			    bd->ifname, mm.max_verify_time);
+
+		err = ethtool_mm_change_tx_enabled(ud->ethtool_sk, bd->ifname,
+						   true, true,
+						   mm.max_verify_time);
+		if (err) {
+			LLDPAD_ERR("%s: Failed to enable TX preemption: %d\n",
+				   bd->ifname, err);
+			return;
+		}
+	}
+
+	bd->enabled_preemption = true;
+}
+
 /*
  * ieee8023_rchange: process received IEEE 802.3 TLV LLDPDU
  *
@@ -477,6 +692,7 @@ out_err:
 int ieee8023_rchange(struct port *port, struct lldp_agent *agent,
 		     struct unpacked_tlv *tlv)
 {
+	struct ieee8023_user_data *ud;
 	struct ieee8023_data *bd;
 	u8 subtype;
 	u8 *oui;
@@ -484,7 +700,7 @@ int ieee8023_rchange(struct port *port, struct lldp_agent *agent,
 	if (agent->type != NEAREST_BRIDGE)
 		return SUBTYPE_INVALID;
 
-	bd = ieee8023_data(port->ifname, agent->type);
+	bd = ieee8023_data(port->ifname, agent->type, &ud);
 	if (!bd)
 		return SUBTYPE_INVALID;
 
@@ -504,6 +720,12 @@ int ieee8023_rchange(struct port *port, struct lldp_agent *agent,
 	case LLDP_8023_POWER_VIA_MDI:
 	case LLDP_8023_LINK_AGGREGATION:
 	case LLDP_8023_MAXIMUM_FRAME_SIZE:
+		/* We don't need to store the TLV, so free it */
+		free_unpkd_tlv(tlv);
+		return TLV_OK;
+	case LLDP_8023_ADD_ETH_CAPS:
+		ieee8023_rchange_add_eth_caps(bd, ud, tlv->info + OUI_SUB_SIZE,
+					      tlv->length - OUI_SUB_SIZE);
 		/* We don't need to store the TLV, so free it */
 		free_unpkd_tlv(tlv);
 		return TLV_OK;
@@ -528,6 +750,14 @@ struct lldp_module *ieee8023_register(void)
 		LLDPAD_ERR("failed to malloc LLDP 802.3 module user data\n");
 		goto out_err;
 	}
+
+	/* May return NULL if CONFIG_ETHTOOL_NETLINK is disabled,
+	 * which isn't fatal
+	 */
+	ud->ethtool_sk = ethtool_sock_create();
+	if (!ud->ethtool_sk)
+		LLDPAD_WARN("Failed to create ethtool netlink socket\n");
+
 	LIST_INIT(&ud->head);
  	mod->id = LLDP_MOD_8023;
 	mod->ops = &ieee8023_ops;
