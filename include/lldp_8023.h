@@ -39,6 +39,8 @@ struct ieee8023_data {
 	struct unpacked_tlv *powvmdi;
 	struct unpacked_tlv *linkagg;
 	struct unpacked_tlv *maxfs;
+	struct unpacked_tlv *add_eth_caps;
+	bool enabled_preemption;
 	LIST_ENTRY(ieee8023_data) entry;
 };
 
