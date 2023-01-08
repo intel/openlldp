@@ -66,9 +66,13 @@ dnl End systemd stuff
 
 PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.3.2])
 PKG_CHECK_MODULES([LIBNL], [libnl-3.0 >= 3.2])
+PKG_CHECK_MODULES([LIBNL_GENL], [libnl-genl-3.0 >= 3.2])
 
 AC_SUBST(LIBNL_CFLAGS)
 AC_SUBST(LIBNL_LIBS)
+
+AC_SUBST(LIBNL_GENL_CFLAGS)
+AC_SUBST(LIBNL_GENL_LIBS)
 
 AC_CHECK_LIB(nl3, rtnl_link_get_by_name)
 
