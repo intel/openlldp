@@ -35,12 +35,14 @@
 #include "lldp.h"
 #include "lldp_8023.h"
 #include "lldp_8023_clif.h"
+#include "lldp_ethtool.h"
 #include "lldp_util.h"
 
 void print_mac_phy(u16, char *info);
 void print_power_mdi(u16, char *info);
 void print_link_agg(u16, char *info);
 void print_mtu(u16, char *info);
+void print_add_eth_caps(u16, char *info);
 int ieee8023_print_help();
 
 u32 ieee8023_lookup_tlv_name(char *tlvid_str);
@@ -66,6 +68,10 @@ struct type_name_info ieee8023_tlv_names[] = {
 	{	.type = (LLDP_MOD_8023 << 8) | LLDP_8023_MAXIMUM_FRAME_SIZE,
 		.name = "Maximum Frame Size TLV", .key = "MTU",
 		.print_info = print_mtu, },
+	{	.type = (LLDP_MOD_8023 << 8) | LLDP_8023_ADD_ETH_CAPS,
+		.name = "Additional Ethernet Capabilities TLV",
+		.key = "addEthCaps",
+		.print_info = print_add_eth_caps, },
 	{	.type = INVALID_TLVID, }
 };
 
@@ -445,6 +451,26 @@ void print_mtu(UNUSED u16 len, char *info)
 	hexstr2bin(info, (u8 *)&mtu, sizeof(mtu));
 	mtu = ntohs(mtu);
 	printf("%d\n", mtu);
+}
+
+void print_add_eth_caps(u16 len, char *info)
+{
+	u8 add_frag_size;
+	u8 buf[2] = {};
+	u16 preempt;
+
+	hexstr2bin(info, buf, MIN(len, 2));
+	preempt = ntohs(*((u16 *)buf));
+	add_frag_size = LLDP_8023_ADD_ETH_CAPS_ADD_FRAG_SIZE_X(preempt);
+
+	printf("Preemption capability %ssupported\n",
+	       (preempt & LLDP_8023_ADD_ETH_CAPS_PREEMPT_SUPPORT) ? "" : "not ");
+	printf("\tPreemption capability %senabled\n",
+	       (preempt & LLDP_8023_ADD_ETH_CAPS_PREEMPT_STATUS) ? "" : "not ");
+	printf("\tPreemption capability %sactive\n",
+	       (preempt & LLDP_8023_ADD_ETH_CAPS_PREEMPT_ACTIVE) ? "" : "not ");
+	printf("\tAdditional fragment size: %d octets\n",
+	       ethtool_mm_frag_size_add_to_min(add_frag_size));
 }
 
 /* return 1: if it printed the TLV

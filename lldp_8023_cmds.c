@@ -80,6 +80,7 @@ get_arg_tlvtxenable(struct cmd *cmd, char *arg, UNUSED char *argvalue,
 	case (LLDP_MOD_8023 << 8) | LLDP_8023_POWER_VIA_MDI:
 	case (LLDP_MOD_8023 << 8) | LLDP_8023_LINK_AGGREGATION:
 	case (LLDP_MOD_8023 << 8) | LLDP_8023_MAXIMUM_FRAME_SIZE:
+	case (LLDP_MOD_8023 << 8) | LLDP_8023_ADD_ETH_CAPS:
 		snprintf(arg_path, sizeof(arg_path), "%s%08x.%s",
 			 TLVID_PREFIX, cmd->tlvid, arg);
 
@@ -118,6 +119,7 @@ static int _set_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 	case (LLDP_MOD_8023 << 8) | LLDP_8023_POWER_VIA_MDI:
 	case (LLDP_MOD_8023 << 8) | LLDP_8023_LINK_AGGREGATION:
 	case (LLDP_MOD_8023 << 8) | LLDP_8023_MAXIMUM_FRAME_SIZE:
+	case (LLDP_MOD_8023 << 8) | LLDP_8023_ADD_ETH_CAPS:
 		break;
 	case INVALID_TLVID:
 		return cmd_invalid;
