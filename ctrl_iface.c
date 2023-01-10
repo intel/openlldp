@@ -514,6 +514,7 @@ void ctrl_iface_deinit(struct clif_data *clifd)
 	while (dst) {
 		prev = dst;
 		dst = dst->next;
+		free(prev->tlv_types);
 		free(prev);
 	}
 
