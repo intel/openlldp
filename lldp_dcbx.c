@@ -695,6 +695,7 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 	 * present
 	 */
 	if (tlv->type == TYPE_1) {
+		clear_dcbx_manifest(dcbx);
 		manifest = malloc(sizeof(*manifest));
 		if (!manifest) {
 			LLDPAD_INFO("failed malloc for manifest\n");
