@@ -588,6 +588,7 @@ initialized:
 	if (exists != cmd_success)
 		dont_advertise_dcbx_all(ifname, 1);
 
+	dcbx_free_tlv(tlvs);
 	dcbx_bld_tlv(port, agent);
 
 	/* if the dcbx field is not filled in by the capabilities
