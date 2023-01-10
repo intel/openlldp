@@ -342,29 +342,69 @@ void rxProcessFrame(struct port *port, struct lldp_agent *agent)
 			}
 		}
 		if (tlv->type == TYPE_4) { /* port description */
-			agent->lldpdu |= RCVD_LLDP_TLV_TYPE4;
-			agent->rx.manifest->portdesc = tlv;
-			tlv_stored = true;
+			if (agent->lldpdu & RCVD_LLDP_TLV_TYPE4) {
+				LLDPAD_INFO("Received multiple port description"
+					" TLVs in this LLDPDU\n");
+				frame_error++;
+				free_unpkd_tlv(tlv);
+				goto out;
+			} else {
+				agent->lldpdu |= RCVD_LLDP_TLV_TYPE4;
+				agent->rx.manifest->portdesc = tlv;
+				tlv_stored = true;
+			}
 		}
 		if (tlv->type == TYPE_5) { /* system name */
-			agent->lldpdu |= RCVD_LLDP_TLV_TYPE5;
-			agent->rx.manifest->sysname = tlv;
-			tlv_stored = true;
+			if (agent->lldpdu & RCVD_LLDP_TLV_TYPE5) {
+				LLDPAD_INFO("Received multiple system name"
+					" TLVs in this LLDPDU\n");
+				frame_error++;
+				free_unpkd_tlv(tlv);
+				goto out;
+			} else {
+				agent->lldpdu |= RCVD_LLDP_TLV_TYPE5;
+				agent->rx.manifest->sysname = tlv;
+				tlv_stored = true;
+			}
 		}
 		if (tlv->type == TYPE_6) { /* system description */
-			agent->lldpdu |= RCVD_LLDP_TLV_TYPE6;
-			agent->rx.manifest->sysdesc = tlv;
-			tlv_stored = true;
+			if (agent->lldpdu & RCVD_LLDP_TLV_TYPE6) {
+				LLDPAD_INFO("Received multiple system description"
+					" TLVs in this LLDPDU\n");
+				frame_error++;
+				free_unpkd_tlv(tlv);
+				goto out;
+			} else {
+                            agent->lldpdu |= RCVD_LLDP_TLV_TYPE6;
+                            agent->rx.manifest->sysdesc = tlv;
+                            tlv_stored = true;
+                        }
 		}
 		if (tlv->type == TYPE_7) { /* system capabilities */
-			agent->lldpdu |= RCVD_LLDP_TLV_TYPE7;
-			agent->rx.manifest->syscap = tlv;
-			tlv_stored = true;
+			if (agent->lldpdu & RCVD_LLDP_TLV_TYPE7) {
+				LLDPAD_INFO("Received multiple system capabilities"
+					" TLVs in this LLDPDU\n");
+				frame_error++;
+				free_unpkd_tlv(tlv);
+				goto out;
+			} else {
+				agent->lldpdu |= RCVD_LLDP_TLV_TYPE7;
+				agent->rx.manifest->syscap = tlv;
+				tlv_stored = true;
+			}
 		}
 		if (tlv->type == TYPE_8) { /* mgmt address */
-			agent->lldpdu |= RCVD_LLDP_TLV_TYPE8;
-			agent->rx.manifest->mgmtadd = tlv;
-			tlv_stored = true;
+			if (agent->lldpdu & RCVD_LLDP_TLV_TYPE8) {
+				LLDPAD_INFO("Received multiple mgmt address"
+					" TLVs in this LLDPDU\n");
+				frame_error++;
+				free_unpkd_tlv(tlv);
+				goto out;
+			} else {
+				agent->lldpdu |= RCVD_LLDP_TLV_TYPE8;
+				agent->rx.manifest->mgmtadd = tlv;
+				tlv_stored = true;
+			}
 		}
 
 		/* rx per lldp module */
