@@ -1,0 +1,91 @@
+.TH lldptool 8 "January 2023" "open-lldp" "Linux"
+.SH NAME
+addEthCaps \- Show / manipulate Additional Ethernet Capabilities TLV
+.SH SYNOPSIS
+.B lldptool -t -i ethx -V addEthCaps
+.RI [ -c " " CONFIG_ARG " " ... ]
+.sp
+
+.ti +4
+.IR	CONFIG_ARG " := { "
+.BR enableTx " | " addFragSize " }"
+.sp
+
+.B	lldptool -T -i ethx -V addEthCaps
+.RI CONFIG_ARG=value " " ...
+.sp
+.ti +4
+.IR	CONFIG_ARG " :=
+.sp
+.BR		enableTx " = " {yes|no} " | "
+.sp
+.BR		addFragSize " = " {0|1|2|3}
+.sp
+.SH DESCRIPTION
+The Additional Ethernet Capabilities (addEthCaps) TLV allows neighbour systems
+to automatically discover the Frame Preemption capability and enable their MAC
+Merge layers to make use of it.
+
+.SH ARGUMENTS
+.TP
+.B enableTx
+Enables the addEthCaps TLV to be transmitted
+.TP
+.B addFragSize
+Sets the additional fragment size to be advertised. This informs the link
+partner what is the minimum size of non-final fragments that it should
+transmit. An addFragSize of 0 corresponds to a minimum fragment size of 60
+octets, 1 corresponds to 124 octets, 2 to 188 octets, and 3 to 252 octets.
+
+.SH THEORY OF OPERATION
+
+If transmission of the Additional Ethernet Capabilities TLV is enabled, the
+application queries the kernel for MAC Merge layer support, and if successful,
+it advertises "Frame Preemption Capability Supported". If the link partner
+advertises the "Frame Preemption Capability Supported" too, the application
+unconditionally enables the pMAC (to allow receiving preemptible and/or
+verification frames from the link partner) and transmission through the MAC
+Merge layer. The latter operation causes the "Frame Preemption Capability
+Enabled" to also be advertised in subsequent TLVs.
+
+Since the application automatically enables the Frame Preemption capability,
+without any coordination with the link partner, it may be possible for the link
+partner to not enable reception on its pMAC, and thus, all preemptible frames
+transmitted by this device would be dropped as error frames.
+
+To avoid this, the application also requests the kernel to enable TX
+verification, which starts a handshake of SMD-V and SMD-R frames outside the
+LLDP protocol. If the verification process succeeds (link partner responds to a
+SMD-V frame), the MAC Merge layer also becomes active, and the application will
+advertise "Frame Preemption Capability Active" in subsequent TLVs.
+
+Which packets are transmitted as preemptible and which are transmitted as
+express (based on their user priority) is outside of the scope of this
+application (and of the LLDP protocol).
+
+.SH EXAMPLE & USAGE
+.TP
+Enable the transmission of the Additional Ethernet Capabilities TLV for interface \fIeth0\fR:
+.B lldptool -T -i eth0 -V addEthCaps enableTx=yes
+.TP
+Configure the minimum fragment size for interface \fIeth0\fR to receive fragments no smaller than 252 octets:
+.B lldptool -T -i eth0 -V addEthCaps addFragSize=3
+.TP
+Display the additional fragment size advertised by \fIeth0\fR:
+.B lldptool -t -i eth0 -V addEthCaps -c addFragSize
+.TP
+Display last transmitted Additional Ethernet Capabilities TLV
+.B lldptool -t -i eth0 -V addEthCaps
+
+.SH NOTES
+The Additional Ethernet Capabilities TLV requires kernel support for the
+ETHTOOL_MSG_MM_GET and ETHTOOL_MSG_MM_SET netlink commands, which first
+appeared in Linux kernel v6.3.
+
+.SH SEE ALSO
+.BR lldptool (8),
+.BR lldpad (8),
+.BR ethtool (8),
+
+.SH AUTHOR
+This man page was written by Vladimir Oltean <vladimir.oltean@nxp.com>.

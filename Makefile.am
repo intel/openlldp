@@ -120,7 +120,7 @@ dist_noinst_DATA = lldpad.spec README COPYING ChangeLog lldpad.init
 dist_man_MANS = docs/lldpad.8 docs/dcbtool.8 docs/lldptool.8 \
 		docs/lldptool-ets.8 docs/lldptool-pfc.8 docs/lldptool-app.8 \
 		docs/lldptool-evb.8 docs/lldptool-vdp.8 docs/lldptool-med.8 \
-		docs/lldptool-dcbx.8 \
+		docs/lldptool-dcbx.8 docs/lldptool-add-eth-caps.8 \
 		docs/lldptool-evb22.8 docs/vdptool.8 \
 		docs/liblldp_clif-vdp22.3
 if BUILD_DEBUG
