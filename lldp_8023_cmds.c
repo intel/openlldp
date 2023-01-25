@@ -24,7 +24,9 @@
 
 *******************************************************************************/
 
+#include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <syslog.h>
 #include <sys/un.h>
 #include <sys/stat.h>
@@ -35,6 +37,7 @@
 #include "lldp_8023.h"
 #include "lldp_mand_clif.h"
 #include "lldp_8023_clif.h"
+#include "lldp_8023_cmds.h"
 #include "lldp/ports.h"
 #include "libconfig.h"
 #include "config.h"
@@ -42,11 +45,18 @@
 #include "lldpad_status.h"
 #include "lldp/states.h"
 
+static int get_arg_add_frag_size(struct cmd *, char *, char *, char *, int);
+static int set_arg_add_frag_size(struct cmd *, char *, char *, char *, int);
+static int test_arg_add_frag_size(struct cmd *, char *, char *, char *, int);
 static int get_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 static int set_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 static int test_arg_tlvtxenable(struct cmd *, char *, char *, char *, int);
 
 static struct arg_handlers arg_handlers[] = {
+	{	.arg = ARG_8023_ADD_FRAG_SIZE, .arg_class = TLV_ARG,
+		.handle_get = get_arg_add_frag_size,
+		.handle_set = set_arg_add_frag_size,
+		.handle_test = test_arg_add_frag_size, },
 	{	.arg = ARG_TLVTXENABLE, .arg_class = TLV_ARG,
 		.handle_get = get_arg_tlvtxenable,
 		.handle_set = set_arg_tlvtxenable,
@@ -148,6 +158,96 @@ static int test_arg_tlvtxenable(struct cmd *cmd, char *arg, char *argvalue,
 			       char *obuf, int obuf_len)
 {
 	return _set_arg_tlvtxenable(cmd, arg, argvalue, obuf, obuf_len, true);
+}
+
+static int get_arg_add_frag_size(struct cmd *cmd, char *arg,
+				 UNUSED char *argvalue, char *obuf,
+				 int obuf_len)
+{
+	int add_frag_size, err;
+	char arg_path[256];
+
+	if (cmd->cmd != cmd_gettlv)
+		return cmd_invalid;
+
+	switch (cmd->tlvid) {
+	case (LLDP_MOD_8023 << 8) | LLDP_8023_ADD_ETH_CAPS:
+		break;
+	case INVALID_TLVID:
+		return cmd_invalid;
+	default:
+		return cmd_not_applicable;
+	}
+
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
+		 cmd->tlvid, arg);
+
+	err = get_config_setting(cmd->ifname, cmd->type, arg_path,
+				 &add_frag_size, CONFIG_TYPE_INT);
+
+	if (!err)
+		snprintf(obuf, obuf_len, "%02x%s%04x%i",
+			 (unsigned int) strlen(arg), arg, 1, add_frag_size);
+	else
+		snprintf(obuf, obuf_len, "%02x%s%04d",
+			 (unsigned int) strlen(arg), arg, 0);
+
+	return cmd_success;
+}
+
+static int _set_arg_add_frag_size(struct cmd *cmd, char *arg, char *argvalue,
+				  char *obuf, int obuf_len, bool test)
+{
+	char arg_path[256];
+	int add_frag_size;
+	unsigned long val;
+
+	if (cmd->cmd != cmd_settlv)
+		return cmd_invalid;
+
+	switch (cmd->tlvid) {
+	case (LLDP_MOD_8023 << 8) | LLDP_8023_ADD_ETH_CAPS:
+		break;
+	case INVALID_TLVID:
+		return cmd_invalid;
+	default:
+		return cmd_not_applicable;
+	}
+
+	errno = 0;
+	val = strtoul(argvalue, NULL, 0);
+	if (errno || val >= 4)
+		return cmd_invalid;
+
+	add_frag_size = val;
+
+	if (test)
+		return cmd_success;
+
+	snprintf(obuf, obuf_len, "%s = %d\n", arg, add_frag_size);
+
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
+		 cmd->tlvid, arg);
+	set_config_setting(cmd->ifname, cmd->type, arg_path, &add_frag_size,
+			   CONFIG_TYPE_INT);
+	printf("arg_path \"%s\"\n", arg_path);
+	somethingChangedLocal(cmd->ifname, cmd->type);
+
+	return cmd_success;
+}
+
+static int set_arg_add_frag_size(struct cmd *cmd, char *arg, char *argvalue,
+				 char *obuf, int obuf_len)
+{
+	return _set_arg_add_frag_size(cmd, arg, argvalue, obuf, obuf_len,
+				      false);
+}
+
+static int test_arg_add_frag_size(struct cmd *cmd, char *arg, char *argvalue,
+				  char *obuf, int obuf_len)
+{
+	return _set_arg_add_frag_size(cmd, arg, argvalue, obuf, obuf_len,
+				      true);
 }
 
 struct arg_handlers *ieee8023_get_arg_handlers()
