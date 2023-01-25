@@ -27,6 +27,8 @@
 #ifndef _LLDP_8023_CMDS_H
 #define _LLDP_8023_CMDS_H
 
+#define ARG_8023_ADD_FRAG_SIZE	"addFragSize"
+
 struct arg_handlers *ieee8023_get_arg_handlers();
 
 #endif
