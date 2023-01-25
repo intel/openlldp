@@ -39,6 +39,7 @@
 #include "lldp_8023_clif.h"
 #include "lldp_8023_cmds.h"
 #include "lldp_ethtool.h"
+#include "lldp_mand_clif.h"
 
 struct tlv_info_8023_maccfg {
 	u8 oui[3];
@@ -316,9 +317,27 @@ out_err:
 	return rc;
 }
 
-static u16 ieee8023_bld_preempt_status(struct ieee8023_data *bd)
+static int ieee8023_config_read_add_frag_size(const char *ifname,
+					      struct lldp_agent *agent)
 {
-	int err, add_frag_size;
+	int add_frag_size, err;
+	char arg_path[256];
+
+	snprintf(arg_path, sizeof(arg_path), "%s%08x.%s", TLVID_PREFIX,
+		 TLVID_8023(LLDP_8023_ADD_ETH_CAPS), ARG_8023_ADD_FRAG_SIZE);
+
+	err = get_config_setting(ifname, agent->type, arg_path, &add_frag_size,
+				 CONFIG_TYPE_INT);
+	if (err)
+		return 0;
+
+	return add_frag_size;
+}
+
+static u16 ieee8023_bld_preempt_status(struct ieee8023_data *bd,
+				       struct lldp_agent *agent)
+{
+	int err, add_frag_size, config_add_frag_size;
 	struct ethtool_mm mm;
 	u16 status = 0;
 
@@ -329,6 +348,9 @@ static u16 ieee8023_bld_preempt_status(struct ieee8023_data *bd)
 		return status;
 	}
 
+	config_add_frag_size = ieee8023_config_read_add_frag_size(bd->ifname,
+								  agent);
+
 	add_frag_size = ethtool_mm_frag_size_min_to_add(mm.rx_min_frag_size);
 	if (add_frag_size < 0) {
 		LLDPAD_ERR("%s: Kernel requests an RX min fragment size of %d which is too large to advertise\n",
@@ -336,9 +358,15 @@ static u16 ieee8023_bld_preempt_status(struct ieee8023_data *bd)
 		return status;
 	}
 
+	if (config_add_frag_size < add_frag_size) {
+		LLDPAD_WARN("%s: Configured addFragSize (%d) smaller than the minimum value requested by kernel (%d). Using the latter\n",
+			    bd->ifname, config_add_frag_size, add_frag_size);
+		config_add_frag_size = add_frag_size;
+	}
+
 	/* No error => supported */
 	status |= LLDP_8023_ADD_ETH_CAPS_PREEMPT_SUPPORT |
-		  LLDP_8023_ADD_ETH_CAPS_ADD_FRAG_SIZE(add_frag_size);
+		  LLDP_8023_ADD_ETH_CAPS_ADD_FRAG_SIZE(config_add_frag_size);
 
 	if (mm.tx_enabled)
 		status |= LLDP_8023_ADD_ETH_CAPS_PREEMPT_STATUS;
@@ -368,10 +396,9 @@ static int ieee8023_bld_add_eth_caps_tlv(struct ieee8023_data *bd,
 			      TLVID_8023(LLDP_8023_ADD_ETH_CAPS)))
 		return 0;
 
-	/* Never read from config, always query kernel support */
 	hton24(add_eth_caps.oui, OUI_IEEE_8023);
 	add_eth_caps.sub = LLDP_8023_ADD_ETH_CAPS;
-	add_eth_caps.preempt = htons(ieee8023_bld_preempt_status(bd));
+	add_eth_caps.preempt = htons(ieee8023_bld_preempt_status(bd, agent));
 
 	tlv = create_tlv();
 	if (!tlv)
