@@ -78,12 +78,17 @@ static const struct lldp_mod_ops ieee8023_ops =  {
 	.get_arg_handler	= ieee8023_get_arg_handlers,
 };
 
-static struct ieee8023_data *ieee8023_data(const char *ifname, enum agent_type type)
+static struct ieee8023_data *ieee8023_data(const char *ifname,
+					   enum agent_type type,
+					   struct ieee8023_user_data **p_ud)
 {
 	struct ieee8023_user_data *ud;
 	struct ieee8023_data *bd = NULL;
 
 	ud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_8023);
+	if (p_ud)
+		*p_ud = ud;
+
 	if (ud) {
 		LIST_FOREACH(bd, &ud->head, entry) {
 			if (!strncmp(ifname, bd->ifname, IFNAMSIZ) &&
@@ -367,7 +372,7 @@ struct packed_tlv *ieee8023_gettlv(struct port *port,
 	struct ieee8023_data *bd;
 	struct packed_tlv *ptlv = NULL;
 
-	bd = ieee8023_data(port->ifname, agent->type);
+	bd = ieee8023_data(port->ifname, agent->type, NULL);
 	if (!bd)
 		goto out_err;
 
@@ -412,7 +417,7 @@ void ieee8023_ifdown(char *ifname, struct lldp_agent *agent)
 {
 	struct ieee8023_data *bd;
 
-	bd = ieee8023_data(ifname, agent->type);
+	bd = ieee8023_data(ifname, agent->type, NULL);
 	if (!bd)
 		goto out_err;
 
@@ -432,7 +437,7 @@ void ieee8023_ifup(char *ifname, struct lldp_agent *agent)
 	struct ieee8023_data *bd;
 	struct ieee8023_user_data *ud;
 
-	bd = ieee8023_data(ifname, agent->type);
+	bd = ieee8023_data(ifname, agent->type, NULL);
 	if (bd) {
 		LLDPAD_INFO("%s:%s exists\n", __func__, ifname);
 		goto out_err;
