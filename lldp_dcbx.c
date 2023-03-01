@@ -588,6 +588,7 @@ initialized:
 	if (exists != cmd_success)
 		dont_advertise_dcbx_all(ifname, 1);
 
+	dcbx_free_tlv(tlvs);
 	dcbx_bld_tlv(port, agent);
 
 	/* if the dcbx field is not filled in by the capabilities
@@ -694,6 +695,7 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 	 * present
 	 */
 	if (tlv->type == TYPE_1) {
+		clear_dcbx_manifest(dcbx);
 		manifest = malloc(sizeof(*manifest));
 		if (!manifest) {
 			LLDPAD_INFO("failed malloc for manifest\n");
@@ -732,12 +734,16 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 		if (tlv->info[DCB_OUI_LEN] == DCBX_SUBTYPE2) {
 			if (dcbx->dcbx_st == DCBX_SUBTYPE2)
 				dcbx->manifest->dcbx2 = tlv;
+			else
+				free_unpkd_tlv(tlv);
 			agent->lldpdu |= RCVD_LLDP_DCBX2_TLV;
 			dcbx->rxed_tlvs = true;
 			return TLV_OK;
 		} else if (tlv->info[DCB_OUI_LEN] == DCBX_SUBTYPE1) {
 			if (dcbx->dcbx_st == DCBX_SUBTYPE1)
 				dcbx->manifest->dcbx1 = tlv;
+			else
+				free_unpkd_tlv(tlv);
 			agent->lldpdu |= RCVD_LLDP_DCBX1_TLV;
 			dcbx->rxed_tlvs = true;
 			return TLV_OK;
