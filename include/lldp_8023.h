@@ -27,6 +27,7 @@
 #ifndef _LLDP_8023_H
 #define _LLDP_8023_H
 
+#include "lldp_ethtool.h"
 #include "lldp_mod.h"
 #include "lldp_tlv.h"
 
@@ -39,10 +40,13 @@ struct ieee8023_data {
 	struct unpacked_tlv *powvmdi;
 	struct unpacked_tlv *linkagg;
 	struct unpacked_tlv *maxfs;
+	struct unpacked_tlv *add_eth_caps;
+	bool enabled_preemption;
 	LIST_ENTRY(ieee8023_data) entry;
 };
 
 struct ieee8023_user_data {
+	struct ethtool_sock *ethtool_sk;
 	LIST_HEAD(ieee8023_head, ieee8023_data) head;
 };
 
@@ -51,5 +55,7 @@ void ieee8023_unregister(struct lldp_module *mod);
 struct packed_tlv *ieee8023_gettlv(struct port *, struct lldp_agent *);
 void ieee8023_ifdown(char *, struct lldp_agent *);
 void ieee8023_ifup(char *, struct lldp_agent *);
+int ieee8023_rchange(struct port *port, struct lldp_agent *agent,
+		     struct unpacked_tlv *tlv);
 
 #endif /* _LLDP_8023_H */

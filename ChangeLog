@@ -1,4 +1,7 @@
 Changes from 1.1.0 to 1.2.0
+- Add IEEE8023 support for Additional Ethernet Capabilities TLV (Frame
+  Preemption / MAC Merge layer)
+- Require libnl-genl-3.0 in addition to libnl-3.0
 Changes from 1.0.1 to 1.1
 - VDP: introduce vdptool
 - VDP: support retrieving vsi parameter

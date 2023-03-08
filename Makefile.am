@@ -19,8 +19,8 @@ ACLOCAL_AMFLAGS = -I m4
 parse_cli.o: CFLAGS+=-U_FORTIFY_SOURCE -Wno-error
 
 ## system requires a shared libconfig
-AM_CFLAGS = $(LIBCONFIG_CFLAGS) $(LIBNL_CFLAGS)
-AM_LDFLAGS = $(LIBCONFIG_LIBS) $(LIBNL_LIBS) -lrt
+AM_CFLAGS = $(LIBCONFIG_CFLAGS) $(LIBNL_CFLAGS) $(LIBNL_GENL_CFLAGS)
+AM_LDFLAGS = $(LIBCONFIG_LIBS) $(LIBNL_LIBS) $(LIBNL_GENL_LIBS) -lrt
 
 ## header files to be installed, for programs using the client interface to lldpad 
 lldpad_includedir= ${includedir}/lldpad
@@ -66,6 +66,7 @@ lldp_evb_cmds.c lldp_evb.c include/lldp_evb.h qbg/vdp_cmds.c \
 include/qbg_vdp_cmds.h \
 include/qbg_ecp.h include/qbg_utils.h qbg/ecp.c qbg_utils.c \
 qbg/vdp.c include/qbg_vdp.h \
+lldp_ethtool.c include/lldp_ethtool.h \
 lldp_tlv.c include/lldp_tlv.h \
 lldp_basman.c include/lldp_basman.h \
 lldp_med.c include/lldp_med.h \
@@ -119,7 +120,7 @@ dist_noinst_DATA = lldpad.spec README COPYING ChangeLog lldpad.init
 dist_man_MANS = docs/lldpad.8 docs/dcbtool.8 docs/lldptool.8 \
 		docs/lldptool-ets.8 docs/lldptool-pfc.8 docs/lldptool-app.8 \
 		docs/lldptool-evb.8 docs/lldptool-vdp.8 docs/lldptool-med.8 \
-		docs/lldptool-dcbx.8 \
+		docs/lldptool-dcbx.8 docs/lldptool-add-eth-caps.8 \
 		docs/lldptool-evb22.8 docs/vdptool.8 \
 		docs/liblldp_clif-vdp22.3
 if BUILD_DEBUG
