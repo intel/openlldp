@@ -710,24 +710,21 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 		 * However, capture if any legacy DCBX TLVs are recieved.
 		*/
 		if (tlv->info[DCB_OUI_LEN] == DCBX_SUBTYPE2) {
-			if (dcbx->dcbx_st == DCBX_SUBTYPE2)
-				dcbx->manifest->dcbx2 = tlv;
-			else
-				free_unpkd_tlv(tlv);
 			agent->lldpdu |= RCVD_LLDP_DCBX2_TLV;
 			dcbx->rxed_tlvs = true;
-			return TLV_OK;
+			if (dcbx->dcbx_st == DCBX_SUBTYPE2) {
+				dcbx->manifest->dcbx2 = tlv;
+				return TLV_OK;
+			}
 		} else if (tlv->info[DCB_OUI_LEN] == DCBX_SUBTYPE1) {
-			if (dcbx->dcbx_st == DCBX_SUBTYPE1)
-				dcbx->manifest->dcbx1 = tlv;
-			else
-				free_unpkd_tlv(tlv);
 			agent->lldpdu |= RCVD_LLDP_DCBX1_TLV;
 			dcbx->rxed_tlvs = true;
-			return TLV_OK;
-		} else {
-			return SUBTYPE_INVALID;
+			if (dcbx->dcbx_st == DCBX_SUBTYPE1) {
+				dcbx->manifest->dcbx1 = tlv;
+				return TLV_OK;
+			}
 		}
+		return SUBTYPE_INVALID;
 	}
 
 	if (tlv->type == TYPE_0) {
