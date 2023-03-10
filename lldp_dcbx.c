@@ -57,6 +57,7 @@ extern u8 gdcbx_subtype;
 
 void dcbx_free_tlv(struct dcbx_tlvs *tlvs);
 static int dcbx_check_operstate(struct port *port, struct lldp_agent *agent);
+static void clear_dcbx_manifest(struct dcbx_tlvs *dcbx);
 
 const struct lldp_mod_ops dcbx_ops = {
 	.lldp_mod_register	= dcbx_register,
@@ -279,29 +280,6 @@ fail_add:
 	return -1;
 }
 
-void dcbx_free_manifest(struct dcbx_manifest *manifest)
-{
-	if (!manifest)
-		return;
-
-	if (manifest->dcbx1)
-		free_unpkd_tlv(manifest->dcbx1);
-	if (manifest->dcbx2)
-		free_unpkd_tlv(manifest->dcbx2);
-	if (manifest->dcbx_ctrl)
-		free_unpkd_tlv(manifest->dcbx_ctrl);
-	if (manifest->dcbx_pg)
-		free_unpkd_tlv(manifest->dcbx_pg);
-	if (manifest->dcbx_pfc)
-		free_unpkd_tlv(manifest->dcbx_pfc);
-	if (manifest->dcbx_app)
-		free_unpkd_tlv(manifest->dcbx_app);
-	if (manifest->dcbx_llink)
-		free_unpkd_tlv(manifest->dcbx_llink);
-	free(manifest);
-	return;
-}
-
 void dcbx_free_tlv(struct dcbx_tlvs *tlvs)
 {
 	if (!tlvs)
@@ -371,7 +349,7 @@ static void dcbx_free_data(struct dcbd_user_data *dud)
 			dd = LIST_FIRST(&dud->head);
 			LIST_REMOVE(dd, entry);
 			dcbx_free_tlv(dd);
-			dcbx_free_manifest(dd->manifest);
+			clear_dcbx_manifest(dd);
 			free(dd);
 		}
 	}
@@ -639,13 +617,13 @@ void dcbx_ifdown(char *device_name, struct lldp_agent *agent)
 
 	LIST_REMOVE(tlvs, entry);
 	dcbx_free_tlv(tlvs);
-	dcbx_free_manifest(tlvs->manifest);
+	clear_dcbx_manifest(tlvs);
 	free(tlvs);
 }
 
-void clear_dcbx_manifest(struct dcbx_tlvs *dcbx)
+static void clear_dcbx_manifest(struct dcbx_tlvs *dcbx)
 {
-	if (!dcbx)
+	if (!dcbx || !dcbx->manifest)
 		return;
 
 	if (dcbx->manifest->dcbx_llink)
@@ -732,24 +710,21 @@ int dcbx_rchange(struct port *port, struct lldp_agent *agent, struct unpacked_tl
 		 * However, capture if any legacy DCBX TLVs are recieved.
 		*/
 		if (tlv->info[DCB_OUI_LEN] == DCBX_SUBTYPE2) {
-			if (dcbx->dcbx_st == DCBX_SUBTYPE2)
-				dcbx->manifest->dcbx2 = tlv;
-			else
-				free_unpkd_tlv(tlv);
 			agent->lldpdu |= RCVD_LLDP_DCBX2_TLV;
 			dcbx->rxed_tlvs = true;
-			return TLV_OK;
+			if (dcbx->dcbx_st == DCBX_SUBTYPE2) {
+				dcbx->manifest->dcbx2 = tlv;
+				return TLV_OK;
+			}
 		} else if (tlv->info[DCB_OUI_LEN] == DCBX_SUBTYPE1) {
-			if (dcbx->dcbx_st == DCBX_SUBTYPE1)
-				dcbx->manifest->dcbx1 = tlv;
-			else
-				free_unpkd_tlv(tlv);
 			agent->lldpdu |= RCVD_LLDP_DCBX1_TLV;
 			dcbx->rxed_tlvs = true;
-			return TLV_OK;
-		} else {
-			return SUBTYPE_INVALID;
+			if (dcbx->dcbx_st == DCBX_SUBTYPE1) {
+				dcbx->manifest->dcbx1 = tlv;
+				return TLV_OK;
+			}
 		}
+		return SUBTYPE_INVALID;
 	}
 
 	if (tlv->type == TYPE_0) {
