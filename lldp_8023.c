@@ -438,10 +438,10 @@ static void ieee8023_add_eth_caps_teardown(struct ieee8023_data *bd,
 	 * by lldpad in the first place.
 	 */
 	if (bd->enabled_preemption) {
-		ethtool_mm_change_pmac_enabled(ud->ethtool_sk, bd->ifname,
-					       false);
 		ethtool_mm_change_tx_enabled(ud->ethtool_sk, bd->ifname, false,
 					     false, 10);
+		ethtool_mm_change_pmac_enabled(ud->ethtool_sk, bd->ifname,
+					       false);
 	}
 }
 
