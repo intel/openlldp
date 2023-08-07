@@ -1,0 +1,51 @@
+name: Build CI
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        version: [7, 8, 9]
+
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: >
+          sudo apt-get install -y
+          libconfig-dev libnl-3-dev libnl-genl-3-dev
+          linux-libc-dev rpm
+
+      - name: Set up GCC
+        uses: egor-tensin/setup-gcc@v1
+        with:
+          version: ${{ matrix.version }}
+          platform: x64
+
+      - name: Run bootstrap
+        run: ./bootstrap.sh
+
+      - name: Build RPM
+        run: ./contrib/build-rpm.sh
+
+      - name: Configure project
+        run: ./configure --enable-errors
+
+      - name: Build
+        run: make
+
+      - name: Run check
+        run: make check
+
+      - name: Install
+        run: sudo make install
+
+      - name: Run distcheck
+        run: make distcheck
