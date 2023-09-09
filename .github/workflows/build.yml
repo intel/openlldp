@@ -10,7 +10,8 @@ jobs:
   build:
     strategy:
       matrix:
-        version: [7, 8, 10, 11]
+        #version: [7, 8, 10, 11]
+        version: [7, 8, 9]
 
     runs-on: ubuntu-20.04
 
