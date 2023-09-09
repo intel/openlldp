@@ -47,9 +47,9 @@ include/lldp_evb22_clif.h include/qbg_vdp_clif.h include/qbg_vdpnl.h \
 include/qbg_vdp22_clif.h include/lldp_8021qaz_clif.h \
 include/lldp_orgspec_clif.h include/lldp_cisco_clif.h \
 include/lldptool.h include/lldp_rtnl.h include/dcbtool.h include/lldp_dcbx_cfg.h \
-include/qbg_vdp22_cmds.h include/qbg_vdp22_clif.h \
-include/linux/ethtool.h include/linux/if_bonding.h include/linux/if_bridge.h \
-include/linux/if.h include/linux/if_link.h include/linux/if_vlan.h
+include/qbg_vdp22_cmds.h include/qbg_vdp22_clif.h include/linux/ethtool.h \
+include/linux/if_bonding.h include/linux/if_bridge.h include/linux/if.h \
+include/linux/if_link.h include/linux/if_vlan.h include/linux/ethtool_netlink.h
 
 lldpad_SOURCES = lldpad.c config.c lldp_dcbx_nl.c ctrl_iface.c \
 event_iface.c eloop.c lldp_dcbx_cmds.c log.c lldpad_shm.c \
