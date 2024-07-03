@@ -210,6 +210,7 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 	char arg_path[256];
 	int res = 0, i;
 	int willing, pfc_mask, delay;
+	char *parse = NULL;
 
 	if (agent->type != NEAREST_BRIDGE)
 		return 0;
@@ -354,7 +355,6 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 
 	/* Read and add APP data to internal lldpad APP ring */
 	for (i = 0; i < MAX_APP_ENTRIES; i++) {
-		char *parse;
 		char *app_tuple;
 		u8 prio, sel;
 		long pid;
@@ -391,8 +391,10 @@ static int read_cfg_file(char *ifname, struct lldp_agent *agent,
 			ieee8021qaz_mod_app(&tlvs->app_head, 0,
 					    prio, sel, (u16) pid, 0);
 		free(parse);
+		parse = NULL;
 	}
 
+	free(parse);
 	return 0;
 }
 
