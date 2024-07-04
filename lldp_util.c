@@ -1279,16 +1279,16 @@ int get_arg_val_list(char *ibuf, int ilen, int *ioff,
 			p = (int *) realloc(arglens,
 				(i/NUM_ARGS + 1) * NUM_ARGS * sizeof(int));
 			if (!p) {
-				free(arglens);
-				return 0;
+				numargs = 0;
+				goto err_out;
 			} else {
 				arglens = p;
 			}
 			p = (int *) realloc(argvallens,
 				(i/NUM_ARGS + 1) * NUM_ARGS * sizeof(int));
 			if (!p) {
-				free(argvallens);
-				return 0;
+				numargs = 0;
+				goto err_out;
 			} else {
 				argvallens = p;
 			}
@@ -1311,14 +1311,12 @@ int get_arg_val_list(char *ibuf, int ilen, int *ioff,
 					*(argvallens+i) = argvalue_len;
 				}
 			} else {
-				free(arglens);
-				free(argvallens);
-				return 0;
+				numargs = 0;
+				goto err_out;
 			}
 		} else {
-			free(arglens);
-			free(argvallens);
-			return 0;
+			numargs = 0;
+			goto err_out;
 		}
 	}
 	numargs = i;
@@ -1326,6 +1324,8 @@ int get_arg_val_list(char *ibuf, int ilen, int *ioff,
 		args[i][*(arglens+i)] = '\0';
 		argvals[i][*(argvallens+i)] = '\0';
 	}
+
+err_out:
 	free(arglens);
 	free(argvallens);
 	return numargs;
