@@ -360,8 +360,8 @@ static void dcbx_free_data(struct dcbd_user_data *dud)
 
 struct lldp_module * dcbx_register(void)
 {
-	struct lldp_module *mod;
-	struct dcbd_user_data *dud;
+	struct lldp_module *mod = NULL;
+	struct dcbd_user_data *dud = NULL;
 	int dcbx_version;
 	int i;
 
@@ -385,7 +385,6 @@ struct lldp_module * dcbx_register(void)
 	}
 	dud = malloc(sizeof(*dud));
 	if (!dud) {
-		free(mod);
 		LLDPAD_ERR("failed to malloc LLDP DCBX module user data\n");
 		goto out_err;
 	}
@@ -431,6 +430,8 @@ struct lldp_module * dcbx_register(void)
 	LLDPAD_DBG("%s: dcbx register done\n", __func__);
 	return mod;
 out_err:
+	free(mod);
+	free(dud);
 	LLDPAD_DBG("%s: dcbx register failed\n", __func__);
 	return NULL;
 }
