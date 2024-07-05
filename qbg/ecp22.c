@@ -932,25 +932,25 @@ static int ecp22_req2send(char *ifname, unsigned short subtype,
 
 	LLDPAD_DBG("%s:%s subtype:%d\n", __func__, ifname, subtype);
 
-	eud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_ECP22);
-	ecp = find_ecpdata(ifname, eud);
-	if (!ecp) {
-		rc = -ENODEV;
-		goto out;
-	}
 	if (!ptlv) {
 		rc = -ENOMEM;
 		goto out;
 	}
 	if (ptlv->size >= ECP22_MAXPAYLOAD_LEN) {
 		rc = -E2BIG;
-		goto out;
+		goto err_out;
+	}
+
+	eud = find_module_user_data_by_id(&lldp_mod_head, LLDP_MOD_ECP22);
+	ecp = find_ecpdata(ifname, eud);
+	if (!ecp) {
+		rc = -ENODEV;
+		goto err_out;
 	}
 	payda = ecp22_getnode(&ecp->isfree);
 	if (!payda) {
-		free_pkd_tlv(ptlv);
 		rc = -ENOMEM;
-		goto out;
+		goto err_out;
 	}
 	payda->ptlv = ptlv;
 	payda->subtype = subtype;
@@ -959,6 +959,9 @@ static int ecp22_req2send(char *ifname, unsigned short subtype,
 out:
 	LLDPAD_DBG("%s:%s rc:%d\n", __func__, ifname, rc);
 	return rc;
+err_out:
+	free_pkd_tlv(ptlv);
+	goto out;
 }
 
 /*
