@@ -279,7 +279,8 @@ static int get_state(char *ifname, __u8 *state)
 		NLMSG_ALIGN(sizeof(struct dcbmsg)));
 
 	if (d->cmd != DCB_CMD_GSTATE) {
-		return -EIO;
+		rval = -EIO;
+		goto out;
 	}
 	if (rta->rta_type != DCB_ATTR_STATE) {
 		rval = -EIO;
@@ -287,8 +288,8 @@ static int get_state(char *ifname, __u8 *state)
 		*state = *(__u8 *)NLA_DATA(rta);
 	}
 
+out:
 	free(nlh);
-
 	return rval;
 }
 
@@ -493,11 +494,15 @@ int get_dcb_capabilities(char *ifname,
 	rta_parent = (struct rtattr *)(((char *)d) +
 		NLMSG_ALIGN(sizeof(struct dcbmsg)));
 
-	if (d->cmd != DCB_CMD_GCAP)
-		return -EIO;
+	if (d->cmd != DCB_CMD_GCAP) {
+		rval = -EIO;
+		goto out;
+	}
 
-	if (rta_parent->rta_type != DCB_ATTR_CAP)
-		return -EIO;
+	if (rta_parent->rta_type != DCB_ATTR_CAP) {
+		rval = -EIO;
+		goto out;
+	}
 
 	rta_child = NLA_DATA(rta_parent);
 	rta_parent = (struct rtattr *)((char *)rta_parent +
@@ -540,6 +545,7 @@ int get_dcb_capabilities(char *ifname,
 	if (rta_parent != rta_child)
 		LLDPAD_DBG("rta pointers are off\n");
 
+out:
 	free(nlh);
 	return rval;
 }
@@ -580,11 +586,15 @@ int get_dcb_numtcs(const char *ifname, u8 *pgtcs, u8 *pfctcs)
 	rta_parent = (struct rtattr *)(((char *)d) +
 		NLMSG_ALIGN(sizeof(struct dcbmsg)));
 
-	if (d->cmd != DCB_CMD_GNUMTCS)
-		return -EIO;
+	if (d->cmd != DCB_CMD_GNUMTCS) {
+		rval = -EIO;
+		goto out;
+	}
 
-	if (rta_parent->rta_type != DCB_ATTR_NUMTCS)
-		return -EIO;
+	if (rta_parent->rta_type != DCB_ATTR_NUMTCS) {
+		rval = -EIO;
+		goto out;
+	}
 
 	rta_child = NLA_DATA(rta_parent);
 	rta_parent = (struct rtattr *)((char *)rta_parent +
@@ -618,9 +628,10 @@ int get_dcb_numtcs(const char *ifname, u8 *pgtcs, u8 *pfctcs)
 	if (rta_parent != rta_child)
 		LLDPAD_DBG("rta pointers are off\n");
 
-	free(nlh);
 	if (found != 3)
 		rval = -EIO;
+out:
+	free(nlh);
 	return rval;
 }
 
