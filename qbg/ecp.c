@@ -969,9 +969,9 @@ static void ecp_rx_ProcessFrame(struct vdp_data *vd)
 		if ((tlv->type != TYPE_0) && !tlv_stored) {
 			LLDPAD_DBG("%s:%s TLV (%u) was not stored (%p)\n",
 				   __func__, vd->ecp.ifname, tlv->type, tlv);
-			free_unpkd_tlv(tlv);
 			vd->ecp.stats.statsTLVsUnrecognizedTotal++;
 		}
+		free_unpkd_tlv(tlv);
 		tlv = NULL;
 		tlv_stored = false;
 	} while (tlv_offset < vd->ecp.rx.frame_len);
