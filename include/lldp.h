@@ -58,8 +58,10 @@ typedef __u64 u64;
 #else
 #define STRNCPY_TERMINATED(DEST, SRC, N) \
   do { \
-    strncpy (DEST, SRC, N - 1); \
-    DEST[N - 1] = '\0'; \
+    if((N) > 0) { \
+      strncpy (DEST, SRC, (N) - 1); \
+      DEST[(N) - 1] = '\0'; \
+    } \
   } while (false)
 #endif
 
