@@ -52,11 +52,16 @@ typedef __u64 u64;
 	 })
 
 /* Use strncpy with N-1 and ensure the string is terminated.  */
+#ifdef HAVE_STRLCPY
+#define STRNCPY_TERMINATED(DEST, SRC, N) \
+  (void)strlcpy(DEST, SRC, N)
+#else
 #define STRNCPY_TERMINATED(DEST, SRC, N) \
   do { \
     strncpy (DEST, SRC, N - 1); \
     DEST[N - 1] = '\0'; \
   } while (false)
+#endif
 
 /*
  * Organizationally Unique Identifier (OUI)
