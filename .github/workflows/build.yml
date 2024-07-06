@@ -11,11 +11,12 @@ jobs:
     strategy:
       matrix:
         version: [7, 8, 9]
+      fail-fast: false
 
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: >
@@ -36,7 +37,7 @@ jobs:
         run: ./contrib/build-rpm.sh
 
       - name: Configure project
-        run: ./configure --enable-errors
+        run: ./configure --enable-warnings --enable-errors
 
       - name: Build
         run: make

@@ -28,6 +28,7 @@ lldpad.spec
 ltmain.sh
 m4/
 missing
+test-driver
 dcbtool
 lldpad
 lldptool
