@@ -55,6 +55,17 @@ typedef __u64 u64;
 #ifdef HAVE_STRLCPY
 #define STRNCPY_TERMINATED(DEST, SRC, N) \
   (void)strlcpy(DEST, SRC, N)
+#elif __GNUC__ >= 10
+#define STRNCPY_TERMINATED(DEST, SRC, N) \
+  do { \
+    if((N) > 0) { \
+      _Pragma("GCC diagnostic push") \
+      _Pragma("GCC diagnostic ignored \"-Wstringop-truncation\"") \
+      strncpy (DEST, SRC, (N) - 1); \
+      _Pragma("GCC diagnostic pop") \
+      DEST[(N) - 1] = '\0'; \
+    } \
+  } while (false)
 #else
 #define STRNCPY_TERMINATED(DEST, SRC, N) \
   do { \
