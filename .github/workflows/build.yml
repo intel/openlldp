@@ -10,10 +10,26 @@ jobs:
   build:
     strategy:
       matrix:
-        version: [7, 8, 9]
+        include:
+          - version: 7
+            os: ubuntu-20.04
+          - version: 8
+            os: ubuntu-20.04
+          - version: 9
+            os: ubuntu-20.04
+          - version: 10
+            os: ubuntu-20.04
+          - version: 11
+            os: ubuntu-20.04
+          - version: 12
+            os: ubuntu-22.04
+          - version: 13
+            os: ubuntu-22.04
+          - version: 14
+            os: ubuntu-24.04
       fail-fast: false
 
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +38,7 @@ jobs:
         run: >
           sudo apt-get install -y
           libconfig-dev libnl-3-dev libnl-genl-3-dev
-          linux-libc-dev rpm
+          linux-libc-dev rpm libreadline-dev
 
       - name: Set up GCC
         uses: egor-tensin/setup-gcc@v1
