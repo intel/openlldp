@@ -709,7 +709,7 @@ int set_hw_pg(char *ifname, pgroup_attribs *pg_data, bool oper_mode)
 
 	for (i = 0; i < MAX_USER_PRIORITIES; i++) {
 		for (j = 0; j < MAX_TRAFFIC_CLASSES; j++) {
-			if (pg_temp->tx.up[i].pgid == j) {
+			if (pg_temp->rx.up[i].pgid == j) {
 				tc[j].up_to_tc_bitmap |= (1 << i);
 				tc[j].prio_type = pg_temp->rx.up[i].strict_priority;
 				tc[j].tc_percent = pg_temp->rx.up[i].percent_of_pg_cap;
