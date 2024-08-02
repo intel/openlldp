@@ -66,6 +66,7 @@ void cisco_oui_print_decode_hndlr(char *token)
 	u16 data_len;
 	u8 key_len;
 	enum oui_key_arg oui_argtype;
+	char addr[INET_ADDRSTRLEN];
 
 	if (token == NULL)
 		return;
@@ -99,8 +100,10 @@ void cisco_oui_print_decode_hndlr(char *token)
 			strncpy(v4_addr_str, token, data_len);
 			vm_ip_addr = strtoul(v4_addr_str, NULL, 10);
 			vm_inet.s_addr = vm_ip_addr;
+			if (inet_ntop(AF_INET, &vm_inet, addr, INET_ADDRSTRLEN) == NULL)
+				return;
 			printf("\t%s", "VM IP Address");
-			printf(" = %s\n", inet_ntoa(vm_inet));
+			printf(" = %s\n", addr);
 			free(v4_addr_str);
 			break;
 		default:

@@ -1092,7 +1092,8 @@ int get_ipaddrstr(const char *ifname, char *ipaddr, size_t size)
 	rc = get_saddr(ifname, &sa);
 	if (rc == 0) {
 		memset(ipaddr, 0, size);
-		strncpy(ipaddr, inet_ntoa(sa.sin_addr), size);
+		if (inet_ntop(AF_INET, &sa.sin_addr, ipaddr, size) == NULL)
+			rc = errno;
 	}
 	return rc;
 }
