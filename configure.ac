@@ -78,7 +78,7 @@ AC_CHECK_LIB(nl3, rtnl_link_get_by_name)
 
 AC_CHECK_FUNCS([alarm])
 AC_CHECK_FUNCS([gettimeofday])
-AC_CHECK_FUNCS([inet_ntoa])
+AC_CHECK_FUNCS([inet_ntop])
 AC_CHECK_FUNCS([localtime_r])
 AC_CHECK_FUNCS([memmove])
 AC_CHECK_FUNCS([memset])

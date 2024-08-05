@@ -130,13 +130,13 @@ bool cisco_str2vdpnl_hndlr(struct vdpnl_oui_data_s *vdp_oui_p, char *token)
 				return false;
 			}
 			strncpy(v4_addr_str, token, data_len);
-			ret = inet_aton(v4_addr_str,
+			ret = inet_pton(AF_INET, v4_addr_str,
 					&vdp_cisco_oui_p->l3_addr.ipv4_address);
 			LLDPAD_DBG("V4adr %s 0x%lx\n", v4_addr_str,
 				   (unsigned long)
 				  vdp_cisco_oui_p->l3_addr.ipv4_address.s_addr);
 			free(v4_addr_str);
-			if (!ret) {
+			if (ret <= 0) {
 				LLDPAD_ERR("%s: Incorrect addr\n", __func__);
 				return false;
 			}
