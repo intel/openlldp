@@ -355,6 +355,9 @@ int remove_port(const char *ifname)
 			free(agent->tx.frameout);
 
 		LIST_REMOVE(agent, entry);
+
+		remove_config_device(ifname, agent->type);
+
 		free(agent);
 	}
 
