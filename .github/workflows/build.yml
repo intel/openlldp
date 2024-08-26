@@ -1,4 +1,5 @@
 name: Build CI
+permissions: read-all
 
 on:
   push:
