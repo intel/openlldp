@@ -297,7 +297,7 @@ fail:
 	return NULL;
 }
 
-int remove_port(const char *ifname)
+int remove_port(const char *ifname, bool remove_config)
 {
 	int ifindex = get_ifidx(ifname);
 	struct port *port;    /* Pointer to port to remove */
@@ -356,7 +356,8 @@ int remove_port(const char *ifname)
 
 		LIST_REMOVE(agent, entry);
 
-		remove_config_device(ifname, agent->type);
+		if (remove_config)
+			remove_config_device(ifname, agent->type);
 
 		free(agent);
 	}

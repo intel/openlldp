@@ -97,7 +97,7 @@ extern struct port *porthead;
 extern "C" {
 #endif
 struct port *add_port(int ifindex, const char *);
-int remove_port(const char *);
+int remove_port(const char *, bool remove_config);
 #ifdef __cplusplus
 }
 #endif

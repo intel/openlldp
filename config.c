@@ -135,7 +135,7 @@ void scan_port(UNUSED void *eloop_data, UNUSED void *user_ctx)
 		}
 		next = port->next;
 		if (!found)
-			remove_port(port->ifname);
+			remove_port(port->ifname, true);
 	}
 
 	/* Walk port list looking for devices that should have been added
