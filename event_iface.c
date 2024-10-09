@@ -297,7 +297,7 @@ static void event_if_decode_nlmsg(int route_type, void *data, int len)
 			if (route_type == RTM_DELLINK) {
 				LLDPAD_INFO("%s: %s: device removed!\n",
 					__func__, device_name);
-				remove_port(device_name);
+				remove_port(device_name, true);
 			}
 			break;
 		case IF_OPER_DORMANT:

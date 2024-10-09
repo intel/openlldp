@@ -167,7 +167,7 @@ static void remove_all_adapters(void)
 
 	for (port = porthead; port; port = next) {
 		next = port->next;
-		remove_port(port->ifname);
+		remove_port(port->ifname, false);
 	}
 
 	return;
