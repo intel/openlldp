@@ -180,6 +180,17 @@ static void eloop_sock_table_remove_sock(struct eloop_sock_table *table,
 }
 
 
+static inline void warn_too_many_fds()
+{
+	static bool warned = false;
+
+	if (!warned) {
+		fprintf(stderr, "unable to handle more than %d file descriptors\n", FD_SETSIZE);
+		fprintf(stderr, "too many interfaces being watched\n");
+		warned = true;
+	}
+}
+
 static void eloop_sock_table_set_fds(struct eloop_sock_table *table,
 				     fd_set *fds)
 {
@@ -190,8 +201,13 @@ static void eloop_sock_table_set_fds(struct eloop_sock_table *table,
 	if (table->table == NULL)
 		return;
 
-	for (i = 0; i < table->count; i++)
+	for (i = 0; i < table->count; i++) {
+		if (table->table[i].sock >= FD_SETSIZE) {
+			warn_too_many_fds();
+			continue;
+		}
 		FD_SET(table->table[i].sock, fds);
+	}
 }
 
 
@@ -205,6 +221,9 @@ static void eloop_sock_table_dispatch(struct eloop_sock_table *table,
 
 	table->changed = 0;
 	for (i = 0; i < table->count; i++) {
+		if (table->table[i].sock >= FD_SETSIZE) {
+			return;
+		}
 		if (FD_ISSET(table->table[i].sock, fds)) {
 			table->table[i].handler(table->table[i].sock,
 						table->table[i].eloop_data,
@@ -497,7 +516,8 @@ void eloop_run(void)
 		eloop_sock_table_set_fds(&eloop.readers, rfds);
 		eloop_sock_table_set_fds(&eloop.writers, wfds);
 		eloop_sock_table_set_fds(&eloop.exceptions, efds);
-		res = select(eloop.max_sock + 1, rfds, wfds, efds,
+		res = select(eloop.max_sock < FD_SETSIZE ? eloop.max_sock + 1 : FD_SETSIZE,
+			     rfds, wfds, efds,
 			     eloop.timeout ? &_tv : NULL);
 		if (res < 0 && errno != EINTR && errno != 0) {
 			perror("select");
@@ -570,6 +590,11 @@ void eloop_wait_for_read_sock(int sock)
 
 	if (sock < 0)
 		return;
+
+	if (sock >= FD_SETSIZE) {
+		warn_too_many_fds();
+		return;
+	}
 
 	FD_ZERO(&rfds);
 	FD_SET(sock, &rfds);
