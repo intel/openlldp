@@ -686,20 +686,19 @@ static void ieee8023_rchange_add_eth_caps(struct ieee8023_data *bd,
 
 	/* If both we and the link partner support frame preemption, we
 	 * automatically turn our TX side on regardless of what the link
-	 * partner may do. Since we request verification, preemption will
+	 * partner may do. When we request verification, preemption will
 	 * only become active once the verification process succeeds
 	 * (the link partner ACKs our handshake). Using the largest interval
 	 * between verification attempts permitted by our hardware allows
 	 * the link partner a bit of wiggle room to delay enabling its pMAC
 	 * (which responds to our verification requests).
 	 */
-	if (!mm.tx_enabled || !mm.verify_enabled ||
-	    mm.verify_time != mm.max_verify_time) {
+	if (!mm.tx_enabled || mm.verify_time != mm.max_verify_time) {
 		LLDPAD_INFO("%s: initiating MM verification with a retry interval of %d ms...\n",
 			    bd->ifname, mm.max_verify_time);
 
 		err = ethtool_mm_change_tx_enabled(ud->ethtool_sk, bd->ifname,
-						   true, true,
+						   true, mm.verify_enabled,
 						   mm.max_verify_time);
 		if (err) {
 			LLDPAD_ERR("%s: Failed to enable TX preemption: %d\n",
