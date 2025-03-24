@@ -29,18 +29,6 @@
 #define ELOOP_ALL_CTX (void *) -1
 
 /**
- * eloop_event_type - eloop socket event type for eloop_register_sock()
- * @EVENT_TYPE_READ: Socket has data available for reading
- * @EVENT_TYPE_WRITE: Socket has room for new data to be written
- * @EVENT_TYPE_EXCEPTION: An exception has been reported
- */
-typedef enum {
-	EVENT_TYPE_READ = 0,
-	EVENT_TYPE_WRITE,
-	EVENT_TYPE_EXCEPTION
-} eloop_event_type;
-
-/**
  * eloop_sock_handler - eloop socket event callback type
  * @sock: File descriptor number for the socket
  * @eloop_ctx: Registered callback context data (eloop_data)
@@ -110,35 +98,6 @@ int eloop_register_read_sock(int sock, eloop_sock_handler handler,
  * eloop_register_read_sock().
  */
 void eloop_unregister_read_sock(int sock);
-
-/**
- * eloop_register_sock - Register handler for socket events
- * @sock: File descriptor number for the socket
- * @type: Type of event to wait for
- * @handler: Callback function to be called when the event is triggered
- * @eloop_data: Callback context data (eloop_ctx)
- * @user_data: Callback context data (sock_ctx)
- * Returns: 0 on success, -1 on failure
- *
- * Register an event notifier for the given socket's file descriptor. The
- * handler function will be called whenever the that event is triggered for the
- * socket. The handler function is responsible for clearing the event after
- * having processed it in order to avoid eloop from calling the handler again
- * for the same event.
- */
-int eloop_register_sock(int sock, eloop_event_type type,
-			eloop_sock_handler handler,
-			void *eloop_data, void *user_data);
-
-/**
- * eloop_unregister_sock - Unregister handler for socket events
- * @sock: File descriptor number for the socket
- * @type: Type of event for which sock was registered
- *
- * Unregister a socket event notifier that was previously registered with
- * eloop_register_sock().
- */
-void eloop_unregister_sock(int sock, eloop_event_type type);
 
 /**
  * eloop_register_event - Register handler for generic events
