@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" class="no-js">
+<head><script type="text/javascript" src="https://web-static.archive.org/_static/js/bundle-playback.js?v=FC38Hc5A" charset="utf-8"></script>
+<script type="text/javascript" src="https://web-static.archive.org/_static/js/wombat.js?v=txqj7nKC" charset="utf-8"></script>
+<script>window.RufflePlayer=window.RufflePlayer||{};window.RufflePlayer.config={"autoplay":"on","unmuteOverlay":"hidden","showSwfDownload":true};</script>
+<script type="text/javascript" src="https://web-static.archive.org/_static/js/ruffle/ruffle.js"></script>
+<script type="text/javascript">
+    __wm.init("https://web.archive.org/web");
+  __wm.wombat("http://open-lldp.org:80/dcb_overview","20190607233459","https://web.archive.org/","web","https://web-static.archive.org/_static/",
+	      "1559950499");
+</script>
+<link rel="stylesheet" type="text/css" href="https://web-static.archive.org/_static/css/banner-styles.css?v=p7PEIJWi" />
+<link rel="stylesheet" type="text/css" href="https://web-static.archive.org/_static/css/iconochive.css?v=3PDvdIFv" />
+<!-- End Wayback Rewrite JS Include -->
+
+    <meta charset="utf-8"/>
+    <title>dcb_overview [DokuWiki]</title>
+    <script>(function(H){H.className=H.className.replace(/\bno-js\b/,'js')})(document.documentElement)</script>
+    <meta name="generator" content="DokuWiki"/>
+<meta name="robots" content="index,follow"/>
+<meta name="keywords" content="dcb_overview"/>
+<link rel="search" type="application/opensearchdescription+xml" href="/web/20190607233459/http://open-lldp.org/lib/exe/opensearch.php" title="DokuWiki"/>
+<link rel="start" href="/"/>
+<link rel="contents" href="/dcb_overview?do=index" title="Sitemap"/>
+<link rel="alternate" type="application/rss+xml" title="Recent changes" href="/web/20190607233459/http://open-lldp.org/feed.php"/>
+<link rel="alternate" type="application/rss+xml" title="Current namespace" href="/web/20190607233459/http://open-lldp.org/feed.php?mode=list&amp;ns="/>
+<link rel="alternate" type="text/html" title="Plain HTML" href="/web/20190607233459/http://open-lldp.org/_export/xhtml/dcb_overview"/>
+<link rel="alternate" type="text/plain" title="Wiki Markup" href="/web/20190607233459/http://open-lldp.org/_export/raw/dcb_overview"/>
+<link rel="canonical" href="https://web.archive.org/web/20190607233459/http://open-lldp.org/dcb_overview"/>
+<link rel="stylesheet" type="text/css" href="/web/20190607233459cs_/http://open-lldp.org/lib/exe/css.php?t=dokuwiki&amp;tseed=aa28df0a825b7ccbc31a54458eeae062"/>
+<script type="text/javascript">/*<![CDATA[*/var NS='';var JSINFO = {"id":"dcb_overview","namespace":""};
+/*!]]>*/</script>
+<script type="text/javascript" charset="utf-8" src="/web/20190607233459js_/http://open-lldp.org/lib/exe/js.php?tseed=aa28df0a825b7ccbc31a54458eeae062"></script>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <link rel="shortcut icon" href="/web/20190607233459im_/http://open-lldp.org/lib/tpl/dokuwiki/images/favicon.ico"/>
+<link rel="apple-touch-icon" href="/web/20190607233459im_/http://open-lldp.org/lib/tpl/dokuwiki/images/apple-touch-icon.png"/>
+    </head>
+
+<body>
+    <!--[if lte IE 7 ]><div id="IE7"><![endif]--><!--[if IE 8 ]><div id="IE8"><![endif]-->
+    <div id="dokuwiki__site"><div id="dokuwiki__top" class="site dokuwiki mode_show tpl_dokuwiki     ">
+
+        
+<!-- ********** HEADER ********** -->
+<div id="dokuwiki__header"><div class="pad group">
+
+    
+    <div class="headings group">
+        <ul class="a11y skip">
+            <li><a href="#dokuwiki__content">skip to content</a></li>
+        </ul>
+
+        <h1><a href="/web/20190607233459/http://open-lldp.org/start" accesskey="h" title="[H]"><img src="/web/20190607233459im_/http://open-lldp.org/lib/tpl/dokuwiki/images/logo.png" width="64" height="64" alt=""/> <span>DokuWiki</span></a></h1>
+            </div>
+
+    <div class="tools group">
+        <!-- USER TOOLS -->
+                    <div id="dokuwiki__usertools">
+                <h3 class="a11y">User Tools</h3>
+                <ul>
+                    <li><a href="/web/20190607233459/http://open-lldp.org/dcb_overview?do=login&amp;sectok=ae236de5e2639966ac328758afef8ebb" class="action login" rel="nofollow" title="Login">Login</a></li>                </ul>
+            </div>
+        
+        <!-- SITE TOOLS -->
+        <div id="dokuwiki__sitetools">
+            <h3 class="a11y">Site Tools</h3>
+            <form action="/web/20190607233459/http://open-lldp.org/start" accept-charset="utf-8" class="search" id="dw__search" method="get" role="search"><div class="no"><input type="hidden" name="do" value="search"/><input type="text" id="qsearch__in" accesskey="f" name="id" class="edit" title="[F]"/><input type="submit" value="Search" class="button" title="Search"/><div id="qsearch__out" class="ajax_qsearch JSpopup"></div></div></form>            <div class="mobileTools">
+                <form action="/web/20190607233459/http://open-lldp.org/doku.php" method="get" accept-charset="utf-8"><div class="no"><input type="hidden" name="id" value="dcb_overview"/><select name="do" class="edit quickselect" title="Tools"><option value="">Tools</option><optgroup label="Page Tools"><option value="edit">Show pagesource</option><option value="revisions">Old revisions</option><option value="backlink">Backlinks</option></optgroup><optgroup label="Site Tools"><option value="recent">Recent changes</option><option value="media">Media Manager</option><option value="index">Sitemap</option></optgroup><optgroup label="User Tools"><option value="login">Login</option></optgroup></select><input type="submit" value=">"/></div></form>            </div>
+            <ul>
+                <li><a href="/web/20190607233459/http://open-lldp.org/dcb_overview?do=recent" class="action recent" accesskey="r" rel="nofollow" title="Recent changes [R]">Recent changes</a></li><li><a href="/web/20190607233459/http://open-lldp.org/dcb_overview?do=media&amp;ns=" class="action media" rel="nofollow" title="Media Manager">Media Manager</a></li><li><a href="/web/20190607233459/http://open-lldp.org/dcb_overview?do=index" class="action index" accesskey="x" rel="nofollow" title="Sitemap [X]">Sitemap</a></li>            </ul>
+        </div>
+
+    </div>
+
+    <!-- BREADCRUMBS -->
+            <div class="breadcrumbs">
+                                        <div class="trace"><span class="bchead">Trace:</span> <span class="bcsep">•</span> <span class="curid"><bdi><a href="/web/20190607233459/http://open-lldp.org/dcb_overview" class="breadcrumbs" title="dcb_overview">dcb_overview</a></bdi></span></div>
+                    </div>
+    
+    
+    <hr class="a11y"/>
+</div></div><!-- /header -->
+
+        <div class="wrapper group">
+
+            
+            <!-- ********** CONTENT ********** -->
+            <div id="dokuwiki__content"><div class="pad group">
+
+                <div class="pageId"><span>dcb_overview</span></div>
+
+                <div class="page group">
+                                                            <!-- wikipage start -->
+                    <!-- TOC START -->
+<div id="dw__toc">
+<h3 class="toggle">Table of Contents</h3>
+<div>
+
+<ul class="toc">
+<li class="level1"><div class="li"><a href="#data_center_bridging_dcb_on_linux">Data Center Bridging (DCB) on Linux</a></div>
+<ul class="toc">
+<li class="level2"><div class="li"><a href="#dcb_overview">DCB Overview</a></div></li>
+<li class="level2"><div class="li"><a href="#overview_of_enhanced_transmission_selection_ets">Overview of Enhanced Transmission Selection (ETS)</a></div></li>
+<li class="level2"><div class="li"><a href="#overview_of_priority_flow_control_pfc">Overview of Priority Flow Control (PFC)</a></div></li>
+<li class="level2"><div class="li"><a href="#overview_of_application_priority_app">Overview of Application Priority (App)</a></div></li>
+<li class="level2"><div class="li"><a href="#overview_of_dcb_configuration_and_exchange_protocol_dcbx">Overview of DCB Configuration and Exchange Protocol (DCBX)</a></div></li>
+<li class="level2"><div class="li"><a href="#pre-standard_versions_of_dcb_and_dcbx">Pre-standard versions of DCB and DCBX</a></div></li>
+<li class="level2"><div class="li"><a href="#dcb_components_in_linux">DCB components in Linux</a></div></li>
+<li class="level2"><div class="li"><a href="#dcb_operation_in_linux">DCB Operation in Linux</a></div></li>
+<li class="level2"><div class="li"><a href="#methods_for_setting_skb_priority">Methods for setting skb_priority</a></div>
+<ul class="toc">
+<li class="level3"><div class="li"><a href="#using_so_priority">Using SO_PRIORITY</a></div></li>
+<li class="level3"><div class="li"><a href="#using_tc_filters">Using tc filters</a></div></li>
+<li class="level3"><div class="li"><a href="#using_iptables_or_ebtables">Using iptables or ebtables</a></div></li>
+<li class="level3"><div class="li"><a href="#the_net_prio_cgroup">The net_prio cgroup</a></div></li>
+<li class="level3"><div class="li"><a href="#setting_up_net_prio_cgroup">Setting up net_prio cgroup</a></div></li>
+<li class="level3"><div class="li"><a href="#using_cgdcbxd">Using cgdcbxd</a></div></li>
+<li class="level3"><div class="li"><a href="#using_cgrulesengd">Using cgrulesengd</a></div></li>
+</ul></li>
+</ul></li>
+</ul>
+</div>
+</div>
+<!-- TOC END -->
+
+<h1 class="sectionedit1" id="data_center_bridging_dcb_on_linux">Data Center Bridging (DCB) on Linux</h1>
+<div class="level1">
+
+<p>
+Written by Eric Multanen <a href="https://web.archive.org/web/20190607233459/mailto:eric.w.multanen@intel.com" class="mail" title="eric.w.multanen@intel.com">&#x65;&#x72;&#x69;&#x63;&#x2e;&#x77;&#x2e;&#x6d;&#x75;&#x6c;&#x74;&#x61;&#x6e;&#x65;&#x6e;&#x40;&#x69;&#x6e;&#x74;&#x65;&#x6c;&#x2e;&#x63;&#x6f;&#x6d;</a>
+</p>
+
+<p>
+DCB support on Linux has been emerging since about 2007.  This
+document provides on overview of DCB technologies and describes how they have
+been implemented in Linux.  Examples of how to configure and utilize DCB
+are provided.
+</p>
+
+</div>
+
+<h2 class="sectionedit2" id="dcb_overview">DCB Overview</h2>
+<div class="level2">
+
+<p>
+The goal of DCB is to enhance Ethernet with a set of features which will
+allow the operation of multiple traffic types with differing requirements
+over the same link.  For example, <abbr title="Local Area Network">LAN</abbr> traffic can operate with &#039;best effort&#039;
+service and can tolerate occasional dropped packets.  On the other hand,
+Storage traffic (e.g.  Fibre Channel over Ethernet) is intolerant of dropped
+packets.  Therefore, in order to transmit and receive both <abbr title="Local Area Network">LAN</abbr> and Storage
+traffic over the same Ethernet link, it must be possible to simultaneously
+provide &#039;best effort&#039; and &#039;no drop&#039; service.  Since Ethernet is traditionally
+lossy, additional features are needed.  These new features are provided by DCB.
+</p>
+
+<p>
+DCB achieves its goal of partitioning traffic with differing requirements
+by providing different capabilities per packet priorities.
+Priority is signaled in a packet via the Priority Code Point (PCP) value
+in the VLAN tag.  There are eight (0-7) priority values.  This use of priority
+to partition the link also implies that traffic must use tagged VLANs in order
+to take advantage of the differentiation that DCB provides.
+</p>
+
+</div>
+
+<h2 class="sectionedit3" id="overview_of_enhanced_transmission_selection_ets">Overview of Enhanced Transmission Selection (ETS)</h2>
+<div class="level2">
+
+<p>
+The transmit path of a network port is modeled as a set of queues called
+traffic classes which are numbered 0 through N-1, where N is in the range 1 to 8.
+The user priorities 0-7 are mapped to the set of traffic classes.  Further
+details and definition of the default priority to traffic class mappings are
+provided in the IEEE Standard 802.1Q-2011.
+</p>
+
+<p>
+A transmission selection algorithm is used to select which traffic class is
+chosen next to dequeue a frame and transmit to the <abbr title="Local Area Network">LAN</abbr>.  The default transmission
+selection algorithm is the Strict Priority algorithm.  This algorithm always
+selects the highest numbered traffic class which has frames to transmit first
+before a lower numbered traffic class is selected.
+</p>
+
+<p>
+Since the Strict Priority algorithm could allow a traffic flow on a higher
+numbered traffic class to block a lower numbered traffic class from getting a
+chance to transmit, another traffic selection algorithm has been defined for
+DCB called the Enhanced Transmission Selection (ETS) algorithm.
+ETS works by assigning a percentage of available bandwidth to traffic classes.
+Available bandwidth is defined as the amount of bandwidth left after higher
+priority transmission algorithms (like Strict Priority) have executed.  
+The bandwidth percentage allocated to an ETS traffic class is the guaranteed
+amount of available bandwidth which will be made available to that traffic class.
+If an ETS traffic class does not use all of the bandwidth allocated to it, then
+other ETS traffic classes may be able to exceed their bandwidth allocations.
+</p>
+
+<p>
+ETS allows multiple traffic flows operating on different traffic classes to
+each receive their fair share of network bandwidth.  Obviously, if the
+strict priority algorithm is used in combination with the ETS algorithm, then
+care should be taken to ensure that the traffic flows on the strict priority
+traffic classes are relatively low volume flows.
+</p>
+
+<p>
+Further details about ETS can be found in IEEE Standard 802.1Qaz-2011 - which
+is an amendment to IEEE Standard 802.1Q-2011.
+</p>
+
+</div>
+
+<h2 class="sectionedit4" id="overview_of_priority_flow_control_pfc">Overview of Priority Flow Control (PFC)</h2>
+<div class="level2">
+
+<p>
+In order to avoid dropping packets for certain traffic flows a mechanism is
+needed for a link partner to inform its partner to stop transmitting before
+its receive buffers overflow and packets get dropped.  Priority Flow Control (PFC)
+is a refinement of the pre-existing Ethernet flow control (or PAUSE) feature
+(see IEEE 802.3-2008 Annex 31B).  Link based PAUSE operates by pausing all
+traffic on a link and can result in congestion spreading throughout the network
+- impacting many flows which are not the cause of the congestion.  PFC helps
+mitigate these issues by allowing traffic flows on each user priority to be
+paused independently or not at all.  Thus, issues like congestion spreading are
+constrained only to the traffic flows on a given user priority.
+</p>
+
+<p>
+For example, traffic flows intolerant of dropped packets (such as FCoE)
+can be set up to use a priority for which PFC is enabled.  Other <abbr title="Local Area Network">LAN</abbr> traffic
+can use the other priorities which may or may not have PFC enabled.  In this way,
+if the PFC enabled priority needs to be paused, traffic on the other priorities
+can continue to flow without impediment.
+</p>
+
+<p>
+PFC is defined per priority.  As described above in the ETS section, priorities
+are mapped to traffic classes.  So, when a port has less than eight traffic
+classes available, care should be made when the port is configured to ensure that
+priorities with PFC enabled and disabled are not both mapped to the same traffic
+class.  Implementations may pause all traffic from a given traffic class, so
+a pause message for a given priority may result in all priorities mapped to the
+same traffic class as the paused priority to be paused.  If the number of traffic
+classes is limited and multiple priorities are enabled for PFC, it may be
+necessary to map all of the PFC enabled priorities to the same traffic class.
+</p>
+
+<p>
+Further details about PFC can be found in IEEE Standard 802.1Qbb-2011,
+an amendment to IEEE Standard 802.1Q-2011, and in IEEE Standard 802.3bd-2011.
+</p>
+
+</div>
+
+<h2 class="sectionedit5" id="overview_of_application_priority_app">Overview of Application Priority (App)</h2>
+<div class="level2">
+
+<p>
+The purpose of DCB is to configure ETS and PFC in such a way that traffic
+flows will move through the network with priorities that are configured to have
+properties appropriate for the type of traffic.  DCB provides an additional
+feature which associates traffic types to specific user priorities.  Traffic
+types or applications are identified using Ethertype or well-known port
+numbers (e.g. TCP or UDP).  Additionally, a default priority can be
+specified by using an Ethertype value of zero.
+</p>
+
+<p>
+Further details about the application priority feature of DCB can be found in
+IEEE Standard 802.1Qaz-2011 - which is an amendment to IEEE Standard 802.1Q-2011.
+</p>
+
+</div>
+
+<h2 class="sectionedit6" id="overview_of_dcb_configuration_and_exchange_protocol_dcbx">Overview of DCB Configuration and Exchange Protocol (DCBX)</h2>
+<div class="level2">
+
+<p>
+The DCB features ETS, PFC and Application Priority should be configured
+consistently in order for traffic flows to experience the desired service.
+The DCBX protocol is designed to help provide link level consistency - typically
+between a switch and the end-station.
+</p>
+
+<p>
+DCBX operates by exchanging the local configuration of each DCB feature with
+the link partner using the Link Layer Discovery Protocol (LLDP).  Information for
+each feature is packed into a Tag Length Value (TLV) structure and included
+in the LLDP packet.  DCBX state machines then operate on the local and received
+remote configurations to determine a configuration that will be consistent.
+</p>
+
+<p>
+The typical usage of DCBX is to configure the switch to provide the desired DCB
+configuration and configure the station to be willing to adopt the configuration
+provided by the switch.
+</p>
+
+<p>
+Further details about DCBX can be found in IEEE Standard 802.1Qaz-2011 - which
+is an amendment to IEEE Standard 802.1Q-2011.  
+</p>
+
+<p>
+Further details about LLDP can be found in IEEE Standard 802.1AB-2009.
+</p>
+
+</div>
+
+<h2 class="sectionedit7" id="pre-standard_versions_of_dcb_and_dcbx">Pre-standard versions of DCB and DCBX</h2>
+<div class="level2">
+
+<p>
+Before the DCB and DCBX features were standardized by IEEE 802.1, a couple
+pre-standard versions existed.  The initial version of DCBX was created
+by Intel and Cisco and the document can be found here:
+<a href="https://web.archive.org/web/20190607233459/http://www.intel.com/technology/eedc/index.htm" class="urlextern" title="http://www.intel.com/technology/eedc/index.htm" rel="nofollow">http://www.intel.com/technology/eedc/index.htm</a>
+</p>
+
+<p>
+This initial version was then modified by a consortium of companies and
+resulted in the CEE version of DCB/DCBX.  The resulting specifications were
+used as the baseline for the standardization work in IEEE 802.1.  Many of the
+current DCB/DCBX implementations support CEE.  The CEE specifications can be
+found here:
+<a href="https://web.archive.org/web/20190607233459/http://www.ieee802.org/1/files/public/docs2008/dcb-baseline-contributions-1108-v1.01.pdf" class="urlextern" title="http://www.ieee802.org/1/files/public/docs2008/dcb-baseline-contributions-1108-v1.01.pdf" rel="nofollow">http://www.ieee802.org/1/files/public/docs2008/dcb-baseline-contributions-1108-v1.01.pdf</a>
+</p>
+
+</div>
+
+<h2 class="sectionedit8" id="dcb_components_in_linux">DCB components in Linux</h2>
+<div class="level2">
+
+<p>
+The DCB implementation in Linux is comprised of the following components:
+</p>
+<ol>
+<li class="level1"><div class="li">  A netlink interface, called dcbnl, which provides an <abbr title="Application Programming Interface">API</abbr> to query and configure the DCB features.  Drivers can implement selected portions of the <abbr title="Application Programming Interface">API</abbr> depending upon specific capabilities of the NIC.</div>
+</li>
+<li class="level1"><div class="li">  lldpad - a user space daemon which implements the LLDP protocol and the DCBX protocol.  When the underlying NIC for an interface does not offload DCBX and relies on lldpad for DCBX, the DCBX agent portion of lldpad utilizes the dcbnl interface to configure the operational values of the DCB features.  lldpad can be found at <a href="https://web.archive.org/web/20190607233459/http://www.open-lldp.org/" class="urlextern" title="http://www.open-lldp.org" rel="nofollow">www.open-lldp.org</a>.</div>
+</li>
+<li class="level1"><div class="li">  The netdev layer of the kernel provides support for the multiple traffic class model of a network port.  The underlying driver can inform netdev about how many traffic classes are supported.  The driver also informs netdev about how many queues are supported for each traffic class.  In other words, netdev supports drivers with multiple queues per multiple traffic classes.  The driver also informs netdev about the user priority to traffic class mapping that is configured for the interface.</div>
+</li>
+<li class="level1"><div class="li">  The NIC device driver which interfaces with netdev and provides support for the dcbnl <abbr title="Application Programming Interface">API</abbr>.</div>
+</li>
+<li class="level1"><div class="li">  The net_prio cgroup mechanism provides a method for associating socket-based network traffic from applications to priorities.  The cgdcbxd daemon implements a mechanism to automatically read and monitor the application priority information managed by dcbnl and create corresponding net_prio cgroups.</div>
+</li>
+</ol>
+
+</div>
+
+<h2 class="sectionedit9" id="dcb_operation_in_linux">DCB Operation in Linux</h2>
+<div class="level2">
+
+<p>
+The key to operation of DCB in Linux is the skb_priority field in the skb
+structure.  When DCB is in operation on a network interface, the skb_priority
+is mapped to the user priority value which becomes the PCP in the VLAN tag.
+</p>
+
+<p>
+When an skb reaches netdev for a multi-traffic class interface, the skb_priority
+field is used to select which traffic class the skb is destined to based on the
+user priority to traffic class mapping which was provided to netdev by the driver.
+After the traffic class has been selected, a queue within the traffic class
+is selected.  This can be performed by the driver&#039;s ndo_select_queue() routine, or
+it may be done by a hashing function in netdev.  
+</p>
+
+<p>
+When the skb reaches the transmit routine of the driver, the skb_priority
+value is used to set the PCP field of the VLAN tag.  The skb will have arrived
+at the driver on a queue which is associated with the correct traffic class upon
+which it will be transmitted.
+</p>
+
+</div>
+
+<h2 class="sectionedit10" id="methods_for_setting_skb_priority">Methods for setting skb_priority</h2>
+<div class="level2">
+
+<p>
+In order to get any specific traffic flow to transmit on a given user priority
+it is required to set the skb_priority field accordingly.  There exist a
+variety of methods for setting the skb_priority field.
+</p>
+<ol>
+<li class="level1"><div class="li">  Set the SO_PRIORITY socket option.</div>
+</li>
+<li class="level1"><div class="li">  Use a tc filter with a set priority action</div>
+</li>
+<li class="level1"><div class="li">  Use iptables or ebtables</div>
+</li>
+<li class="level1"><div class="li">  Utilize the net_prio cgroup</div>
+</li>
+</ol>
+
+<p>
+Each method will now be described in greater detail.
+</p>
+
+</div>
+
+<h3 class="sectionedit11" id="using_so_priority">Using SO_PRIORITY</h3>
+<div class="level3">
+
+<p>
+An application which opens a socket to send and receive network traffic can
+use the SO_PRIORITY socket option to set priority for the socket.  This will
+become the skb_priority field in the skb.  The application can first query
+the application priority settings via dcbnl and use the resulting priority, if
+found, in the setsockopt() call.
+</p>
+
+<p>
+There are a couple drawbacks to this approach:
+</p>
+<ol>
+<li class="level1"><div class="li">  The application code must be modified to become DCB-aware.  This may not always be convenient to do, and it is not particularly scalable (to many applications).</div>
+</li>
+<li class="level1"><div class="li">  It is possible, though perhaps unlikely, that the user priority for the application is different on different network interfaces.  In this case, the application not only must be DCB-aware, it must also be able to determine which interface will be used with a given socket.  For an IP socket, this implies having routing knowledge.</div>
+</li>
+</ol>
+
+<p>
+At this time, the open-iscsi package uses this SO_PRIORITY mechanism for
+setting the skb_priority in a DCB environment.
+</p>
+
+</div>
+
+<h3 class="sectionedit12" id="using_tc_filters">Using tc filters</h3>
+<div class="level3">
+
+<p>
+tbd - tc filters for setting the skb_priority currently do not operate
+properly with the mqprio qdisc (the qdisc which support the multi-traffic
+class multi-queue model).  The tc filter mechanism does provide an action
+which can set the skb_priority, but this currently is executed after the
+skb_priority has been used to select a traffic class - so it&#039;s too late.
+</p>
+
+</div>
+
+<h3 class="sectionedit13" id="using_iptables_or_ebtables">Using iptables or ebtables</h3>
+<div class="level3">
+
+<p>
+tbd
+</p>
+
+</div>
+
+<h3 class="sectionedit14" id="the_net_prio_cgroup">The net_prio cgroup</h3>
+<div class="level3">
+
+<p>
+The net_prio cgroup mechanism provides a method for classifying and
+setting the priority of application packets which solves the issues
+called out in the section on using SO_PRIORITY.  Application sockets
+are associated with a net_prio cgroup instead of the actual user
+priority.  When the skb arrives at netdev and selection of the traffic class
+needs to be done, a lookup is performed to find the user priority that is
+associated with the destination network interface and net_prio cgroup.
+</p>
+
+<p>
+This approach solves two problems:
+</p>
+<ol>
+<li class="level1"><div class="li">  The application code does not need to be changed.  Instead the application process just needs to be associated with a net_prio cgroup.  By default, all processes belong to the default net_prio cgroup, which provides a simple method for supporting the default application priority (DCBX).</div>
+</li>
+<li class="level1"><div class="li">  Since the net_prio cgroup to user priority mapping is looked up in netdev for the specific destination interface, the routing problem is also solved.</div>
+</li>
+</ol>
+
+</div>
+
+<h3 class="sectionedit15" id="setting_up_net_prio_cgroup">Setting up net_prio cgroup</h3>
+<div class="level3">
+
+<p>
+The first step for using the net_prio cgroup is to ensure that the kernel
+is configured to support net_prio cgroup.  This is controlled by the kernel
+CONFIG_NETPRIO_CGROUP setting.
+</p>
+
+<p>
+Once a kernel with net_prio cgroup support is running, the following steps
+will set up the net_prio cgroup subsystem for use:
+</p>
+<pre class="code">  mount -t tmpfs cgroup_root /sys/fs/cgroup
+  mkdir /sys/fs/cgroup/net_prio
+  mount -t cgroup -onet_prio none /sys/fs/cgroup/net_prio</pre>
+
+<p>
+Once this is completed the default net_prio cgroup is available in
+/sys/fs/cgroup/net_prio
+</p>
+
+<p>
+Key files in this (or any net_prio) directory are:
+</p>
+<ol>
+<li class="level1"><div class="li">  tasks - contains a list of process/thread IDs (PIDs/TIDs) assigned to this cgroup.</div>
+</li>
+<li class="level1"><div class="li">  net_prio.prioidx - each net_prio cgroup has a unique integer assigned to it which is stored in this file.  This is the value which is associated with a process socket and thus identifies the packets with a given cgroup.</div>
+</li>
+<li class="level1"><div class="li">  net_prio.ifpriomap - contains a mapping of all network interfaces and associated user priority for this cgroup.  Looks like:</div>
+</li>
+</ol>
+<pre class="code">    eth1 0
+    eth2 0
+    etc.</pre>
+
+<p>
+Just before skb&#039;s are assigned to a specific traffic class
+by netdev, the net_prio cgroup is looked up using the
+value of prioidx saved in the socket and then the prioidx
+map for the specific net_prio cgroup is used to identify
+the user priority associated with the interface.  This
+value is then saved in the skb_priority IF the skb_priority
+has not already been set to a non-zero value by some
+other means.
+</p>
+
+<p>
+The net_prio.prioidx mapping can be easily managed by echoing in a new mapping:
+</p>
+<pre class="code"> echo &quot;eth1 3&quot; &gt; net_prio.ifpriomap</pre>
+
+<p>
+Note: In the case of a vlan interface the full name needs to be used:
+echo “eth1.vlan_id 3” &gt; net_prio.ifpriomap
+</p>
+
+<p>
+Processes can be assigned to a different net_prio cgroup by adding the PID to
+the specific net_prio&#039;s task file:
+</p>
+<pre class="code"> echo &lt;PID&gt; &gt; tasks</pre>
+
+<p>
+The PID is automatically removed from the old net_prio cgroup tasks file.
+</p>
+
+<p>
+Another method for starting a process in a net_prio cgroup is to use the
+cgexec command:
+</p>
+<pre class="code">  cgexec -g [&lt;controllers&gt;:&lt;path&gt;] command [arguments]</pre>
+
+<p>
+Example:
+</p>
+<pre class="code">  cgexec -g net_prio:my_net_prio_group ping google.com</pre>
+
+<p>
+Install the libcgroup package to get cgexec and other cgroup management
+programs.
+</p>
+
+<p>
+New net_prio cgroups can be made from the default net_prio cgroup:
+</p>
+<pre class="code">  cd /sys/fs/cgroup/net_prio
+  mkdir my_net_prio_group</pre>
+
+</div>
+
+<h3 class="sectionedit16" id="using_cgdcbxd">Using cgdcbxd</h3>
+<div class="level3">
+<hr/>
+
+<p>
+The cgdcbxd program provides a way to automate the creation of net_prio cgroups
+using the application priority information maintained by dcbnl.  cgdcbxd is
+currently located at:
+</p>
+<pre class="code">  git://github.com/jrfastab/Linux-cgdcbxd.git</pre>
+
+<p>
+Before running cgdcbxd, the following two steps should be performed:
+</p>
+<ol>
+<li class="level1"><div class="li">  mount -t tmpfs cgroup_root /sys/fs/cgroup</div>
+</li>
+<li class="level1"><div class="li">  mkdir /sys/fs/cgroup/net_prio</div>
+</li>
+<li class="level1"><div class="li">  mount -t cgroup -onet_prio none /sys/fs/cgroup/net_prio</div>
+</li>
+</ol>
+
+<p>
+When cgdcbxd executes, it will read the application priority list maintained
+by dcbnl and create corresponding net_prio cgroups.  It will continue to monitor
+dcbnl and update the net_prio cgroups whenever changes are detected from dcbnl.
+The cgroups created by cgdcbxd use the following naming convention:
+</p>
+<pre class="code">  cgdcb-&lt;selector&gt;-&lt;protocol&gt;</pre>
+
+<p>
+The selector value are the same values defined for the DCBX application priority
+selector values, which are:
+</p>
+<pre class="code">  1 - Ethertype
+  2 - Well known port number over TCP or SCTP
+  3 - Well known port number over UDP or DCCP
+  4 - Well known port number over TCP, SCTP, UDP or DCCP</pre>
+
+<p>
+The protocol value is either a 4 digit hexadecimal value if the selector is
+Ethertype, or a decimal number for the well known port selectors.  For example,
+cgdcbxd could create the following net_prio cgroups:
+</p>
+<pre class="code">  cgdcb-1-8906   indicates FCoE as identified by Ethertype 0x8906
+  cgdcb-4-3260   indicates iSCSI as identified by well known port 3260</pre>
+
+<p>
+The cgroups created by cgdcbxd will be removed when cgdcbxd is stopped.
+</p>
+
+<p>
+Use of cgdcbxd and lldpad (DCBX) pretty much automates the DCBX application
+priority feature.  DCBX will receive application priority TLV&#039;s from the switch
+and update the dcbnl list.  cgdcbxd then automatically creates corresponding
+cgroups.  The only other steps which need to be performed are:
+</p>
+<ol>
+<li class="level1"><div class="li">  mount the net_prio cgroup, which should be part of the cgdcbxd startup process</div>
+</li>
+<li class="level1"><div class="li">  assign applications to their proper net_prio cgroup</div>
+</li>
+</ol>
+
+<p>
+(see “Using cgrulesengd” below)
+</p>
+
+</div>
+
+<h3 class="sectionedit17" id="using_cgrulesengd">Using cgrulesengd</h3>
+<div class="level3">
+
+<p>
+One method of configuring the association of applications to net_prio cgroups is
+to use the cgrulesengd program (also part of the libcgroup package).  This is a
+general purpose cgroup configuration program which uses a configuration file
+(/etc/cgrules.conf) to configure cgroup associations.  Lines in cgrules.conf have
+the following format:
+</p>
+<pre class="code">  &lt;user&gt;:&lt;process name&gt; &lt;controllers&gt; &lt;destination&gt;</pre>
+
+<p>
+A simple rule to add iscsid to the iSCSI cgroup as created by cgdcbxd would be:
+</p>
+<pre class="code">    *:iscsid net_prio cgdcb-4-3260</pre>
+
+<p>
+Take a look at the comments provided in the sample cgrules.conf file provided
+with the cgrulesengd program for more details on how to configure cgroups.
+A special note on the VLAN egress map
+</p>
+
+<p>
+VLANs on Linux have a feature which allows configuration of the priority
+egress mapping - which is a mapping of skb_priority to user priority.  This
+mapping is configurable via VLAN interface configuration utilities.  By default,
+all skb_priorities map to user priority zero.  The usage of the skb_priority, as
+described in this document, implies that the skb_priority to user priority mapping
+for values of skb_priority 0..7 is one to one.  Some further thought and work
+needs to go into the issue of how to integrate the usage of the skb_priority to
+user priority mapping of the VLAN interface with the usage of skb_priority by
+the features supporting DCB.
+</p>
+
+</div>
+
+                    <!-- wikipage stop -->
+                                    </div>
+
+                <div class="docInfo"><bdi>dcb_overview.txt</bdi> · Last modified: 2013/01/24 20:50 by <bdi>rbbratta</bdi></div>
+
+                            </div></div><!-- /content -->
+
+            <hr class="a11y"/>
+
+            <!-- PAGE ACTIONS -->
+            <div id="dokuwiki__pagetools">
+                <h3 class="a11y">Page Tools</h3>
+                <div class="tools">
+                    <ul>
+                        <li><a href="/web/20190607233459/http://open-lldp.org/dcb_overview?do=edit" class="action source" accesskey="v" rel="nofollow" title="Show pagesource [V]"><span>Show pagesource</span></a></li><li><a href="/web/20190607233459/http://open-lldp.org/dcb_overview?do=revisions" class="action revs" accesskey="o" rel="nofollow" title="Old revisions [O]"><span>Old revisions</span></a></li><li><a href="/web/20190607233459/http://open-lldp.org/dcb_overview?do=backlink" class="action backlink" rel="nofollow" title="Backlinks"><span>Backlinks</span></a></li><li><a href="#dokuwiki__top" class="action top" accesskey="t" rel="nofollow" title="Back to top [T]"><span>Back to top</span></a></li>                    </ul>
+                </div>
+            </div>
+        </div><!-- /wrapper -->
+
+        
+<!-- ********** FOOTER ********** -->
+<div id="dokuwiki__footer"><div class="pad">
+    <div class="license">Except where otherwise noted, content on this wiki is licensed under the following license: <bdi><a href="https://web.archive.org/web/20190607233459/http://www.gnu.org/licenses/fdl-1.3.html" rel="license" class="urlextern">GNU Free Documentation License 1.3</a></bdi></div>
+    <div class="buttons">
+        <a href="https://web.archive.org/web/20190607233459/http://www.gnu.org/licenses/fdl-1.3.html" rel="license"><img src="/web/20190607233459im_/http://open-lldp.org/lib/images/license/button/gnufdl.png" alt="GNU Free Documentation License 1.3"/></a>        <a href="https://web.archive.org/web/20190607233459/http://www.dokuwiki.org/donate" title="Donate"><img src="/web/20190607233459im_/http://open-lldp.org/lib/tpl/dokuwiki/images/button-donate.gif" width="80" height="15" alt="Donate"/></a>
+        <a href="https://web.archive.org/web/20190607233459/http://www.php.net/" title="Powered by PHP"><img src="/web/20190607233459im_/http://open-lldp.org/lib/tpl/dokuwiki/images/button-php.gif" width="80" height="15" alt="Powered by PHP"/></a>
+        <a href="https://web.archive.org/web/20190607233459/http://validator.w3.org/check/referer" title="Valid HTML5"><img src="/web/20190607233459im_/http://open-lldp.org/lib/tpl/dokuwiki/images/button-html5.png" width="80" height="15" alt="Valid HTML5"/></a>
+        <a href="https://web.archive.org/web/20190607233459/http://jigsaw.w3.org/css-validator/check/referer?profile=css3" title="Valid CSS"><img src="/web/20190607233459im_/http://open-lldp.org/lib/tpl/dokuwiki/images/button-css.png" width="80" height="15" alt="Valid CSS"/></a>
+        <a href="https://web.archive.org/web/20190607233459/http://dokuwiki.org/" title="Driven by DokuWiki"><img src="/web/20190607233459im_/http://open-lldp.org/lib/tpl/dokuwiki/images/button-dw.png" width="80" height="15" alt="Driven by DokuWiki"/></a>
+    </div>
+</div></div><!-- /footer -->
+
+    </div></div><!-- /site -->
+
+    <div class="no"><img src="/web/20190607233459im_/http://open-lldp.org/lib/exe/indexer.php?id=dcb_overview&amp;1559950498" width="2" height="1" alt=""/></div>
+    <div id="screen__mode" class="no"></div>    <!--[if ( lte IE 7 | IE 8 ) ]></div><![endif]-->
+</body>
+</html>
+<!--
+     FILE ARCHIVED ON 23:34:59 Jun 07, 2019 AND RETRIEVED FROM THE
+     INTERNET ARCHIVE ON 03:01:21 Oct 05, 2025.
+     JAVASCRIPT APPENDED BY WAYBACK MACHINE, COPYRIGHT INTERNET ARCHIVE.
+
+     ALL OTHER CONTENT MAY ALSO BE PROTECTED BY COPYRIGHT (17 U.S.C.
+     SECTION 108(a)(3)).
+-->
+<!--
+playback timings (ms):
+  captures_list: 0.749
+  exclusion.robots: 0.034
+  exclusion.robots.policy: 0.02
+  esindex: 0.012
+  cdx.remote: 6.239
+  LoadShardBlock: 43.801 (3)
+  PetaboxLoader3.datanode: 76.325 (4)
+  load_resource: 99.152
+  PetaboxLoader3.resolve: 36.934
+-->

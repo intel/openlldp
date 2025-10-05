@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" class="no-js">
+<head><script type="text/javascript" src="https://web-static.archive.org/_static/js/bundle-playback.js?v=FC38Hc5A" charset="utf-8"></script>
+<script type="text/javascript" src="https://web-static.archive.org/_static/js/wombat.js?v=txqj7nKC" charset="utf-8"></script>
+<script>window.RufflePlayer=window.RufflePlayer||{};window.RufflePlayer.config={"autoplay":"on","unmuteOverlay":"hidden","showSwfDownload":true};</script>
+<script type="text/javascript" src="https://web-static.archive.org/_static/js/ruffle/ruffle.js"></script>
+<script type="text/javascript">
+    __wm.init("https://web.archive.org/web");
+  __wm.wombat("http://open-lldp.org:80/dcbx_version_selection","20190323003620","https://web.archive.org/","web","https://web-static.archive.org/_static/",
+	      "1553301380");
+</script>
+<link rel="stylesheet" type="text/css" href="https://web-static.archive.org/_static/css/banner-styles.css?v=p7PEIJWi" />
+<link rel="stylesheet" type="text/css" href="https://web-static.archive.org/_static/css/iconochive.css?v=3PDvdIFv" />
+<!-- End Wayback Rewrite JS Include -->
+
+    <meta charset="utf-8"/>
+    <title>dcbx_version_selection [DokuWiki]</title>
+    <script>(function(H){H.className=H.className.replace(/\bno-js\b/,'js')})(document.documentElement)</script>
+    <meta name="generator" content="DokuWiki"/>
+<meta name="robots" content="index,follow"/>
+<meta name="keywords" content="dcbx_version_selection"/>
+<link rel="search" type="application/opensearchdescription+xml" href="/web/20190323003620/http://open-lldp.org/lib/exe/opensearch.php" title="DokuWiki"/>
+<link rel="start" href="/"/>
+<link rel="contents" href="/dcbx_version_selection?do=index" title="Sitemap"/>
+<link rel="alternate" type="application/rss+xml" title="Recent changes" href="/web/20190323003620/http://open-lldp.org/feed.php"/>
+<link rel="alternate" type="application/rss+xml" title="Current namespace" href="/web/20190323003620/http://open-lldp.org/feed.php?mode=list&amp;ns="/>
+<link rel="alternate" type="text/html" title="Plain HTML" href="/web/20190323003620/http://open-lldp.org/_export/xhtml/dcbx_version_selection"/>
+<link rel="alternate" type="text/plain" title="Wiki Markup" href="/web/20190323003620/http://open-lldp.org/_export/raw/dcbx_version_selection"/>
+<link rel="canonical" href="https://web.archive.org/web/20190323003620/http://open-lldp.org/dcbx_version_selection"/>
+<link rel="stylesheet" type="text/css" href="/web/20190323003620cs_/http://open-lldp.org/lib/exe/css.php?t=dokuwiki&amp;tseed=aa28df0a825b7ccbc31a54458eeae062"/>
+<script type="text/javascript">/*<![CDATA[*/var NS='';var JSINFO = {"id":"dcbx_version_selection","namespace":""};
+/*!]]>*/</script>
+<script type="text/javascript" charset="utf-8" src="/web/20190323003620js_/http://open-lldp.org/lib/exe/js.php?tseed=aa28df0a825b7ccbc31a54458eeae062"></script>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <link rel="shortcut icon" href="/web/20190323003620im_/http://open-lldp.org/lib/tpl/dokuwiki/images/favicon.ico"/>
+<link rel="apple-touch-icon" href="/web/20190323003620im_/http://open-lldp.org/lib/tpl/dokuwiki/images/apple-touch-icon.png"/>
+    </head>
+
+<body>
+    <!--[if lte IE 7 ]><div id="IE7"><![endif]--><!--[if IE 8 ]><div id="IE8"><![endif]-->
+    <div id="dokuwiki__site"><div id="dokuwiki__top" class="site dokuwiki mode_show tpl_dokuwiki     ">
+
+        
+<!-- ********** HEADER ********** -->
+<div id="dokuwiki__header"><div class="pad group">
+
+    
+    <div class="headings group">
+        <ul class="a11y skip">
+            <li><a href="#dokuwiki__content">skip to content</a></li>
+        </ul>
+
+        <h1><a href="/web/20190323003620/http://open-lldp.org/start" accesskey="h" title="[H]"><img src="/web/20190323003620im_/http://open-lldp.org/lib/tpl/dokuwiki/images/logo.png" width="64" height="64" alt=""/> <span>DokuWiki</span></a></h1>
+            </div>
+
+    <div class="tools group">
+        <!-- USER TOOLS -->
+                    <div id="dokuwiki__usertools">
+                <h3 class="a11y">User Tools</h3>
+                <ul>
+                    <li><a href="/web/20190323003620/http://open-lldp.org/dcbx_version_selection?do=login&amp;sectok=b08b66c054f709555ae514d739d2229d" class="action login" rel="nofollow" title="Login">Login</a></li>                </ul>
+            </div>
+        
+        <!-- SITE TOOLS -->
+        <div id="dokuwiki__sitetools">
+            <h3 class="a11y">Site Tools</h3>
+            <form action="/web/20190323003620/http://open-lldp.org/start" accept-charset="utf-8" class="search" id="dw__search" method="get" role="search"><div class="no"><input type="hidden" name="do" value="search"/><input type="text" id="qsearch__in" accesskey="f" name="id" class="edit" title="[F]"/><input type="submit" value="Search" class="button" title="Search"/><div id="qsearch__out" class="ajax_qsearch JSpopup"></div></div></form>            <div class="mobileTools">
+                <form action="/web/20190323003620/http://open-lldp.org/doku.php" method="get" accept-charset="utf-8"><div class="no"><input type="hidden" name="id" value="dcbx_version_selection"/><select name="do" class="edit quickselect" title="Tools"><option value="">Tools</option><optgroup label="Page Tools"><option value="edit">Show pagesource</option><option value="revisions">Old revisions</option><option value="backlink">Backlinks</option></optgroup><optgroup label="Site Tools"><option value="recent">Recent changes</option><option value="media">Media Manager</option><option value="index">Sitemap</option></optgroup><optgroup label="User Tools"><option value="login">Login</option></optgroup></select><input type="submit" value=">"/></div></form>            </div>
+            <ul>
+                <li><a href="/web/20190323003620/http://open-lldp.org/dcbx_version_selection?do=recent" class="action recent" accesskey="r" rel="nofollow" title="Recent changes [R]">Recent changes</a></li><li><a href="/web/20190323003620/http://open-lldp.org/dcbx_version_selection?do=media&amp;ns=" class="action media" rel="nofollow" title="Media Manager">Media Manager</a></li><li><a href="/web/20190323003620/http://open-lldp.org/dcbx_version_selection?do=index" class="action index" accesskey="x" rel="nofollow" title="Sitemap [X]">Sitemap</a></li>            </ul>
+        </div>
+
+    </div>
+
+    <!-- BREADCRUMBS -->
+            <div class="breadcrumbs">
+                                        <div class="trace"><span class="bchead">Trace:</span> <span class="bcsep">•</span> <span class="curid"><bdi><a href="/web/20190323003620/http://open-lldp.org/dcbx_version_selection" class="breadcrumbs" title="dcbx_version_selection">dcbx_version_selection</a></bdi></span></div>
+                    </div>
+    
+    
+    <hr class="a11y"/>
+</div></div><!-- /header -->
+
+        <div class="wrapper group">
+
+            
+            <!-- ********** CONTENT ********** -->
+            <div id="dokuwiki__content"><div class="pad group">
+
+                <div class="pageId"><span>dcbx_version_selection</span></div>
+
+                <div class="page group">
+                                                            <!-- wikipage start -->
+                    
+<h1 class="sectionedit1" id="dcbx_version_selection">DCBX Version Selection</h1>
+<div class="level1">
+
+<p>
+This document describes the process lldpad uses to select the operational version of DCBX - as lldpad only includes one type of DCBX TLV(s) in an LLDPDU for a given interface at any time.
+</p>
+
+<p>
+lldpad provides support for three versions of DCBX:
+</p>
+<ol>
+<li class="level1"><div class="li"> The CIN version:  <a href="https://web.archive.org/web/20190323003620/http://www.intel.com/technology/eedc/index.htm" class="urlextern" title="http://www.intel.com/technology/eedc/index.htm" rel="nofollow">http://www.intel.com/technology/eedc/index.htm</a></div>
+</li>
+<li class="level1"><div class="li"> The CEE version:  <a href="https://web.archive.org/web/20190323003620/http://www.ieee802.org/1/files/public/docs2008/dcb-baseline-contributions-1108-v1.01.pdf" class="urlextern" title="http://www.ieee802.org/1/files/public/docs2008/dcb-baseline-contributions-1108-v1.01.pdf" rel="nofollow">http://www.ieee802.org/1/files/public/docs2008/dcb-baseline-contributions-1108-v1.01.pdf</a></div>
+</li>
+<li class="level1"><div class="li"> The IEEE version:  As specified in IEEE 802.1Qaz-2011</div>
+</li>
+</ol>
+
+<p>
+The legacy (CIN, CEE) versions of DCBX are configured by using &#039;dcbtool&#039; from the lldpad package.  The IEEE DCBX version is configured using &#039;lldptool&#039; from the lldpad package.
+</p>
+
+<p>
+By default, lldpad will set the LLDP adminStatus of a DCB capable interface to Receive-only mode.  If a DCBX peer is detected (a received LLDPDU contains DCBX TLVs), then the adminStatus of the interface is changed to Receive-Transmit mode.  In this way, by default, an otherwise unconfigured port will not come up transmitting LLDPDU&#039;s, but if it detects a DCBX peer, it will automatically participate in the DCBX exchange.  Of course, LLDP or DCBX can be disabled per interface by an administrative setting.
+</p>
+
+<p>
+Automatic DCBX Selection
+</p>
+<hr/>
+
+<p>
+By default, lldpad performs an automatic selection of either the IEEE DCBX or the configured legacy DCBX version.  For a given interface, when the link comes up, DCBX will start out in IEEE DCBX mode.  If a DCBX peer is detected which includes any IEEE DCBX TLVs, then the interface will remain in IEEE DCBX mode - even if the peer also includes legacy DCBX TLVs.  However, if the peer only transmits legacy DCBX TLVs, then lldpad will drop down to the legacy DCBX mode.  The interface will remain in legacy DCBX mode until the link goes down.
+</p>
+
+<p>
+If devices which support both IEEE DCBX and legacy DCBX follow the above process, then they should be able to interoperate with other devices which support only IEEE DCBX or only legacy DCBX.
+</p>
+
+<p>
+lldpad Legacy DCBX Selection
+</p>
+<hr/>
+
+<p>
+As described above in the Automatic DCBX Selection section, lldpad can on a per interface basis select between IEEE DCBX and legacy DCBX.  For the selection of legacy DCBX, lldpad can only use a single legacy DCBX mode for all interfaces (i.e. legacy DCBX is a global setting).
+</p>
+
+<p>
+The legacy DCBX mode is CEE by default.  Using &#039;dcbtool&#039;, the DCBX mode can be set to:
+</p>
+<ul>
+<li class="level1"><div class="li"> cee</div>
+</li>
+<li class="level1"><div class="li"> cin</div>
+</li>
+<li class="level1"><div class="li"> force-cee</div>
+</li>
+<li class="level1"><div class="li"> force-cin</div>
+</li>
+</ul>
+
+<p>
+The &#039;cee&#039; or &#039;cin&#039; modes mean that if the automatic DCBX selection falls back from IEEE DCBX to legacy mode, then either CEE or CIN is the fall back DCBX mode.  This setting applies globally to all DCBX interfaces managed by lldpad.
+</p>
+
+<p>
+The &#039;force-cee&#039; or &#039;force-cin&#039; modes mean that all interfaces will directly start out in CEE or CIN DCBX mode.  Again, this settings applies to all DCBX interfaces managed by lldpad.
+</p>
+
+<p>
+The recommended usage is to leave the legacy DCBX mode set to CEE.  This allows the IEEE DCBX mode a chance to run first and provides forward compatibility as more systems implement IEEE DCBX while also providing backward compatility with CEE DCBX (the most commonly implemented legacy DCBX mode).  The &#039;cin&#039; and &#039;force-*&#039; DCBX modes are provided mainly as methods to work around buggy DCBX peers.
+</p>
+
+</div>
+
+                    <!-- wikipage stop -->
+                                    </div>
+
+                <div class="docInfo"><bdi>dcbx_version_selection.txt</bdi> · Last modified: 2013/01/24 12:34 by <bdi>rbbratta</bdi></div>
+
+                            </div></div><!-- /content -->
+
+            <hr class="a11y"/>
+
+            <!-- PAGE ACTIONS -->
+            <div id="dokuwiki__pagetools">
+                <h3 class="a11y">Page Tools</h3>
+                <div class="tools">
+                    <ul>
+                        <li><a href="/web/20190323003620/http://open-lldp.org/dcbx_version_selection?do=edit" class="action source" accesskey="v" rel="nofollow" title="Show pagesource [V]"><span>Show pagesource</span></a></li><li><a href="/web/20190323003620/http://open-lldp.org/dcbx_version_selection?do=revisions" class="action revs" accesskey="o" rel="nofollow" title="Old revisions [O]"><span>Old revisions</span></a></li><li><a href="/web/20190323003620/http://open-lldp.org/dcbx_version_selection?do=backlink" class="action backlink" rel="nofollow" title="Backlinks"><span>Backlinks</span></a></li><li><a href="#dokuwiki__top" class="action top" accesskey="t" rel="nofollow" title="Back to top [T]"><span>Back to top</span></a></li>                    </ul>
+                </div>
+            </div>
+        </div><!-- /wrapper -->
+
+        
+<!-- ********** FOOTER ********** -->
+<div id="dokuwiki__footer"><div class="pad">
+    <div class="license">Except where otherwise noted, content on this wiki is licensed under the following license: <bdi><a href="https://web.archive.org/web/20190323003620/http://www.gnu.org/licenses/fdl-1.3.html" rel="license" class="urlextern">GNU Free Documentation License 1.3</a></bdi></div>
+    <div class="buttons">
+        <a href="https://web.archive.org/web/20190323003620/http://www.gnu.org/licenses/fdl-1.3.html" rel="license"><img src="/web/20190323003620im_/http://open-lldp.org/lib/images/license/button/gnufdl.png" alt="GNU Free Documentation License 1.3"/></a>        <a href="https://web.archive.org/web/20190323003620/http://www.dokuwiki.org/donate" title="Donate"><img src="/web/20190323003620im_/http://open-lldp.org/lib/tpl/dokuwiki/images/button-donate.gif" width="80" height="15" alt="Donate"/></a>
+        <a href="https://web.archive.org/web/20190323003620/http://www.php.net/" title="Powered by PHP"><img src="/web/20190323003620im_/http://open-lldp.org/lib/tpl/dokuwiki/images/button-php.gif" width="80" height="15" alt="Powered by PHP"/></a>
+        <a href="https://web.archive.org/web/20190323003620/http://validator.w3.org/check/referer" title="Valid HTML5"><img src="/web/20190323003620im_/http://open-lldp.org/lib/tpl/dokuwiki/images/button-html5.png" width="80" height="15" alt="Valid HTML5"/></a>
+        <a href="https://web.archive.org/web/20190323003620/http://jigsaw.w3.org/css-validator/check/referer?profile=css3" title="Valid CSS"><img src="/web/20190323003620im_/http://open-lldp.org/lib/tpl/dokuwiki/images/button-css.png" width="80" height="15" alt="Valid CSS"/></a>
+        <a href="https://web.archive.org/web/20190323003620/http://dokuwiki.org/" title="Driven by DokuWiki"><img src="/web/20190323003620im_/http://open-lldp.org/lib/tpl/dokuwiki/images/button-dw.png" width="80" height="15" alt="Driven by DokuWiki"/></a>
+    </div>
+</div></div><!-- /footer -->
+
+    </div></div><!-- /site -->
+
+    <div class="no"><img src="/web/20190323003620im_/http://open-lldp.org/lib/exe/indexer.php?id=dcbx_version_selection&amp;1553301380" width="2" height="1" alt=""/></div>
+    <div id="screen__mode" class="no"></div>    <!--[if ( lte IE 7 | IE 8 ) ]></div><![endif]-->
+</body>
+</html>
+<!--
+     FILE ARCHIVED ON 00:36:20 Mar 23, 2019 AND RETRIEVED FROM THE
+     INTERNET ARCHIVE ON 03:01:22 Oct 05, 2025.
+     JAVASCRIPT APPENDED BY WAYBACK MACHINE, COPYRIGHT INTERNET ARCHIVE.
+
+     ALL OTHER CONTENT MAY ALSO BE PROTECTED BY COPYRIGHT (17 U.S.C.
+     SECTION 108(a)(3)).
+-->
+<!--
+playback timings (ms):
+  captures_list: 0.549
+  exclusion.robots: 0.029
+  exclusion.robots.policy: 0.017
+  esindex: 0.011
+  cdx.remote: 12.656
+  LoadShardBlock: 51.596 (3)
+  PetaboxLoader3.datanode: 134.256 (4)
+  load_resource: 224.973
+  PetaboxLoader3.resolve: 137.354
+-->

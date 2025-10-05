@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" class="no-js">
+<head><script type="text/javascript" src="https://web-static.archive.org/_static/js/bundle-playback.js?v=FC38Hc5A" charset="utf-8"></script>
+<script type="text/javascript" src="https://web-static.archive.org/_static/js/wombat.js?v=txqj7nKC" charset="utf-8"></script>
+<script>window.RufflePlayer=window.RufflePlayer||{};window.RufflePlayer.config={"autoplay":"on","unmuteOverlay":"hidden","showSwfDownload":true};</script>
+<script type="text/javascript" src="https://web-static.archive.org/_static/js/ruffle/ruffle.js"></script>
+<script type="text/javascript">
+    __wm.init("https://web.archive.org/web");
+  __wm.wombat("http://www.open-lldp.org:80/lldptool","20190614102816","https://web.archive.org/","web","https://web-static.archive.org/_static/",
+	      "1560508096");
+</script>
+<link rel="stylesheet" type="text/css" href="https://web-static.archive.org/_static/css/banner-styles.css?v=p7PEIJWi" />
+<link rel="stylesheet" type="text/css" href="https://web-static.archive.org/_static/css/iconochive.css?v=3PDvdIFv" />
+<!-- End Wayback Rewrite JS Include -->
+
+    <meta charset="utf-8"/>
+    <title>lldptool [DokuWiki]</title>
+    <script>(function(H){H.className=H.className.replace(/\bno-js\b/,'js')})(document.documentElement)</script>
+    <meta name="generator" content="DokuWiki"/>
+<meta name="robots" content="index,follow"/>
+<meta name="keywords" content="lldptool"/>
+<link rel="search" type="application/opensearchdescription+xml" href="/web/20190614102816/http://www.open-lldp.org/lib/exe/opensearch.php" title="DokuWiki"/>
+<link rel="start" href="/"/>
+<link rel="contents" href="/lldptool?do=index" title="Sitemap"/>
+<link rel="alternate" type="application/rss+xml" title="Recent changes" href="/web/20190614102816/http://www.open-lldp.org/feed.php"/>
+<link rel="alternate" type="application/rss+xml" title="Current namespace" href="/web/20190614102816/http://www.open-lldp.org/feed.php?mode=list&amp;ns="/>
+<link rel="alternate" type="text/html" title="Plain HTML" href="/web/20190614102816/http://www.open-lldp.org/_export/xhtml/lldptool"/>
+<link rel="alternate" type="text/plain" title="Wiki Markup" href="/web/20190614102816/http://www.open-lldp.org/_export/raw/lldptool"/>
+<link rel="canonical" href="https://web.archive.org/web/20190614102816/http://www.open-lldp.org/lldptool"/>
+<link rel="stylesheet" type="text/css" href="/web/20190614102816cs_/http://www.open-lldp.org/lib/exe/css.php?t=dokuwiki&amp;tseed=aa28df0a825b7ccbc31a54458eeae062"/>
+<script type="text/javascript">/*<![CDATA[*/var NS='';var JSINFO = {"id":"lldptool","namespace":""};
+/*!]]>*/</script>
+<script type="text/javascript" charset="utf-8" src="/web/20190614102816js_/http://www.open-lldp.org/lib/exe/js.php?tseed=aa28df0a825b7ccbc31a54458eeae062"></script>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <link rel="shortcut icon" href="/web/20190614102816im_/http://www.open-lldp.org/lib/tpl/dokuwiki/images/favicon.ico"/>
+<link rel="apple-touch-icon" href="/web/20190614102816im_/http://www.open-lldp.org/lib/tpl/dokuwiki/images/apple-touch-icon.png"/>
+    </head>
+
+<body>
+    <!--[if lte IE 7 ]><div id="IE7"><![endif]--><!--[if IE 8 ]><div id="IE8"><![endif]-->
+    <div id="dokuwiki__site"><div id="dokuwiki__top" class="site dokuwiki mode_show tpl_dokuwiki     ">
+
+        
+<!-- ********** HEADER ********** -->
+<div id="dokuwiki__header"><div class="pad group">
+
+    
+    <div class="headings group">
+        <ul class="a11y skip">
+            <li><a href="#dokuwiki__content">skip to content</a></li>
+        </ul>
+
+        <h1><a href="/web/20190614102816/http://www.open-lldp.org/start" accesskey="h" title="[H]"><img src="/web/20190614102816im_/http://www.open-lldp.org/lib/tpl/dokuwiki/images/logo.png" width="64" height="64" alt=""/> <span>DokuWiki</span></a></h1>
+            </div>
+
+    <div class="tools group">
+        <!-- USER TOOLS -->
+                    <div id="dokuwiki__usertools">
+                <h3 class="a11y">User Tools</h3>
+                <ul>
+                    <li><a href="/web/20190614102816/http://www.open-lldp.org/lldptool?do=login&amp;sectok=d426b4889eae0b30c3486e9338caf4cf" class="action login" rel="nofollow" title="Login">Login</a></li>                </ul>
+            </div>
+        
+        <!-- SITE TOOLS -->
+        <div id="dokuwiki__sitetools">
+            <h3 class="a11y">Site Tools</h3>
+            <form action="/web/20190614102816/http://www.open-lldp.org/start" accept-charset="utf-8" class="search" id="dw__search" method="get" role="search"><div class="no"><input type="hidden" name="do" value="search"/><input type="text" id="qsearch__in" accesskey="f" name="id" class="edit" title="[F]"/><input type="submit" value="Search" class="button" title="Search"/><div id="qsearch__out" class="ajax_qsearch JSpopup"></div></div></form>            <div class="mobileTools">
+                <form action="/web/20190614102816/http://www.open-lldp.org/doku.php" method="get" accept-charset="utf-8"><div class="no"><input type="hidden" name="id" value="lldptool"/><select name="do" class="edit quickselect" title="Tools"><option value="">Tools</option><optgroup label="Page Tools"><option value="edit">Show pagesource</option><option value="revisions">Old revisions</option><option value="backlink">Backlinks</option></optgroup><optgroup label="Site Tools"><option value="recent">Recent changes</option><option value="media">Media Manager</option><option value="index">Sitemap</option></optgroup><optgroup label="User Tools"><option value="login">Login</option></optgroup></select><input type="submit" value=">"/></div></form>            </div>
+            <ul>
+                <li><a href="/web/20190614102816/http://www.open-lldp.org/lldptool?do=recent" class="action recent" accesskey="r" rel="nofollow" title="Recent changes [R]">Recent changes</a></li><li><a href="/web/20190614102816/http://www.open-lldp.org/lldptool?do=media&amp;ns=" class="action media" rel="nofollow" title="Media Manager">Media Manager</a></li><li><a href="/web/20190614102816/http://www.open-lldp.org/lldptool?do=index" class="action index" accesskey="x" rel="nofollow" title="Sitemap [X]">Sitemap</a></li>            </ul>
+        </div>
+
+    </div>
+
+    <!-- BREADCRUMBS -->
+            <div class="breadcrumbs">
+                                        <div class="trace"><span class="bchead">Trace:</span> <span class="bcsep">•</span> <span class="curid"><bdi><a href="/web/20190614102816/http://www.open-lldp.org/lldptool" class="breadcrumbs" title="lldptool">lldptool</a></bdi></span></div>
+                    </div>
+    
+    
+    <hr class="a11y"/>
+</div></div><!-- /header -->
+
+        <div class="wrapper group">
+
+            
+            <!-- ********** CONTENT ********** -->
+            <div id="dokuwiki__content"><div class="pad group">
+
+                <div class="pageId"><span>lldptool</span></div>
+
+                <div class="page group">
+                                                            <!-- wikipage start -->
+                    <!-- TOC START -->
+<div id="dw__toc">
+<h3 class="toggle">Table of Contents</h3>
+<div>
+
+<ul class="toc">
+<li class="level1"><div class="li"><a href="#lldptool">lldptool</a></div>
+<ul class="toc">
+<li class="level2"><div class="li"><a href="#name">NAME</a></div></li>
+<li class="level2"><div class="li"><a href="#synopsis">SYNOPSIS</a></div></li>
+<li class="level2"><div class="li"><a href="#description">DESCRIPTION</a></div></li>
+<li class="level2"><div class="li"><a href="#options">OPTIONS</a></div></li>
+<li class="level2"><div class="li"><a href="#commands">COMMANDS</a></div></li>
+<li class="level2"><div class="li"><a href="#arguments">ARGUMENTS</a></div></li>
+<li class="level2"><div class="li"><a href="#examples">EXAMPLES</a></div></li>
+<li class="level2"><div class="li"><a href="#see_also">SEE ALSO</a></div></li>
+<li class="level2"><div class="li"><a href="#copyright">COPYRIGHT</a></div></li>
+<li class="level2"><div class="li"><a href="#license">LICENSE</a></div></li>
+<li class="level2"><div class="li"><a href="#support">SUPPORT</a></div></li>
+</ul></li>
+</ul>
+</div>
+</div>
+<!-- TOC END -->
+
+<h1 class="sectionedit1" id="lldptool">lldptool</h1>
+<div class="level1">
+
+</div>
+
+<h2 class="sectionedit2" id="name">NAME</h2>
+<div class="level2">
+
+<p>
+lldptool - manage the LLDP settings and status of lldpad
+</p>
+
+</div>
+
+<h2 class="sectionedit3" id="synopsis">SYNOPSIS</h2>
+<div class="level2">
+
+<p>
+<strong>lldptool &lt;command&gt; [options] [argument]</strong>
+</p>
+
+</div>
+
+<h2 class="sectionedit4" id="description">DESCRIPTION</h2>
+<div class="level2">
+
+<p>
+<strong>lldptool</strong> is used to query and configure <strong>lldpad.</strong> It connects to the client interface of <strong>lldpad</strong> to perform these operations. <strong>lldptool</strong> will operate in interactive mode if it is executed without a <em>command</em>. In interactive mode, <strong>lldptool</strong> will also function as an event listener to print out events as they are received asynchronously from <strong>lldpad.</strong> It will use libreadline for interactive input when available.
+</p>
+
+</div>
+
+<h2 class="sectionedit5" id="options">OPTIONS</h2>
+<div class="level2">
+
+<p>
+<strong>-i [ifname]</strong> specifies the network interface to which the command applies. Most lldptool commands require specifying a network interface.
+</p>
+
+<p>
+<strong>-V [tlvid]</strong> specifies the TLV identifier
+</p>
+
+<p>
+The tlvid is an integer value used to identify specific LLDP TLVs. The tlvid value is the Type value for types not equal to 127 (the organizationally specific type). For organizationally specific TLVs, the tlvid is the value represented by the 3 byte OUI and 1 byte subtype - where the subtype is the lowest order byte of the tlvid.
+</p>
+
+<p>
+The tlvid can be entered as a numerical value (e.g. 10 or 0xa), or for supported TLVs, as a keyword. Review the <strong>lldptool</strong> help output to see the list of supported TLV keywords.
+</p>
+
+<p>
+<strong>-n</strong> “neighbor” option for commands which can use it (e.g. get-tlv)
+</p>
+
+<p>
+<strong>-g [bridge scope]</strong> specify the bridge scope this command operates on. Allows to set and query all LLDP TLV modules for “nearest_bridge” (short: “nb”), “nearest_customer_bridge” (“ncb”) and “nearest_nontpmr_bridge” (“nntpmrb”) group mac addresses. Configurations are saved into independent sections in lldpad.conf. If no bridge scope is supplied this default to “nearest bridge” to preserve the previous behaviour.
+</p>
+
+<p>
+<strong>-c &lt;argument list&gt;</strong> “config” option for TLV queries. Indicates that the query is for the configuration elements for the specified TLV. The argument list specifies the specific elements to query. If no arguments are listed, then all configuration elements for the TLV are returned.
+</p>
+
+<p>
+<strong>-r</strong> show raw client interface messages
+</p>
+
+<p>
+<strong>-R</strong> show only raw Client interface messages
+</p>
+
+</div>
+
+<h2 class="sectionedit6" id="commands">COMMANDS</h2>
+<div class="level2">
+
+<p>
+<strong>license</strong> show license information
+</p>
+
+<p>
+<strong>-h, help</strong> show usage information
+</p>
+
+<p>
+<strong>-v, version</strong> show version information
+</p>
+
+<p>
+<strong>-S, stats</strong> get LLDP statistics for the specified interface
+</p>
+
+<p>
+<strong>-t, get-tlv</strong> get TLV information for the specified interface
+</p>
+
+<p>
+<strong>-T, set-tlv</strong> set TLV information for the specified interface
+</p>
+
+<p>
+<strong>-l, get-lldp</strong> get LLDP parameters for the specified interface
+</p>
+
+<p>
+<strong>-L, set-lldp</strong> set LLDP parameters for the specified interface
+</p>
+
+<p>
+<strong>-q, quit</strong> exit from interactive mode
+</p>
+
+</div>
+
+<h2 class="sectionedit7" id="arguments">ARGUMENTS</h2>
+<div class="level2">
+
+<p>
+This section lists arguments which are available for administration of LLDP parameters. Arguments for basic TLV&#039;s (non-organizationally specific TLVs) are also described. See the SEE ALSO section for references to other lldptool man pages which contain usage details and arguments for various organizationally specific TLVs.
+</p>
+
+<p>
+<strong>adminStatus</strong> Argument for the <strong>get-lldp/set-lldp</strong> commands. Configures the LLDP adminStatus parameter for the specified interface. Valid values are: <em>disabled</em>, <em>rx</em>, <em>tx</em>, <em>rxtx</em>
+</p>
+
+<p>
+<strong>enableTx</strong> Argument for the <strong>get-tlv/set-tlv</strong> commands. May be applied per interface for a specified TLV. Valid values are: <em>yes</em>, <em>no</em>. If the DCBX TLV enableTx is set to <em>no</em>, then all of the DCB feature TLVs DCBX advertise settings will be turned off as well. Setting enableTx to <em>yes</em> for a DCBX TLV will not affect the DCBX advertise settings.
+</p>
+
+<p>
+<strong>ipv4</strong> Argument for the <strong>get-tlv/set-tlv</strong> commands with respect to the Management Address TLV. The get command will retrieve the configured value. Set values take the form of an IPv4 address: <em>A.B.C.D</em>
+</p>
+
+<p>
+<strong>ipv6</strong> Argument for the <strong>get-tlv/set-tlv</strong> commands with respect to the Management Address TLV. The get command will retrieve the configured value. Set values take the form of an IPv6 address: <em>1111:2222:3333:4444:5555:6666:7777:8888</em> and various shorthand variations.
+</p>
+
+</div>
+
+<h2 class="sectionedit8" id="examples">EXAMPLES</h2>
+<div class="level2">
+
+<p>
+Configure LLDP adminStatus to Receive and Transmit for interface <em>eth2</em>
+</p>
+
+<p>
+<strong>lldptool -L -i eth2 adminStatus=rxtx</strong>
+</p>
+
+<p>
+<strong>lldptool set-lldp -i eth2 adminStatus=rxtx</strong>
+</p>
+
+<p>
+Query the LLDP adminStatus for interface <em>eth3</em>
+</p>
+
+<p>
+<strong>lldptool -l -i eth3 adminStatus</strong>
+</p>
+
+<p>
+<strong>lldptool get-lldp -i eth3 adminStatus</strong>
+</p>
+
+<p>
+Query the LLDP statistics for interface <em>eth3</em>
+</p>
+
+<p>
+<strong>lldptool -S -i eth3 adminStatus</strong>
+</p>
+
+<p>
+<strong>lldptool stats -i eth3 adminStatus</strong>
+</p>
+
+<p>
+Query the local TLVs which are being transmitted for a given interface:
+</p>
+
+<p>
+<strong>lldptool -t -i eth3</strong>
+</p>
+
+<p>
+<strong>lldptool get-tlv -i eth3</strong>
+</p>
+
+<p>
+Query the received neighbor TLVs received on a given interface:
+</p>
+
+<p>
+<strong>lldptool -t -n -i eth3</strong>
+</p>
+
+<p>
+<strong>lldptool get-tlv -n -i eth3</strong>
+</p>
+
+<p>
+Query the value of the System Description TLV as received from the neighbor on a given interface:
+</p>
+
+<p>
+<strong>lldptool -t -n -i eth3 -V sysDesc</strong>
+</p>
+
+<p>
+<strong>lldptool get-tlv -n -i eth3 -V 6</strong>
+</p>
+
+<p>
+Disable transmit of the IEEE 802.3 MAC/PHY Configuration Status TLV for a given interface:
+</p>
+
+<p>
+<strong>lldptool -T -i eth3 -V macPhyCfg enableTx=no</strong>
+</p>
+
+<p>
+<strong>lldptool set-tlv -i eth3 -V 0x120f01 enableTx=no</strong>
+</p>
+
+<p>
+Query value of the transmit setting for the Port Description TLV for a given interface:
+</p>
+
+<p>
+<strong>lldptool -t -i eth3 -V portDesc -c enableTx</strong>
+</p>
+
+<p>
+<strong>lldptool get-tlv -i eth3 -V 4 -c enableTx</strong>
+</p>
+
+<p>
+Set a Management Address TLV on eth3 to carry IPv4 address 192.168.10.10
+</p>
+
+<p>
+<strong>lldptool -T -i eth3 -V mngAddr ipv4=192.168.10.10</strong>
+</p>
+
+<p>
+Set a Management Address TLV on eth3 to carry IPv6 address ::192.168.10.10
+</p>
+
+<p>
+<strong>lldptool -T -i eth3 -V mngAddr ipv6=::192.168.10.10</strong>
+</p>
+
+<p>
+Get the configured IPv4 address for the Management Address TLV on eth3
+</p>
+
+<p>
+<strong>lldptool -t -i eth3 -V mngAddr -c ipv4</strong>
+</p>
+
+<p>
+Get all configured attributes for the Management Address TLV on eth3
+</p>
+
+<p>
+<strong>lldptool -t -i eth3 -V mngAddr -c</strong>
+</p>
+
+<p>
+Enable transmit of the Edge Virtual Bridging TLV for interface eth4
+</p>
+
+<p>
+<strong>lldptool -i eth4 -T -V evbCfg enableTx=yes</strong>
+</p>
+
+<p>
+Enable transmit of VDP for interface eth4
+</p>
+
+<p>
+<strong>lldptool -i eth4 -T -V vdp enableTx=yes</strong>
+</p>
+
+</div>
+
+<h2 class="sectionedit9" id="see_also">SEE ALSO</h2>
+<div class="level2">
+
+<p>
+<strong><a href="/web/20190614102816/http://www.open-lldp.org/lldptool-dcbx#name" class="wikilink1" title="lldptool-dcbx">lldptool-dcbx</a></strong>(8), <strong><a href="/web/20190614102816/http://www.open-lldp.org/lldptool-ets#name" class="wikilink1" title="lldptool-ets">lldptool-ets</a></strong>(8), <strong><a href="/web/20190614102816/http://www.open-lldp.org/lldptool-pfc#name" class="wikilink1" title="lldptool-pfc">lldptool-pfc</a></strong>(8), <strong><a href="/web/20190614102816/http://www.open-lldp.org/lldptool-app#name" class="wikilink1" title="lldptool-app">lldptool-app</a></strong>(8), <strong><a href="/web/20190614102816/http://www.open-lldp.org/lldptool-med#name" class="wikilink1" title="lldptool-med">lldptool-med</a></strong>(8), <strong><a href="/web/20190614102816/http://www.open-lldp.org/lldptool-vdp#name" class="wikilink1" title="lldptool-vdp">lldptool-vdp</a></strong>(8), <strong><a href="/web/20190614102816/http://www.open-lldp.org/lldptool-evb#name" class="wikilink1" title="lldptool-evb">lldptool-evb</a></strong>(8), <strong><a href="/web/20190614102816/http://www.open-lldp.org/dcbtool#name" class="wikilink1" title="dcbtool">dcbtool</a></strong>(8), <strong><a href="/web/20190614102816/http://www.open-lldp.org/lldpad#name" class="wikilink1" title="lldpad">lldpad</a></strong>(8)
+</p>
+
+</div>
+
+<h2 class="sectionedit10" id="copyright">COPYRIGHT</h2>
+<div class="level2">
+
+<p>
+lldptool - LLDP agent configuration utility
+</p>
+
+<p>
+Copyright© 2007-2012 Intel Corporation. Portions of lldptool are based on:
+</p>
+
+<p>
+hostapd-0.5.7
+</p>
+
+<p>
+Copyright
+</p>
+
+<p>
+ © 2004-2008, Jouni Malinen <a href="https://web.archive.org/web/20190614102816/mailto:j@w1.fi" class="mail" title="j@w1.fi">&#x6a;&#x40;&#x77;&#x31;&#x2e;&#x66;&#x69;</a>
+</p>
+
+</div>
+
+<h2 class="sectionedit11" id="license">LICENSE</h2>
+<div class="level2">
+
+<p>
+This program is free software; you can redistribute it and/or modify it under the terms and conditions of the GNU General Public License, version 2, as published by the Free Software Foundation.
+</p>
+
+<p>
+This program is distributed in the hope it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+</p>
+
+<p>
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+</p>
+
+<p>
+The full GNU General Public License is included in this distribution in the file called “COPYING”.
+</p>
+
+</div>
+
+<h2 class="sectionedit12" id="support">SUPPORT</h2>
+<div class="level2">
+
+<p>
+Contact Information: open-lldp Mailing List &lt;<a href="https://web.archive.org/web/20190614102816/mailto:mailto:lldp-devel@open-lldp.org" class="mail" title="mailto:lldp-devel@open-lldp.org">lldp-devel@open-lldp.org</a>&gt;
+</p>
+
+<p>
+This document was created by man2html, using the manual pages.
+</p>
+
+<p>
+Time: 20:18:51 GMT, January 24, 2013
+</p>
+
+</div>
+
+                    <!-- wikipage stop -->
+                                    </div>
+
+                <div class="docInfo"><bdi>lldptool.txt</bdi> · Last modified: 2013/01/24 12:20 by <bdi>rbbratta</bdi></div>
+
+                            </div></div><!-- /content -->
+
+            <hr class="a11y"/>
+
+            <!-- PAGE ACTIONS -->
+            <div id="dokuwiki__pagetools">
+                <h3 class="a11y">Page Tools</h3>
+                <div class="tools">
+                    <ul>
+                        <li><a href="/web/20190614102816/http://www.open-lldp.org/lldptool?do=edit" class="action source" accesskey="v" rel="nofollow" title="Show pagesource [V]"><span>Show pagesource</span></a></li><li><a href="/web/20190614102816/http://www.open-lldp.org/lldptool?do=revisions" class="action revs" accesskey="o" rel="nofollow" title="Old revisions [O]"><span>Old revisions</span></a></li><li><a href="/web/20190614102816/http://www.open-lldp.org/lldptool?do=backlink" class="action backlink" rel="nofollow" title="Backlinks"><span>Backlinks</span></a></li><li><a href="#dokuwiki__top" class="action top" accesskey="t" rel="nofollow" title="Back to top [T]"><span>Back to top</span></a></li>                    </ul>
+                </div>
+            </div>
+        </div><!-- /wrapper -->
+
+        
+<!-- ********** FOOTER ********** -->
+<div id="dokuwiki__footer"><div class="pad">
+    <div class="license">Except where otherwise noted, content on this wiki is licensed under the following license: <bdi><a href="https://web.archive.org/web/20190614102816/http://www.gnu.org/licenses/fdl-1.3.html" rel="license" class="urlextern">GNU Free Documentation License 1.3</a></bdi></div>
+    <div class="buttons">
+        <a href="https://web.archive.org/web/20190614102816/http://www.gnu.org/licenses/fdl-1.3.html" rel="license"><img src="/web/20190614102816im_/http://www.open-lldp.org/lib/images/license/button/gnufdl.png" alt="GNU Free Documentation License 1.3"/></a>        <a href="https://web.archive.org/web/20190614102816/http://www.dokuwiki.org/donate" title="Donate"><img src="/web/20190614102816im_/http://www.open-lldp.org/lib/tpl/dokuwiki/images/button-donate.gif" width="80" height="15" alt="Donate"/></a>
+        <a href="https://web.archive.org/web/20190614102816/http://www.php.net/" title="Powered by PHP"><img src="/web/20190614102816im_/http://www.open-lldp.org/lib/tpl/dokuwiki/images/button-php.gif" width="80" height="15" alt="Powered by PHP"/></a>
+        <a href="https://web.archive.org/web/20190614102816/http://validator.w3.org/check/referer" title="Valid HTML5"><img src="/web/20190614102816im_/http://www.open-lldp.org/lib/tpl/dokuwiki/images/button-html5.png" width="80" height="15" alt="Valid HTML5"/></a>
+        <a href="https://web.archive.org/web/20190614102816/http://jigsaw.w3.org/css-validator/check/referer?profile=css3" title="Valid CSS"><img src="/web/20190614102816im_/http://www.open-lldp.org/lib/tpl/dokuwiki/images/button-css.png" width="80" height="15" alt="Valid CSS"/></a>
+        <a href="https://web.archive.org/web/20190614102816/http://dokuwiki.org/" title="Driven by DokuWiki"><img src="/web/20190614102816im_/http://www.open-lldp.org/lib/tpl/dokuwiki/images/button-dw.png" width="80" height="15" alt="Driven by DokuWiki"/></a>
+    </div>
+</div></div><!-- /footer -->
+
+    </div></div><!-- /site -->
+
+    <div class="no"><img src="/web/20190614102816im_/http://www.open-lldp.org/lib/exe/indexer.php?id=lldptool&amp;1560508096" width="2" height="1" alt=""/></div>
+    <div id="screen__mode" class="no"></div>    <!--[if ( lte IE 7 | IE 8 ) ]></div><![endif]-->
+</body>
+</html>
+<!--
+     FILE ARCHIVED ON 10:28:16 Jun 14, 2019 AND RETRIEVED FROM THE
+     INTERNET ARCHIVE ON 03:08:14 Oct 05, 2025.
+     JAVASCRIPT APPENDED BY WAYBACK MACHINE, COPYRIGHT INTERNET ARCHIVE.
+
+     ALL OTHER CONTENT MAY ALSO BE PROTECTED BY COPYRIGHT (17 U.S.C.
+     SECTION 108(a)(3)).
+-->
+<!--
+playback timings (ms):
+  captures_list: 0.568
+  exclusion.robots: 0.032
+  exclusion.robots.policy: 0.019
+  esindex: 0.013
+  cdx.remote: 23.051
+  LoadShardBlock: 53.602 (3)
+  PetaboxLoader3.datanode: 67.059 (4)
+  load_resource: 328.535
+  PetaboxLoader3.resolve: 311.791
+-->
