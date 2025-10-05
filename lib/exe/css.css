@@ -1,276 +1,276 @@
 @media screen {
     a.interwiki {
-        background: transparent url(lib/images/interwiki.png) 0 1px no-repeat;
+        background: transparent url(../../lib/images/interwiki.png) 0 1px no-repeat;
         padding: 1px 0 1px 16px;
     }
     a.iw_wp {
-        background-image: url(lib/images/interwiki/wp.gif);
+        background-image: url(../../lib/images/interwiki/wp.gif);
     }
     a.iw_wpfr {
-        background-image: url(lib/images/interwiki/wpfr.gif);
+        background-image: url(../../lib/images/interwiki/wpfr.gif);
     }
     a.iw_wpde {
-        background-image: url(lib/images/interwiki/wpde.gif);
+        background-image: url(../../lib/images/interwiki/wpde.gif);
     }
     a.iw_wpes {
-        background-image: url(lib/images/interwiki/wpes.gif);
+        background-image: url(../../lib/images/interwiki/wpes.gif);
     }
     a.iw_wppl {
-        background-image: url(lib/images/interwiki/wppl.gif);
+        background-image: url(../../lib/images/interwiki/wppl.gif);
     }
     a.iw_wpjp {
-        background-image: url(lib/images/interwiki/wpjp.gif);
+        background-image: url(../../lib/images/interwiki/wpjp.gif);
     }
     a.iw_wpmeta {
-        background-image: url(lib/images/interwiki/wpmeta.gif);
+        background-image: url(../../lib/images/interwiki/wpmeta.gif);
     }
     a.iw_doku {
-        background-image: url(lib/images/interwiki/doku.gif);
+        background-image: url(../../lib/images/interwiki/doku.gif);
     }
     a.iw_dokubug {
-        background-image: url(lib/images/interwiki/dokubug.gif);
+        background-image: url(../../lib/images/interwiki/dokubug.gif);
     }
     a.iw_amazon {
-        background-image: url(lib/images/interwiki/amazon.gif);
+        background-image: url(../../lib/images/interwiki/amazon.gif);
     }
     a.iw_amazon_de {
-        background-image: url(lib/images/interwiki/amazon.de.gif);
+        background-image: url(../../lib/images/interwiki/amazon.de.gif);
     }
     a.iw_amazon_uk {
-        background-image: url(lib/images/interwiki/amazon.uk.gif);
+        background-image: url(../../lib/images/interwiki/amazon.uk.gif);
     }
     a.iw_paypal {
-        background-image: url(lib/images/interwiki/paypal.gif);
+        background-image: url(../../lib/images/interwiki/paypal.gif);
     }
     a.iw_phpfn {
-        background-image: url(lib/images/interwiki/phpfn.gif);
+        background-image: url(../../lib/images/interwiki/phpfn.gif);
     }
     a.iw_coral {
-        background-image: url(lib/images/interwiki/coral.gif);
+        background-image: url(../../lib/images/interwiki/coral.gif);
     }
     a.iw_sb {
-        background-image: url(lib/images/interwiki/sb.gif);
+        background-image: url(../../lib/images/interwiki/sb.gif);
     }
     a.iw_skype {
-        background-image: url(lib/images/interwiki/skype.gif);
+        background-image: url(../../lib/images/interwiki/skype.gif);
     }
     a.iw_user {
-        background-image: url(lib/images/interwiki/user.png);
+        background-image: url(../../lib/images/interwiki/user.png);
     }
     a.iw_callto {
-        background-image: url(lib/images/interwiki/callto.gif);
+        background-image: url(../../lib/images/interwiki/callto.gif);
     }
     .mediafile {
-        background: transparent url(lib/images/fileicons/file.png) 0 1px no-repeat;
+        background: transparent url(../../lib/images/fileicons/file.png) 0 1px no-repeat;
         padding-left: 18px;
         padding-bottom: 1px;
     }
     .mf_png {
-        background-image: url(lib/images/fileicons/png.png);
+        background-image: url(../../lib/images/fileicons/png.png);
     }
     .mf_sxi {
-        background-image: url(lib/images/fileicons/sxi.png);
+        background-image: url(../../lib/images/fileicons/sxi.png);
     }
     .mf_pptx {
-        background-image: url(lib/images/fileicons/pptx.png);
+        background-image: url(../../lib/images/fileicons/pptx.png);
     }
     .mf_odp {
-        background-image: url(lib/images/fileicons/odp.png);
+        background-image: url(../../lib/images/fileicons/odp.png);
     }
     .mf_xls {
-        background-image: url(lib/images/fileicons/xls.png);
+        background-image: url(../../lib/images/fileicons/xls.png);
     }
     .mf_sxc {
-        background-image: url(lib/images/fileicons/sxc.png);
+        background-image: url(../../lib/images/fileicons/sxc.png);
     }
     .mf_tar {
-        background-image: url(lib/images/fileicons/tar.png);
+        background-image: url(../../lib/images/fileicons/tar.png);
     }
     .mf_rar {
-        background-image: url(lib/images/fileicons/rar.png);
+        background-image: url(../../lib/images/fileicons/rar.png);
     }
     .mf_swf {
-        background-image: url(lib/images/fileicons/swf.png);
+        background-image: url(../../lib/images/fileicons/swf.png);
     }
     .mf_htm {
-        background-image: url(lib/images/fileicons/htm.png);
+        background-image: url(../../lib/images/fileicons/htm.png);
     }
     .mf_diff {
-        background-image: url(lib/images/fileicons/diff.png);
+        background-image: url(../../lib/images/fileicons/diff.png);
     }
     .mf_deb {
-        background-image: url(lib/images/fileicons/deb.png);
+        background-image: url(../../lib/images/fileicons/deb.png);
     }
     .mf_conf {
-        background-image: url(lib/images/fileicons/conf.png);
+        background-image: url(../../lib/images/fileicons/conf.png);
     }
     .mf_ps {
-        background-image: url(lib/images/fileicons/ps.png);
+        background-image: url(../../lib/images/fileicons/ps.png);
     }
     .mf_ogg {
-        background-image: url(lib/images/fileicons/ogg.png);
+        background-image: url(../../lib/images/fileicons/ogg.png);
     }
     .mf_wav {
-        background-image: url(lib/images/fileicons/wav.png);
+        background-image: url(../../lib/images/fileicons/wav.png);
     }
     .mf_lua {
-        background-image: url(lib/images/fileicons/lua.png);
+        background-image: url(../../lib/images/fileicons/lua.png);
     }
     .mf_h {
-        background-image: url(lib/images/fileicons/h.png);
+        background-image: url(../../lib/images/fileicons/h.png);
     }
     .mf_mp3 {
-        background-image: url(lib/images/fileicons/mp3.png);
+        background-image: url(../../lib/images/fileicons/mp3.png);
     }
     .mf_gif {
-        background-image: url(lib/images/fileicons/gif.png);
+        background-image: url(../../lib/images/fileicons/gif.png);
     }
     .mf_pl {
-        background-image: url(lib/images/fileicons/pl.png);
+        background-image: url(../../lib/images/fileicons/pl.png);
     }
     .mf_jpg {
-        background-image: url(lib/images/fileicons/jpg.png);
+        background-image: url(../../lib/images/fileicons/jpg.png);
     }
     .mf_pdf {
-        background-image: url(lib/images/fileicons/pdf.png);
+        background-image: url(../../lib/images/fileicons/pdf.png);
     }
     .mf_c {
-        background-image: url(lib/images/fileicons/c.png);
+        background-image: url(../../lib/images/fileicons/c.png);
     }
     .mf_bz2 {
-        background-image: url(lib/images/fileicons/bz2.png);
+        background-image: url(../../lib/images/fileicons/bz2.png);
     }
     .mf_sh {
-        background-image: url(lib/images/fileicons/sh.png);
+        background-image: url(../../lib/images/fileicons/sh.png);
     }
     .mf_zip {
-        background-image: url(lib/images/fileicons/zip.png);
+        background-image: url(../../lib/images/fileicons/zip.png);
     }
     .mf_java {
-        background-image: url(lib/images/fileicons/java.png);
+        background-image: url(../../lib/images/fileicons/java.png);
     }
     .mf_php {
-        background-image: url(lib/images/fileicons/php.png);
+        background-image: url(../../lib/images/fileicons/php.png);
     }
     .mf_json {
-        background-image: url(lib/images/fileicons/json.png);
+        background-image: url(../../lib/images/fileicons/json.png);
     }
     .mf_ppt {
-        background-image: url(lib/images/fileicons/ppt.png);
+        background-image: url(../../lib/images/fileicons/ppt.png);
     }
     .mf_docx {
-        background-image: url(lib/images/fileicons/docx.png);
+        background-image: url(../../lib/images/fileicons/docx.png);
     }
     .mf_ods {
-        background-image: url(lib/images/fileicons/ods.png);
+        background-image: url(../../lib/images/fileicons/ods.png);
     }
     .mf_7z {
-        background-image: url(lib/images/fileicons/7z.png);
+        background-image: url(../../lib/images/fileicons/7z.png);
     }
     .mf_sxd {
-        background-image: url(lib/images/fileicons/sxd.png);
+        background-image: url(../../lib/images/fileicons/sxd.png);
     }
     .mf_bash {
-        background-image: url(lib/images/fileicons/bash.png);
+        background-image: url(../../lib/images/fileicons/bash.png);
     }
     .mf_css {
-        background-image: url(lib/images/fileicons/css.png);
+        background-image: url(../../lib/images/fileicons/css.png);
     }
     .mf_cc {
-        background-image: url(lib/images/fileicons/cc.png);
+        background-image: url(../../lib/images/fileicons/cc.png);
     }
     .mf_mp4 {
-        background-image: url(lib/images/fileicons/mp4.png);
+        background-image: url(../../lib/images/fileicons/mp4.png);
     }
     .mf_csv {
-        background-image: url(lib/images/fileicons/csv.png);
+        background-image: url(../../lib/images/fileicons/csv.png);
     }
     .mf_webm {
-        background-image: url(lib/images/fileicons/webm.png);
+        background-image: url(../../lib/images/fileicons/webm.png);
     }
     .mf_ogv {
-        background-image: url(lib/images/fileicons/ogv.png);
+        background-image: url(../../lib/images/fileicons/ogv.png);
     }
     .mf_py {
-        background-image: url(lib/images/fileicons/py.png);
+        background-image: url(../../lib/images/fileicons/py.png);
     }
     .mf_tgz {
-        background-image: url(lib/images/fileicons/tgz.png);
+        background-image: url(../../lib/images/fileicons/tgz.png);
     }
     .mf_txt {
-        background-image: url(lib/images/fileicons/txt.png);
+        background-image: url(../../lib/images/fileicons/txt.png);
     }
     .mf_html {
-        background-image: url(lib/images/fileicons/html.png);
+        background-image: url(../../lib/images/fileicons/html.png);
     }
     .mf_doc {
-        background-image: url(lib/images/fileicons/doc.png);
+        background-image: url(../../lib/images/fileicons/doc.png);
     }
     .mf_hpp {
-        background-image: url(lib/images/fileicons/hpp.png);
+        background-image: url(../../lib/images/fileicons/hpp.png);
     }
     .mf_odt {
-        background-image: url(lib/images/fileicons/odt.png);
+        background-image: url(../../lib/images/fileicons/odt.png);
     }
     .mf_rpm {
-        background-image: url(lib/images/fileicons/rpm.png);
+        background-image: url(../../lib/images/fileicons/rpm.png);
     }
     .mf_gz {
-        background-image: url(lib/images/fileicons/gz.png);
+        background-image: url(../../lib/images/fileicons/gz.png);
     }
     .mf_cs {
-        background-image: url(lib/images/fileicons/cs.png);
+        background-image: url(../../lib/images/fileicons/cs.png);
     }
     .mf_asm {
-        background-image: url(lib/images/fileicons/asm.png);
+        background-image: url(../../lib/images/fileicons/asm.png);
     }
     .mf_odc {
-        background-image: url(lib/images/fileicons/odc.png);
+        background-image: url(../../lib/images/fileicons/odc.png);
     }
     .mf_odf {
-        background-image: url(lib/images/fileicons/odf.png);
+        background-image: url(../../lib/images/fileicons/odf.png);
     }
     .mf_odi {
-        background-image: url(lib/images/fileicons/odi.png);
+        background-image: url(../../lib/images/fileicons/odi.png);
     }
     .mf_jpeg {
-        background-image: url(lib/images/fileicons/jpeg.png);
+        background-image: url(../../lib/images/fileicons/jpeg.png);
     }
     .mf_xlsx {
-        background-image: url(lib/images/fileicons/xlsx.png);
+        background-image: url(../../lib/images/fileicons/xlsx.png);
     }
     .mf_rb {
-        background-image: url(lib/images/fileicons/rb.png);
+        background-image: url(../../lib/images/fileicons/rb.png);
     }
     .mf_odg {
-        background-image: url(lib/images/fileicons/odg.png);
+        background-image: url(../../lib/images/fileicons/odg.png);
     }
     .mf_csh {
-        background-image: url(lib/images/fileicons/csh.png);
+        background-image: url(../../lib/images/fileicons/csh.png);
     }
     .mf_xml {
-        background-image: url(lib/images/fileicons/xml.png);
+        background-image: url(../../lib/images/fileicons/xml.png);
     }
     .mf_pas {
-        background-image: url(lib/images/fileicons/pas.png);
+        background-image: url(../../lib/images/fileicons/pas.png);
     }
     .mf_ico {
-        background-image: url(lib/images/fileicons/ico.png);
+        background-image: url(../../lib/images/fileicons/ico.png);
     }
     .mf_sxw {
-        background-image: url(lib/images/fileicons/sxw.png);
+        background-image: url(../../lib/images/fileicons/sxw.png);
     }
     .mf_sql {
-        background-image: url(lib/images/fileicons/sql.png);
+        background-image: url(../../lib/images/fileicons/sql.png);
     }
     .mf_rtf {
-        background-image: url(lib/images/fileicons/rtf.png);
+        background-image: url(../../lib/images/fileicons/rtf.png);
     }
     .mf_js {
-        background-image: url(lib/images/fileicons/js.png);
+        background-image: url(../../lib/images/fileicons/js.png);
     }
     .mf_cpp {
-        background-image: url(lib/images/fileicons/cpp.png);
+        background-image: url(../../lib/images/fileicons/cpp.png);
     }
 }
 @media screen {
@@ -299,22 +299,22 @@
     }
     div.error {
         background-color: #fcc;
-        background-image: url(lib/images/error.png);
+        background-image: url(../../lib/images/error.png);
         border-color: #ebb;
     }
     div.info {
         background-color: #ccf;
-        background-image: url(lib/images/info.png);
+        background-image: url(../../lib/images/info.png);
         border-color: #bbe;
     }
     div.success {
         background-color: #cfc;
-        background-image: url(lib/images/success.png);
+        background-image: url(../../lib/images/success.png);
         border-color: #beb;
     }
     div.notify {
         background-color: #ffc;
-        background-image: url(lib/images/notify.png);
+        background-image: url(../../lib/images/notify.png);
         border-color: #eeb;
     }
     .JSpopup,
@@ -930,7 +930,7 @@
         height: 100%;
     }
     .ui-progressbar .ui-progressbar-overlay {
-        background: url("lib/scripts/jquery/jquery-ui-theme/images/animated-overlay.gif");
+        background: url("../../lib/scripts/jquery/jquery-ui-theme/images/animated-overlay.gif");
         height: 100%;
         filter: alpha(opacity=25);
         opacity: 0.25;
@@ -1246,7 +1246,7 @@
     }
     .ui-widget-content {
         border: 1px solid #aaa;
-        background: #fff url("lib/scripts/jquery/jquery-ui-theme/images/ui-bg_flat_75_ffffff_40x100.png") 50% 50%
+        background: #fff url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-bg_flat_75_ffffff_40x100.png") 50% 50%
             repeat-x;
         color: #222;
     }
@@ -1255,7 +1255,7 @@
     }
     .ui-widget-header {
         border: 1px solid #aaa;
-        background: #ccc url("lib/scripts/jquery/jquery-ui-theme/images/ui-bg_highlight-soft_75_cccccc_1x100.png") 50%
+        background: #ccc url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-bg_highlight-soft_75_cccccc_1x100.png") 50%
             50% repeat-x;
         color: #222;
         font-weight: bold;
@@ -1267,7 +1267,7 @@
     .ui-widget-content .ui-state-default,
     .ui-widget-header .ui-state-default {
         border: 1px solid #d3d3d3;
-        background: #e6e6e6 url("lib/scripts/jquery/jquery-ui-theme/images/ui-bg_glass_75_e6e6e6_1x400.png") 50% 50%
+        background: #e6e6e6 url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-bg_glass_75_e6e6e6_1x400.png") 50% 50%
             repeat-x;
         font-weight: normal;
         color: #555;
@@ -1285,7 +1285,7 @@
     .ui-widget-content .ui-state-focus,
     .ui-widget-header .ui-state-focus {
         border: 1px solid #999;
-        background: #dadada url("lib/scripts/jquery/jquery-ui-theme/images/ui-bg_glass_75_dadada_1x400.png") 50% 50%
+        background: #dadada url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-bg_glass_75_dadada_1x400.png") 50% 50%
             repeat-x;
         font-weight: normal;
         color: #212121;
@@ -1305,7 +1305,7 @@
     .ui-widget-content .ui-state-active,
     .ui-widget-header .ui-state-active {
         border: 1px solid #aaa;
-        background: #fff url("lib/scripts/jquery/jquery-ui-theme/images/ui-bg_glass_65_ffffff_1x400.png") 50% 50%
+        background: #fff url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-bg_glass_65_ffffff_1x400.png") 50% 50%
             repeat-x;
         font-weight: normal;
         color: #212121;
@@ -1320,7 +1320,7 @@
     .ui-widget-content .ui-state-highlight,
     .ui-widget-header .ui-state-highlight {
         border: 1px solid #fcefa1;
-        background: #fbf9ee url("lib/scripts/jquery/jquery-ui-theme/images/ui-bg_glass_55_fbf9ee_1x400.png") 50% 50%
+        background: #fbf9ee url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-bg_glass_55_fbf9ee_1x400.png") 50% 50%
             repeat-x;
         color: #363636;
     }
@@ -1333,7 +1333,7 @@
     .ui-widget-content .ui-state-error,
     .ui-widget-header .ui-state-error {
         border: 1px solid #cd0a0a;
-        background: #fef1ec url("lib/scripts/jquery/jquery-ui-theme/images/ui-bg_glass_95_fef1ec_1x400.png") 50% 50%
+        background: #fef1ec url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-bg_glass_95_fef1ec_1x400.png") 50% 50%
             repeat-x;
         color: #cd0a0a;
     }
@@ -1375,27 +1375,27 @@
     }
     .ui-icon,
     .ui-widget-content .ui-icon {
-        background-image: url("lib/scripts/jquery/jquery-ui-theme/images/ui-icons_222222_256x240.png");
+        background-image: url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-icons_222222_256x240.png");
     }
     .ui-widget-header .ui-icon {
-        background-image: url("lib/scripts/jquery/jquery-ui-theme/images/ui-icons_222222_256x240.png");
+        background-image: url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-icons_222222_256x240.png");
     }
     .ui-state-default .ui-icon {
-        background-image: url("lib/scripts/jquery/jquery-ui-theme/images/ui-icons_888888_256x240.png");
+        background-image: url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-icons_888888_256x240.png");
     }
     .ui-state-hover .ui-icon,
     .ui-state-focus .ui-icon {
-        background-image: url("lib/scripts/jquery/jquery-ui-theme/images/ui-icons_454545_256x240.png");
+        background-image: url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-icons_454545_256x240.png");
     }
     .ui-state-active .ui-icon {
-        background-image: url("lib/scripts/jquery/jquery-ui-theme/images/ui-icons_454545_256x240.png");
+        background-image: url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-icons_454545_256x240.png");
     }
     .ui-state-highlight .ui-icon {
-        background-image: url("lib/scripts/jquery/jquery-ui-theme/images/ui-icons_2e83ff_256x240.png");
+        background-image: url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-icons_2e83ff_256x240.png");
     }
     .ui-state-error .ui-icon,
     .ui-state-error-text .ui-icon {
-        background-image: url("lib/scripts/jquery/jquery-ui-theme/images/ui-icons_cd0a0a_256x240.png");
+        background-image: url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-icons_cd0a0a_256x240.png");
     }
     .ui-icon-blank {
         background-position: 16px 16px;
@@ -1947,7 +1947,7 @@
         border-bottom-right-radius: 4px;
     }
     .ui-widget-overlay {
-        background: #aaa url("lib/scripts/jquery/jquery-ui-theme/images/ui-bg_flat_0_aaaaaa_40x100.png") 50% 50%
+        background: #aaa url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-bg_flat_0_aaaaaa_40x100.png") 50% 50%
             repeat-x;
         opacity: 0.3;
         filter: Alpha(Opacity=30);
@@ -1955,7 +1955,7 @@
     .ui-widget-shadow {
         margin: -8px 0 0 -8px;
         padding: 8px;
-        background: #aaa url("lib/scripts/jquery/jquery-ui-theme/images/ui-bg_flat_0_aaaaaa_40x100.png") 50% 50%
+        background: #aaa url("../../lib/scripts/jquery/jquery-ui-theme/images/ui-bg_flat_0_aaaaaa_40x100.png") 50% 50%
             repeat-x;
         opacity: 0.3;
         filter: Alpha(Opacity=30);
@@ -2173,38 +2173,38 @@
         text-align: right;
     }
     #acl_manager .aclgroup {
-        background: transparent url(lib/plugins/acl/pix/group.png) 0 1px no-repeat;
+        background: transparent url(../../lib/plugins/acl/pix/group.png) 0 1px no-repeat;
         padding: 1px 0 1px 18px;
     }
     [dir="rtl"] #acl_manager .aclgroup {
-        background: transparent url(lib/plugins/acl/pix/group.png) right 1px no-repeat;
+        background: transparent url(../../lib/plugins/acl/pix/group.png) right 1px no-repeat;
         padding: 1px 18px 1px 0;
         display: inline-block;
     }
     #acl_manager .acluser {
-        background: transparent url(lib/plugins/acl/pix/user.png) 0 1px no-repeat;
+        background: transparent url(../../lib/plugins/acl/pix/user.png) 0 1px no-repeat;
         padding: 1px 0 1px 18px;
     }
     [dir="rtl"] #acl_manager .acluser {
-        background: transparent url(lib/plugins/acl/pix/user.png) right 1px no-repeat;
+        background: transparent url(../../lib/plugins/acl/pix/user.png) right 1px no-repeat;
         padding: 1px 18px 1px 0;
         display: inline-block;
     }
     #acl_manager .aclpage {
-        background: transparent url(lib/plugins/acl/pix/page.png) 0 1px no-repeat;
+        background: transparent url(../../lib/plugins/acl/pix/page.png) 0 1px no-repeat;
         padding: 1px 0 1px 18px;
     }
     [dir="rtl"] #acl_manager .aclpage {
-        background: transparent url(lib/plugins/acl/pix/page.png) right 1px no-repeat;
+        background: transparent url(../../lib/plugins/acl/pix/page.png) right 1px no-repeat;
         padding: 1px 18px 1px 0;
         display: inline-block;
     }
     #acl_manager .aclns {
-        background: transparent url(lib/plugins/acl/pix/ns.png) 0 1px no-repeat;
+        background: transparent url(../../lib/plugins/acl/pix/ns.png) 0 1px no-repeat;
         padding: 1px 0 1px 18px;
     }
     [dir="rtl"] #acl_manager .aclns {
-        background: transparent url(lib/plugins/acl/pix/ns.png) right 1px no-repeat;
+        background: transparent url(../../lib/plugins/acl/pix/ns.png) right 1px no-repeat;
         padding: 1px 18px 1px 0;
         display: inline-block;
     }
@@ -2233,7 +2233,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: url(lib/plugins/extension/images/overlay.png) repeat;
+        background: url(../../lib/plugins/extension/images/overlay.png) repeat;
         text-align: center;
         cursor: pointer;
         z-index: 9999;
@@ -2347,10 +2347,10 @@
     }
     #extension__list .legend div.linkbar span.tags {
         padding-left: 18px;
-        background: transparent url(lib/plugins/extension/images/tag.png) no-repeat 0 0;
+        background: transparent url(../../lib/plugins/extension/images/tag.png) no-repeat 0 0;
     }
     #extension__list .legend a.info {
-        background: transparent url(lib/plugins/extension/images/down.png) no-repeat 0 0;
+        background: transparent url(../../lib/plugins/extension/images/down.png) no-repeat 0 0;
         border-width: 0;
         height: 13px;
         width: 13px;
@@ -2360,7 +2360,7 @@
         overflow: hidden;
     }
     #extension__list .legend a.info.close {
-        background: transparent url(lib/plugins/extension/images/up.png) no-repeat 0 0;
+        background: transparent url(../../lib/plugins/extension/images/up.png) no-repeat 0 0;
     }
     #extension__list .legend dl.details {
         margin: 0.4em 0 0 0;
@@ -2384,7 +2384,7 @@
     }
     #extension__list .legend dl.details dd a.donate {
         padding-left: 18px;
-        background: transparent url(lib/plugins/extension/images/donate.png) left center no-repeat;
+        background: transparent url(../../lib/plugins/extension/images/donate.png) left center no-repeat;
     }
     [dir="rtl"] #extension__list .legend {
         float: right;
@@ -2433,10 +2433,10 @@
         padding-right: 5px;
     }
     #extension__list .enabled div.screenshot span {
-        background: transparent url(lib/plugins/extension/images/enabled.png) no-repeat 2px 2px;
+        background: transparent url(../../lib/plugins/extension/images/enabled.png) no-repeat 2px 2px;
     }
     #extension__list .disabled div.screenshot span {
-        background: transparent url(lib/plugins/extension/images/disabled.png) no-repeat 2px 2px;
+        background: transparent url(../../lib/plugins/extension/images/disabled.png) no-repeat 2px 2px;
     }
     #extension__list .disabled .legend {
         opacity: 0.7;
@@ -2459,7 +2459,7 @@
         margin-left: 0.4em;
         text-align: left;
         padding-left: 19px;
-        background: transparent url(lib/plugins/extension/images/warning.png) center left no-repeat;
+        background: transparent url(../../lib/plugins/extension/images/warning.png) center left no-repeat;
         line-height: 18px;
         font-size: 12px;
     }
@@ -2528,7 +2528,7 @@
     html,
     body {
         color: #333;
-        background: #fbfaf9 url(lib/tpl/dokuwiki/images/page-gradient.png) top left repeat-x;
+        background: #fbfaf9 url(../../lib/tpl/dokuwiki/images/page-gradient.png) top left repeat-x;
         margin: 0;
         padding: 0;
     }
@@ -3201,7 +3201,7 @@
     #mediamanager__page .ui-resizable-e {
         width: 6px;
         right: 2px;
-        background: transparent url(lib/images/resizecol.png) center center no-repeat;
+        background: transparent url(../../lib/images/resizecol.png) center center no-repeat;
     }
     #mediamanager__page .ui-resizable-e:hover {
         background-color: #eee;
@@ -3294,12 +3294,12 @@
     #mediamanager__page .panelHeader ul li.listType {
         padding-left: 30px;
         margin: 0 0 0 5px;
-        background: url("lib/images/icon-list.png") 3px 1px no-repeat;
+        background: url("../../lib/images/icon-list.png") 3px 1px no-repeat;
     }
     #mediamanager__page .panelHeader ul li.sortBy {
         padding-left: 30px;
         margin: 0 0 0 5px;
-        background: url("lib/images/icon-sort.png") 3px 1px no-repeat;
+        background: url("../../lib/images/icon-sort.png") 3px 1px no-repeat;
     }
     #mediamanager__page .panelHeader form.options .ui-buttonset label {
         font-size: 90%;
@@ -3624,7 +3624,7 @@
     }
     .qq-upload-spinner {
         display: inline-block;
-        background: url("lib/images/throbber.gif");
+        background: url("../../lib/images/throbber.gif");
         width: 15px;
         height: 15px;
         vertical-align: text-bottom;
@@ -3739,13 +3739,13 @@
         padding: 0 0 0 18px;
     }
     .dokuwiki a.urlextern {
-        background-image: url(lib/images/external-link.png);
+        background-image: url(../../lib/images/external-link.png);
     }
     .dokuwiki a.windows {
-        background-image: url(lib/images/unc.png);
+        background-image: url(../../lib/images/unc.png);
     }
     .dokuwiki a.mail {
-        background-image: url(lib/images/email.png);
+        background-image: url(../../lib/images/email.png);
     }
     [dir="rtl"] .dokuwiki a.urlextern,
     [dir="rtl"] .dokuwiki a.windows,
@@ -3808,16 +3808,16 @@
         padding-right: 0;
     }
     .dokuwiki ul.idx li {
-        list-style-image: url(lib/images/bullet.png);
+        list-style-image: url(../../lib/images/bullet.png);
     }
     .dokuwiki ul.idx li.open {
-        list-style-image: url(lib/images/open.png);
+        list-style-image: url(../../lib/images/open.png);
     }
     .dokuwiki ul.idx li.closed {
-        list-style-image: url(lib/images/closed.png);
+        list-style-image: url(../../lib/images/closed.png);
     }
     [dir="rtl"] .dokuwiki ul.idx li.closed {
-        list-style-image: url(lib/images/closed-rtl.png);
+        list-style-image: url(../../lib/images/closed-rtl.png);
     }
     div.insitu-footnote {
         max-width: 40%;
@@ -4190,13 +4190,13 @@
         background-position: 257px 3px;
     }
     #link__wiz_result div.type_u a {
-        background-image: url(lib/images/up.png);
+        background-image: url(../../lib/images/up.png);
     }
     #link__wiz_result div.type_f a {
-        background-image: url(lib/images/page.png);
+        background-image: url(../../lib/images/page.png);
     }
     #link__wiz_result div.type_d a {
-        background-image: url(lib/images/ns.png);
+        background-image: url(../../lib/images/ns.png);
     }
     #link__wiz_result div.even {
         background-color: #ddd;
@@ -4320,22 +4320,22 @@
         background-position: right 0;
     }
     .dokuwiki ul.admin_tasks li.admin_acl {
-        background-image: url(lib/images/admin/acl.png);
+        background-image: url(../../lib/images/admin/acl.png);
     }
     .dokuwiki ul.admin_tasks li.admin_usermanager {
-        background-image: url(lib/images/admin/usermanager.png);
+        background-image: url(../../lib/images/admin/usermanager.png);
     }
     .dokuwiki ul.admin_tasks li.admin_plugin {
-        background-image: url(lib/images/admin/plugin.png);
+        background-image: url(../../lib/images/admin/plugin.png);
     }
     .dokuwiki ul.admin_tasks li.admin_config {
-        background-image: url(lib/images/admin/config.png);
+        background-image: url(../../lib/images/admin/config.png);
     }
     .dokuwiki ul.admin_tasks li.admin_revert {
-        background-image: url(lib/images/admin/revert.png);
+        background-image: url(../../lib/images/admin/revert.png);
     }
     .dokuwiki ul.admin_tasks li.admin_popularity {
-        background-image: url(lib/images/admin/popularity.png);
+        background-image: url(../../lib/images/admin/popularity.png);
     }
     .dokuwiki #admin__version {
         clear: left;
@@ -4491,7 +4491,7 @@
     #dokuwiki__usertools a.action,
     #dokuwiki__usertools a.iw_user {
         padding-left: 20px;
-        background: transparent url(lib/tpl/dokuwiki/images/usertools.png) no-repeat 0 0;
+        background: transparent url(../../lib/tpl/dokuwiki/images/usertools.png) no-repeat 0 0;
     }
     [dir="rtl"] #dokuwiki__usertools a.action {
         padding-left: 0;
@@ -4570,7 +4570,7 @@
         padding: 0.35em 22px 0.35em 0.1em;
     }
     form.search input.button {
-        background: transparent url(lib/tpl/dokuwiki/images/search.png) no-repeat 0 0;
+        background: transparent url(../../lib/tpl/dokuwiki/images/search.png) no-repeat 0 0;
         border-width: 0;
         width: 19px;
         height: 14px;
@@ -4804,7 +4804,7 @@
         margin-left: auto;
     }
     #dokuwiki__pagetools ul li a:before {
-        content: url(lib/tpl/dokuwiki/images/pagetools-sprite.png?v=2);
+        content: url(../../lib/tpl/dokuwiki/images/pagetools-sprite.png?v=2);
         display: inline-block;
         font-size: 0;
         line-height: 0;
@@ -4829,7 +4829,7 @@
         height: auto;
         overflow: visible;
         padding: 5px 40px 5px 5px;
-        background-image: url(lib/tpl/dokuwiki/images/pagetools-sprite.png?v=2);
+        background-image: url(../../lib/tpl/dokuwiki/images/pagetools-sprite.png?v=2);
     }
     #dokuwiki__pagetools:hover ul li a:before,
     #dokuwiki__pagetools ul li a:focus:before {
@@ -4845,7 +4845,7 @@
         padding: 5px 5px 5px 40px;
     }
     #IE7 #dokuwiki__pagetools ul li a {
-        background-image: url(lib/tpl/dokuwiki/images/pagetools-sprite.png?v=2);
+        background-image: url(../../lib/tpl/dokuwiki/images/pagetools-sprite.png?v=2);
     }
     #IE7 #dokuwiki__pagetools:hover ul li a span,
     #IE7 #dokuwiki__pagetools ul li a:focus span,
@@ -5355,7 +5355,7 @@
         display: none;
     }
     .dokuwiki .toggle strong {
-        background: transparent url(lib/tpl/dokuwiki/images/toc-arrows.png) 0 0;
+        background: transparent url(../../lib/tpl/dokuwiki/images/toc-arrows.png) 0 0;
         width: 8px;
         height: 5px;
         margin: 0.4em 0 0;
@@ -5374,7 +5374,7 @@
         padding: 0 0 0 1.2em;
     }
     #dw__toc ul li {
-        list-style-image: url(lib/tpl/dokuwiki/images/toc-bullet.png);
+        list-style-image: url(../../lib/tpl/dokuwiki/images/toc-bullet.png);
     }
     #dw__toc ul li.clear {
         list-style: none;
