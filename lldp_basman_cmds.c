@@ -394,5 +394,5 @@ int set_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue,
 int test_arg_ipv6(struct cmd *cmd, char *arg, char *argvalue,
 		  char *obuf, int obuf_len)
 {
-	return _set_arg_ipv6(cmd, arg, argvalue, obuf, obuf_len, false);
+	return _set_arg_ipv6(cmd, arg, argvalue, obuf, obuf_len, true);
 }
