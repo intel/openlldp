@@ -237,7 +237,7 @@ static int _set_arg_info(struct cmd *cmd, UNUSED char *arg, char *argvalue,
 				   cmd->tlvid, argvalue))
 		return cmd_failed;
 
-	snprintf(obuf, obuf_len, "enableTx = %s\n", argvalue);
+	snprintf(obuf, obuf_len, "info = %s\n", argvalue);
 
 	somethingChangedLocal(cmd->ifname, cmd->type);
 
