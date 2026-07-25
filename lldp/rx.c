@@ -135,7 +135,7 @@ void rxProcessFrame(struct port *port, struct lldp_agent *agent)
 	bool msap_compare_1 = false;
 	bool msap_compare_2 = false;
 	bool good_neighbor  = false;
-	bool tlv_stored     = false;
+	bool tlv_stored;
 	int err;
 	struct lldp_module *np;
 
@@ -164,6 +164,7 @@ void rxProcessFrame(struct port *port, struct lldp_agent *agent)
 	tlv_offset = sizeof(struct l2_ethhdr);  /* Points to 1st TLV */
 
 	do {
+		tlv_stored = false;
 		tlv_cnt++;
 		if (tlv_offset > agent->rx.sizein) {
 			LLDPAD_INFO("ERROR: Frame overrun!\n");
@@ -394,17 +395,9 @@ void rxProcessFrame(struct port *port, struct lldp_agent *agent)
 			}
 		}
 		if (tlv->type == TYPE_8) { /* mgmt address */
-			if (agent->lldpdu & RCVD_LLDP_TLV_TYPE8) {
-				LLDPAD_INFO("Received multiple mgmt address"
-					" TLVs in this LLDPDU\n");
-				frame_error++;
-				free_unpkd_tlv(tlv);
-				goto out;
-			} else {
-				agent->lldpdu |= RCVD_LLDP_TLV_TYPE8;
-				agent->rx.manifest->mgmtadd = tlv;
-				tlv_stored = true;
-			}
+			agent->lldpdu |= RCVD_LLDP_TLV_TYPE8;
+			free_unpkd_tlv(tlv);
+			continue;
 		}
 
 		/* rx per lldp module */
@@ -429,8 +422,6 @@ void rxProcessFrame(struct port *port, struct lldp_agent *agent)
 			free_unpkd_tlv(tlv);
 			agent->stats.statsTLVsUnrecognizedTotal++;
 		}
-		tlv = NULL;
-		tlv_stored = false;
 	} while(tlv_type != 0);
 
 out:
@@ -687,8 +678,6 @@ void rx_change_state(struct lldp_agent *agent, u8 newstate)
 
 void clear_manifest(struct lldp_agent *agent)
 {
-	if (agent->rx.manifest->mgmtadd)
-		free_unpkd_tlv(agent->rx.manifest->mgmtadd);
 	if (agent->rx.manifest->syscap)
 		free_unpkd_tlv(agent->rx.manifest->syscap);
 	if (agent->rx.manifest->sysdesc)
