@@ -103,7 +103,6 @@ typedef struct rxmanifest{
 	struct unpacked_tlv *sysname;
 	struct unpacked_tlv *sysdesc;
 	struct unpacked_tlv *syscap;
-	struct unpacked_tlv *mgmtadd;
 } rxmanifest;
 
 struct agentrx {
