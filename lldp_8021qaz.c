@@ -1983,7 +1983,7 @@ int ieee8021qaz_rchange(struct port *port, struct lldp_agent *agent,
 
 		l2_packet_get_remote_addr(port->l2, qaz_tlvs->remote_mac);
 		if (unpack_ieee8021qaz_tlvs(port, agent, tlv))
-			return TLV_OK;
+		return TLV_OK;
 	}
 
 	if (tlv->type == TYPE_0) {

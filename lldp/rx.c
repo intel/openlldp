@@ -413,14 +413,16 @@ void rxProcessFrame(struct port *port, struct lldp_agent *agent)
 				continue;
 
 			err = np->ops->lldp_mod_rchange(port, agent, tlv);
-
-			if (!err)
+			
+			if (err == TLV_OK){
 				tlv_stored = true;
+				break;
+			}
 			else if (err == TLV_ERR) {
 				frame_error++;
 				free_unpkd_tlv(tlv);
 				goto out;
-			}
+			} 
 		}
 
 		if (!tlv_stored) {
