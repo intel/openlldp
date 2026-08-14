@@ -67,3 +67,119 @@ jobs:
 
       - name: Run distcheck
         run: make distcheck
+
+  integration-tests:
+    # The test/pytest/ netns+scapy suite (basic LLDP behavior, the
+    # IEEE 802.1AB compliance cases, and the ported qbg22 EVB/ECP/VDP
+    # suite - qbg22's cases with known, tracked mismatches skip
+    # themselves by default, see test/pytest/qbg/known_failures.py).
+    # --enable-debug so qbg22sim/vdptest get built and those cases run
+    # too, not just skip for missing binaries.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: >
+          sudo apt-get install -y
+          libconfig-dev libnl-3-dev libnl-genl-3-dev
+          linux-libc-dev libreadline-dev
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install python test dependencies
+        run: pip install -r test/pytest/requirements.txt
+
+      - name: Run bootstrap
+        run: ./bootstrap.sh
+
+      - name: Configure project
+        run: ./configure --enable-debug --enable-warnings --enable-errors
+
+      - name: Build
+        run: make -j"$(nproc)"
+
+      - name: Run check-integration
+        # Deliberately not sudo: the harness is designed to work
+        # unprivileged via --map-root-user (see test/pytest/README.md's
+        # "Privilege model") and that's the path actually exercised
+        # during development. Running the whole suite as real root
+        # instead turned out to cause its own problems here - binaries
+        # built as the normal runner user came back "Permission denied"
+        # specifically when exec'd through nsenter into the nested
+        # mount+user namespace under sudo, a namespace/uid-mapping
+        # interaction that isn't worth chasing blind on hosted runners.
+        # If a runner genuinely can't create unprivileged namespaces,
+        # the affected tests skip themselves rather than erroring.
+        run: make check-integration
+
+  sanitizers:
+    # Same build+test, compiled with -fsanitize=address or =undefined.
+    # Not a required check yet (continue-on-error): the goal for now is
+    # visibility into what these turn up, not blocking merges on
+    # findings that haven't been triaged - see PR discussion. The
+    # test/pytest/ suites (deliberately feeding lldpad malformed/edge
+    # case data) are exactly where a sanitizer earns its keep, so this
+    # runs check-integration too, not just the unit test binary - and
+    # already found a real one while this job was being put together:
+    # a heap-buffer-overflow read in rxProcessFrame() (lldp/rx.c) on a
+    # truly tiny malformed frame.
+    #
+    # ASan needs -static-libasan: lldpad/lldptool are libtool wrapper
+    # scripts around the real binary in .libs/, and ASan's runtime has
+    # to be the first thing loaded (it intercepts malloc/free) - through
+    # that wrapper indirection it isn't, and every ASan-built binary
+    # exits immediately complaining "ASan runtime does not come first in
+    # initial library list" without it. UBSan's runtime doesn't
+    # intercept anything, so it isn't affected the same way and doesn't
+    # need the static-link workaround.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    continue-on-error: true
+    strategy:
+      matrix:
+        include:
+          - sanitizer: address
+            extra_ldflags: -static-libasan
+          - sanitizer: undefined
+            extra_ldflags: ""
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: >
+          sudo apt-get install -y
+          libconfig-dev libnl-3-dev libnl-genl-3-dev
+          linux-libc-dev libreadline-dev
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install python test dependencies
+        run: pip install -r test/pytest/requirements.txt
+
+      - name: Run bootstrap
+        run: ./bootstrap.sh
+
+      - name: Configure project
+        run: >
+          ./configure --enable-debug
+          CFLAGS="-fsanitize=${{ matrix.sanitizer }} -fno-omit-frame-pointer -g -O1"
+          LDFLAGS="-fsanitize=${{ matrix.sanitizer }} ${{ matrix.extra_ldflags }}"
+
+      - name: Build
+        run: make -j"$(nproc)"
+
+      - name: Run check
+        run: make check
+
+      - name: Run check-integration
+        # See the integration-tests job for why this isn't sudo.
+        run: make check-integration
