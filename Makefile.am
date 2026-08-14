@@ -108,6 +108,7 @@ lldptool_LDFLAGS = -ldl -llldp_clif $(LIBNL_LIBS)
 if BUILD_DEBUG
 nltest_SOURCES = test/nltest.c test/nltest.h
 vdptest_SOURCES = test/vdptest.c
+vdptest_LDADD = liblldp_clif.la
 vdptest_LDFLAGS = -llldp_clif
 qbg22sim_SOURCES = test/qbg22sim.c
 qbg22sim_LDFLAGS = -lrt
