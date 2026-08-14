@@ -167,9 +167,11 @@ lldp_clif_test_SOURCES = test/lldp_clif_test.c lldp_basman_clif.c lldp_util.c \
 lldp_clif_test_LDFLAGS = -lrt $(LIBNL_LIBS)
 
 ## netns/scapy integration test suite (test/pytest/): not part of the
-## default `check` since it needs pytest+scapy and the ability to create
-## unprivileged network namespaces, neither of which every build host
-## has. Run explicitly with `make check-integration`.
+## default `check` since it needs pytest+scapy and real root (to create
+## network namespaces - see test/pytest/README.md's "Privilege model"),
+## neither of which every build host has. Run explicitly with
+## `sudo make check-integration` (individual cases skip themselves
+## cleanly, rather than failing, if run without root).
 ##
 ## This also covers test/pytest/qbg/, the ported test/qbg22/ EVB/ECP/VDP
 ## case suite - but that one additionally needs qbg22sim and vdptest,

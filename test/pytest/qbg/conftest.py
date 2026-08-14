@@ -30,8 +30,8 @@ def pytest_collection_modifyitems(config, items):
 @pytest.fixture()
 def paired_netns(require_tools):
     """Two cross-linked namespaces (station role on veth0, bridge/peer
-    role on veth2, each with their own netns/ipc), matching the
-    interface names baked into test/qbg22/*/{*.conf,*.evb,*.ecp,*.vdp}.
+    role on veth2, each with their own net+mount namespace), matching
+    the interface names baked into test/qbg22/*/{*.conf,*.evb,*.ecp,*.vdp}.
 
     Used for *every* qbg22 case, not just VDP's dual-lldpad ones: lldpad
     auto-manages every interface it can see (config.c's init_ports()
