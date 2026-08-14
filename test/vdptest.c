@@ -2304,7 +2304,8 @@ static int parse_cmd(char type, char *line)
 		return -1;
 	}
 	if (needkey(type)) {
-		strncpy(cmds[cmdidx].key, tokens[i], strlen(tokens[i]));
+		strncpy(cmds[cmdidx].key, tokens[i], sizeof(cmds[cmdidx].key) - 1);
+		cmds[cmdidx].key[sizeof(cmds[cmdidx].key) - 1] = '\0';
 		i++;
 	} else
 		strcpy(cmds[cmdidx].key, "---");
@@ -2793,7 +2794,8 @@ int main(int argc, char **argv)
 		case CMD_DEASSOC:
 		case CMD_ASSOC:
 		case CMD_GETMSG:
-			needif = 1;	/* Fall through intended */
+			needif = 1;
+			__attribute__((fallthrough));
 		case CMD_ECHO:
 		case CMD_EXTERN:
 			parse_cmd(ch, optarg);
