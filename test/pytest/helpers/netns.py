@@ -1,33 +1,41 @@
-"""Isolated network/mount/ipc/user namespace helper.
+"""Isolated network namespace helper, built on `ip netns` plus a small
+per-namespace mount-namespace holder for /tmp and /dev/shm isolation.
 
-Each ``NetNS`` instance owns one fresh network, mount, ipc and user
-namespace, created without requiring real root (via unprivileged user
-namespaces). Everything that needs to run "inside" the namespace -
-``ip link`` calls, ``lldpad`` itself, and the scapy scripts that send or
-sniff frames on its interfaces - is executed with ``nsenter`` targeting
-a long-lived holder process that owns the namespace set.
+Requires real root (CAP_SYS_ADMIN): `ip netns add` pins a namespace at
+/var/run/netns/<name>, and mounting a private tmpfs needs it too. Run
+the whole test process under sudo - see the Makefile's
+check-integration target and this tree's README under "Privilege
+model".
 
-The holder process's namespaces are torn down (and everything in them,
-e.g. veth interfaces, killed processes) as soon as the holder exits, so
-cleanup is just "kill the holder".
+This deliberately does *not* use a new user namespace the way an
+earlier version of this file did (mapping the caller in as
+"unprivileged root" via `unshare --map-root-user`, so the suite could
+run without real root at all). Two things about that turned out not to
+be worth it: Ubuntu 23.10+ restricts *unprivileged* user-namespace
+creation by default (kernel.apparmor_restrict_unprivileged_userns),
+which blocked that path outright on some CI images; and even bypassing
+that by running the unshare as real root, the resulting "root remapped
+into a nested user namespace" produced its own unexplained failures
+(freshly-built, real-root-owned binaries came back flat-out
+"Permission denied" specifically when exec'd through that nested
+namespace - not worth chasing blind).
+
+Staying real root throughout, with only net and mount namespaces (no
+CLONE_NEWUSER at all), sidesteps both: no unprivileged-userns
+restriction ever applies, and there's no uid remapping to produce
+surprising exec-permission behavior. This is also the same pattern
+other projects doing this kind of testing already use in CI - e.g.
+Open vSwitch's test suite runs under `sudo ip netns add` /
+`ip netns exec`.
 """
 
 import json
 import os
 import subprocess
 import time
+import uuid
 
-UNSHARE_CMD = [
-    "unshare",
-    "--mount",
-    "--net",
-    "--ipc",
-    "--user",
-    "--map-root-user",
-    "--",
-    "sleep",
-    "infinity",
-]
+MOUNT_HOLDER_CMD = ["unshare", "--mount", "--", "sleep", "infinity"]
 
 
 class NetNSError(RuntimeError):
@@ -36,8 +44,9 @@ class NetNSError(RuntimeError):
 
 class NetNS:
     def __init__(self, ready_timeout=5.0):
-        self._holder = None
         self.ready_timeout = ready_timeout
+        self.name = "pytest-%s" % uuid.uuid4().hex[:12]
+        self._holder = None
         # Set by the `netns` fixture to the built lldptool binary so that
         # self.lldptool(...) works out of the box.
         self.lldptool_bin = None
@@ -45,58 +54,78 @@ class NetNS:
     # -- lifecycle ---------------------------------------------------
 
     def start(self):
-        self._holder = subprocess.Popen(
-            UNSHARE_CMD,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-        )
+        try:
+            subprocess.run(["ip", "netns", "add", self.name],
+                            check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as e:
+            raise NetNSError(
+                "ip netns add failed - are you root? see this tree's "
+                "README, \"Privilege model\": %s" % (e.stderr or e).strip()
+            ) from e
 
+        try:
+            subprocess.run(["ip", "-netns", self.name, "link", "set", "lo", "up"],
+                            check=True, capture_output=True, text=True)
+
+            # A private mount namespace, still inside this net namespace,
+            # gives /tmp and /dev/shm their own tmpfs - `ip netns exec`
+            # alone only isolates the network stack, not the filesystem.
+            self._holder = subprocess.Popen(
+                ["ip", "netns", "exec", self.name] + MOUNT_HOLDER_CMD,
+                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            )
+            self._wait_ready()
+
+            # Give /tmp its own private tmpfs: several legacy test
+            # scripts we run inside this namespace (see test/qbg22/)
+            # write fixed paths like /tmp/<case>-lldpad.conf.out, which
+            # would otherwise collide between concurrently-running test
+            # cases sharing the host /tmp.
+            self.run(["mount", "-t", "tmpfs", "tmpfs", "/tmp"])
+            # Likewise for /dev/shm: lldpad keeps its runtime state in a
+            # single fixed-name POSIX shm segment (LLDPAD_SHM_PATH), and
+            # /dev/shm content visibility follows the mount namespace -
+            # without this, two concurrently running lldpad instances
+            # (in different tests, or a stale one left on the host)
+            # would collide on it, the second one finding the first's
+            # still-live PID recorded there and refusing to start
+            # ("lldpad already running").
+            self.run(["mount", "-t", "tmpfs", "tmpfs", "/dev/shm"])
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, NetNSError) as e:
+            self.stop()
+            raise NetNSError("namespace setup failed: %r" % (e,)) from e
+        return self
+
+    def _wait_ready(self):
         deadline = time.time() + self.ready_timeout
         last_err = None
         while time.time() < deadline:
             if self._holder.poll() is not None:
                 stderr = self._holder.stderr.read().decode(errors="replace")
                 raise NetNSError(
-                    "unshare exited early (rc=%s): %s"
+                    "mount namespace holder exited early (rc=%s): %s"
                     % (self._holder.returncode, stderr.strip())
                 )
             try:
                 self.run(["true"], timeout=1)
-                break
+                return
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
                 last_err = e
                 time.sleep(0.05)
-        else:
-            self.stop()
-            raise NetNSError("namespace never became ready: %r" % (last_err,))
-
-        # Give /tmp its own private tmpfs: several legacy test scripts we
-        # run inside this namespace (see test/qbg22/) write fixed paths
-        # like /tmp/<case>-lldpad.conf.out, which would otherwise collide
-        # between concurrently-running test cases sharing the host /tmp.
-        self.run(["mount", "-t", "tmpfs", "tmpfs", "/tmp"])
-        # Likewise for /dev/shm: lldpad keeps its runtime state in a
-        # single fixed-name POSIX shm segment (LLDPAD_SHM_PATH). Content
-        # visibility for /dev/shm follows the *mount* namespace, not the
-        # IPC namespace, so --ipc alone does not stop two concurrently
-        # running lldpad instances (in different tests, or a stale one
-        # left on the host) from colliding on it - the second one finds
-        # the first's still-live PID recorded there and refuses to start
-        # ("lldpad already running").
-        self.run(["mount", "-t", "tmpfs", "tmpfs", "/dev/shm"])
-        return self
+        raise NetNSError("namespace never became ready: %r" % (last_err,))
 
     def stop(self):
-        if self._holder is None:
-            return
-        if self._holder.poll() is None:
-            self._holder.terminate()
-            try:
-                self._holder.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self._holder.kill()
-                self._holder.wait(timeout=5)
-        self._holder = None
+        if self._holder is not None:
+            if self._holder.poll() is None:
+                self._holder.terminate()
+                try:
+                    self._holder.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self._holder.kill()
+                    self._holder.wait(timeout=5)
+            self._holder = None
+        subprocess.run(["ip", "netns", "del", self.name],
+                        check=False, capture_output=True)
 
     def __enter__(self):
         self.start()
@@ -114,16 +143,7 @@ class NetNS:
     # -- running things inside the namespace --------------------------
 
     def _nsenter_prefix(self):
-        return [
-            "nsenter",
-            "--target", str(self.pid),
-            "--mount",
-            "--net",
-            "--ipc",
-            "--user",
-            "--preserve-credentials",
-            "--",
-        ]
+        return ["nsenter", "--target", str(self.pid), "--mount", "--net", "--"]
 
     def run(self, cmd, check=True, timeout=None, **kwargs):
         """Run cmd inside the namespace, waiting for it to finish."""
@@ -139,43 +159,6 @@ class NetNS:
     def popen(self, cmd, **kwargs):
         """Start a long-running process inside the namespace."""
         return subprocess.Popen(self._nsenter_prefix() + list(cmd), **kwargs)
-
-    def _nsenter_new_ipc_prefix(self):
-        """Like _nsenter_prefix, but hands the command a *fresh* IPC
-        namespace nested inside this NetNS's net/mount namespace, instead
-        of joining the shared one.
-
-        Used to run a second lldpad instance (e.g. VDP's bridge role)
-        alongside the first inside the same NetNS: lldpad's POSIX shm
-        segment has a fixed name, so two instances sharing one IPC
-        namespace would collide.
-        """
-        return [
-            "nsenter",
-            "--target", str(self.pid),
-            "--mount",
-            "--net",
-            "--preserve-credentials",
-            "--",
-            "unshare",
-            "--ipc",
-            "--",
-        ]
-
-    def popen_new_ipc(self, cmd, **kwargs):
-        """Like popen(), but cmd runs in its own fresh IPC namespace."""
-        return subprocess.Popen(self._nsenter_new_ipc_prefix() + list(cmd), **kwargs)
-
-    def run_new_ipc(self, cmd, check=True, timeout=None, **kwargs):
-        """Like run(), but cmd runs in its own fresh IPC namespace."""
-        return subprocess.run(
-            self._nsenter_new_ipc_prefix() + list(cmd),
-            check=check,
-            timeout=timeout,
-            capture_output=True,
-            text=True,
-            **kwargs,
-        )
 
     def run_python(self, script_path, args=None, extra_pythonpath=None,
                     timeout=30, check=True):

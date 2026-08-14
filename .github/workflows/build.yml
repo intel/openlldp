@@ -104,18 +104,18 @@ jobs:
         run: make -j"$(nproc)"
 
       - name: Run check-integration
-        # Deliberately not sudo: the harness is designed to work
-        # unprivileged via --map-root-user (see test/pytest/README.md's
-        # "Privilege model") and that's the path actually exercised
-        # during development. Running the whole suite as real root
-        # instead turned out to cause its own problems here - binaries
-        # built as the normal runner user came back "Permission denied"
-        # specifically when exec'd through nsenter into the nested
-        # mount+user namespace under sudo, a namespace/uid-mapping
-        # interaction that isn't worth chasing blind on hosted runners.
-        # If a runner genuinely can't create unprivileged namespaces,
-        # the affected tests skip themselves rather than erroring.
-        run: make check-integration
+        # Real root, plain `ip netns add`/`ip netns exec` (no user
+        # namespace involved at all) - see test/pytest/README.md's
+        # "Privilege model" for why: this harness first tried running
+        # unprivileged via a remapped user namespace, but that hit
+        # Ubuntu 23.10+'s AppArmor restriction on unprivileged
+        # CLONE_NEWUSER; running that same construction as real root to
+        # sidestep the restriction then produced its own unexplained
+        # "Permission denied" execing freshly-built binaries through the
+        # nested namespace. Skipping user namespaces entirely avoids
+        # both. `-E ... PATH=$PATH` so sudo doesn't drop the toolchain
+        # (pytest, the built binaries) off PATH.
+        run: sudo -E env "PATH=$PATH" make check-integration
 
   sanitizers:
     # Same build+test, compiled with -fsanitize=address or =undefined.
@@ -181,5 +181,5 @@ jobs:
         run: make check
 
       - name: Run check-integration
-        # See the integration-tests job for why this isn't sudo.
-        run: make check-integration
+        # See the integration-tests job for why this is sudo -E ... PATH=$PATH.
+        run: sudo -E env "PATH=$PATH" make check-integration

@@ -123,12 +123,12 @@ def case_workdir(request):
 
 @pytest.fixture()
 def netns(require_tools, lldptool_bin):
-    """A fresh, isolated net/mount/ipc/user namespace for one test."""
+    """A fresh, isolated network+mount namespace for one test."""
     ns = NetNS()
     try:
         ns.start()
     except NetNSError as e:
-        pytest.skip("cannot create an unprivileged namespace: %s" % e)
+        pytest.skip("cannot create namespace (needs real root): %s" % e)
     ns.lldptool_bin = lldptool_bin
     try:
         yield ns
