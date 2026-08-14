@@ -116,6 +116,20 @@ endif
 ## put a spec file and documentation in the distribution archive
 dist_noinst_DATA = lldpad.spec README COPYING ChangeLog lldpad.init
 
+## netns/scapy integration test suite sources (see check-integration below)
+EXTRA_DIST = test/pytest
+
+## strip Python bytecode caches (created by running check-integration
+## in-tree) out of both `make clean` and `make dist` output; they're
+## build artifacts, not sources.
+clean-local:
+	find $(srcdir)/test/pytest -name '__pycache__' -type d -exec rm -rf {} +
+	rm -rf $(srcdir)/test/pytest/.pytest_cache
+
+dist-hook:
+	find $(distdir)/test/pytest -name '__pycache__' -type d -exec rm -rf {} +
+	rm -rf $(distdir)/test/pytest/.pytest_cache
+
 ## man pages
 dist_man_MANS = docs/lldpad.8 docs/dcbtool.8 docs/lldptool.8 \
 		docs/lldptool-ets.8 docs/lldptool-pfc.8 docs/lldptool-app.8 \
@@ -150,6 +164,22 @@ AM_DISTCHECK_CONFIGURE_FLAGS = --enable-debug
 lldp_clif_test_SOURCES = test/lldp_clif_test.c lldp_basman_clif.c lldp_util.c \
 	lldp_rtnl.c
 lldp_clif_test_LDFLAGS = -lrt $(LIBNL_LIBS)
+
+## netns/scapy integration test suite (test/pytest/): not part of the
+## default `check` since it needs pytest+scapy and the ability to create
+## unprivileged network namespaces, neither of which every build host
+## has. Run explicitly with `make check-integration`.
+PYTEST ?= pytest
+
+.PHONY: check-integration
+check-integration: lldpad$(EXEEXT) lldptool$(EXEEXT)
+	@if ! command -v $(PYTEST) >/dev/null 2>&1; then \
+		echo "error: '$(PYTEST)' not found; install $(srcdir)/test/pytest/requirements.txt" >&2; \
+		exit 1; \
+	fi
+	OPENLLDP_LLDPAD=$(abs_builddir)/lldpad$(EXEEXT) \
+	OPENLLDP_LLDPTOOL=$(abs_builddir)/lldptool$(EXEEXT) \
+	$(PYTEST) $(srcdir)/test/pytest -v
 
 RPMBUILD_TOP = $(abs_top_builddir)/rpm/rpmbuild
 RPMBUILD_OPT ?= --without check

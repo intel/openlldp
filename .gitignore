@@ -39,3 +39,7 @@ qbg22sim
 patches/
 tags
 ar-lib
+
+# pytest netns/scapy test suite
+test/pytest/**/__pycache__/
+test/pytest/.pytest_cache/
