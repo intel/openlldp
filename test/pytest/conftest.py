@@ -160,7 +160,12 @@ def lldpad(netns, veth_pair, lldpad_bin, lldptool_bin, case_workdir):
     log_path = os.path.join(case_workdir, "lldpad.log")
     proc = LldpadProcess(netns, lldpad_bin, lldptool_bin, cfg_path, log_path=log_path)
     try:
-        proc.start()
+        # -V 7 (LOG_DEBUG): the default level (LOG_WARNING) suppresses
+        # the per-frame LLDPAD_INFO() validation messages in lldp/rx.c
+        # ("TLV missing or TLVs out of order", "multiple ... TLVs", ...)
+        # that compliance tests rely on to confirm *why* a malformed
+        # frame was rejected, not just that it was.
+        proc.start(extra_args=["-V", "7"])
     except NetNSError as e:
         log = ""
         if os.path.exists(log_path):
