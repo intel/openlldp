@@ -1,5 +1,7 @@
 import os
+import re
 import shutil
+import tempfile
 
 import pytest
 
@@ -10,6 +12,14 @@ from helpers.lldpad_proc import LldpadProcess
 # out-of-tree (VPATH) builds, the Makefile's check-integration target
 # points us at them explicitly via these env vars.
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Deliberately *not* under /tmp: NetNS mounts a private tmpfs over /tmp
+# inside each test's namespace (so legacy scripts that hardcode /tmp
+# paths don't collide across concurrent test cases - see helpers/netns.py),
+# which means a host-side path under /tmp is invisible from inside the
+# namespace. Anything a process running inside the namespace needs to
+# read (lldpad's -f config file, case data, ...) has to live outside /tmp.
+SCRATCH_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".scratch")
 
 
 def _binary(name, env_var):
@@ -40,10 +50,75 @@ def lldptool_bin():
 
 
 @pytest.fixture(scope="session")
+def vdptool_bin():
+    path = _binary("vdptool", "OPENLLDP_VDPTOOL")
+    if not path:
+        pytest.skip("vdptool is not built; run `make` first "
+                     "(or set OPENLLDP_VDPTOOL)")
+    return path
+
+
+@pytest.fixture(scope="session")
+def qbg22sim_bin():
+    # qbg22sim/vdptest are noinst_PROGRAMS, only built with --enable-debug.
+    path = _binary("qbg22sim", "OPENLLDP_QBG22SIM")
+    if not path:
+        pytest.skip("qbg22sim is not built; configure with --enable-debug "
+                     "and run `make` (or set OPENLLDP_QBG22SIM)")
+    return path
+
+
+@pytest.fixture(scope="session")
+def vdptest_bin():
+    path = _binary("vdptest", "OPENLLDP_VDPTEST")
+    if not path:
+        pytest.skip("vdptest is not built; configure with --enable-debug "
+                     "and run `make` (or set OPENLLDP_VDPTEST)")
+    return path
+
+
+@pytest.fixture(scope="session")
 def require_tools():
     for tool in ("unshare", "nsenter", "ip"):
         if shutil.which(tool) is None:
             pytest.skip("%r not found on PATH" % tool)
+
+
+# -- pytest_runtest_makereport/case_workdir: keep failed test artifacts ----
+#
+# Stashes each phase's outcome on the test item (the standard pytest
+# recipe) so the case_workdir fixture below can tell, at teardown time,
+# whether the test it instrumented actually failed.
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    setattr(item, "rep_" + rep.when, rep)
+
+
+def _test_failed(request):
+    for when in ("setup", "call"):
+        rep = getattr(request.node, "rep_" + when, None)
+        if rep is not None and rep.failed:
+            return True
+    return False
+
+
+@pytest.fixture()
+def case_workdir(request):
+    """A private scratch directory for one test, outside of /tmp.
+
+    Removed on success; kept (and its path printed) if the test failed,
+    so logs/configs/case output are available for post-mortem debugging.
+    """
+    os.makedirs(SCRATCH_ROOT, exist_ok=True)
+    safe_name = re.sub(r"[^A-Za-z0-9_.-]", "_", request.node.name)
+    path = tempfile.mkdtemp(prefix=safe_name + "-", dir=SCRATCH_ROOT)
+    yield path
+    if _test_failed(request):
+        print("\n[case_workdir] kept for debugging: %s" % path)
+    else:
+        shutil.rmtree(path, ignore_errors=True)
 
 
 @pytest.fixture()
@@ -79,10 +154,10 @@ def veth_pair(netns):
 
 
 @pytest.fixture()
-def lldpad(netns, veth_pair, lldpad_bin, lldptool_bin, tmp_path):
+def lldpad(netns, veth_pair, lldpad_bin, lldptool_bin, case_workdir):
     """A running lldpad inside `netns`, LLDP enabled on veth_pair.dut."""
-    cfg_path = str(tmp_path / "lldpad.conf")
-    log_path = str(tmp_path / "lldpad.log")
+    cfg_path = os.path.join(case_workdir, "lldpad.conf")
+    log_path = os.path.join(case_workdir, "lldpad.log")
     proc = LldpadProcess(netns, lldpad_bin, lldptool_bin, cfg_path, log_path=log_path)
     try:
         proc.start()

@@ -169,16 +169,38 @@ lldp_clif_test_LDFLAGS = -lrt $(LIBNL_LIBS)
 ## default `check` since it needs pytest+scapy and the ability to create
 ## unprivileged network namespaces, neither of which every build host
 ## has. Run explicitly with `make check-integration`.
-PYTEST ?= pytest
+##
+## This also covers test/pytest/qbg/, the ported test/qbg22/ EVB/ECP/VDP
+## case suite - but that one additionally needs qbg22sim and vdptest,
+## which are noinst_PROGRAMS built only with --enable-debug; without it,
+## those cases skip themselves cleanly at test time rather than failing
+## the build here.
+##
+## Cases run in parallel (pytest-xdist, `-n auto`) by default - `make -j`
+## does *not* parallelize this, since check-integration is one target
+## with one recipe (one pytest invocation); the actual concurrency knob
+## is PYTEST below. Override e.g. `make check-integration PYTEST=pytest`
+## to force serial, or `PYTEST="pytest -n 4"` to pick a worker count.
+PYTEST ?= pytest -n auto
+
+if BUILD_DEBUG
+QBG_TEST_BINS = qbg22sim$(EXEEXT) vdptest$(EXEEXT)
+else
+QBG_TEST_BINS =
+endif
 
 .PHONY: check-integration
-check-integration: lldpad$(EXEEXT) lldptool$(EXEEXT)
-	@if ! command -v $(PYTEST) >/dev/null 2>&1; then \
-		echo "error: '$(PYTEST)' not found; install $(srcdir)/test/pytest/requirements.txt" >&2; \
+check-integration: lldpad$(EXEEXT) lldptool$(EXEEXT) vdptool$(EXEEXT) $(QBG_TEST_BINS)
+	@pytest_bin=`echo $(PYTEST) | awk '{print $$1}'`; \
+	if ! command -v "$$pytest_bin" >/dev/null 2>&1; then \
+		echo "error: '$$pytest_bin' not found; install $(srcdir)/test/pytest/requirements.txt" >&2; \
 		exit 1; \
 	fi
 	OPENLLDP_LLDPAD=$(abs_builddir)/lldpad$(EXEEXT) \
 	OPENLLDP_LLDPTOOL=$(abs_builddir)/lldptool$(EXEEXT) \
+	OPENLLDP_VDPTOOL=$(abs_builddir)/vdptool$(EXEEXT) \
+	OPENLLDP_QBG22SIM=$(abs_builddir)/qbg22sim$(EXEEXT) \
+	OPENLLDP_VDPTEST=$(abs_builddir)/vdptest$(EXEEXT) \
 	$(PYTEST) $(srcdir)/test/pytest -v
 
 RPMBUILD_TOP = $(abs_top_builddir)/rpm/rpmbuild

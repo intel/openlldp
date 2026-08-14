@@ -62,13 +62,29 @@ class NetNS:
                 )
             try:
                 self.run(["true"], timeout=1)
-                return self
+                break
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
                 last_err = e
                 time.sleep(0.05)
+        else:
+            self.stop()
+            raise NetNSError("namespace never became ready: %r" % (last_err,))
 
-        self.stop()
-        raise NetNSError("namespace never became ready: %r" % (last_err,))
+        # Give /tmp its own private tmpfs: several legacy test scripts we
+        # run inside this namespace (see test/qbg22/) write fixed paths
+        # like /tmp/<case>-lldpad.conf.out, which would otherwise collide
+        # between concurrently-running test cases sharing the host /tmp.
+        self.run(["mount", "-t", "tmpfs", "tmpfs", "/tmp"])
+        # Likewise for /dev/shm: lldpad keeps its runtime state in a
+        # single fixed-name POSIX shm segment (LLDPAD_SHM_PATH). Content
+        # visibility for /dev/shm follows the *mount* namespace, not the
+        # IPC namespace, so --ipc alone does not stop two concurrently
+        # running lldpad instances (in different tests, or a stale one
+        # left on the host) from colliding on it - the second one finds
+        # the first's still-live PID recorded there and refuses to start
+        # ("lldpad already running").
+        self.run(["mount", "-t", "tmpfs", "tmpfs", "/dev/shm"])
+        return self
 
     def stop(self):
         if self._holder is None:
@@ -123,6 +139,43 @@ class NetNS:
     def popen(self, cmd, **kwargs):
         """Start a long-running process inside the namespace."""
         return subprocess.Popen(self._nsenter_prefix() + list(cmd), **kwargs)
+
+    def _nsenter_new_ipc_prefix(self):
+        """Like _nsenter_prefix, but hands the command a *fresh* IPC
+        namespace nested inside this NetNS's net/mount namespace, instead
+        of joining the shared one.
+
+        Used to run a second lldpad instance (e.g. VDP's bridge role)
+        alongside the first inside the same NetNS: lldpad's POSIX shm
+        segment has a fixed name, so two instances sharing one IPC
+        namespace would collide.
+        """
+        return [
+            "nsenter",
+            "--target", str(self.pid),
+            "--mount",
+            "--net",
+            "--preserve-credentials",
+            "--",
+            "unshare",
+            "--ipc",
+            "--",
+        ]
+
+    def popen_new_ipc(self, cmd, **kwargs):
+        """Like popen(), but cmd runs in its own fresh IPC namespace."""
+        return subprocess.Popen(self._nsenter_new_ipc_prefix() + list(cmd), **kwargs)
+
+    def run_new_ipc(self, cmd, check=True, timeout=None, **kwargs):
+        """Like run(), but cmd runs in its own fresh IPC namespace."""
+        return subprocess.run(
+            self._nsenter_new_ipc_prefix() + list(cmd),
+            check=check,
+            timeout=timeout,
+            capture_output=True,
+            text=True,
+            **kwargs,
+        )
 
     def run_python(self, script_path, args=None, extra_pythonpath=None,
                     timeout=30, check=True):
