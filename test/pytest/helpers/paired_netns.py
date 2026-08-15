@@ -17,6 +17,7 @@ is what made the old version of this file a two-level, one-shared-
 outer-namespace construction - no longer needed).
 """
 
+import os
 import shutil
 import subprocess
 import tempfile
@@ -25,7 +26,27 @@ import uuid
 
 from .netns import NetNSError
 
-ROLE_CMD = ["unshare", "--mount", "--", "sleep", "infinity"]
+# Same rule, and the same directory, as conftest.py's SCRATCH_ROOT:
+# deliberately *not* under /tmp. self._shared_tmp below gets bind-mounted
+# onto /tmp inside each role's own mount namespace, so if it were created
+# under the host's real /tmp (tempfile.mkdtemp()'s default), every
+# create/delete against it - including the shutil.rmtree() in stop() -
+# would be operating directly on a subdirectory of the host's real /tmp,
+# regardless of any mount-namespace isolation on the bind mount's target
+# side. See helpers/netns.py's docstring/MOUNT_HOLDER_CMD comment for the
+# separate (also real, also fixed) propagation-leak issue on that target
+# side.
+SCRATCH_ROOT = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".scratch")
+
+# --propagation private: see helpers/netns.py's MOUNT_HOLDER_CMD for
+# why this matters here in particular - without it, the "mount --bind
+# <shared_tmp> /tmp" below leaks onto the host's real /tmp (on a
+# shared-propagation root, which is systemd's default), and the
+# shutil.rmtree(self._shared_tmp) in stop() then deletes the host's
+# actual /tmp contents through that leaked bind mount.
+ROLE_CMD = ["unshare", "--mount", "--propagation", "private",
+            "--", "sleep", "infinity"]
 
 
 class Role:
@@ -99,7 +120,9 @@ class PairedNetNS:
                 subprocess.run(["ip", "-netns", ns, "link", "set", "lo", "up"],
                                 check=True, capture_output=True, text=True)
 
-            self._shared_tmp = tempfile.mkdtemp(prefix="qbg-shared-tmp-")
+            os.makedirs(SCRATCH_ROOT, exist_ok=True)
+            self._shared_tmp = tempfile.mkdtemp(prefix="qbg-shared-tmp-",
+                                                 dir=SCRATCH_ROOT)
 
             self._station_holder = subprocess.Popen(
                 ["ip", "netns", "exec", self.station_ns] + ROLE_CMD,
@@ -116,6 +139,12 @@ class PairedNetNS:
             self._wait_ready(self._bridge_holder)
 
             for role in (self.station, self.bridge):
+                # Belt-and-suspenders on top of ROLE_CMD's
+                # --propagation private - see helpers/netns.py's
+                # matching comment for why this extra, explicit step is
+                # here too.
+                role.run(["mount", "--make-rprivate", "/tmp"])
+                role.run(["mount", "--make-rprivate", "/dev/shm"])
                 role.run(["mount", "--bind", self._shared_tmp, "/tmp"])
                 role.run(["mount", "-t", "tmpfs", "tmpfs", "/dev/shm"])
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired, NetNSError) as e:
