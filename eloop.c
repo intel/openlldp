@@ -200,7 +200,8 @@ static void eloop_sock_table_set_fds(struct eloop_sock_table *table,
 
 
 static void eloop_sock_table_dispatch(struct eloop_sock_table *table,
-				      struct pollfd *fds, int events)
+				      struct pollfd *fds, int fds_count,
+				      int events)
 {
 	int i;
 
@@ -208,7 +209,7 @@ static void eloop_sock_table_dispatch(struct eloop_sock_table *table,
 		return;
 
 	table->changed = 0;
-	for (i = 0; i < table->count; i++) {
+	for (i = 0; i < table->count && i < fds_count; i++) {
 		if (fds[i].revents & events) {
 			table->table[i].handler(table->table[i].pfd.fd,
 						table->table[i].eloop_data,
@@ -512,7 +513,8 @@ void eloop_run(void)
 
 		if (res <= 0)
 			continue;
-		eloop_sock_table_dispatch(&eloop.sock_table, fds, POLLIN);
+		eloop_sock_table_dispatch(&eloop.sock_table, fds, fds_count,
+					  POLLIN);
 	}
 out:
 	free(fds);
