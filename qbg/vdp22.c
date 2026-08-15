@@ -182,9 +182,22 @@ static void mgrid2str(struct vsi22 *p, char *buf, size_t len)
 		else
 			break;
 	}
-	if (print)
-		strncpy(buf, (char *)p->mgrid, len);
-	else
+	if (print) {
+		/*
+		 * p->mgrid is a fixed-size field, not guaranteed to be
+		 * nul-terminated within its own bounds - copy exactly the
+		 * nul-bounded length already found above, rather than
+		 * strncpy()'ing up to the (larger) destination size and
+		 * risking a read past p->mgrid looking for a terminator
+		 * that may not be there.
+		 */
+		size_t n = (size_t)nul + 1;
+
+		if (n >= len)
+			n = len - 1;
+		memcpy(buf, p->mgrid, n);
+		buf[n] = '\0';
+	} else
 		vdp22_local2str(p->mgrid, buf, len);
 }
 
