@@ -300,9 +300,10 @@ def test_oversized_declared_length_rejected(lldpad, veth_pair):
 
 
 def test_missing_end_tlv_rejected(lldpad, veth_pair):
-    """No End Of LLDPDU TLV: parsing runs past the last real TLV, reads
-    whatever bytes follow as a bogus next TLV header, and rejects the
-    resulting (garbage) declared length as a frame overflow.
+    """No End Of LLDPDU TLV: parsing runs off the end of the last real
+    TLV with no bytes left even for another TLV header, and is
+    correctly rejected as a truncated/overrun frame rather than read
+    out of bounds.
 
     The mandatory TLVs alone pad out to under the 60-byte Ethernet
     minimum frame size, and a short raw frame gets zero-padded by the
@@ -316,7 +317,7 @@ def test_missing_end_tlv_rejected(lldpad, veth_pair):
     frame = build_frame([*mandatory_tlvs(), system_description(b"x" * 80)])
     send(veth_pair, frame)
     assert_rejected(lldpad, veth_pair.dut, before_stats, before_log,
-                     expect_message="Frame overflow error")
+                     expect_message="Frame overrun")
 
 
 def test_truly_tiny_garbage_frame_rejected(lldpad, veth_pair):
