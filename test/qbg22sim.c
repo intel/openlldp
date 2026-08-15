@@ -1200,17 +1200,23 @@ static int check_ecpack(struct lldp *node, unsigned char *buf)
  */
 static void search_ecpack(unsigned char *ecpdata)
 {
-	struct lldp *np, *np_prev = 0;
+	struct lldp *np, *np_next, *np_prev = 0;
 
-	for (np = er_ecp; np; np_prev = np, np = np->next) {
+	for (np = er_ecp; np; np = np_next) {
+		/* Save ->next before removeentry() can free np below - and
+		 * only advance np_prev when np survives this iteration, or
+		 * it would be left dangling into freed memory too.
+		 */
+		np_next = np->next;
 		check_ecpack(np, ecpdata + ETH_HLEN);
-		if (np->recv)
+		if (np->recv) {
 			show_ecpexpect(np, 6);
-		else {
+			np_prev = np;
+		} else {
 			if (!np_prev)
-				er_ecp = np->next;
+				er_ecp = np_next;
 			else
-				np_prev->next = np->next;
+				np_prev->next = np_next;
 			removeentry(np);
 		}
 	}
