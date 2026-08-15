@@ -165,7 +165,7 @@ void rxProcessFrame(struct port *port, struct lldp_agent *agent)
 
 	do {
 		tlv_cnt++;
-		if (tlv_offset > agent->rx.sizein) {
+		if (tlv_offset + sizeof(*tlv_head_ptr) > agent->rx.sizein) {
 			LLDPAD_INFO("ERROR: Frame overrun!\n");
 			frame_error++;
 			goto out;
