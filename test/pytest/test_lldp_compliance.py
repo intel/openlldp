@@ -43,6 +43,7 @@ from helpers.lldp_wire import (
     build_frame,
     chassis_id,
     end_of_lldpdu,
+    management_address,
     mandatory_tlvs,
     port_description,
     port_id,
@@ -54,6 +55,8 @@ from helpers.lldp_wire import (
     CHASSIS_ID,
     PORT_ID,
     TTL,
+    MGMT_ADDR_IPV4,
+    MGMT_ADDR_IPV6,
 )
 
 SEND_RAW = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -214,6 +217,37 @@ def test_duplicate_optional_tlvs_rejected(lldpad, veth_pair, dup_tlvs, expect_me
     send(veth_pair, build_frame([*dup_tlvs, end_of_lldpdu()]))
     assert_rejected(lldpad, veth_pair.dut, before_stats, before_log,
                      expect_message=expect_message)
+
+
+def test_multiple_management_address_tlvs_are_tolerated(lldpad, veth_pair):
+    """Unlike the other optional TLVs above, Management Address (type 8)
+    is deliberately *not* subject to the "reject on duplicate" rule: a
+    real LLDPDU may legitimately carry more than one, e.g. one per
+    address family (IPv4 and IPv6) - switches commonly do this (see
+    "lldp: Tolerate multiple management address TLVs").
+
+    Two management address TLVs must not just be accepted rather than
+    rejected - they must not abort parsing of the *rest* of the frame
+    either: an earlier version of this fix (which the test above this
+    one still guards for the truly-duplicate types) treated a second
+    Management Address TLV as a fatal frame error, aborting before any
+    later TLVs - including the End Of LLDPDU TLV itself - were parsed.
+    Placing a normal optional TLV *after* the second Management Address
+    TLV and confirming it shows up in the neighbor table catches a
+    regression back to that behavior, not just "the frame wasn't
+    rejected".
+    """
+    before = lldpad.stats(veth_pair.dut)
+    frame = build_frame([
+        *mandatory_tlvs(),
+        management_address(addr_subtype=MGMT_ADDR_IPV4, addr=b"\xc0\xa8\x01\x01"),
+        management_address(addr_subtype=MGMT_ADDR_IPV6, addr=b"\x20\x01\x0d\xb8" + b"\x00" * 12),
+        system_name(b"mgmt-addr-dut"),
+        end_of_lldpdu(),
+    ])
+    send(veth_pair, frame)
+    assert_accepted(lldpad, veth_pair.dut, before)
+    assert "mgmt-addr-dut" in lldpad.neighbors(veth_pair.dut)
 
 
 @pytest.mark.parametrize("extra_tlv", [

@@ -74,6 +74,28 @@ def system_capabilities(capabilities=0x0004, enabled=0x0004, **kw):
                struct.pack("!HH", capabilities, enabled), **kw)
 
 
+# Management Address subtypes (802.1AB Table 8-5 / RFC 3232 "Address
+# Family Numbers"): 1 = IPv4, 2 = IPv6.
+MGMT_ADDR_IPV4 = 1
+MGMT_ADDR_IPV6 = 2
+
+
+def management_address(addr_subtype=MGMT_ADDR_IPV4, addr=b"\xc0\xa8\x01\x01",
+                        if_subtype=2, if_number=1, oid=b"", **kw):
+    """A Management Address TLV (802.1AB clause 8.5.9).
+
+    Defaults to an IPv4 address (192.168.1.1) with interface numbering
+    subtype 2 (ifIndex) and an empty OID - unlike the other basic TLV
+    types, a valid LLDPDU may carry more than one of these (e.g. one
+    per address family), which is exactly the case this helper exists
+    to build - see test_multiple_management_address_tlvs_are_tolerated.
+    """
+    value = (bytes([1 + len(addr), addr_subtype]) + addr +
+             bytes([if_subtype]) + struct.pack("!I", if_number) +
+             bytes([len(oid)]) + oid)
+    return tlv(MANAGEMENT_ADDRESS, value, **kw)
+
+
 def end_of_lldpdu(**kw):
     return tlv(END_OF_LLDPDU, b"", **kw)
 
