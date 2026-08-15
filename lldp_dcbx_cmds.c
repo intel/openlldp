@@ -134,27 +134,23 @@ void dont_advertise_dcbx_all(char *ifname, bool ad)
 	pg_attribs pg_data;
 	app_attribs app_data;
 	llink_attribs llink_data;
-	u32 event_flag = 0;
 
 	is_pfc = get_pfc(ifname, &pfc_data);
 
 	if (get_pg(ifname, &pg_data) == cmd_success) {
 		pg_data.protocol.Advertise = ad;
 		put_pg(ifname, &pg_data, &pfc_data);
-		event_flag |= DCB_LOCAL_CHANGE_PG;
 	}
 
 	if (is_pfc == cmd_success) {
 		pfc_data.protocol.Advertise = ad;
 		put_pfc(ifname, &pfc_data);
-		event_flag |= DCB_LOCAL_CHANGE_PFC;
 	}
 
 	for (i = 0; i < DCB_MAX_APPTLV ; i++) {
 		if (get_app(ifname, (u32)i, &app_data) == cmd_success) {
 			app_data.protocol.Advertise = ad;
 			put_app(ifname, (u32)i, &app_data);
-			event_flag |= DCB_LOCAL_CHANGE_APPTLV(i);
 		}
 	}
 
@@ -162,7 +158,6 @@ void dont_advertise_dcbx_all(char *ifname, bool ad)
 		if (get_llink(ifname, (u32)i, &llink_data) == cmd_success) {
 			llink_data.protocol.Advertise = ad;
 			put_llink(ifname, (u32)i, &llink_data);
-			event_flag |= DCB_LOCAL_CHANGE_LLINK;
 		}
 	}
 }
