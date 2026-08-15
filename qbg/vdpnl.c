@@ -353,7 +353,7 @@ static int vdpnl_get(struct vdpnl_vsi *p, struct nlmsghdr *nlh)
 	struct ifinfomsg *ifinfo = (struct ifinfomsg *)NLMSG_DATA(nlh);
 
 	memset(tb, 0, sizeof(tb));
-	rc = nla_parse(tb, sizeof(tb) / sizeof(tb[0]),
+	rc = nla_parse(tb, IFLA_MAX,
 			 (struct nlattr *)IFLA_RTA(NLMSG_DATA(nlh)),
 			 IFLA_PAYLOAD(nlh), pc_max);
 	if (rc) {
