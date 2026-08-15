@@ -466,7 +466,6 @@ int get_dcb_capabilities(char *ifname,
 	struct rtattr *rta_child;
 	int rval = 0;
 	unsigned int seq;
-	int i;
 	u8 cap;
 
 	memset((char *)dcb_capabilities, 0, sizeof(struct feature_support));
@@ -508,7 +507,7 @@ int get_dcb_capabilities(char *ifname,
 	rta_parent = (struct rtattr *)((char *)rta_parent +
 	                               NLMSG_ALIGN(rta_parent->rta_len));
 
-	for (i = 0; rta_parent > rta_child; i++) {
+	while (rta_parent > rta_child) {
 		cap = *(u8 *)NLA_DATA(rta_child);
 
 		switch (rta_child->rta_type) {
@@ -558,7 +557,6 @@ int get_dcb_numtcs(const char *ifname, u8 *pgtcs, u8 *pfctcs)
 	struct rtattr *rta_child;
 	int rval = 0;
 	unsigned int seq;
-	int i;
 	int found;
 	char name[IFNAMSIZ];
 
@@ -601,7 +599,7 @@ int get_dcb_numtcs(const char *ifname, u8 *pgtcs, u8 *pfctcs)
 	                               NLMSG_ALIGN(rta_parent->rta_len));
 
 	found = 0;
-	for (i = 0; rta_parent > rta_child; i++) {
+	while (rta_parent > rta_child) {
 		switch (rta_child->rta_type) {
 		case DCB_NUMTCS_ATTR_PG:
 			if (! (found & 0x01) ) {
