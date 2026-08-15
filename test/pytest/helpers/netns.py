@@ -35,7 +35,15 @@ import subprocess
 import time
 import uuid
 
-MOUNT_HOLDER_CMD = ["unshare", "--mount", "--", "sleep", "infinity"]
+# --propagation private detaches the new mount namespace from the
+# host's propagation group. On distros where / is mounted "shared"
+# (systemd's default - check with `findmnt -o PROPAGATION /`), any
+# mount made *inside* the namespace below (the /tmp and /dev/shm
+# tmpfs mounts in start()) would otherwise also propagate straight
+# out into the host's own mount namespace, silently shadowing the
+# host's real /tmp with an empty, root-owned tmpfs.
+MOUNT_HOLDER_CMD = ["unshare", "--mount", "--propagation", "private",
+                    "--", "sleep", "infinity"]
 
 
 class NetNSError(RuntimeError):
@@ -75,6 +83,22 @@ class NetNS:
                 stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
             )
             self._wait_ready()
+
+            # Belt-and-suspenders on top of MOUNT_HOLDER_CMD's
+            # --propagation private: explicitly re-assert MS_PRIVATE on
+            # the exact mountpoints we're about to replace, from
+            # *inside* the namespace, right before replacing them. This
+            # is the same two-step "unshare, then explicit
+            # mount --make-rprivate" idiom runc/libcontainer use -
+            # belt-and-suspenders because relying on unshare(1)'s
+            # --propagation flag alone was not sufficient in practice
+            # (observed leaking onto the host's real /tmp even with it
+            # set), and `ip netns exec` itself unshares its own mount
+            # namespace ahead of ours, which is one more layer than
+            # --propagation private's single recursive pass accounted
+            # for.
+            self.run(["mount", "--make-rprivate", "/tmp"])
+            self.run(["mount", "--make-rprivate", "/dev/shm"])
 
             # Give /tmp its own private tmpfs: several legacy test
             # scripts we run inside this namespace (see test/qbg22/)
