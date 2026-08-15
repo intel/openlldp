@@ -175,7 +175,7 @@ static void set_ets_prio_map(const char *arg, u32 *prio_map)
 
 static void set_ets_tsa_map(const char *arg, u8 *tsa_map)
 {
-	int i, type, tc;
+	int type, tc;
 	char *argcpy = strdup(arg);
 	char *tokens;
 
@@ -184,7 +184,7 @@ static void set_ets_tsa_map(const char *arg, u8 *tsa_map)
 
 	tokens = strtok(argcpy, ",");
 
-	for (i = 0; tokens; i++) {
+	while (tokens) {
 		tc = atoi(tokens);
 		if ((strcmp(&tokens[2], "strict")) == 0)
 			type = IEEE8021Q_TSA_STRICT;
