@@ -695,7 +695,8 @@ int get_tlvs(struct cmd *cmd, char *rbuf, int rlen)
 			}
 
 			if (tlvid == cmd->tlvid) {
-				memcpy(tlvs+moff, tlvs+off, sizeof(u16)+len);
+				/* overlapping src/dst when matching TLVs are compacted forward */
+				memmove(tlvs+moff, tlvs+off, sizeof(u16)+len);
 				moff += sizeof(u16)+len;
 			}
 
