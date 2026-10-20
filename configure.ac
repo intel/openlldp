@@ -1,4 +1,5 @@
 AC_INIT([lldpad],[1.3.99],[https://github.com/intel/openlldp/issues])
+AC_CONFIG_AUX_DIR([.])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 m4_pattern_allow([AM_PROG_AR])
