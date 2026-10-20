@@ -40,6 +40,10 @@ patches/
 tags
 ar-lib
 
+# Output from make check
+lldp_clif_test*
+test-suite.log
+
 # pytest netns/scapy test suite
 test/pytest/**/__pycache__/
 test/pytest/.pytest_cache/
