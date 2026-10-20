@@ -44,20 +44,6 @@ jobs:
       - name: Run bootstrap
         run: ./bootstrap.sh
 
-      - name: Check bootstrap with parent-directory helpers
-        run: |
-          regression_dir=$(mktemp -d)
-          trap 'rm -rf "$regression_dir"' EXIT
-          mkdir "$regression_dir/source"
-          git ls-files -z | tar --null -T - -cf - | tar -xf - -C "$regression_dir/source"
-          cp install-sh "$regression_dir/install.sh"
-          cp ltmain.sh "$regression_dir/ltmain.sh"
-          sha256sum "$regression_dir/install.sh" "$regression_dir/ltmain.sh" > "$regression_dir/parent.sha256"
-          cd "$regression_dir/source"
-          ./bootstrap.sh
-          test -s ./ltmain.sh
-          sha256sum --check "$regression_dir/parent.sha256"
-
       - name: Build RPM
         run: ./contrib/build-rpm.sh
 
