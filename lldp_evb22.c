@@ -319,6 +319,9 @@ static int evb22_rchange(struct port *port, struct lldp_agent *agent,
 		if (memcmp(tlv->info, &oui_subtype, OUI_SUB_SIZE))
 			return SUBTYPE_INVALID;
 
+		if (tlv->length != sizeof(struct evb22_tlv))
+			return TLV_ERR;
+
 		/* disable rx if tx has been disabled by administrator */
 		if (!ed->txmit) {
 			LLDPAD_WARN("%s:%s agent %d EVB Config disabled\n",
