@@ -1,4 +1,4 @@
-AC_INIT([lldpad], [1.3.99], [https://github.com/intel/openlldp/issues])
+AC_INIT([lldpad],[1.3.99],[https://github.com/intel/openlldp/issues])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 m4_pattern_allow([AM_PROG_AR])
@@ -15,8 +15,8 @@ AM_CONDITIONAL([BUILD_DEBUG], [test "$enable_debug" = "yes"])
 AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_CXX
-AC_PROG_LEX
-AC_PROG_LIBTOOL
+AC_PROG_LEX([noyywrap])
+LT_INIT
 
 LT_INIT([dlopen])
 
@@ -125,7 +125,7 @@ AC_C_INLINE
 AC_FUNC_CHOWN
 AC_FUNC_REALLOC
 AC_HEADER_STDBOOL
-AC_PREREQ
+AC_PREREQ([2.72])
 AC_PROG_INSTALL
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
