@@ -407,9 +407,13 @@ void rxProcessFrame(struct port *port, struct lldp_agent *agent)
 
 			err = np->ops->lldp_mod_rchange(port, agent, tlv);
 
-			if (!err)
+			if (!err) {
+				/* Module claimed the TLV; do not pass a possibly freed
+				 * pointer to later modules in the list.
+				 */
 				tlv_stored = true;
-			else if (err == TLV_ERR) {
+				break;
+			} else if (err == TLV_ERR) {
 				frame_error++;
 				free_unpkd_tlv(tlv);
 				goto out;
