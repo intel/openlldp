@@ -833,6 +833,8 @@ bool unpack_dcbx1_tlvs(struct port *port, struct lldp_agent *agent,
 
 	if (agent == NULL)
 		return false;
+	if (tlv->length < DCB_OUI_LEN + OUI_SUBTYPE_LEN)
+		return false;
 
 	/* store highest dcbx subtype received */
 	if (agent->rx.dcbx_st < tlv->info[DCB_OUI_LEN]) {
@@ -850,11 +852,21 @@ bool unpack_dcbx1_tlvs(struct port *port, struct lldp_agent *agent,
 				"DCB TLV. \n");
 			return false;
 		}
+		if (current + sizeof(tl) > end) {
+			LLDPAD_DBG("ERROR: truncated DCB TLV header \n");
+			free_unpkd_tlv(dcbtlv);
+			return false;
+		}
 		memcpy(&tl, offset, sizeof(tl));
 		offset += sizeof(tl);
 		dcbtlv->length = ntohs(tl) & 0x01FF;
 		if (dcbtlv->length==0) {
 			LLDPAD_DBG("ERROR: dcbtlv->length==0 \n");
+			free_unpkd_tlv(dcbtlv);
+			return false;
+		}
+		if (current + sizeof(tl) + dcbtlv->length > end) {
+			LLDPAD_DBG("ERROR: truncated DCB TLV info \n");
 			free_unpkd_tlv(dcbtlv);
 			return false;
 		}
@@ -913,6 +925,11 @@ bool unpack_dcbx1_tlvs(struct port *port, struct lldp_agent *agent,
 			}
 			break;
 		case DCB_APPLICATION_TLV:
+			if (dcbtlv->length <= DCBX_HDR_SUB_TYPE_OFFSET) {
+				LLDPAD_DBG("ERROR: truncated DCB APP TLV \n");
+				free_unpkd_tlv(dcbtlv);
+				return false;
+			}
 			/* store if subtype 2 is not present */
 			if ((agent->rx.dcbx_st == DCBX_SUBTYPE1) &&
 				(dcbtlv->info[DCBX_HDR_SUB_TYPE_OFFSET]
@@ -930,6 +947,11 @@ bool unpack_dcbx1_tlvs(struct port *port, struct lldp_agent *agent,
 			}
 		break;
 		case DCB_LLINK_TLV:
+			if (dcbtlv->length <= DCBX_HDR_SUB_TYPE_OFFSET) {
+				LLDPAD_DBG("ERROR: truncated DCB LLINK TLV \n");
+				free_unpkd_tlv(dcbtlv);
+				return false;
+			}
 			if (dcbtlv->info[DCBX_HDR_SUB_TYPE_OFFSET]
 					== LLINK_FCOE_STYPE) {
 				if (tlvs->manifest->dcbx_llink == NULL) {
@@ -969,6 +991,8 @@ bool unpack_dcbx2_tlvs(struct port *port, struct lldp_agent *agent,
 
 	if (agent == NULL)
 		return false;
+	if (tlv->length < DCB_OUI_LEN + OUI_SUBTYPE_LEN)
+		return false;
 
 	/* store highest dcbx subtype received */
 	if (agent->rx.dcbx_st < tlv->info[DCB_OUI_LEN]) {
@@ -986,11 +1010,21 @@ bool unpack_dcbx2_tlvs(struct port *port, struct lldp_agent *agent,
 				"DCB TLV. \n");
 			return false;
 		}
+		if (current + sizeof(tl) > end) {
+			LLDPAD_DBG("ERROR: truncated DCB TLV header \n");
+			free_unpkd_tlv(dcbtlv);
+			return false;
+		}
 		memcpy(&tl, offset, sizeof(tl));
 		offset += sizeof(tl);
 		dcbtlv->length = ntohs(tl) & 0x01FF;
 		if (dcbtlv->length==0) {
 			LLDPAD_DBG("ERROR: dcbtlv->length==0 \n");
+			free_unpkd_tlv(dcbtlv);
+			return false;
+		}
+		if (current + sizeof(tl) + dcbtlv->length > end) {
+			LLDPAD_DBG("ERROR: truncated DCB TLV info \n");
 			free_unpkd_tlv(dcbtlv);
 			return false;
 		}
@@ -1043,6 +1077,11 @@ bool unpack_dcbx2_tlvs(struct port *port, struct lldp_agent *agent,
 			}
 			break;
 		case DCB_APPLICATION_TLV2:
+			if (dcbtlv->length <= DCBX_HDR_SUB_TYPE_OFFSET) {
+				LLDPAD_DBG("ERROR: truncated DCB APP TLV \n");
+				free_unpkd_tlv(dcbtlv);
+				return false;
+			}
 			subtype = dcbtlv->info[DCBX_HDR_SUB_TYPE_OFFSET];
 			if (subtype == 0) {
 				if (tlvs->manifest->dcbx_app == NULL) {
